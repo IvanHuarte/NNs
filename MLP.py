@@ -150,12 +150,15 @@ act_dict={
     'sigmoid': nn.sigmoid,
     'tanh': nn.tanh,
     'softmax': nn.softmax,
-    'gelu': nn.gelu,}
+    'gelu': nn.gelu,
+    'swish': nn.swish,
+    'selu': nn.selu,
+    'elu': nn.elu}
 
 opt_name_dict={
     'Sgd': nk.optimizer.Sgd,
     'adam': nk.optimizer.Adam,
-    'AdaGrad': nk.optimizer.AdaGrad,} 
+    'AdaGrad': nk.optimizer.AdaGrad} 
 
 opt_name_list = ['Sgd', 'adam', 'AdaGrad']
 learning_rate_list = [0.1, 0.01, 0.001]
@@ -166,9 +169,9 @@ dimensions_list = [
     (16,32,64,64,32,16,1),
 ]
 activation_list = [
-    [('softmax',0,0),(0,'softmax',0),('tanh',0,0),(0,'tanh',0),('gelu',0,0),(0,'gelu',0)],
-    [('softmax',0,0),(0,'softmax',0),('tanh',0,0),(0,'tanh',0),('gelu',0,0),(0,'gelu',0)],
-    [('softmax',0,0,'softmax',0,'softmax',0),('tanh',0,0,'tanh',0,'tanh',0),('gelu',0,0,'gelu',0,'gelu',0), ('gelu',0,0,'sigmoide',0,'tanh',0)]
+    [('swish',0,0),(0,'swish',0),('selu',0,0),(0,'selu',0),('elu',0,0),(0,'elu',0)],
+    [('swish',0,0),(0,'swish',0),('selu',0,0),(0,'selu',0),('elu',0,0),(0,'elu',0)],
+    [('swish',0,0,'swish',0,0,0),('selu',0,0,'selu',0,0,0),('elu',0,0,'elu',0,0,0), ('elu',0,0,'swish',0,0,0)]
 ]
 
 
