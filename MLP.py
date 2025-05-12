@@ -153,7 +153,8 @@ act_dict={
     'gelu': nn.gelu,
     'swish': nn.swish,
     'selu': nn.selu,
-    'elu': nn.elu}
+    'elu': nn.elu,
+    'softplus': nn.softplus}
 
 opt_name_dict={
     'Sgd': nk.optimizer.Sgd,
@@ -167,11 +168,12 @@ dimensions_list = [
     (32,32,1),
     (64,64,1),
     (16,32,64,64,32,16,1),
+    (64,64,32,16,8,4,2,1)
 ]
 activation_list = [
-    [('swish',0,0),(0,'swish',0),('selu',0,0),(0,'selu',0),('elu',0,0),(0,'elu',0)],
-    [('swish',0,0),(0,'swish',0),('selu',0,0),(0,'selu',0),('elu',0,0),(0,'elu',0)],
-    [('swish',0,0,'swish',0,0,0),('selu',0,0,'selu',0,0,0),('elu',0,0,'elu',0,0,0), ('elu',0,0,'swish',0,0,0)]
+    [('relu',0,0),(0,'relu',0),('softplus',0,0),(0,'softplus',0)],
+    [('relu',0,0),(0,'relu',0),('softplus',0,0),(0,'softplus',0)],
+    [(0,'softmax',0,0,0,0,0),(0,'softmax','softmax',0,0,0,0),(0,'softplus',0,0,0,0,0), (0,'softplus','softplus',0,0,0,0)]
 ]
 
 
