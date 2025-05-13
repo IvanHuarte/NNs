@@ -4,6 +4,7 @@ import jax.numpy as jnp
 import flax
 import flax.linen as nn
 import optax
+import netket as nk
 from typing import Tuple, Callable, Any, Dict, Optional
 import numpy.typing as npt
 import copy
@@ -13,7 +14,7 @@ import time
 
 from VA_project.model.model import OxalateJKGamma
 from VA_project.engine.runners import Runner
-import netket as nk
+from NN_utils import dump_callback, save_results
 
 jax.config.update("jax_enable_x64", True)
 jax.config.update("jax_platform_name", "gpu")
@@ -237,64 +238,71 @@ for d, dimensions in enumerate(dimensions_list):
                 gs.run(n_iter=n_iter, out=log, callback= [keeper.update])
                 time_out = time.time()
                 time_exe= time_out - time_in
+                
+                if ED:
+                    E_ED, x_ED = Runner(oxa.cm).exact_energy_lanczos(eigenstates=True)
+                    E_ED = E_ED.squeeze(-1)
+                    keeper.E_ED = E_ED
+
+
+                sim_label = f"_{d}_{a}_{opt_name}_{learning_rate}"
+                if dump_simulation:
+                    # For plotting architecture
+                    set_dim=[f"D({dim})" for dim in dimensions] 
+                    set_act=[f"A({act})" for act in activation_name]
+                    setup='||'
+                    for i in range(len(dimensions)):
+                        setup+=f" {set_dim[i]} |"
+                        setup+=f" {set_act[i]} |" if '0' not in set_act[i] else ''
+                        
+                    setup+="|"
+                    
+                    dump_setup ={'size': settings['size'], 'theta': theta,
+                                'phi': phi, 'opt_name': opt_name,
+                                'learning_rate': learning_rate,
+                                'time_exe': time_exe, 'architecture': setup,
+                                'sim_label': sim_label
+                            }
+
+
+                    dump_callback(log, dump_setup)
+
+                
 
                 # Extract some results
-                E_hist = np.array(log['Energy']['Mean']).real
-                dev_E_hist = np.array(log['Energy']['Sigma']).real
-                E_gr = Runner(oxa.cm).exact_energy_lanczos()
-                E_best = keeper.best_energy
+                vstate = keeper.best_state
+                E_best = np.array(keeper.best_energy)
+                vscore = np.array(keeper.vscore)
+                if ED:
+                    error=np.array(np.abs(E_best-E_ED)/np.abs(E_ED))
+                    results = np.array([E_best, E_ED, error, vscore])
+                else:
+                    results = np.array([E_best, vscore])
+                # Save the results
 
-                # Calculate the variance score
-                var= np.array(log['Energy']['Variance']).real
-                vscore = int(np.prod(settings['size']))*var//(E_hist**2)
-                error=np.abs(E_hist-E_gr)/np.abs(E_gr)
+                dump_setup ={
+                            'size': settings['size'], 
+                            'strength': strength,
+                            'theta': theta,
+                            'phi': phi, 
+                            
+                            'model': {
+                                'name': 'MLP',
+                                'dense_dim': str(dimensions),
+                                'activation': str(activation_name),
+                                
+                            },
+                            'sampler': {
+                                'name': settings['sampler']['type'],
+                                'n_samples': settings['sampler']['n_samples'], 
+                                'rng': str(vstate.sampler_state.rng )      
+                                        },
+                            'optimizer': opt_name,
+                            'learning_rate': learning_rate,
+                            'time_exe': time_exe, 
 
-                print(f"E_hist: {len(E_hist)}")
-                print(f"dev_E_hist: {len(dev_E_hist)}")
-                print(f"vscore: {len(vscore)}")
-                print(f"error: {len(error)}")
-
-                # Plotting
-
-                set_dim=[f"D({dim})" for dim in dimensions] 
-                set_act=[f"A({act})" for act in activation_name]
-                setup='||'
-                for i in range(len(dimensions)):
-                    setup+=f" {set_dim[i]} |"
-                    setup+=f" {set_act[i]} |" if '0' not in set_act[i] else ''
-                    
-                setup+="|"
-                setup_sim = f"E_best: {E_best:.4f} \nopt: {opt_name} \nl_rate: {learning_rate} \ntime_exe: {time_exe:.2f}"
-
-                fig, ax = plt.subplots(3,1,figsize=(8, 18))
-                ax[0].set_title(f"Convergence 4x4 theta=9 phi=72")
-                ax[0].errorbar(range(len(E_hist)), E_hist, yerr=dev_E_hist, fmt='none', ecolor='r', label='E_stdev')
-                ax[0].plot(E_hist, color='blue', label='E') 
-                ax[0].hlines(E_gr,0,n_iter, color='green', label='ED Energy')
-                ax[0].text(0.45, 0.93, setup, transform=ax[0].transAxes, fontsize=12, color='k', ha='center', va='center',
-                        bbox=dict(boxstyle='round', facecolor='white', alpha=0.7))
-                ax[0].text(0.9, 0.75, setup_sim, transform=ax[0].transAxes, fontsize=10, color='k', ha='center', va='center',
-                        bbox=dict(boxstyle='round', facecolor='white', alpha=0.7))
-
-                ax[0].legend()
-                ax[0].set_xlabel('Iteration')
-                ax[0].set_ylabel('Energy', fontsize=12)
-                ax[0].grid()
-
-                ax[1].plot(error, color='red', label='E')
-                ax[1].set_yscale('log')
-                ax[1].legend()
-                ax[1].set_xlabel('Iteration')
-                ax[1].set_ylabel('Error', fontsize=12)
-                ax[1].grid()
+                        }
 
 
-                ax[2].plot(vscore, color='purple', label='Vscore')
-                ax[2].set_yscale('log')
-                ax[2].legend()
-                ax[2].set_xlabel('Iteration')
-                ax[2].set_ylabel('Vscore', fontsize=12)
-                ax[2].grid()
-                plt.tight_layout()
-                plt.savefig(f"Figures/First_sim/4x4_theta9_phi72_d{d}_a{a}_{opt_name}_lr_{learning_rate}.jpeg", dpi=600)
-                plt.close()
+                save_results(results, vstate, )
+                
