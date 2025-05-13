@@ -1,0 +1,47 @@
+{
+
+"load_folder_sim":"/home/ihuarte/Escritorio/Ivan/Oxalatos/sim_last/",     "_comment_sim":"Ruta de carga x_prev",
+
+"write_folder_sim":"/home/ihuarte/Escritorio/Ivan/NNs/prueba/",    "sim <---> SSF":"Ruta donde se guardan los productos de simulaciones y donde se cargan los inputs de calc_SSF.py",
+
+"write_folder_SSF": "/home/ihuarte/Escritorio/Ivan/Oxalatos/prueba_scripts/ssf",   "SSF <---> plot":"Ruta donde se guardan los productos de SSF.py y donde se cargan los inputs de plot_SSF.py",
+
+"write_folder_figures":"/home/ihuarte/Escritorio/Ivan/Oxalatos/prueba_scripts/figures", 
+
+
+"strength": 0.2,
+"sizes": [[4,5]],
+"theta_list":[9.0, 54.0, 54.0, 54.0, 90.0],
+"phi_list":[72.0, 0.0, 216.0, 315.0, 115.2],
+
+"opt_name_list" : ["Sgd", "adam", "AdaGrad"],
+"learning_rate_list" : [0.1, 0.01, 0.001],
+"iterations": 30,
+
+"exact_diagonalization": false,
+"dump_sim_callback": false,
+
+"dimensions_list" : [
+    [32,32,1],
+    [64,64,1],
+    [16,32,64,64,32,16,1],
+    [64,64,32,16,8,4,2,1]
+],
+
+"activation_list" : [
+    [["relu",0,0],[0,"relu",0],["softplus",0,0],[0,"softplus",0]],
+    [["relu",0,0],[0,"relu",0],["softplus",0,0],[0,"softplus",0]],
+    [[0,"softmax",0,0,0,0,0],[0,"softmax","softmax",0,0,0,0],[0,"softplus",0,0,0,0,0], [0,"softplus","softplus",0,0,0,0]]
+],
+
+"sampler": {
+    "name": "MetropolisLocal",
+    "n_samples": 1008
+},
+
+"kwargs_lattice" : {
+    "bc":"periodic",
+    "order": "default_2"
+}
+
+}
