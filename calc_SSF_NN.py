@@ -108,11 +108,15 @@ if exact_diag:
     correlations_list.append(corr_ED)
     print(f"ED correlations DONE\n\n")
 
-
+art_label=['OPT','ED']
 for i, corr in enumerate(correlations_list):
 
     print(SSF_label[i])
     SSF = calculate_structure_factor(corr, graph, direct_qs, qs_mapping, N_Q_A, N_Q_B)
     np.savetxt(write_folder_SSF + files[i], SSF)
+    artifact['_artifact']['SSF'][art_label[i]] = write_folder_SSF + files[i]
     print("Done\n\n")
+
+with open(path_artifact,"w") as f:
+    json.dump(artifact, f, separators=(",", ":"), sort_keys=True, indent=4)
 

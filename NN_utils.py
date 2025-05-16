@@ -139,6 +139,8 @@ def dump_callback(logger, settings, write = False):
     opt_name = settings['opt_name']
     learning_rate = settings['learning_rate']
     sim_label = settings['sim_label']
+
+    os.makedirs(write_folder, exist_ok = True)
     
     # Extract some results
     E_hist = np.array(logger['Energy']['Mean']).real

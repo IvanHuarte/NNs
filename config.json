@@ -2,7 +2,7 @@
 
 "load_folder_sim":"/home/ihuarte/Escritorio/Ivan/Oxalatos/sim_last/",     "_comment_sim":"Ruta de carga x_prev",
 
-"write_folder_sim":"/home/ihuarte/Escritorio/Ivan/NNs/prueba/",    "sim <---> SSF":"Ruta donde se guardan los productos de simulaciones y donde se cargan los inputs de calc_SSF.py",
+"write_folder_sim":"/home/ihuarte/Escritorio/NNs/prueba",    "sim <---> SSF":"Ruta donde se guardan los productos de simulaciones y donde se cargan los inputs de calc_SSF.py",
 
 "write_folder_SSF": "/home/ihuarte/Escritorio/Ivan/Oxalatos/prueba_scripts/ssf",   "SSF <---> plot":"Ruta donde se guardan los productos de SSF.py y donde se cargan los inputs de plot_SSF.py",
 
