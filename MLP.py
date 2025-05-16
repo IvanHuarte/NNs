@@ -10,63 +10,15 @@ import os
 
 from VA_project.model.model import OxalateJKGamma
 from VA_project.engine.runners import Runner
-from NN_utils import dump_callback, save_results, BestIterKeeper
+from NN_utils import (
+    dump_callback, save_results, BestIterKeeper, MLP,
+    activation_dict, sampler_dict, optimizer_name_dict
+)
 
 jax.config.update("jax_enable_x64", True)
 jax.config.update("jax_platform_name", "gpu")
 jax.devices()
 
-act_dict={
-    'sigmoid': nn.sigmoid,
-    'tanh': nn.tanh,
-    'softmax': nn.softmax,
-    'gelu': nn.gelu,
-    'swish': nn.swish,
-    'selu': nn.selu,
-    'elu': nn.elu,
-    'softplus': nn.softplus,
-    'relu': nn.relu
-}
-
-opt_name_dict={
-    'Sgd': nk.optimizer.Sgd,
-    'adam': nk.optimizer.Adam,
-    'AdaGrad': nk.optimizer.AdaGrad
-}
-
-sampler_dict={
-    'MetropolisLocal': nk.sampler.MetropolisLocal,
-    'MetropolisExchange': nk.sampler.MetropolisExchange,
-    'MetropolisHamiltonian': nk.sampler.MetropolisHamiltonian
-}
-
-class MLP(nn.Module):
-    """A simple multi-layer perceptron."""
-    
-    param_dtype : Any = jnp.complex64
-    hidden_dims: int | Tuple[int, ...] = None
-    activation: Callable | Tuple[Callable, ...] = None
-
-    def setup(self):
-        assert self.hidden_dims is not None, "Hidden_dims must be provided."
-
-        if self.activation is None:
-            self.activation = tuple([0] * len(self.hidden_dims))
-        else:
-            if len(self.hidden_dims) != len(self.activation):
-                raise ValueError("The number of hidden dimensions must match the number of activation functions,"
-                                 f" but got {len(self.hidden_dims)} and {len(self.activation)} respectively.")
-        
-    @nn.compact
-    def __call__(self, x):
-        
-        for hi, act in zip(self.hidden_dims, self.activation):
-            x = nn.Dense(hi, param_dtype=self.param_dtype)(x)
-            if act:
-                x = act(x)
-
-        return x.squeeze(-1)
-    
 
 with open("config.json",'r') as f:
     config = json.load(f)
@@ -77,10 +29,10 @@ phi_list = config['phi_list']
 sizes = config['sizes']
 kwargs_lattice = config['kwargs_lattice']
 
-dimensions_list = config['dimensions_list']         # MLP architecture settings
+alpha_list = config['alpha_list']         # MLP architecture settings
 activation_list = config['activation_list']
-opt_name_list = ['Sgd', 'adam', 'AdaGrad']
-learning_rate_list = [0.1, 0.01, 0.001]
+opt_name_list = config['opt_name_list']
+learning_rate_list = config['learning_rate_list']
 
 sampler_name = config['sampler']['name']            # Sampler settings
 n_samples = config['sampler']['n_samples']
@@ -88,25 +40,43 @@ n_samples = config['sampler']['n_samples']
 iterations = config['iterations']                   # Simulation settings
 exact_diag = config['exact_diagonalization']
 dump_simulation = config['dump_sim_callback']
-write_folder = config['write_folder_sim']
+write = config['write_folder_sim']
 
 diag_shift= 0.001       # Diagonal shift for the SR preconditioner
 
 
-dimensions_list = [tuple(dim) for dim in dimensions_list]
+alpha_list = [tuple(dim) for dim in alpha_list]
 activation_list = [[tuple(act) for act in activation] for activation in activation_list]
-
 
 d=0 ; a=0 
 for i, size in enumerate(sizes):
 
+    N = int(np.prod(size)) 
+    if N > 20: exact_diag = False
+
+    write_folder = write +  f"Oxalate_size_{size[0]}x{size[1]}/"
+
     for j, (theta, phi) in enumerate(zip(theta_list, phi_list)):
 
-        for d, dimensions in enumerate(dimensions_list): 
+        # Create the Hamiltonian
+        oxa=OxalateJKGamma(
+            size, 
+            [strength, theta, phi],
+            **kwargs_lattice
+        )
+        H = Runner(oxa.cm).build_hamiltonian()
+
+        if exact_diag:
+            E_ED, x_ED = Runner(oxa.cm).exact_energy_lanczos(eigenstates=True)
+            E_ED = float(E_ED.squeeze(-1))
+
+        for d, alphas in enumerate(alpha_list): 
+
+            dimensions = tuple([int(a*N) for a in alphas])
             
             for a, activation_name in enumerate(activation_list[d]):
 
-                activation = tuple([act_dict[act] if act != 0 else 0 for act in activation_name])
+                activation = tuple([activation_dict[act] if act != 0 else 0 for act in activation_name])
 
                 for opt_name in opt_name_list:
 
@@ -115,40 +85,28 @@ for i, size in enumerate(sizes):
                         print(f"\n---- Parameters: Size {size}  strength={strength:1f}  theta={theta:2f}  phi={phi:2f} ----\n\n")
                         print(f"dimensions: {dimensions} \nactivation: {activation_name} \nopt_name: {opt_name} \nlearning_rate: {learning_rate}")
 
+                        callback_artifacts = {}
                         time_in = time.time()
                         
                         # Initialize the model
                         model = MLP(
+                            N = N,
                             param_dtype=jnp.complex64,
-                            hidden_dims=dimensions,
+                            hidden_alpha=alphas,
                             activation=activation,
                             )
-                        # ...with rng keys 
-                        rng= jax.random.PRNGKey(0)
-                        key1, key2 = jax.random.split(rng)
-                        keys = {'params': key1, 'dropout': key2}
-
-                        params = model.init(keys['params'], jnp.ones((4*4), dtype=jnp.complex64)) 
-                        output=model.apply(params, jnp.ones((4*4), dtype=jnp.complex64))
 
                         hi = nk.hilbert.Spin(s=0.5, N = int(np.prod(size)))
 
                         sampler = sampler_dict[sampler_name](hi, dtype=complex)
 
-                        optimizer = opt_name_dict[opt_name](learning_rate=learning_rate)
+                        optimizer = optimizer_name_dict[opt_name](learning_rate=learning_rate)
 
                         vstate = nk.vqs.MCState(sampler, model, n_samples = n_samples)
                         is_holo = nk.utils.is_probably_holomorphic(vstate._apply_fun, vstate.parameters, vstate.samples, vstate.model_state)
 
-                        SR= nk.optimizer.SR(diag_shift = diag_shift, holomorphic = True)
+                        SR = nk.optimizer.SR(diag_shift = diag_shift, holomorphic = True)
 
-                        # Create the Hamiltonian
-                        oxa=OxalateJKGamma(
-                            size, 
-                            [strength, theta, phi],
-                            **kwargs_lattice
-                        )
-                        H = Runner(oxa.cm).build_hamiltonian()
 
                         gs = nk.VMC(
                             hamiltonian=H,
@@ -165,9 +123,8 @@ for i, size in enumerate(sizes):
                         time_exe= time_out - time_in
                         
                         if exact_diag:
-                            E_ED, x_ED = Runner(oxa.cm).exact_energy_lanczos(eigenstates=True)
-                            E_ED = float(E_ED.squeeze(-1))
                             keeper.E_ED = E_ED
+                            log.E_ED = E_ED
 
 
                         sim_label = f"_{d}_{a}_{opt_name}_{learning_rate}"
@@ -182,15 +139,20 @@ for i, size in enumerate(sizes):
                                 
                             setup+="|"
                             
-                            dump_setup ={'size': size, 'theta': theta,
+                            dump_setup ={
+                                        'size': size, 'theta': theta,
                                         'phi': phi, 'opt_name': opt_name,
                                         'learning_rate': learning_rate,
+                                        'write_folder': write_folder,
                                         'time_exe': time_exe, 'architecture': setup,
                                         'sim_label': sim_label
                                     }
-                            dump_callback(log, dump_setup)
+                            
+                            callback_artifacts = dump_callback(log, dump_setup)
 
-                        
+                        else:
+                            callback_artifacts = None
+                           
 
                         # Extract some results
                         vstate = keeper.best_state
@@ -222,7 +184,7 @@ for i, size in enumerate(sizes):
                             'model_NN': {
                                 'name': 'MLP',
                                 'dense_dim': str(dimensions),
-                                'activation': str(activation_name),
+                                'activation': str(activation_name)
                                 
                             },
                             'sampler': {
@@ -241,9 +203,11 @@ for i, size in enumerate(sizes):
                                 'vscore': vscore,
                                 'time_exe': time_exe, 
 
-                            }  
+                            },
+                            '_artifacts': {
+                                'callback': callback_artifacts
+                            }
                         }
-
 
                         save_results(
                             vstate, 
@@ -252,4 +216,5 @@ for i, size in enumerate(sizes):
                             write_folder = write_folder,
                             sim_label = sim_label
                         )
+
                         
