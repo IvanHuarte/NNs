@@ -19,6 +19,8 @@ Figures/
 *.jpeg
 *.txt
 *.png
+*.json
+*.msgpack
 
 # Jupyter Notebook
 .ipynb_checkpoints
