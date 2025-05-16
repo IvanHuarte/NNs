@@ -66,12 +66,11 @@ class MultiLayerPerceptron(nn.Module):
 
     @nn.compact
     def __call__(self, x):
-        print(x.shape)
         for hi, act in zip(self.hidden_dims, self.activation):
-            x = nn.LayerNorm(param_dtype=self.param_dtype)(nn.Dense(hi, param_dtype=self.param_dtype)(x))
+            x = nn.Dense(hi, param_dtype=self.param_dtype)(x)
             if act:
                 x = act(x)
-        x = nn.Dense(1, param_dtype=self.param_dtype)(x)
+        x = nn.Dense(1, param_dtype=self.param_dtype)(x).squeeze(-1)
 
         return x
 
@@ -99,9 +98,10 @@ class MultiLayerPerceptron_Traslation(nn.Module):
                 (self.N, -1, self.N)
             )
         
-        print(circulant_x.tobytes)
+        print("x.shape:", x.shape)
+        print("circulant_x.shape:", circulant_x.shape)
 
-        return jax.vmap(MLP, in_axes=0)(circulant_x).mean(axis=0)
+        return jax.vmap(MLP, in_axes=0)(circulant_x).mean(axis=0).squeeze(-1)
 
 class MultiLayerPerceptron_Z2_Traslation(nn.Module):
     """A simple multi-layer perceptron."""

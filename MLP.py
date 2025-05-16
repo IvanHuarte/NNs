@@ -13,6 +13,7 @@ from VA_project.engine.runners import Runner
 from NN_utils import (
     dump_callback, save_results, BestIterKeeper,
     MultiLayerPerceptron, MultiLayerPerceptron_Z2_Traslation,
+    MultiLayerPerceptron_Traslation,
     activation_dict, sampler_dict, optimizer_name_dict
 )
 
@@ -92,7 +93,7 @@ for i, size in enumerate(sizes):
                         time_in = time.time()
                         
                         # Initialize the model
-                        model = MultiLayerPerceptron_Z2_Traslation(
+                        model = MultiLayerPerceptron(
                                 N = N,
                                 param_dtype=jnp.complex64,
                                 hidden_alpha=alphas,
