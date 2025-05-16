@@ -11,7 +11,8 @@ import os
 from VA_project.model.model import OxalateJKGamma
 from VA_project.engine.runners import Runner
 from NN_utils import (
-    dump_callback, save_results, BestIterKeeper, MLP,
+    dump_callback, save_results, BestIterKeeper,
+    MultiLayerPerceptron, MultiLayerPerceptron_Z2_Traslation,
     activation_dict, sampler_dict, optimizer_name_dict
 )
 
@@ -47,6 +48,8 @@ diag_shift= 0.001       # Diagonal shift for the SR preconditioner
 
 alpha_list = [tuple(dim) for dim in alpha_list]
 activation_list = [[tuple(act) for act in activation] for activation in activation_list]
+
+rng = jax.random.PRNGKey(666)
 
 d=0 ; a=0 
 for i, size in enumerate(sizes):
@@ -89,12 +92,13 @@ for i, size in enumerate(sizes):
                         time_in = time.time()
                         
                         # Initialize the model
-                        model = MLP(
-                            N = N,
-                            param_dtype=jnp.complex64,
-                            hidden_alpha=alphas,
-                            activation=activation,
+                        model = MultiLayerPerceptron_Z2_Traslation(
+                                N = N,
+                                param_dtype=jnp.complex64,
+                                hidden_alpha=alphas,
+                                activation=activation,
                             )
+                        #params = model.init(rng,jnp.ones((1,16), dtype=jnp.complex64))
 
                         hi = nk.hilbert.Spin(s=0.5, N = int(np.prod(size)))
 

@@ -16,6 +16,8 @@ from datetime import date
 from platform import architecture, python_version
 import os
 
+REAL_DTYPE = jnp.asarray(1.0).dtype
+
 activation_dict={
     'sigmoid': nn.sigmoid,
     'tanh': nn.tanh,
@@ -40,7 +42,8 @@ sampler_dict={
     'MetropolisHamiltonian': nk.sampler.MetropolisHamiltonian
 }
 
-class MLP(nn.Module):
+class MultiLayerPerceptron(nn.Module):
+
     """A simple multi-layer perceptron."""
 
     N: int = None    
@@ -48,6 +51,7 @@ class MLP(nn.Module):
     hidden_alpha: int | Tuple[int, ...] = None
     activation: Callable | Tuple[Callable, ...] = None
     output_dim: int = 1
+
 
     def setup(self):
         assert self.hidden_alpha is not None, "Hidden_dims must be provided."
@@ -58,19 +62,99 @@ class MLP(nn.Module):
         else:
             if len(self.hidden_dims) != len(self.activation):
                 raise ValueError("The number of hidden dimensions must match the number of activation functions,"
-                                 f" but got {len(self.hidden_dims)} and {len(self.activation)} respectively.")
-        
-        
+                                    f" but got {len(self.hidden_dims)} and {len(self.activation)} respectively.")
+
     @nn.compact
     def __call__(self, x):
-        
+        print(x.shape)
         for hi, act in zip(self.hidden_dims, self.activation):
-            x = nn.Dense(hi, param_dtype=self.param_dtype)(x)
+            x = nn.LayerNorm(param_dtype=self.param_dtype)(nn.Dense(hi, param_dtype=self.param_dtype)(x))
             if act:
                 x = act(x)
         x = nn.Dense(1, param_dtype=self.param_dtype)(x)
 
-        return x.squeeze(-1)
+        return x
+
+
+class MultiLayerPerceptron_Traslation(nn.Module):
+    """A simple multi-layer perceptron."""
+
+    N: int = None    
+    param_dtype : Any = jnp.complex64
+    hidden_alpha: int | Tuple[int, ...] = None
+    activation: Callable | Tuple[Callable, ...] = None
+    output_dim: int = 1
+
+    @nn.compact
+    def __call__(self, x):
+        MLP=MultiLayerPerceptron(
+            self.N,
+            self.param_dtype,
+            self.hidden_alpha,
+            self.activation,
+            self.output_dim
+        )
+
+        circulant_x = circulant(x, self.N).reshape(
+                (self.N, -1, self.N)
+            )
+        
+        print(circulant_x.tobytes)
+
+        return jax.vmap(MLP, in_axes=0)(circulant_x).mean(axis=0)
+
+class MultiLayerPerceptron_Z2_Traslation(nn.Module):
+    """A simple multi-layer perceptron."""
+
+    N: int = None    
+    param_dtype : Any = jnp.complex64
+    hidden_alpha: int | Tuple[int, ...] = None
+    activation: Callable | Tuple[Callable, ...] = None
+    output_dim: int = 1
+
+    @nn.compact
+    def __call__(self, x):
+        MLP_T=MultiLayerPerceptron_Traslation(
+            self.N,
+            self.param_dtype,
+            self.hidden_alpha,
+            self.activation,
+            self.output_dim
+        )
+
+        y = jnp.array([x , -1.0*x])
+
+        return jax.vmap(MLP_T, in_axes=0)(y).mean(axis=0).squeeze(-1)
+
+    
+
+
+def circulant(
+    row: npt.ArrayLike, times: Optional[int] = None
+) -> npt.ArrayLike:
+    """Build a (full or partial) circulant matrix based on an array.
+
+    Args:
+        row: The first row of the matrix.
+        times: If not None, the number of rows to generate.
+
+    Returns:
+        If `times` is None, a square matrix with all the offset versions of the
+        first argument. Otherwise, `times` rows of a circulant matrix.
+    """
+    row = jnp.asarray(row)
+
+    def scan_arg(carry, _):
+        new_carry = jnp.roll(carry, -1)
+        return (new_carry, new_carry)
+
+    if times is None:
+        nruter = jax.lax.scan(scan_arg, row, row)[1][::-1, :]
+    else:
+        nruter = jax.lax.scan(scan_arg, row, None, length=times)[1][::-1, :]
+
+    return nruter
+
 
 class BestIterKeeper:
     """Store the values of a bunch of quantities from the best iteration.
