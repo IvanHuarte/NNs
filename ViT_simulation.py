@@ -22,6 +22,7 @@ sys.path.append(str(Path(__file__).resolve().parent.parent / "Transformers/trans
 
 from VA_project.model.model import OxalateJKGamma
 from VA_project.engine.runners import Runner
+from NN_module.NN_utils import save_results, dump_callback
 
 from transformer_LR_WF.hamiltonian import *
 from transformer_LR_WF.utils import *
@@ -94,58 +95,162 @@ for i, size in enumerate(sizes):
 
     for j, (theta, phi) in enumerate(zip(theta_list, phi_list)):
 
-        print(f"\n---- Parameters: Size {size}  strength={strength:1f}  theta={theta:2f}  phi={phi:2f} ----\n\n")
+        for token_size in [1,2,4]:
+            for embedding_d in [32,64,128]:
+                for n_heads in [2,4,6]:
+                    print(f"\n---- Parameters: Size {size}  strength={strength:1f}  theta={theta:2f}  phi={phi:2f} ----\n\n")
 
-        ## Update Hamiltonian
-        oxa=OxalateJKGamma(
-            size, 
-            [strength, theta, phi],
-            **kwargs_lattice
-        )
-        H = Runner(oxa.cm).build_hamiltonian()
+                    callback_artifacts = {}
+                    time_in = time.time()
 
-        if exact_diag:
-            E_ED, x_ED = Runner(oxa.cm).exact_energy_lanczos(eigenstates=True)
-            E_ED = float(E_ED.squeeze(-1))
+                    ## Update Hamiltonian
+                    oxa=OxalateJKGamma(
+                        size, 
+                        [strength, theta, phi],
+                        **kwargs_lattice
+                    )
+                    H = Runner(oxa.cm).build_hamiltonian()
+
+                    if exact_diag:
+                        E_ED, x_ED = Runner(oxa.cm).exact_energy_lanczos(eigenstates=True)
+                        E_ED = float(E_ED.squeeze(-1))
+                            
+                    model = BatchedSpinViT(
+                        token_size=token_size,
+                        embedding_d=embedding_d,
+                        n_heads=n_heads,
+                        n_blocks=1,
+                        n_ffn_layers=3,
+                        final_architecture=(5,),
+                        is_complex=False,
+                    )
+
+                    vstate = nk.vqs.MCState(
+                        sampler,
+                        model,
+                        n_samples=512,
+                        n_discard_per_chain=0,
+                        chunk_size=None,
+                    )
+
+                    gs = nk.driver.VMC(
+                        H,
+                        optimizer,
+                        variational_state=vstate,
+                        preconditioner=SR
+                    )
+
+                    log = (
+                        nk.logging.RuntimeLog()
+                    )  # If instead of this logging you insert a string, it will be used as output prefix for a JSON file where the evolution of the energy at each epoch will be stored.
+                    keeper = BestIterKeeper(H, N, 1e-8)
+
+                    # keeper.filename = 'Somewhere' #It allows you to store the parameters of the model for the state with lowest energy found.
+                    gs.run(n_iter=iterations, out=log, callback=[keeper.update], show_progress=True)
+
+                    vstate=keeper.best_state
+
+                    time_out = time.time()
+                    time_exe= time_out - time_in
+                    
+                    if exact_diag:
+                        keeper.E_ED = E_ED
+                        log.E_ED = E_ED
+
+                    ## Save results
+
+                    sim_label = f""
+                    if dump_simulation:
+                        # For plotting architecture
+                        architecture = f"|| b: {token_size}  D_emb: {embedding_d}  heads: {n_heads} ||"
+                        
+                        dump_setup ={
+                                    'size': size, 'theta': theta,
+                                    'phi': phi, 'opt_name': "Sgd",
+                                    'learning_rate': "Scheduled",
+                                    'write_folder': write_folder,
+                                    'time_exe': time_exe, 'architecture': architecture,
+                                    'sim_label': sim_label
+                                }
+                        
+                        callback_artifacts = dump_callback(log, dump_setup)
+
+                    else:
+                        callback_artifacts = None
+                        
+
+                    # Extract some results
+                    vstate = keeper.best_state
+                    E_best = float(keeper.best_energy)
+                    vscore = float(keeper.vscore)
+
+                    if exact_diag:
+                        error=float(np.abs(E_best-E_ED)/np.abs(E_ED))
+                    else:
+                        E_ED = None
+                        x_ED = None
+                        error = None    
+
+                    # Save the results
+
+                    dump_setup ={
+
+                        'lattice':{
+                            'name': 'Triangular',
+                            'size': size, 
+                            'bc': kwargs_lattice['bc'],
+                        },
+                        'coupling_model': {
+                            'strength': strength,
+                            'theta': theta,
+                            'phi': phi, 
+                        },
+
+                        'model_NN': {
+                            'name': 'ViT',
+                            "token_size": token_size,
+                            "embedding_d": embedding_d,
+                            "n_heads": n_heads                
+                        },
+
+                        'sampler': {
+                            'name': "MetropolisSampler",
+                            'n_samples': None, 
+                            'rng': vstate.sampler_state.rng.tolist(), 
+                            'rules': 'LocalRule/InvertMagnetization'
+
+                        },
+                        'optimizer': "Sgd",
+                        "lr_schedule":{
+                            "name": "warmup_exponential_decay",
+                            "lr_0": schedule['lr_0'],
+                            "peak_value": schedule['peak_value'],
+                            "warmup_steps": schedule['warmup_steps'],
+                            "decay_rate": schedule['decay_rate']
+                        },
+
+                        'results':{
+                            'E_best': E_best,
+                            'E_ED': E_ED,
+                            'error': error,
+                            'vscore': vscore,
+                            'time_exe': time_exe, 
+                        },
+                        '_artifacts': {
+                            'callback': callback_artifacts
+                        }
+                    }
+
+                    save_results(
+                        vstate, 
+                        dump_setup, 
+                        x_ED = x_ED, 
+                        write_folder = write_folder,
+                        sim_label = sim_label
+                    )
+
+
+
+
                 
-        model = BatchedSpinViT(
-            token_size=token_size,
-            embedding_d=embedding_d,
-            n_heads=n_heads,
-            n_blocks=1,
-            n_ffn_layers=3,
-            final_architecture=(5,),
-            is_complex=False,
-        )
-
-        vstate = nk.vqs.MCState(
-            sampler,
-            model,
-            n_samples=512,
-            n_discard_per_chain=0,
-            chunk_size=None,
-        )
-
-        gs = nk.driver.VMC(
-            H,
-            optimizer,
-            variational_state=vstate,
-            preconditioner=SR,
-        )
-
-        log = (
-            nk.logging.RuntimeLog()
-        )  # If instead of this logging you insert a string, it will be used as output prefix for a JSON file where the evolution of the energy at each epoch will be stored.
-        keeper = BestIterKeeper(H, N, 1e-8)
-
-        # keeper.filename = 'Somewhere' #It allows you to store the parameters of the model for the state with lowest energy found.
-
-        gs.run(n_iter=iterations, out=log, callback=[keeper.update], show_progress=True)
-
-        vstate=keeper.best_state
-
-        break
-    break
-
-    
 
