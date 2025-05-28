@@ -12,11 +12,11 @@ import ast
 import sys
 from pathlib import Path
 
-from NN_utils import load_vstate
-from correlations import correlations_ED, correlations_vstate
+from NN_module.NN_utils import load_vstate
+from NN_module.correlations import correlations_ED, correlations_vstate
 
-# Añadir el directorio ATMOS_VA 
-sys.path.append(str(Path(__file__).resolve().parent.parent / "ATMOS_VA"))
+# Añadir el directorio chebyoxa al path
+sys.path.append(str(Path(__file__).resolve().parent.parent / "chebyoxa"))
 import chebyoxa.utils as utils
 from chebyoxa_functions import *
 
@@ -38,7 +38,7 @@ size = artifact['lattice']['size']
 theta = artifact['coupling_model']['theta']
 phi = artifact['coupling_model']['phi']
 
-write_folder_SSF = write_folder_ssf + f"Oxalate_size_{size[0]}x{size[1]}/"
+write_folder_SSF = write_folder_ssf #+ f"Oxalate_size_{size[0]}x{size[1]}/"
 
 file = f"Oxalate_" + artifact["model_NN"]["name"] + f"_SSF_strength_{strength:2f}_theta_{theta:2f}_phi_{phi:2f}"
 file_ED = f"Oxalate_" + artifact["model_NN"]["name"] + f"_SSF_strength_{strength:2f}_theta_{theta:2f}_phi_{phi:2f}_ED"
@@ -68,7 +68,7 @@ all_sites = list(zip(*np.triu_indices(n_spins)))
 # Load vstate
 if not os.path.isfile(artifact["results"]["vstate"]):
     print(f"vstate parameters from size: {size} theta:{theta} phi:{phi} not available!")
-    exit
+    exit()
 
 artifact["model_NN"]["activation"] = ast.literal_eval(artifact["model_NN"]["activation"] )
 artifact["model_NN"]["dense_dim"] = ast.literal_eval(artifact["model_NN"]["dense_dim"] )
@@ -109,12 +109,13 @@ if exact_diag:
     print(f"ED correlations DONE\n\n")
 
 art_label=['OPT','ED']
+artifact['_artifacts']['SSF'] = {}
 for i, corr in enumerate(correlations_list):
 
     print(SSF_label[i])
     SSF = calculate_structure_factor(corr, graph, direct_qs, qs_mapping, N_Q_A, N_Q_B)
     np.savetxt(write_folder_SSF + files[i], SSF)
-    artifact['_artifact']['SSF'][art_label[i]] = write_folder_SSF + files[i]
+    artifact['_artifacts']['SSF'][art_label[i]] = write_folder_SSF + files[i]
     print("Done\n\n")
 
 with open(path_artifact,"w") as f:

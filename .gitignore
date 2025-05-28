@@ -1,8 +1,8 @@
 # Ignorar archivos compilados de Python
-__pycache__/
-*.pyc
-*.pyo
-*.pyd
+**/__pycache__/
+**/*.pyc
+**/*.pyo
+**/*.pyd
 
 # Ignorar entornos virtuales
 venv/
@@ -12,15 +12,16 @@ env/
 .vscode/
 
 # Datos de resultados de simulaciones
-Textfiles/
-Keypoints/
-Figures/
+**/Textfiles/
+**/Keypoints/
+**/Figures/
+**/First_sim/
 
-*.jpeg
-*.txt
-*.png
-*.json
-*.msgpack
+**/*.jpeg
+**/*.txt
+**/*.png
+**/*.json
+**/*.msgpack
 
 # Jupyter Notebook
 .ipynb_checkpoints

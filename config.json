@@ -2,7 +2,7 @@
 
 "load_folder_sim":"/home/ihuarte/Escritorio/Ivan/NNs/First_sim/",     "_comment_sim":"Ruta de carga x_prev",
 
-"write_folder_sim":"/home/ihuarte/Escritorio/Ivan/NNs/First_sim/",    "sim <---> SSF":"Ruta donde se guardan los productos de simulaciones y donde se cargan los inputs de calc_SSF.py",
+"write_folder_sim":"/home/ihuarte/Escritorio/Ivan/NNs/prueba",    "sim <---> SSF":"Ruta donde se guardan los productos de simulaciones y donde se cargan los inputs de calc_SSF.py",
 
 "write_folder_SSF": "/home/ihuarte/Escritorio/Ivan/NNs/First_sim/",   "SSF <---> plot":"Ruta donde se guardan los productos de SSF.py y donde se cargan los inputs de plot_SSF.py",
 
@@ -10,20 +10,20 @@
 
 
 "strength": 0.2,
-"sizes": [[4,4],[4,5],[7,7],[10,10]],
+"sizes": [[4,5],[4,5],[7,7],[10,10]],
 "theta_list":[9.0, 54.0, 54.0, 54.0, 90.0],
 "phi_list":[72.0, 0.0, 216.0, 315.0, 115.2],
 
 "opt_name_list" : ["Sgd"],
-"learning_rate_list" : [0.2, 0.1, 0.05, 0.01],
-"iterations": 2000,
+"learning_rate_list" : [0.05, 0.01],
+"iterations": 10,
 
 "exact_diagonalization": true,
 "dump_sim_callback": true,
 "explore_mode": true,
 
 "alpha_list" : [
-    [4,4]
+    [2,2]
 ],
 "output_dimension": 1,
 
@@ -33,7 +33,7 @@
 
 "sampler": {
     "name": "MetropolisLocal",
-    "n_samples": 2000
+    "n_samples": 500
 },
 
 "kwargs_lattice" : {
