@@ -1,3 +1,4 @@
+#!/home/ihuarte/miniconda3/envs/conda_env/bin/python
 import numpy as np
 import jax
 import jax.numpy as jnp

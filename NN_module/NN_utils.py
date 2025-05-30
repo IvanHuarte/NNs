@@ -16,7 +16,7 @@ from datetime import date
 from platform import architecture, python_version
 import os
 
-REAL_DTYPE = jnp.asarray(1.0).dtype
+from NN_module.models.MLP import MultiLayerPerceptron
 
 activation_dict={
     'sigmoid': nn.sigmoid,
@@ -222,7 +222,6 @@ def dump_callback(logger, settings, write = False):
         callback_artifacts['Energy'] = E_path
         callback_artifacts['error'] = error_path
         callback_artifacts['vscore'] = vscore_path
-
     
     return callback_artifacts
         

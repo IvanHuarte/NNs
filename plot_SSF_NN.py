@@ -1,4 +1,4 @@
-#!/home/ihuarte/miniconda3/envs/conda_env/bin/python3
+#!/home/ihuarte/miniconda3/envs/conda_env/bin/python
 
 import os
 import argparse
@@ -6,6 +6,7 @@ import json
 import matplotlib.pyplot as plt
 import matplotlib.transforms as mtransforms
 from matplotlib import patches
+import matplotlib.colors as mcolors
 import netket as nk
 import numpy as np
 import jax
@@ -41,7 +42,11 @@ theta = artifact['coupling_model']['theta']
 phi = artifact['coupling_model']['phi']
 
 ssf_path = artifact['_artifacts']['SSF']['OPT']
-ssf_ED_path = artifact['_artifacts']['SSF']['ED']
+if 'ED' in artifact['_artifacts']['SSF'] :
+    ssf_ED_path = artifact['_artifacts']['SSF']['ED']
+else:
+    ssf_ED_path = None
+
 write_folder_fig = write_folder + f"Oxalate_size_{size[0]}x{size[1]}/"
 
 file = f"Structure_Factor_size{size[0]}x{size[1]}_strength_{strength}_theta_{theta}_phi_{phi}_{artifact['model_NN']['name']}"
@@ -81,13 +86,14 @@ if not os.path.isfile(ssf_path):
 # Verify there is no previous simulations, to earn time
 
 if explore_mode:                    # If True checks sucessive files and assign a new one
-    file_temp = file + ".jpeg"
-    i=0
+    i=1
+    file_temp = file + f"_{i}.jpeg"
     while(os.path.isfile(write_folder_fig + file_temp)):
         i+=1
         file_temp = file + f"_{i}.jpeg"
     
     files[0] += f"_{i}"
+    file_error += f"_{i}"
 
 else:
     if os.path.isfile(write_folder_fig + file): 
@@ -100,18 +106,26 @@ plots_ssf = [SSF]
 E_best = artifact["results"]["E_best"]
 label=[]
 
+# Sim results
 E_ED = artifact["results"]["E_ED"]
-if exact_diag:
+error = artifact["results"]["error"]
+
+if ssf_ED_path is not None:
 
     SSF_ED = np.loadtxt(ssf_ED_path)
     plots_ssf.append(SSF_ED)
 
     if plot_error:
-        error = artifact["results"]["error"]
+        
         SSF_label.append('Error')  
         SSF_error = np.abs(SSF - SSF_ED) / np.abs(SSF_ED)
         plots_ssf.append(SSF_error)
         files.append(file_error)
+
+# Add normalization in plots between OPT
+#vmax=max([np.max(ssf) for ssf in plots_ssf]) # El mayor de todos
+vmax= np.max(plots_ssf[1]) if len(plots_ssf)>1 else np.max(plots_ssf[0]) # ED por defecto. Si no existe, entonces OPT
+vmin= np.min(plots_ssf[1]) if len(plots_ssf)>1 else np.min(plots_ssf[0])
 
 cmap = sns.color_palette("mako", as_cmap=True)
 
@@ -133,11 +147,16 @@ for j, SSF in enumerate(plots_ssf):
 
     plt.figure(j)
     ax = plt.gca()
+    if j == 2:
+        vmax = np.max(SSF) 
+        vmin = np.min(SSF) 
+    
     im = plt.imshow(
         tiled_structure_factors,
         origin="lower",
         extent=(-1.5, 1.5, -1.5, 1.5),
         cmap=cmap,
+        norm=mcolors.Normalize(vmin=vmin, vmax=vmax),
         interpolation="none",
     )
 

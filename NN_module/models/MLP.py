@@ -43,7 +43,7 @@ class MultiLayerPerceptron(nn.Module):
         #print("xshapeOUT: ", x.shape)
 
         #return x
-        return x
+        return x.squeeze(-1)
 
 class MultiLayerPerceptron_Traslation(nn.Module):
     """A simple multi-layer perceptron."""

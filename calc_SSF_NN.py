@@ -1,4 +1,4 @@
-#!/home/ihuarte/miniconda3/envs/conda_env/bin/python3
+#!/home/ihuarte/miniconda3/envs/conda_env/bin/python
 
 import netket as nk
 import numpy as np
@@ -17,6 +17,7 @@ from NN_module.correlations import correlations_ED, correlations_vstate
 
 # Añadir el directorio chebyoxa al path
 sys.path.append(str(Path(__file__).resolve().parent.parent / "chebyoxa"))
+sys.path.append(str(Path(__file__).resolve().parent.parent / "ATMOS_VA"))
 import chebyoxa.utils as utils
 from chebyoxa_functions import *
 
@@ -70,31 +71,29 @@ if not os.path.isfile(artifact["results"]["vstate"]):
     print(f"vstate parameters from size: {size} theta:{theta} phi:{phi} not available!")
     exit()
 
-artifact["model_NN"]["activation"] = ast.literal_eval(artifact["model_NN"]["activation"] )
-artifact["model_NN"]["dense_dim"] = ast.literal_eval(artifact["model_NN"]["dense_dim"] )
+artifact["model_NN"]["activation"] = artifact["model_NN"]["activation"]
+artifact["model_NN"]["dense_dim"] = artifact["model_NN"]["dense_dim"]
 
 vstate=load_vstate(artifact)
 
 # Verify there is no previous simulations, to earn time
-
+print(f"\n************size: {size} theta: {theta:1f}  phi: {phi:1f} ************\n\n")
 if explore_mode:                    # If True checks sucessive files and assign a new one
-    file_temp = file + ".txt"
-    i=0
+    
+    i=1
+    file_temp = file + f"_{i}.txt"
     while(os.path.isfile(write_folder_SSF + file_temp)):
-        i+=1
         file_temp = file + f"_{i}.txt"
+        i+=1
+        print(f"_{i}.txt")
     
     files[0] += f"_{i}.txt"
 
-else:
-    if os.path.isfile(write_folder_SSF + file): 
-        print(f"SSF size: {size} theta:{theta} phi:{phi} already done!")
-        exit
+if os.path.isfile(write_folder_SSF + file_ED): 
+    print(f"SSF ED size: {size} theta:{theta} phi:{phi} already done!")
+    exact_diag =False
 
 # Calculate correlations and structure factor
-
-print(f"\n************size: {size} theta: {theta:1f}  phi: {phi:1f} ************\n\n")
-
 correlations_list = []
 
 corr_NN = correlations_vstate(vstate)
@@ -115,8 +114,10 @@ for i, corr in enumerate(correlations_list):
     print(SSF_label[i])
     SSF = calculate_structure_factor(corr, graph, direct_qs, qs_mapping, N_Q_A, N_Q_B)
     np.savetxt(write_folder_SSF + files[i], SSF)
-    artifact['_artifacts']['SSF'][art_label[i]] = write_folder_SSF + files[i]
     print("Done\n\n")
+
+for i, f in enumerate(files):
+    artifact['_artifacts']['SSF'][art_label[i]] = write_folder_SSF + f
 
 with open(path_artifact,"w") as f:
     json.dump(artifact, f, separators=(",", ":"), sort_keys=True, indent=4)
