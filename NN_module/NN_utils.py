@@ -111,6 +111,7 @@ class BestIterKeeper:
         var = np.real(getattr(log_data[driver._loss_name], "variance"))
         mean = np.real(getattr(log_data[driver._loss_name], "mean"))
         varstep = self.N * var / mean**2
+        #print(f" Variance: {var}, Mean: {mean}, Vscore: {varstep}") 
 
         if self.best_energy > energystep:
             self.best_energy = energystep
@@ -138,6 +139,7 @@ def dump_callback(logger, settings, write = False):
     opt_name = settings['opt_name']
     learning_rate = settings['learning_rate']
     sim_label = settings['sim_label']
+    N=int(np.prod(settings['size']))
 
     os.makedirs(write_folder, exist_ok = True)
     
@@ -152,8 +154,9 @@ def dump_callback(logger, settings, write = False):
         error=np.abs(E_hist-E_gr)/np.abs(E_gr)
 
     # Calculate the variance score
-    var= np.array(logger['Energy']['Variance']).real
-    vscore = int(np.prod(settings['size']))*var//(E_hist**2)
+    var= np.real(np.array(logger['Energy']['Variance']))
+    vscore = N*var/(E_hist**2)
+    #vs_min = np.round(np.log10(np.min(vscore)))-1
 
     setup_sim = f"E_best: {E_best:.4f} \nopt: {opt_name} \nl_rate: {learning_rate} \ntime_exe: {time_exe:.2f}"
     if hasattr(logger, 'E_ED'):
@@ -187,6 +190,7 @@ def dump_callback(logger, settings, write = False):
 
     ax[v].plot(vscore, color='purple', label='Vscore')
     ax[v].set_yscale('log')
+    #ax[v].set_ylim(bottom=vs_min)
     ax[v].legend()
     ax[v].set_xlabel('Iteration')
     ax[v].set_ylabel('Vscore', fontsize=12)

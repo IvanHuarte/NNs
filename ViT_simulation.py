@@ -31,7 +31,7 @@ from transformer_LR_WF.vision_transformer import *
 
 # Cargamos configuracion de archivo json
 
-with open("config_vit.json",'r') as f:
+with open("/home/ihuarte/Escritorio/Ivan/NNs/config_vit.json",'r') as f:
     config = json.load(f)
 
 strength = config['strength']          # Lattice and coupling model

@@ -91,7 +91,7 @@ for i, size in enumerate(sizes):
                         time_in = time.time()
                         
                         # Initialize the model
-                        model = MultiLayerPerceptron_Z2_Traslation(
+                        model = MultiLayerPerceptron(
                                 N = N,
                                 param_dtype=jnp.complex128,
                                 hidden_alpha=alphas,
@@ -152,7 +152,7 @@ for i, size in enumerate(sizes):
                                         'sim_label': sim_label
                                     }
                             
-                            callback_artifacts = dump_callback(log, dump_setup)
+                            callback_artifacts = dump_callback(log, dump_setup, write=True)
 
                         else:
                             callback_artifacts = None
@@ -220,5 +220,5 @@ for i, size in enumerate(sizes):
                             write_folder = write_folder,
                             sim_label = sim_label
                         )
-
                         
+                        sys.exit(0) 
