@@ -51,6 +51,7 @@ final_architecture = ast.literal_eval(config['final_architecture'] )
 
 iterations = config['iterations']                   # Simulation settings
 schedule=config['lr_schedule']
+n_samples = config['n_samples']
 exact_diag = config['exact_diagonalization']
 dump_simulation = config['dump_sim_callback']
 write = config['write_folder_sim']
@@ -100,7 +101,7 @@ for i, size in enumerate(sizes):
 
     for j, (theta, phi) in enumerate(zip(theta_list, phi_list)):
         
-        for token_size in [[1,1],[1,2],[2,2],[4,4]]:
+        for token_size in [[1,2],[2,2],[4,4]]:
             for embedding_d in [32,64,128]:
                 for n_heads in [2,4,8]:
                     for n_blocks in [1, 2]:
@@ -137,7 +138,7 @@ for i, size in enumerate(sizes):
                             vstate = nk.vqs.MCState(
                                 sampler,
                                 model,
-                                n_samples=512,
+                                n_samples=n_samples,
                                 n_discard_per_chain=0,
                                 chunk_size=None,
                             )
