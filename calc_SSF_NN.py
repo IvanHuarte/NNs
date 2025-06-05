@@ -71,8 +71,8 @@ if not os.path.isfile(artifact["results"]["vstate"]):
     print(f"vstate parameters from size: {size} theta:{theta} phi:{phi} not available!")
     exit()
 
-artifact["model_NN"]["activation"] = artifact["model_NN"]["activation"]
-artifact["model_NN"]["dense_dim"] = artifact["model_NN"]["dense_dim"]
+# artifact["model_NN"]["activation"] = ast.literal_eval(artifact["model_NN"]["activation"])
+# artifact["model_NN"]["dense_dim"] = ast.literal_eval(artifact["model_NN"]["dense_dim"])
 
 vstate=load_vstate(artifact)
 

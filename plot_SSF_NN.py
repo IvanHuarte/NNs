@@ -156,7 +156,7 @@ for j, SSF in enumerate(plots_ssf):
         origin="lower",
         extent=(-1.5, 1.5, -1.5, 1.5),
         cmap=cmap,
-        norm=mcolors.Normalize(vmin=vmin, vmax=vmax),
+        #norm=mcolors.Normalize(vmin=vmin, vmax=vmax),
         interpolation="none",
     )
 

@@ -188,8 +188,8 @@ for i, size in enumerate(sizes):
 
                             'model_NN': {
                                 'name': 'MLP',
-                                'dense_dim': str(dimensions),
-                                'activation': str(activation_name)
+                                'dense_dim': dimensions,
+                                'activation': activation_name
                                 
                             },
                             'sampler': {
