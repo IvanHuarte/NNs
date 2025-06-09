@@ -389,7 +389,7 @@ class BatchedSpinViT(nn.Module):
 
     @nn.compact
     def __call__(self, batched_x):
-        worker = SpinViT(
+        worker = SpinViT_Z2(
             self.lattice_size,
             self.token_size,
             self.embedding_d,

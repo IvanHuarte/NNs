@@ -129,9 +129,6 @@ for i, size in enumerate(sizes):
                             callback_artifacts = {}
                             time_in = time.time()
 
-
-                            
-
                             model = BatchedSpinViT(
                                 lattice_size=tuple(size),
                                 token_size=tuple(token_size),
