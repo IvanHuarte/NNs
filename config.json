@@ -16,7 +16,7 @@
 
 "opt_name_list" : ["Sgd"],
 "learning_rate_list" : [0.1, 0.01],
-"iterations": 100,
+"iterations": 1000,
 
 "exact_diagonalization": true,
 "dump_sim_callback": true,

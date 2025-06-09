@@ -123,7 +123,7 @@ for i, (size,strength,theta,phi,kwargs_lattice, alphas, activation_name,
     model = MultiLayerPerceptron(
             N = N,
             param_dtype=jnp.complex128,
-            hidden_alpha=alphas,
+            hidden_alpha=tuple(alphas),
             activation=activation,
         )
     #params = model.init(rng,jnp.ones((1,16), dtype=jnp.complex64))
