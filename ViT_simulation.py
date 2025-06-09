@@ -78,6 +78,8 @@ optimizer = nk.optimizer.Sgd(learning_rate=lr_schedule)
 ds_schedule = optax.linear_schedule(1e-2, 1e-4, iterations)
 SR = nk.optimizer.SR(diag_shift=ds_schedule)
 
+E_ED = None
+x_ED = None
 
 for i, size in enumerate(sizes):
 
@@ -115,8 +117,9 @@ for i, size in enumerate(sizes):
             E_ED, x_ED = Runner(oxa.cm).exact_energy_lanczos(eigenstates=True)
             E_ED = float(E_ED.squeeze(-1))
 
+
         for token_size in [[2,1],[2,2]]:
-            for embedding_d in [32,64]:
+            for embedding_d in [32]:
                 for n_heads in [2,4,8]:
                     for n_blocks in [1, 2]:
                         for n_ffn_layers in [2,4]:

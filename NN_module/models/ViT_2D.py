@@ -291,7 +291,7 @@ class SpinViT(nn.Module):
     """Flax module wrapping `SpinViTWorker` and enforcing translation invariance.
 
     This is achieved by averaging the result of `SpinViTWorker` over all
-    possible cyclic permutations.
+    possible 2D translation permutations.
 
     See the documentation of `SpinViTWorker` for information about the
     parameters.
@@ -337,6 +337,40 @@ class SpinViT(nn.Module):
 
         # NO 2D traslation
         return worker(x.reshape(-1, token_dim))
+    
+class SpinViT_Z2(nn.Module):
+    """Flax module wrapping `SpinViTWorker` and enforcing Z2 invariance.
+
+    This is achieved by averaging the result of `SpinViTWorker` over all
+    possible cyclic permutations.
+
+    See the documentation of `SpinViTWorker` for information about the
+    parameters.
+    """
+    lattice_size: Tuple[int, int]
+    token_size: Tuple[int, int]
+    embedding_d: int
+    n_heads: int
+    n_blocks: int
+    n_ffn_layers: int
+    final_architecture: Sequence[int]
+    is_complex: bool
+
+    def __call__(self, x):
+        worker = SpinViT(
+            self.lattice_size,
+            self.token_size,
+            self.embedding_d,
+            self.n_heads,
+            self.n_blocks,
+            self.n_ffn_layers,
+            self.final_architecture,
+            self.is_complex,
+        )
+        z2= jnp.array([[1], [-1]])
+
+        return jax.vmap(worker, in_axes=0)(x*z2).mean(axis=0)
+
 
 
 class BatchedSpinViT(nn.Module):
