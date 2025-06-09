@@ -11,7 +11,7 @@ import ast
 import sys
 
 from pathlib import Path
-sys.path.append(str(Path(__file__).resolve().parent.parent / "ATMOS_VA/VA-project/src"))
+sys.path.append(str(Path(__file__).resolve().parent.parent / "ATMOS_VA/VA_project/src"))
 
 from VA_project.model.model import OxalateJKGamma
 from VA_project.engine.runners import Runner
@@ -61,13 +61,9 @@ for file in artifacts:
     kwargs_lattice_list.append({'bc' : artifact["lattice"]['bc'], "order": "default_2"})
     n=int(np.prod(artifact["lattice"]['size'])) 
     
-
-    dimensions=artifact["model_NN"]['dense_dim']
-    activation=artifact["model_NN"]['activation']
-    print(n, type(dimensions), type(activation))
-    dimensions_list.append(dimensions)            # MLP architecture settings
-    alpha_list.append((dimensions_list[-1][0]//n, dimensions_list[-1][1]//n))  
-    activation_list.append(activation)
+    alpha_list.append(artifact["model_NN"]['alphas'])            # MLP architecture settings
+    dimensions_list.append((alpha_list[-1][0]*n, alpha_list[-1][1]*n))  
+    activation_list.append(artifact["model_NN"]['activation'])
     opt_name_list.append(artifact['optimizer'])
     learning_rate_list.append(artifact['learning_rate'])
     
