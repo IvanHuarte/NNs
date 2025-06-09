@@ -121,7 +121,7 @@ for i, size in enumerate(sizes):
         for token_size in [[2,1],[2,2]]:
             for embedding_d in [32]:
                 for n_heads in [2,4,8]:
-                    for n_blocks in [1, 2]:
+                    for n_blocks in [1,2]:
                         for n_ffn_layers in [2,4]:
 
                             print(f"\n---- Parameters: Size {size}  strength={strength:1f}  theta={theta:2f}  phi={phi:2f} ----\n\n")
