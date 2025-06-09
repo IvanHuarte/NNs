@@ -5,7 +5,7 @@ import jax.numpy as jnp
 import netket as nk
 import json
 import time
-import system as sys
+import sys
 
 from VA_project.model.model import OxalateJKGamma
 from VA_project.engine.runners import Runner

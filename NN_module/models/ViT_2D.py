@@ -70,6 +70,7 @@ class AffinityPosWeight(nn.Module):
 
     @nn.compact
     def __call__(self, x: jt.ArrayLike) -> jt.ArrayLike:
+        #print(x.shape)
         weight_row = self.param(
             "alpha_delta",
             nn.initializers.truncated_normal(
@@ -81,13 +82,17 @@ class AffinityPosWeight(nn.Module):
         # print(f"Input shape: {x.shape}")
         # print(f"Weight row shape: {weight_row.shape}")
 
-        weight = traslations_2D(
-            x=weight_row,
-            size=self.token_lattice_size,
-            memory=False
-        )
+        # Traslation 2D
+        # weight = traslations_2D(
+        #     x=weight_row,
+        #     size=self.token_lattice_size,
+        #     memory=False
+        # )
+
         # print(f"Weight shape: {weight.shape}")
         # print(f"Output shape: {(weight @ x).shape}")
+
+        weight = jnp.tile(weight_row, (x.shape[-2], 1))
 
         return weight @ x
 
@@ -203,28 +208,28 @@ class RealSpinViT(nn.Module):
         
         embedding = nn.Dense(self.embedding_d, param_dtype=REAL_DTYPE)
 
-        #print(f"Input shape: {x.shape}")
+        # print(f"RSV_Input shape: {x.shape}")
         x = embedding(x)
-        #print(f"After embedding: {x.shape}")
+        # print(f"RSV_After embedding: {x.shape}")
 
         blocks = [
             CoreBlock(self.token_lattice_size, self.n_heads, self.n_ffn_layers)
             for _ in range(self.n_blocks)
         ]
-        #print(f"Entering blocks: {len(blocks)} blocks with {self.n_heads} heads each. Number of FFN layers: {self.n_ffn_layers}")
+        # print(f"Entering blocks: {len(blocks)} blocks with {self.n_heads} heads each. Number of FFN layers: {self.n_ffn_layers}")
 
         for cb in blocks:
             x = cb(x)
-            #print(f"After CoreBlock: {x.shape}")
+            # print(f"After CoreBlock: {x.shape}")
 
         # Sum over tokens (set pooling operation).
-        #print(f"Entering pooling operation. ")
+        # print(f"Entering pooling operation. ")
         x = x.sum(axis=0)
-        #print(f"After pooling: {x.shape}")
+        # print(f"After pooling: {x.shape}")
         postprocessor = MultiLayerPerceptron(self.final_architecture)
         x = postprocessor(x)
-        #print(f"After postprocessing: {x.shape}")
-        #print(f"And finished with Dense(1) to get the final output.\n\n")
+        # print(f"After postprocessing: {x.shape}")
+        # print(f"And finished with Dense(1) to get the final output.\n\n")
         # Fix the offset and scale.
         return nn.Dense(1, param_dtype=REAL_DTYPE)(x).squeeze()
 
@@ -302,6 +307,8 @@ class SpinViT(nn.Module):
 
     @nn.compact
     def __call__(self, x):
+        #print(f"Input shape: {x.shape}")
+        token_dim = self.token_size[0] * self.token_size[1]
         token_lattice_size = (
             self.lattice_size[0] // self.token_size[0],
             self.lattice_size[1] // self.token_size[1]
@@ -317,13 +324,19 @@ class SpinViT(nn.Module):
         )
         #print(self.token_size, type(self.token_size))
 
-        traslational_x = traslations_2D(  # shape = (token_dim, n_tokens, token_dim)
-            x,
-            size=self.lattice_size,
-            token_size=self.token_size,
-            memory=False
-        )
-        return jax.vmap(worker, in_axes=0)(traslational_x).mean(axis=0)
+        # 2D traslation
+        
+        # traslational_x = traslations_2D(  # shape = (token_dim, n_tokens, token_dim)
+        #     x,
+        #     size=self.lattice_size,
+        #     token_size=self.token_size,
+        #     memory=False
+        # ).reshape(token_dim, -1, token_dim)
+        # print(f"Translational x shape: {traslational_x.shape}")
+        # return jax.vmap(worker, in_axes=0)(traslational_x).mean(axis=0)
+
+        # NO 2D traslation
+        return worker(x.reshape(-1, token_dim))
 
 
 class BatchedSpinViT(nn.Module):

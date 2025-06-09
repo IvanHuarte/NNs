@@ -6,9 +6,12 @@ import netket as nk
 import json
 import time
 import argparse
-import system as sys
 import glob
 import ast
+import sys
+
+from pathlib import Path
+sys.path.append(str(Path(__file__).resolve().parent.parent / "ATMOS_VA/VA-project/src"))
 
 from VA_project.model.model import OxalateJKGamma
 from VA_project.engine.runners import Runner
@@ -52,15 +55,19 @@ for file in artifacts:
         artifact = json.load(f)
 
     strength_list.append(artifact["coupling_model"]['strength'])                         # Lattice and coupling model
-    theta_list.append(artifact["coupling_model"]['theta_list'])
-    phi_list.append(artifact["coupling_model"]['phi_list'])
-    sizes.append(artifact["lattice"]['sizes'])
+    theta_list.append(artifact["coupling_model"]['theta'])
+    phi_list.append(artifact["coupling_model"]['phi'])
+    sizes.append(artifact["lattice"]['size'])
     kwargs_lattice_list.append({'bc' : artifact["lattice"]['bc'], "order": "default_2"})
-    n=int(np.prod(artifact['sizes'][0])) 
+    n=int(np.prod(artifact["lattice"]['size'])) 
+    
 
-    dimensions_list.append(ast.literal_eval(artifact["model_NN"]['dense_dim']))            # MLP architecture settings
-    alpha_list.append(tuple(dimensions_list[-1][0]//n, dimensions_list[-1][1]//n))  
-    activation_list.append(ast.literal_eval(artifact["model_NN"]['activation']))
+    dimensions=artifact["model_NN"]['dense_dim']
+    activation=artifact["model_NN"]['activation']
+    print(n, type(dimensions), type(activation))
+    dimensions_list.append(dimensions)            # MLP architecture settings
+    alpha_list.append((dimensions_list[-1][0]//n, dimensions_list[-1][1]//n))  
+    activation_list.append(activation)
     opt_name_list.append(artifact['optimizer'])
     learning_rate_list.append(artifact['learning_rate'])
     

@@ -9,6 +9,7 @@ import optax
 import json
 import time
 import ast
+import os
 
 
 jax.config.update("jax_enable_x64", True)
@@ -101,8 +102,21 @@ for i, size in enumerate(sizes):
 
     for j, (theta, phi) in enumerate(zip(theta_list, phi_list)):
         
-        for token_size in [[1,2],[2,2],[4,4]]:
-            for embedding_d in [32,64,128]:
+        ## Update Hamiltonian
+        oxa=OxalateJKGamma(
+            size, 
+            [strength, theta, phi],
+            **kwargs_lattice
+        )
+        H = Runner(oxa.cm).build_hamiltonian()
+
+        if exact_diag and not os.path.isfile(write_folder + f"Oxalate_xED_{size[0]}x{size[1]}_strength_{strength:.1f}_theta_{theta:.1f}_phi_{phi:.1f}.txt"):
+            print("Running exact diagonalization...")
+            E_ED, x_ED = Runner(oxa.cm).exact_energy_lanczos(eigenstates=True)
+            E_ED = float(E_ED.squeeze(-1))
+
+        for token_size in [[2,1],[2,2]]:
+            for embedding_d in [32,64]:
                 for n_heads in [2,4,8]:
                     for n_blocks in [1, 2]:
                         for n_ffn_layers in [2,4]:
@@ -112,18 +126,9 @@ for i, size in enumerate(sizes):
                             callback_artifacts = {}
                             time_in = time.time()
 
-                            ## Update Hamiltonian
-                            oxa=OxalateJKGamma(
-                                size, 
-                                [strength, theta, phi],
-                                **kwargs_lattice
-                            )
-                            H = Runner(oxa.cm).build_hamiltonian()
 
-                            if exact_diag:
-                                E_ED, x_ED = Runner(oxa.cm).exact_energy_lanczos(eigenstates=True)
-                                E_ED = float(E_ED.squeeze(-1))
-                                    
+                            
+
                             model = BatchedSpinViT(
                                 lattice_size=tuple(size),
                                 token_size=tuple(token_size),
