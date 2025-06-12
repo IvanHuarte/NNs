@@ -12,7 +12,7 @@ import ast
 import sys
 from pathlib import Path
 
-from NN_module.NN_utils import load_vstate
+from NN_module.sim_utils import load_vstate
 from NN_module.correlations import correlations_ED, correlations_vstate
 
 # Añadir el directorio chebyoxa al path
@@ -68,8 +68,8 @@ all_sites = list(zip(*np.triu_indices(n_spins)))
 
 # Load vstate
 if not os.path.isfile(artifact["results"]["vstate"]):
-    print(f"vstate parameters from size: {size} theta:{theta} phi:{phi} not available!")
-    exit()
+    print(f"vstate parameters file: {artifact['results']['vstate']} not available!")
+    sys.exit(1)
 
 # artifact["model_NN"]["activation"] = ast.literal_eval(artifact["model_NN"]["activation"])
 # artifact["model_NN"]["dense_dim"] = ast.literal_eval(artifact["model_NN"]["dense_dim"])

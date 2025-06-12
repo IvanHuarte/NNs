@@ -21,8 +21,9 @@ import jax.typing as jt
 import netket as nk
 import numpy.typing as npt
 
-from ..NN_utils import REAL_DTYPE, traslations_2D
+from ..NN_utils import traslations_2D
 
+REAL_DTYPE = jnp.asarray(1.0).dtype
 
 class MultiLayerPerceptron(nn.Module):
     """Flax module for a Multi-layer perceptron architecture with normalization.
@@ -92,7 +93,7 @@ class AffinityPosWeight(nn.Module):
         # print(f"Weight shape: {weight.shape}")
         # print(f"Output shape: {(weight @ x).shape}")
 
-        # No traslation 2D
+        # # No traslation 2D
         # weight = jnp.tile(weight_row, (x.shape[-2], 1))
 
         return weight @ x
@@ -326,7 +327,6 @@ class SpinViT(nn.Module):
         #print(self.token_size, type(self.token_size))
 
         # 2D traslation
-        
         traslational_x = traslations_2D(  # shape = (token_dim, n_tokens, token_dim)
             x,
             size=self.lattice_size,
@@ -389,7 +389,7 @@ class BatchedSpinViT(nn.Module):
 
     @nn.compact
     def __call__(self, batched_x):
-        worker = SpinViT_Z2(
+        worker = SpinViT(
             self.lattice_size,
             self.token_size,
             self.embedding_d,

@@ -117,6 +117,12 @@ for i, size in enumerate(sizes):
             E_ED, x_ED = Runner(oxa.cm).exact_energy_lanczos(eigenstates=True)
             E_ED = float(E_ED.squeeze(-1))
 
+        # for token_size, embedding_d, n_heads, n_blocks, n_ffn_layers in zip(
+        #     [[2,1],[2,1], [2,1],[2,1], [2,2], [2,2], [2,2]] , 
+        #     [32,32,64,64,32,32,64,64], 
+        #     [4,4,4,4,4,4,4,4], 
+        #     [1,2,1,2, 1,2,1,2], 
+        #     [2,4,2,2, 2,4,2,2]):
 
         for token_size in [[2,1],[2,2]]:
             for embedding_d in [32]:
@@ -225,9 +231,14 @@ for i, size in enumerate(sizes):
 
                                 'model_NN': {
                                     'name': 'ViT',
+                                    "lattice_size": size,
                                     "token_size": token_size,
                                     "embedding_d": embedding_d,
-                                    "n_heads": n_heads                
+                                    "n_heads": n_heads,
+                                    "n_blocks": n_blocks,
+                                    "n_ffn_layers": n_ffn_layers,
+                                    "final_architecture": final_architecture,
+                                    'is_complex': True,
                                 },
 
                                 'sampler': {
