@@ -42,7 +42,7 @@ phi = artifact['coupling_model']['phi']
 write_folder_SSF = write_folder_ssf #+ f"Oxalate_size_{size[0]}x{size[1]}/"
 
 file = f"Oxalate_" + artifact["model_NN"]["name"] + f"_SSF_strength_{strength:2f}_theta_{theta:2f}_phi_{phi:2f}"
-file_ED = f"Oxalate_" + artifact["model_NN"]["name"] + f"_SSF_strength_{strength:2f}_theta_{theta:2f}_phi_{phi:2f}_ED"
+file_ED = f"Oxalate_" + artifact["model_NN"]["name"] + f"_SSF_strength_{strength:2f}_theta_{theta:2f}_phi_{phi:2f}_ED.txt"
 files = [file]
 
 # Check exact diagonalization mode
@@ -87,7 +87,8 @@ if explore_mode:                    # If True checks sucessive files and assign 
         i+=1
         print(f"_{i}.txt")
     
-    files[0] += f"_{i}.txt"
+    files[0] += f"_{i}"
+
 
 if os.path.isfile(write_folder_SSF + file_ED): 
     print(f"SSF ED size: {size} theta:{theta} phi:{phi} already done!")

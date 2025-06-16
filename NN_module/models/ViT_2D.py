@@ -26,7 +26,8 @@ from ..NN_utils import traslations_2D
 REAL_DTYPE = jnp.asarray(1.0).dtype
 
 class MultiLayerPerceptron(nn.Module):
-    """Flax module for a Multi-layer perceptron architecture with normalization.
+    """
+    Flax module for a Multi-layer perceptron architecture with normalization.
 
     Args:
         layer_widths: Sequence of integers that define both the number of layers
@@ -289,8 +290,8 @@ class SpinViTWorker(nn.Module):
         return real_part
 
 
-class SpinViT(nn.Module):
-    """Flax module wrapping `SpinViTWorker` and enforcing translation invariance.
+class SpinViT_2D(nn.Module):
+    """Flax module wrapping `SpinViTWorker` and enforcing 2D-translation invariance.
 
     This is achieved by averaging the result of `SpinViTWorker` over all
     possible 2D translation permutations.
@@ -334,12 +335,60 @@ class SpinViT(nn.Module):
             memory=False
         ).reshape(token_dim, -1, token_dim)
         # print(f"Translational x shape: {traslational_x.shape}")
-        return jax.vmap(worker, in_axes=0)(traslational_x).mean(axis=0)
+        # return jax.vmap(worker, in_axes=0)(traslational_x).mean(axis=0)
 
-        # # NO 2D traslation
-        # return worker(x.reshape(-1, token_dim))
-    
+        output=jax.vmap(worker, in_axes=0)(traslational_x)
+
+        return jax.nn.logsumexp(output, axis=0)
+
+
+
 class SpinViT_Z2(nn.Module):
+    """Flax module wrapping `SpinViTWorker` and enforcing Z2 and 2D-traslational invariance.
+
+    This is achieved by averaging the result of `SpinViTWorker` over all
+    possible cyclic permutations.
+
+    See the documentation of `SpinViTWorker` for information about the
+    parameters.
+    """
+    lattice_size: Tuple[int, int]
+    token_size: Tuple[int, int]
+    embedding_d: int
+    n_heads: int
+    n_blocks: int
+    n_ffn_layers: int
+    final_architecture: Sequence[int]
+    is_complex: bool
+    trivial: bool = True
+
+
+    @nn.compact
+    def __call__(self, x):
+        token_dim = self.token_size[0] * self.token_size[1]
+        token_lattice_size = (
+            self.lattice_size[0] // self.token_size[0],
+            self.lattice_size[1] // self.token_size[1]
+        )
+        worker = SpinViTWorker(
+                token_lattice_size,
+                self.embedding_d,
+                self.n_heads,
+                self.n_blocks,
+                self.n_ffn_layers,
+                self.final_architecture,
+                self.is_complex,
+            )
+        x=x.reshape(-1,token_dim)
+        output_x = worker(x)
+        output_inv_x = worker(-1.0*x)
+        if self.trivial:
+            return jax.nn.logsumexp(jnp.array([output_x, output_inv_x]), axis = 0)
+        else:
+            return jax.nn.logsumexp(jnp.array([output_x, output_inv_x]), b=jnp.asarray([1., -1.]), axis = 0)
+        
+    
+class SpinViT_2D_Z2(nn.Module):
     """Flax module wrapping `SpinViTWorker` and enforcing Z2 invariance.
 
     This is achieved by averaging the result of `SpinViTWorker` over all
@@ -356,22 +405,53 @@ class SpinViT_Z2(nn.Module):
     n_ffn_layers: int
     final_architecture: Sequence[int]
     is_complex: bool
+    trivial: bool = True
+
 
     @nn.compact
     def __call__(self, x):
-        worker = SpinViT(
-            self.lattice_size,
-            self.token_size,
-            self.embedding_d,
-            self.n_heads,
-            self.n_blocks,
-            self.n_ffn_layers,
-            self.final_architecture,
-            self.is_complex,
+        token_dim = self.token_size[0] * self.token_size[1]
+        token_lattice_size = (
+            self.lattice_size[0] // self.token_size[0],
+            self.lattice_size[1] // self.token_size[1]
         )
-        z2= jnp.array([[1], [-1]])
+        worker = SpinViTWorker(
+                token_lattice_size,
+                self.embedding_d,
+                self.n_heads,
+                self.n_blocks,
+                self.n_ffn_layers,
+                self.final_architecture,
+                self.is_complex,
+            )
+        
+        # 2D traslation
+        traslational_x = traslations_2D(  # shape = (token_dim, n_tokens, token_dim)
+            x,
+            size=self.lattice_size,
+            token_size=self.token_size,
+            memory=False
+        ).reshape(token_dim, -1, token_dim)
+        
+        output_x = jax.vmap(worker, in_axes=0)(traslational_x)
+        output_inv_x = jax.vmap(worker, in_axes=0)(-1.0*traslational_x)
 
-        return jax.vmap(worker, in_axes=0)(x*z2).mean(axis=0)
+        if self.trivial:
+            z2_sym=jax.nn.logsumexp(
+                jnp.array([output_x,output_inv_x]).transpose(1,0,2),
+                axis=1
+            )
+            return jax.nn.logsumexp(z2_sym, axis=0)
+        
+        else:
+            z2_sym=jax.nn.logsumexp(
+                jnp.array([output_x,output_inv_x]).transpose(1,0,2),
+                b=jnp.array([1., -1.])[None,:,None],
+                axis=1
+            )
+            return jax.nn.logsumexp(z2_sym, axis=0)
+            
+            
 
 
 
@@ -386,17 +466,58 @@ class BatchedSpinViT(nn.Module):
     n_ffn_layers: int
     final_architecture: Sequence[int]
     is_complex: bool
+    symm_2D: bool = False
+    symm_Z2: bool = False
+    trivial_Z2: bool = True
 
     @nn.compact
     def __call__(self, batched_x):
-        worker = SpinViT(
-            self.lattice_size,
-            self.token_size,
-            self.embedding_d,
-            self.n_heads,
-            self.n_blocks,
-            self.n_ffn_layers,
-            self.final_architecture,
-            self.is_complex,
-        )
+        if self.symm_Z2 and self.symm_2D:
+            worker = SpinViT_2D_Z2(
+                self.lattice_size,
+                self.token_size,
+                self.embedding_d,
+                self.n_heads,
+                self.n_blocks,
+                self.n_ffn_layers,
+                self.final_architecture,
+                self.is_complex,
+                trivial=self.trivial_Z2
+            )
+        elif self.symm_2D and not self.symm_Z2:
+            worker = SpinViT_2D(
+                self.lattice_size,
+                self.token_size,
+                self.embedding_d,
+                self.n_heads,
+                self.n_blocks,
+                self.n_ffn_layers,
+                self.final_architecture,
+                self.is_complex
+            )
+        elif not self.symm_2D and self.symm_Z2:
+            worker = SpinViT_Z2(
+                self.lattice_size,
+                self.token_size,
+                self.embedding_d,
+                self.n_heads,
+                self.n_blocks,
+                self.n_ffn_layers,
+                self.final_architecture,
+                self.is_complex
+            )
+        else:
+            worker = SpinViTWorker(
+                self.lattice_size,
+                self.token_size,
+                self.embedding_d,
+                self.n_heads,
+                self.n_blocks,
+                self.n_ffn_layers,
+                self.final_architecture,
+                self.is_complex,
+            )
+
+
+
         return jax.vmap(worker, in_axes=0)(batched_x)

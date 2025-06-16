@@ -262,11 +262,13 @@ def _init_model(N,model):
             token_size=tuple(model['token_size']),
             embedding_d=model['embedding_d'],
             n_heads=model['n_heads'],
-            n_blocks=2,
-            n_ffn_layers=4,
-            final_architecture=(5,),
-            is_complex=True,
-
+            n_blocks=model['n_blocks'],
+            n_ffn_layers=model['n_fnn_layers'],
+            final_architecture=model['final_architecture'],
+            is_complex=model['is_complex'],
+            symm_2D = model['symm_2D'],
+            symm_Z2 = model['symm_Z2'],
+            trivial_Z2 = model['trivial_Z2']
         )
 
 def load_vstate(setup):
