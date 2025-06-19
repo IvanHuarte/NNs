@@ -258,7 +258,7 @@ def _init_model(N,model):
     
     if model['name'] == 'ViT':
         return BatchedSpinViT(
-            lattice_size=tuple([6,6]),
+            lattice_size=tuple(model['lattice_size']),
             token_size=tuple(model['token_size']),
             embedding_d=model['embedding_d'],
             n_heads=model['n_heads'],
@@ -266,9 +266,9 @@ def _init_model(N,model):
             n_ffn_layers=model['n_ffn_layers'],
             final_architecture=tuple(model['final_architecture']),
             is_complex=model['is_complex'],
-            symm_2D = True ,#model['symm_2D'],
-            symm_Z2 = False ,#model['symm_Z2'],
-            trivial_Z2 = True #model['trivial_Z2']
+            symm_2D = model['symm_2D'][0],
+            symm_Z2 = model['symm_Z2'][0],
+            trivial_Z2 = model['trivial_Z2']
         )
 
 def load_vstate(setup):

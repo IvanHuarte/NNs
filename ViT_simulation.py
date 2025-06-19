@@ -270,7 +270,7 @@ for i, size in enumerate(sizes):
 
             'sampler': {
                 'name': "MetropolisSampler",
-                'n_samples': None, 
+                'n_samples': n_samples, 
                 'rng': vstate.sampler_state.rng.tolist(), 
                 'rules': 'LocalRule/InvertMagnetization'
 
