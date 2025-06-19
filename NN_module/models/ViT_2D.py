@@ -333,7 +333,7 @@ class SpinViT_2D(nn.Module):
             size=self.lattice_size,
             token_size=self.token_size,
             memory=False
-        ).reshape(token_dim, -1, token_dim)
+        )
         # print(f"Translational x shape: {traslational_x.shape}")
         # return jax.vmap(worker, in_axes=0)(traslational_x).mean(axis=0)
 
@@ -410,7 +410,6 @@ class SpinViT_2D_Z2(nn.Module):
 
     @nn.compact
     def __call__(self, x):
-        token_dim = self.token_size[0] * self.token_size[1]
         token_lattice_size = (
             self.lattice_size[0] // self.token_size[0],
             self.lattice_size[1] // self.token_size[1]
@@ -431,25 +430,34 @@ class SpinViT_2D_Z2(nn.Module):
             size=self.lattice_size,
             token_size=self.token_size,
             memory=False
-        ).reshape(token_dim, -1, token_dim)
+        )
         
         output_x = jax.vmap(worker, in_axes=0)(traslational_x)
         output_inv_x = jax.vmap(worker, in_axes=0)(-1.0*traslational_x)
 
         if self.trivial:
-            z2_sym=jax.nn.logsumexp(
-                jnp.array([output_x,output_inv_x]).transpose(1,0,2),
-                axis=1
-            )
-            return jax.nn.logsumexp(z2_sym, axis=0)
+            x_2d = jnp.array([output_x,output_inv_x]).mean(axis=1)
+            return jax.nn.logsumexp(x_2d, axis=0)
+            
         
         else:
-            z2_sym=jax.nn.logsumexp(
-                jnp.array([output_x,output_inv_x]).transpose(1,0,2),
-                b=jnp.array([1., -1.])[None,:,None],
-                axis=1
-            )
-            return jax.nn.logsumexp(z2_sym, axis=0)
+            x_2d = jnp.array([output_x,output_inv_x]).mean(axis=1)
+            return jax.nn.logsumexp(x_2d, b=jnp.array([1.,-1])[:, None], axis=0)
+
+        # if self.trivial:
+        #     z2_sym=jax.nn.logsumexp(
+        #         jnp.array([output_x,output_inv_x]).transpose(1,0,2),
+        #         axis=1
+        #     )
+        #     return jax.nn.logsumexp(z2_sym, axis=0)
+        
+        # else:
+        #     z2_sym=jax.nn.logsumexp(
+        #         jnp.array([output_x,output_inv_x]).transpose(1,0,2),
+        #         b=jnp.array([1., -1.])[None,:,None],
+        #         axis=1
+        #     )
+        #     return jax.nn.logsumexp(z2_sym, axis=0)
             
             
 

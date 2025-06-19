@@ -70,8 +70,7 @@ pflip = 1 - pinvert
 
 
 ### Training schedule ###
-lr_schedule = optax.schedule.Schedule(
-    cos_exp_scheduler(
+lr_schedule = cos_exp_scheduler(
         epochs=iterations,
         lr0=schedule['lr0'],
         decay=schedule['decay_exp'],
@@ -79,7 +78,7 @@ lr_schedule = optax.schedule.Schedule(
         n=schedule['n'],
         lr_min=schedule['lr_min']
     )
-)
+
 # lr_schedule = optax.warmup_exponential_decay_schedule(
 #     schedule['lr_0'],
 #     peak_value=schedule['peak_value'],
@@ -116,7 +115,15 @@ for i, size in enumerate(sizes):
     hi, nk.sampler.rules.MultipleRules([rule1, rule2], [pflip, pinvert])
     )
 
-    for j, (theta, phi) in enumerate(zip(theta_list, phi_list)):
+    #for j, (theta, phi) in enumerate(zip(theta_list, phi_list)):
+    for j, (theta, phi,token_size, embedding_d, n_heads, n_blocks, n_ffn_layers) in enumerate(zip(
+            [ 9.0, 54.0, 54.0, 54.0, 90.0],
+            [ 72.0, 0.0, 216.0, 315.0, 115.2],
+            [[2,1],[2,1], [2,1],[2,1], [2,1]] , 
+            [32, 32, 32, 32, 64], 
+            [2, 4, 2, 4, 2], 
+            [2,1, 2, 2, 2], 
+            [2, 2, 2, 2, 2])):   
         
         ## Update Hamiltonian
         oxa=OxalateJKGamma(
@@ -297,7 +304,7 @@ for i, size in enumerate(sizes):
             sim_label = sim_label
         )
 
-        sys.exit(0)
+
 
 
 

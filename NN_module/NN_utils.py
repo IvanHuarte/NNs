@@ -83,26 +83,26 @@ def circulant(
 
 def traslations_2D_vmap(
     x: npt.ArrayLike, 
-    token_size: Tuple[int, int] = (1,1)
+    size: Tuple[int, int] = (1,1)
 ) -> npt.ArrayLike:
         """
         Returns a matrix of translations of a flat input vector x 
         which represtents a 2D lattice state. 
         Enhances time execution. 
         """
-
-        N = token_size[0] * token_size[1]
-        idx = jnp.unravel_index(jnp.arange(N), token_size)
+        x = x.reshape(-1,*size)
+        N = size[0] * size[1]
+        idx = jnp.unravel_index(jnp.arange(N), size)
         shift_idx = jnp.array(idx).T
         
         roll = lambda x, shift: jnp.roll(x, shift=shift, axis=(-2,-1)).reshape(-1, N)
         
-        return jax.vmap(roll,in_axes=(None,0))(x, shift_idx).reshape(N, -1, N).squeeze()
+        return jax.vmap(roll,in_axes=(None,0))(x, shift_idx).reshape(-1, N).squeeze()
 
 
 def traslations_2D_scan(
     x: npt.ArrayLike, 
-    token_size: Tuple[int, int] 
+    size: Tuple[int, int] 
 ) -> npt.ArrayLike:
 
     """
@@ -111,20 +111,22 @@ def traslations_2D_scan(
     Enhances memory saving.
     N must be equal to x.shape[-1] 
     """
-    N = token_size[0] * token_size[1]
+    N = size[0] * size[1]
+    x = x.reshape(size)
     
     def scan_and_roll_x(carry_x, _):
         
         def scan_and_roll_y(carry_y, _):
-            y = jnp.roll(carry_y, shift=-1, axis=-1)
+            y = jnp.roll(carry_y, shift=1, axis=-1)
             return y, y.reshape(-1, N)
         
-        _, block_y = jax.lax.scan(scan_and_roll_y, carry_x, length=token_size[1])
-        x = jnp.roll(carry_x, shift=-1, axis=-2)
+        _, block_y = jax.lax.scan(scan_and_roll_y, carry_x, length=size[1])
+        x = jnp.roll(carry_x, shift=1, axis=-2)
 
         return x, block_y
     
-    return jax.lax.scan(scan_and_roll_x, x, length=token_size[0])[1].reshape(N, -1, N).squeeze()
+    return jax.lax.scan(scan_and_roll_x, x, length=size[0])[1].reshape(-1, N).squeeze()
+
 
 
 def traslations_2D(
@@ -140,28 +142,19 @@ def traslations_2D(
     if x.shape[0] != size[0] * size[1]:
         raise ValueError("`x` dimension must be equal to `prod(size)`, " +
                          f"but got {x.shape[0]} and {size[0] * size[1]}.")
+    
+    if memory:
+        x = traslations_2D_scan(x, size)
+    else:
+        x = traslations_2D_vmap(x, size)
 
     sub_lat = (size[0] // token_size[0], size[1] // token_size[1])
 
     # Transforms x into different shapes depending on token_size
-    x = x.reshape((sub_lat[1],token_size[1],sub_lat[0],token_size[0]) ,order='C').transpose((0, 2, 1, 3)).reshape(-1, *token_size)#.squeeze()
+    x = x.reshape((-1, sub_lat[1],token_size[1],sub_lat[0],token_size[0]),
+                  order='C').transpose((0, 1, 3, 2, 4)).reshape(size[0]*size[1],-1,token_size[0]*token_size[1]).squeeze()
 
-    # print(f"Input tokens:\n {x} ") 
-    # print(f"Input tokens shape: {x.shape} ")
-    # [Creates and] Performs a 2-D tensor of translations for each token 
-    if memory:
-        return traslations_2D_scan(x, token_size)
-    else:
-        return traslations_2D_vmap(x, token_size)
-
-
-
-
-  
-
-
-
-
-        
+    return x
+   
 
 
