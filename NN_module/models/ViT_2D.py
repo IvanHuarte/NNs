@@ -337,9 +337,9 @@ class SpinViT_2D(nn.Module):
         # print(f"Translational x shape: {traslational_x.shape}")
         # return jax.vmap(worker, in_axes=0)(traslational_x).mean(axis=0)
 
-        output=jax.vmap(worker, in_axes=0)(traslational_x)
+        return jax.vmap(worker, in_axes=0)(traslational_x).mean(axis=0)
 
-        return jax.nn.logsumexp(output, axis=0)
+        #return jax.nn.logsumexp(output, axis=0)
 
 
 
@@ -512,7 +512,8 @@ class BatchedSpinViT(nn.Module):
                 self.n_blocks,
                 self.n_ffn_layers,
                 self.final_architecture,
-                self.is_complex
+                self.is_complex,
+                self.trivial_Z2
             )
         else:
             worker = SpinViTWorker(
@@ -525,7 +526,5 @@ class BatchedSpinViT(nn.Module):
                 self.final_architecture,
                 self.is_complex,
             )
-
-
 
         return jax.vmap(worker, in_axes=0)(batched_x)
