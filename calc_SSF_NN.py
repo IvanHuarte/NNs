@@ -87,7 +87,7 @@ if explore_mode:                    # If True checks sucessive files and assign 
         i+=1
         print(f"_{i}.txt")
     
-    files[0] += f"_{i}"
+    files[0] += f"_{i}.txt"
 
 
 if os.path.isfile(write_folder_SSF + file_ED): 
@@ -101,8 +101,9 @@ corr_NN = correlations_vstate(vstate)
 correlations_list.append(corr_NN)
 print(f"vstate correlations DONE\n\n")
 
-x_ED_path = artifact['_artifacts']["x_ED"]
+
 if exact_diag:
+    x_ED_path = artifact['_artifacts']["x_ED"]
     x_ED = np.loadtxt(x_ED_path, dtype = np.complex64)
     corr_ED = correlations_ED(size, x_ED)
     correlations_list.append(corr_ED)
@@ -110,6 +111,7 @@ if exact_diag:
 
 art_label=['OPT','ED']
 artifact['_artifacts']['SSF'] = {}
+
 for i, corr in enumerate(correlations_list):
 
     print(SSF_label[i])
@@ -122,4 +124,3 @@ for i, f in enumerate(files):
 
 with open(path_artifact,"w") as f:
     json.dump(artifact, f, separators=(",", ":"), sort_keys=True, indent=4)
-

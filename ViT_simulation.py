@@ -29,6 +29,7 @@ from VA_project.engine.runners import Runner
 from NN_module.sim_utils import (
     save_results, dump_callback
 )
+from NN_module.NN_utils import cos_exp_scheduler
 from transformer_LR_WF.utils import *
 from NN_module.models.ViT_2D import BatchedSpinViT
 
@@ -69,13 +70,23 @@ pflip = 1 - pinvert
 
 
 ### Training schedule ###
-lr_schedule = optax.warmup_exponential_decay_schedule(
-    schedule['lr_0'],
-    peak_value=schedule['peak_value'],
-    warmup_steps=schedule['warmup_steps'],
-    transition_steps=1,
-    decay_rate=schedule['decay_rate'],
+lr_schedule = optax.schedule.Schedule(
+    cos_exp_scheduler(
+        epochs=iterations,
+        lr0=schedule['lr0'],
+        decay=schedule['decay_exp'],
+        cycles=schedule['cosine_cycles'],
+        n=schedule['n'],
+        lr_min=schedule['lr_min']
+    )
 )
+# lr_schedule = optax.warmup_exponential_decay_schedule(
+#     schedule['lr_0'],
+#     peak_value=schedule['peak_value'],
+#     warmup_steps=schedule['warmup_steps'],
+#     transition_steps=1,
+#     decay_rate=schedule['decay_rate'],
+# )
 
 optimizer = nk.optimizer.Sgd(learning_rate=lr_schedule)
 ds_schedule = optax.linear_schedule(1e-2, 1e-4, iterations)
@@ -245,9 +256,9 @@ for i, size in enumerate(sizes):
                 "n_ffn_layers": n_ffn_layers,
                 "final_architecture": final_architecture,
                 'is_complex': True,
-                'symm_2D' : True,
-                'symm_Z2' : False,
-                'trivial_Z2' : True
+                'symm_2D' : symm_2D,
+                'symm_Z2' : symm_Z2,
+                'trivial_Z2' : trivial_Z2
             },
 
             'sampler': {

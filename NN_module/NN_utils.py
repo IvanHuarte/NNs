@@ -43,6 +43,16 @@ rule_dict={
                                                                     [0.75,0.25]),
 }
 
+def cos_exp_scheduler(epochs, lr0, decay, cycles, n, lr_min):
+
+    exp = lambda step, a: jnp.exp(-a*step/epochs)
+    cos = lambda step, cycles: jnp.cos(step*2*jnp.pi/epochs *(cycles-0.5))
+    line = lambda step, n: (lr_min-n)/epochs*step+n
+
+    def scheduler_callable(step):
+        return (lr0-n)*exp(step,decay)*(1+cos(step,cycles))/2+line(step,n)
+
+    return scheduler_callable
 
 def circulant(
     row: npt.ArrayLike, times: Optional[int] = None
