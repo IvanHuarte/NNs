@@ -288,7 +288,51 @@ class SpinViTWorker(nn.Module):
             return real_part + 1.0j * imag_part
 
         return real_part
+    
 
+class SpinViT(nn.Module):
+    """Flax module wrapping `SpinViTWorker` and enforcing Z2 and 2D-traslational invariance.
+
+    This is achieved by averaging the result of `SpinViTWorker` over all
+    possible cyclic permutations.
+
+    See the documentation of `SpinViTWorker` for information about the
+    parameters.
+    """
+    lattice_size: Tuple[int, int]
+    token_size: Tuple[int, int]
+    embedding_d: int
+    n_heads: int
+    n_blocks: int
+    n_ffn_layers: int
+    final_architecture: Sequence[int]
+    is_complex: bool
+    trivial: bool = True
+
+
+    @nn.compact
+    def __call__(self, x):
+        token_dim = self.token_size[0] * self.token_size[1]
+        token_lattice_size = (
+            self.lattice_size[0] // self.token_size[0],
+            self.lattice_size[1] // self.token_size[1]
+        )
+        worker = SpinViTWorker(
+                None,
+                self.embedding_d,
+                self.n_heads,
+                self.n_blocks,
+                self.n_ffn_layers,
+                self.final_architecture,
+                self.is_complex,
+            )
+        
+        # Tokenizacion 2D
+        x = x.reshape((token_lattice_size[1],self.token_size[1],token_lattice_size[0],self.token_size[0]),
+                  order='C').transpose((0, 2, 1, 3)).reshape(-1,token_dim).squeeze()
+   
+        return worker(x)
+        
 
 class SpinViT_2D(nn.Module):
     """Flax module wrapping `SpinViTWorker` and enforcing 2D-translation invariance.
@@ -371,7 +415,7 @@ class SpinViT_Z2(nn.Module):
             self.lattice_size[1] // self.token_size[1]
         )
         worker = SpinViTWorker(
-                token_lattice_size,
+                None,
                 self.embedding_d,
                 self.n_heads,
                 self.n_blocks,
@@ -379,9 +423,13 @@ class SpinViT_Z2(nn.Module):
                 self.final_architecture,
                 self.is_complex,
             )
-        x=x.reshape(-1,token_dim)
+        
+        x=x.reshape((token_lattice_size[1],self.token_size[1],token_lattice_size[0],self.token_size[0]),
+                  order='C').transpose((0, 2, 1, 3)).reshape(-1,self.token_size[0]*self.token_size[1]).squeeze()
+        
         output_x = worker(x)
         output_inv_x = worker(-1.0*x)
+
         if self.trivial:
             return jax.nn.logsumexp(jnp.array([output_x, output_inv_x]), axis = 0)
         else:
@@ -389,7 +437,9 @@ class SpinViT_Z2(nn.Module):
         
     
 class SpinViT_2D_Z2(nn.Module):
-    """Flax module wrapping `SpinViTWorker` and enforcing Z2 invariance.
+
+    """
+    Flax module wrapping `SpinViTWorker` and enforcing Z2 invariance.
 
     This is achieved by averaging the result of `SpinViTWorker` over all
     possible cyclic permutations.
@@ -397,6 +447,7 @@ class SpinViT_2D_Z2(nn.Module):
     See the documentation of `SpinViTWorker` for information about the
     parameters.
     """
+
     lattice_size: Tuple[int, int]
     token_size: Tuple[int, int]
     embedding_d: int
@@ -432,17 +483,15 @@ class SpinViT_2D_Z2(nn.Module):
             memory=False
         )
         
-        output_x = jax.vmap(worker, in_axes=0)(traslational_x)
-        output_inv_x = jax.vmap(worker, in_axes=0)(-1.0*traslational_x)
+        output_x = jax.vmap(worker, in_axes=0)(traslational_x).mean(axis=0)
+        output_inv_x = jax.vmap(worker, in_axes=0)(-1.0*traslational_x).mean(axis=0)
 
         if self.trivial:
-            x_2d = jnp.array([output_x,output_inv_x]).mean(axis=1)
-            return jax.nn.logsumexp(x_2d, axis=0)
-            
+            return jax.nn.logsumexp(jnp.array([output_x,output_inv_x]), axis=0)
         
         else:
-            x_2d = jnp.array([output_x,output_inv_x]).mean(axis=1)
-            return jax.nn.logsumexp(x_2d, b=jnp.array([1.,-1])[:, None], axis=0)
+            return jax.nn.logsumexp(jnp.array([output_x,output_inv_x]), b=jnp.array([1.,-1]), axis=0)
+            
 
         # if self.trivial:
         #     z2_sym=jax.nn.logsumexp(
