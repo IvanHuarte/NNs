@@ -50,8 +50,8 @@ n_heads=config['n_heads']
 n_blocks= config['n_blocks']
 n_ffn_layers = config['n_ffn_layers']
 final_architecture = ast.literal_eval(config['final_architecture'] )
-symm_2D = config['symm_2D'],
-symm_Z2 = config['symm_Z2'],
+symm_2D = config['symm_2D']
+symm_Z2 = config['symm_Z2']
 trivial_Z2 = config['trivial_Z2']
 
 iterations = config['iterations']                   # Simulation settings
@@ -68,6 +68,10 @@ rule2 = InvertMagnetization()
 pinvert = 0.25
 pflip = 1 - pinvert
 
+
+print(f"symm_2D: {symm_2D}")
+print(f"symm_Z2: {symm_Z2}")
+print(f"trivial_Z2: {trivial_Z2}")
 
 ### Training schedule ###
 lr_schedule = cos_exp_scheduler(
@@ -120,10 +124,10 @@ for i, size in enumerate(sizes):
             [ 9.0, 54.0, 54.0, 54.0, 90.0],
             [ 72.0, 0.0, 216.0, 315.0, 115.2],
             [[2,1],[2,1], [2,1],[2,1], [2,1]] , 
-            [32, 32, 32, 32, 64], 
+            [64, 32, 32, 32, 64], 
             [2, 4, 2, 4, 2], 
-            [2,1, 2, 2, 2], 
-            [2, 2, 2, 2, 2])):   
+            [2, 1, 2, 2, 2], 
+            [4, 2, 2, 2, 2])):   
         
         ## Update Hamiltonian
         oxa=OxalateJKGamma(
