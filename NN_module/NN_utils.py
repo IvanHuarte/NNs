@@ -62,9 +62,12 @@ scheduler_dict={
 
 def scheduler_initializer(name, setup):
 
+    epochs = setup['epochs']
+    setup = setup[name]
+
     if name == 'cos_exp_scheduler':
         return cos_exp_scheduler(
-            epochs=setup['epochs'],
+            epochs=epochs,
             lr0=setup['lr0'],
             decay=setup['decay_exp'],
             cycles=setup['cosine_cycles'],
