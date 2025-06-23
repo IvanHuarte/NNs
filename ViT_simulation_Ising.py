@@ -141,6 +141,7 @@ for i, size in enumerate(sizes):
             print("Running exact diagonalization...")
             E_ED, x_ED = Runner(ising).exact_energy_lanczos(eigenstates=True)
             E_ED = float(E_ED.squeeze(-1))
+            print(f"Energy ED: {E_ED}")
 
         # for token_size, embedding_d, n_heads, n_blocks, n_ffn_layers in zip(
         #     [[2,1],[2,1], [2,1],[2,1], [2,2], [2,2], [2,2]] , 
