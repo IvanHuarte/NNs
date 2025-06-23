@@ -29,7 +29,7 @@ from VA_project.engine.runners import Runner
 from NN_module.sim_utils import (
     save_results, dump_callback
 )
-from NN_module.NN_utils import cos_exp_scheduler
+from NN_module.NN_utils import scheduler_initializer, cos_exp_scheduler
 from transformer_LR_WF.utils import *
 from NN_module.models.ViT_2D import BatchedSpinViT
 
@@ -54,7 +54,7 @@ symm_2D = config['symm_2D']
 symm_Z2 = config['symm_Z2']
 trivial_Z2 = config['trivial_Z2']
 
-iterations = config['iterations']                   # Simulation settings
+epochs = config['lr_schedule']['epochs']                   # Simulation settings
 schedule=config['lr_schedule']
 n_samples = config['n_samples']
 exact_diag = config['exact_diagonalization']
@@ -74,25 +74,28 @@ print(f"symm_Z2: {symm_Z2}")
 print(f"trivial_Z2: {trivial_Z2}")
 
 ### Training schedule ###
-lr_schedule = cos_exp_scheduler(
-        epochs=iterations,
-        lr0=schedule['lr0'],
-        decay=schedule['decay_exp'],
-        cycles=schedule['cosine_cycles'],
-        n=schedule['n'],
-        lr_min=schedule['lr_min']
-    )
 
-# lr_schedule = optax.warmup_exponential_decay_schedule(
-#     schedule['lr_0'],
-#     peak_value=schedule['peak_value'],
-#     warmup_steps=schedule['warmup_steps'],
-#     transition_steps=1,
-#     decay_rate=schedule['decay_rate'],
-# )
+# lr_schedule = cos_exp_scheduler(
+#         epochs=epochs,
+#         lr0=schedule['lr0'],
+#         decay=schedule['decay_exp'],
+#         cycles=schedule['cosine_cycles'],
+#         n=schedule['n'],
+#         lr_min=schedule['lr_min']
+#     )
+
+lr_schedule = optax.warmup_exponential_decay_schedule(
+    schedule["warmup_exponential_decay"]['lr0'],
+    peak_value=schedule["warmup_exponential_decay"]['peak_value'],
+    warmup_steps=schedule["warmup_exponential_decay"]['warmup_steps'],
+    transition_steps=1,
+    decay_rate=schedule["warmup_exponential_decay"]['decay_rate'],
+)
+
+lr_schedule = scheduler_initializer(schedule['name'], schedule[schedule['name']])
 
 optimizer = nk.optimizer.Sgd(learning_rate=lr_schedule)
-ds_schedule = optax.linear_schedule(1e-2, 1e-4, iterations)
+ds_schedule = optax.linear_schedule(1e-2, 1e-4, epochs)
 SR = nk.optimizer.SR(diag_shift=ds_schedule)
 
 E_ED = None
@@ -124,7 +127,7 @@ for i, size in enumerate(sizes):
             [ 9.0, 54.0, 54.0, 54.0, 90.0],
             [ 72.0, 0.0, 216.0, 315.0, 115.2],
             [[2,1],[2,1], [2,1],[2,1], [2,1]] , 
-            [64, 32, 32, 32, 64], 
+            [32, 32, 32, 32, 64], 
             [2, 4, 2, 4, 2], 
             [2, 1, 2, 2, 2], 
             [4, 2, 2, 2, 2])):   
@@ -195,7 +198,7 @@ for i, size in enumerate(sizes):
         keeper = BestIterKeeper(H, N, 1e-8)
 
         # keeper.filename = 'Somewhere' #It allows you to store the parameters of the model for the state with lowest energy found.
-        gs.run(n_iter=iterations, out=log, callback=[keeper.update], show_progress=True)
+        gs.run(n_iter=epochs, out=log, callback=[keeper.update], show_progress=True)
 
         vstate=keeper.best_state
 
@@ -281,11 +284,8 @@ for i, size in enumerate(sizes):
             },
             'optimizer': "Sgd",
             "lr_schedule":{
-                "name": "warmup_exponential_decay",
-                "lr_0": schedule['lr_0'],
-                "peak_value": schedule['peak_value'],
-                "warmup_steps": schedule['warmup_steps'],
-                "decay_rate": schedule['decay_rate']
+                "name": schedule["name"],
+                "setup": schedule[schedule["name"]]
             },
 
             'results':{

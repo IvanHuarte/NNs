@@ -59,7 +59,7 @@ class BestIterKeeper:
         var = np.real(getattr(log_data[driver._loss_name], "variance"))
         mean = np.real(getattr(log_data[driver._loss_name], "mean"))
         varstep = self.N * var / mean**2
-        #print(f" Variance: {var}, Mean: {mean}, Vscore: {varstep}") 
+        print(f" Variance: {var}, Mean: {mean}, Vscore: {varstep}") 
 
         if self.best_energy > energystep:
             self.best_energy = energystep

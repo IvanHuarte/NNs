@@ -1,6 +1,7 @@
 import netket as nk
 import flax.linen as nn
 import jax
+import optax
 import jax.numpy as jnp
 import numpy.typing as npt
 from typing import Optional, Tuple
@@ -53,6 +54,33 @@ def cos_exp_scheduler(epochs, lr0, decay, cycles, n, lr_min):
         return (lr0-n)*exp(step,decay)*(1+cos(step,cycles))/2+line(step,n)
 
     return scheduler_callable
+
+scheduler_dict={
+    'cos_exp_scheduler':cos_exp_scheduler,
+    'warmup_exponential_decay': optax.warmup_exponential_decay_schedule
+}
+
+def scheduler_initializer(name, setup):
+
+    if name == 'cos_exp_scheduler':
+        return cos_exp_scheduler(
+            epochs=setup['epochs'],
+            lr0=setup['lr0'],
+            decay=setup['decay_exp'],
+            cycles=setup['cosine_cycles'],
+            n=setup['n'],
+            lr_min=setup['lr_min']
+        )
+    elif name == 'warmup_exponential_decay':
+        return optax.warmup_exponential_decay_schedule(
+            init_value=setup['lr0'],
+            peak_value=setup['peak_value'],
+            warmup_steps=setup['warmup_steps'],
+            transition_steps=1,
+            decay_rate=setup['decay_rate'],
+        )
+
+
 
 def circulant(
     row: npt.ArrayLike, times: Optional[int] = None

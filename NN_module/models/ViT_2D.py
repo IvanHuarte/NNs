@@ -73,26 +73,35 @@ class AffinityPosWeight(nn.Module):
     @nn.compact
     def __call__(self, x: jt.ArrayLike) -> jt.ArrayLike:
         #print(x.shape)
-        weight_row = self.param(
+        
+        # print(f"Input shape: {x.shape}")
+        # print(f"Weight row shape: {weight_row.shape}")
+
+        # Traslation 2D
+        if self.token_lattice_size is not None:
+            weight_row = self.param(
             "alpha_delta",
             nn.initializers.truncated_normal(
                 stddev=jnp.sqrt(1.0 / x.shape[-2])
             ),
             (x.shape[-2],),
             REAL_DTYPE,
-        )
-        # print(f"Input shape: {x.shape}")
-        # print(f"Weight row shape: {weight_row.shape}")
-
-        # Traslation 2D
-        if self.token_lattice_size is not None:
+            )
             weight = traslations_2D(
                 x=weight_row,
                 size=self.token_lattice_size,
                 memory=False
             )
         else:
-            weight = jnp.tile(weight_row, (x.shape[-2], 1))
+            weight=self.param(
+                "alpha_delta_nosymm",
+                nn.initializers.truncated_normal(
+                    stddev=jnp.sqrt(1.0 / x.shape[-2])
+                ),
+                (x.shape[-2],x.shape[-2]),
+                REAL_DTYPE,
+                )
+            #weight = jnp.tile(weight_row, (x.shape[-2], 1))
 
         # print(f"Weight shape: {weight.shape}")
         # print(f"Output shape: {(weight @ x).shape}")
@@ -489,25 +498,9 @@ class SpinViT_2D_Z2(nn.Module):
 
         if self.trivial:
             return jax.nn.logsumexp(jnp.array([output_x,output_inv_x]), axis=0)
-        
         else:
             return jax.nn.logsumexp(jnp.array([output_x,output_inv_x]), b=jnp.array([1.,-1]), axis=0)
             
-
-        # if self.trivial:
-        #     z2_sym=jax.nn.logsumexp(
-        #         jnp.array([output_x,output_inv_x]).transpose(1,0,2),
-        #         axis=1
-        #     )
-        #     return jax.nn.logsumexp(z2_sym, axis=0)
-        
-        # else:
-        #     z2_sym=jax.nn.logsumexp(
-        #         jnp.array([output_x,output_inv_x]).transpose(1,0,2),
-        #         b=jnp.array([1., -1.])[None,:,None],
-        #         axis=1
-        #     )
-        #     return jax.nn.logsumexp(z2_sym, axis=0)
 
 
 class BatchedSpinViT(nn.Module):
