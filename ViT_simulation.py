@@ -195,21 +195,25 @@ for i, size in enumerate(sizes):
 
         ## Save results
 
-        sim_label = f"b_{token_size[0]}x{token_size[1]}_Demb_{embedding_d}_heads_{n_heads}_blocks_{n_blocks}_ffn_lay_{n_ffn_layers}"
+        sim_label = f"Oxalate_simulation_{size[0]}x{size[1]}_strength_{strength}_theta_{theta}_phi_{phi}_b_{token_size[0]}x{token_size[1]}_Demb_{embedding_d}_heads_{n_heads}_blocks_{n_blocks}_ffn_lay_{n_ffn_layers}"
+        ED_label = f"Oxalate_xED_{size[0]}x{size[1]}_strength_{strength}_theta_{theta}_phi_{phi}_ED"
+        json_label = f"Oxalate_results_{size[0]}x{size[1]}_strength_{strength}_theta_{theta}_phi_{phi}_b_{token_size[0]}x{token_size[1]}_Demb_{embedding_d}_heads_{n_heads}_blocks_{n_blocks}_ffn_lay_{n_ffn_layers}"
+        title_label_callback = f"Callback  "+ r"$\theta = %.1f$  $\phi = %.1f$"%(theta,phi) + f"  ({size[0]}x{size[1]})"
+
         if dump_simulation:
             # For plotting architecture
             architecture = f"|| b: {token_size}  D_emb: {embedding_d}  heads: {n_heads} ||\n"
             architecture += f"|| n_blocks: {n_blocks}   ffn_layers: {n_ffn_layers} ||\n"
 
             dump_setup ={
-                'size': size, 'theta': theta,
-                'phi': phi, 'opt_name': "Sgd",
+                'size': size, 'opt_name': "Sgd",
                 'learning_rate': "Scheduled",
                 'write_folder': write_folder,
                 'time_exe': time_exe, 
                 'architecture': architecture,
-                'sim_label': sim_label
-                    }
+                'sim_label': sim_label,
+                'title_label_callback': title_label_callback
+            }
             
             callback_artifacts = dump_callback(log, dump_setup)
 
@@ -277,7 +281,7 @@ for i, size in enumerate(sizes):
                 'E_ED': E_ED,
                 'error': error,
                 'vscore': vscore,
-                'time_exe': time_exe, 
+                'time_exe': time_exe
             },
             '_artifacts': {
                 'callback': callback_artifacts
@@ -287,9 +291,11 @@ for i, size in enumerate(sizes):
         save_results(
             vstate, 
             dump_setup, 
-            x_ED = x_ED, 
+            x_ED = x_ED,
             write_folder = write_folder,
-            sim_label = sim_label
+            sim_label = sim_label,
+            ED_label=ED_label,
+            json_label=json_label
         )
 
 

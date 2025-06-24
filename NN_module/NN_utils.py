@@ -183,4 +183,12 @@ def traslations_2D(
     return x
    
 
+def phase_stats(vstate):
+
+    samples = vstate.samples 
+    flat_samples = samples.reshape(-1, samples.shape[-1])  
+    logpsi = vstate.log_value(flat_samples)
+    phases = jnp.imag(logpsi)
+
+    return phases.mean(axis=0), jnp.std(phases)
 

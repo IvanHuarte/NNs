@@ -50,6 +50,7 @@ n_heads=config['n_heads']
 n_blocks= config['n_blocks']
 n_ffn_layers = config['n_ffn_layers']
 final_architecture = ast.literal_eval(config['final_architecture'] )
+is_complex = config['is_complex']
 symm_2D = config['symm_2D']
 symm_Z2 = config['symm_Z2']
 trivial_Z2 = config['trivial_Z2']
@@ -149,7 +150,7 @@ for i, size in enumerate(sizes):
                 cm = GeneralNeighborCoupling(chain, field_terms, coupling_terms)
                 H = Runner(cm).build_hamiltonian()
 
-                print(f"\n---- Parameters: Size {size} \n\nFields: {fields}  \nCouplings: {couplings} ----\n\n")
+                print(f"\n---- Parameters: Size {size} Fields: {fields}  \nCouplings: {couplings} ----\n\n")
                 print(f"Token size: {token_size} \nEmbedding D: {embedding_d} \nHeads: {n_heads}\n")
                 print(f"Blocks: {n_blocks} \nffn_layers: {n_ffn_layers}\n\n")
 
@@ -170,7 +171,7 @@ for i, size in enumerate(sizes):
                     n_blocks=n_blocks,
                     n_ffn_layers=n_ffn_layers,
                     final_architecture=final_architecture,
-                    is_complex=True,
+                    is_complex=is_complex,
                     symm_2D = symm_2D,
                     symm_Z2 = symm_Z2,
                     trivial_Z2 = trivial_Z2
@@ -209,23 +210,44 @@ for i, size in enumerate(sizes):
                     log.E_ED = E_ED
 
                 ## Save results
+                flat_fields=''
+                field_values=''
+                title_label=''
+                for f,v in zip(['X','Y','Z'], fields):
+                    flat_fields += f + '_'
+                    field_values += f"{v}" + '_'
+                    title_label += f"{f}:{v}  "
 
-                sim_label = f"Fields_{cm.operators[0]}_{fields}_Couplings_{cm.operators[1]}_{couplings}"
-                sim_label += f"b_{token_size[0]}x{token_size[1]}_Demb_{embedding_d}_heads_{n_heads}_blocks_{n_blocks}_ffn_lay_{n_ffn_layers}"
+                flat_couplings=''
+                coupling_values=''
+                for f,v in zip(['XX','YY','ZZ'], couplings):
+                    flat_couplings += f + '_'
+                    coupling_values += f"{v}" + '_'
+                    title_label += f"{f}:{v}  "
+                
+                coup_label = f"{size[0]}x{size[1]}_fields_{flat_fields}_{field_values}_couplings_{flat_couplings}_{coupling_values}"
+                nn_label = f"b_{token_size[0]}x{token_size[1]}_Demb_{embedding_d}_heads_{n_heads}_blocks_{n_blocks}_ffn_lay_{n_ffn_layers}"
+
+                sim_label = f"Ising_simulation_" + coup_label + nn_label
+                ED_label = f"Ising_xED_" + coup_label
+                json_label = f"Oxalate_results_" + nn_label
+                title_label_callback = f"Callback  "+ title_label + f"  ({size[0]}x{size[1]})"
+
+                
                 if dump_simulation:
                     # For plotting architecture
                     architecture = f"|| b: {token_size}  D_emb: {embedding_d}  heads: {n_heads} ||\n"
                     architecture += f"|| n_blocks: {n_blocks}   ffn_layers: {n_ffn_layers} ||\n"
 
                     dump_setup ={
-                        'size': size, 'theta': 0.,
-                        'phi': 0., 'opt_name': "Sgd",
+                        'size': size, 'opt_name': "Sgd",
                         'learning_rate': "Scheduled",
                         'write_folder': write_folder,
                         'time_exe': time_exe, 
                         'architecture': architecture,
-                        'sim_label': sim_label
-                            }
+                        'sim_label': sim_label,
+                        'title_label_callback': title_label_callback
+                    }
                     
                     callback_artifacts = dump_callback(log, dump_setup)
 
@@ -250,14 +272,14 @@ for i, size in enumerate(sizes):
                 dump_setup ={
 
                     'lattice':{
-                        'name': 'Triangular',
+                        'name': 'Chain/Square',
                         'size': size, 
                         'bc': kwargs_lattice['bc'],
                     },
                     'coupling_model': {
-                        'strength': strength,
-                        'theta': 0,
-                        'phi': 0, 
+                        'operators': cm.operators,
+                        'field': fields,
+                        'couplings': couplings
                     },
 
                     'model_NN': {
@@ -269,7 +291,7 @@ for i, size in enumerate(sizes):
                         "n_blocks": n_blocks,
                         "n_ffn_layers": n_ffn_layers,
                         "final_architecture": final_architecture,
-                        'is_complex': True,
+                        'is_complex': is_complex,
                         'symm_2D' : symm_2D,
                         'symm_Z2' : symm_Z2,
                         'trivial_Z2' : trivial_Z2
@@ -303,11 +325,12 @@ for i, size in enumerate(sizes):
                 save_results(
                     vstate, 
                     dump_setup, 
-                    x_ED = x_ED, 
+                    x_ED = x_ED,
                     write_folder = write_folder,
-                    sim_label = sim_label
+                    sim_label = sim_label,
+                    ED_label=ED_label,
+                    json_label=json_label
                 )
-
 
 
 

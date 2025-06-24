@@ -78,15 +78,14 @@ def dump_callback(logger, settings, write = False):
 
     callback_artifacts = {}
 
-    size = settings['size']
-    theta = settings['theta']
-    phi = settings['phi']
     time_exe = settings['time_exe']
     write_folder = settings['write_folder']
     architecture_display = settings['architecture']
     opt_name = settings['opt_name']
     learning_rate = settings['learning_rate']
     sim_label = settings['sim_label']
+    title_label_callback= settings['title_label_callback']
+
     N=int(np.prod(settings['size']))
 
     os.makedirs(write_folder, exist_ok = True)
@@ -118,7 +117,7 @@ def dump_callback(logger, settings, write = False):
         _, ax = plt.subplots(2,1,figsize=(8, 12))
         v = 1 ; e = 2
 
-    ax[0].set_title(f"Callback  "+ r"$\theta = %.1f$  $\phi = %.1f$"%(theta,phi) + f"({size[0]}x{size[1]})")
+    ax[0].set_title(title_label_callback)
 
     if hasattr(logger, 'E_ED'):
         ax[0].errorbar(range(len(E_hist)), E_hist, yerr=dev_E_hist, fmt='none', ecolor='r', label='E_stdev')
@@ -152,7 +151,7 @@ def dump_callback(logger, settings, write = False):
         ax[e].set_ylabel('Error', fontsize=12)
         ax[e].grid()
 
-    file_path = write_folder + f"Callback_{size[0]}x{size[1]}_theta_{theta}_phi_{phi}_{sim_label}"
+    file_path = write_folder + f"Callback_" + sim_label
     figure_path = file_path + ".jpeg"
 
     plt.tight_layout()
@@ -178,7 +177,7 @@ def dump_callback(logger, settings, write = False):
     return callback_artifacts
         
 
-def save_results(vstate, setup, x_ED = None, write_folder = './', sim_label = ''):
+def save_results(vstate, setup, x_ED = None, write_folder = './', sim_label = '', ED_label = '', json_label = ''):
     """Save the results of the simulation.
     Args:
         vstate: The variational state.
@@ -192,15 +191,12 @@ def save_results(vstate, setup, x_ED = None, write_folder = './', sim_label = ''
     os.makedirs(write_folder, exist_ok = True)
 
     size = setup['lattice']['size']
-    strength = setup['coupling_model']['strength']
-    theta = setup['coupling_model']['theta']
-    phi = setup['coupling_model']['phi']
     
     # Save the variational state
-    file = f"{size[0]}x{size[1]}_strength_{strength}_theta_{theta}_phi_{phi}_{sim_label}"
-    file_ED =  f"{size[0]}x{size[1]}_strength_{strength}_theta_{theta}_phi_{phi}"
+    file = f"{sim_label}"
+    file_ED =  f"{ED_label}"
 
-    path_vstate = write_folder + "Oxalate_vstate_params_" + file + ".msgpack"
+    path_vstate = write_folder + file + "_vstate_params.msgpack"
 
     with open(path_vstate, "wb") as f:
         f.write(to_bytes(vstate.parameters))
@@ -209,7 +205,7 @@ def save_results(vstate, setup, x_ED = None, write_folder = './', sim_label = ''
 
     # Save exact diagonalization eigenstate 
     if x_ED is not None:
-        path_ED = write_folder + "Oxalate_xED_" + file_ED + ".txt"
+        path_ED = write_folder + file_ED + ".txt"
         if not os.path.isfile(write_folder + file_ED):
             np.savetxt(path_ED, x_ED)
         setup['_artifacts']['x_ED'] = path_ED
@@ -233,7 +229,7 @@ def save_results(vstate, setup, x_ED = None, write_folder = './', sim_label = ''
     setup['results']['vstate'] = path_vstate
 
     # Save the main artifact
-    setup_path = write_folder + "Oxalate_results_" + file + ".json"
+    setup_path = write_folder + json_label + ".json"
     with open(setup_path, "w") as outfile:
         json.dump(setup, outfile, separators=(",", ":"), sort_keys=True, indent=4)
 
@@ -266,8 +262,8 @@ def _init_model(N,model):
             n_ffn_layers=model['n_ffn_layers'],
             final_architecture=tuple(model['final_architecture']),
             is_complex=model['is_complex'],
-            symm_2D = model['symm_2D'][0],
-            symm_Z2 = model['symm_Z2'][0],
+            symm_2D = model['symm_2D'],
+            symm_Z2 = model['symm_Z2'],
             trivial_Z2 = model['trivial_Z2']
         )
 

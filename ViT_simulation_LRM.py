@@ -50,6 +50,7 @@ n_heads=config['n_heads']
 n_blocks= config['n_blocks']
 n_ffn_layers = config['n_ffn_layers']
 final_architecture = ast.literal_eval(config['final_architecture'] )
+is_complex = config['is_complex']
 symm_2D = config['symm_2D']
 symm_Z2 = config['symm_Z2']
 trivial_Z2 = config['trivial_Z2']
@@ -153,7 +154,7 @@ for i, size in enumerate(sizes):
             n_blocks=n_blocks,
             n_ffn_layers=n_ffn_layers,
             final_architecture=final_architecture,
-            is_complex=True,
+            is_complex=is_complex,
             symm_2D = symm_2D,
             symm_Z2 = symm_Z2,
             trivial_Z2 = trivial_Z2
@@ -193,23 +194,30 @@ for i, size in enumerate(sizes):
 
         ## Save results
 
-        sim_label = f"XZ_{XZ_field[0]}_{XZ_field[1]}_J_{ZZ_hop[0]}_alpha_{alpha}_b_{token_size[0]}x{token_size[1]}_Demb_{embedding_d}_heads_{n_heads}_blocks_{n_blocks}_ffn_lay_{n_ffn_layers}"
+        coup_label = f"{size[0]}x{size[1]}_XZ_{XZ_field[0]}_{XZ_field[1]}_J_{ZZ_hop[0]}_alpha_{alpha}_"
+        nn_label = f"b_{token_size[0]}x{token_size[1]}_Demb_{embedding_d}_heads_{n_heads}_blocks_{n_blocks}_ffn_lay_{n_ffn_layers}"
+
+        sim_label = f"LRM_simulation_" + coup_label + nn_label
+        ED_label = f"LRM_xED_" + coup_label
+        json_label = f"LRM_results_" + coup_label + nn_label
+        title_label_callback = f"Callback  X:{XZ_field[0]} Z:{XZ_field[1]} J:{ZZ_hop[0]} " + r"$\alpha=%.2f$"%alpha + f" ({size[0]}x{size[1]})"
+
         if dump_simulation:
             # For plotting architecture
             
-            architecture = f"|| X: {XZ_field[0]} Z:{XZ_field[1]} J:{ZZ_hop[0]} alpha: {alpha} ||\n"
-            architecture += f"|| b: {token_size}  D_emb: {embedding_d}  heads: {n_heads} ||\n"
+            #architecture = f"|| X: {XZ_field[0]} Z:{XZ_field[1]} J:{ZZ_hop[0]} alpha: {alpha} ||\n"
+            architecture = f"|| b: {token_size}  D_emb: {embedding_d}  heads: {n_heads} ||\n"
             architecture += f"|| n_blocks: {n_blocks}   ffn_layers: {n_ffn_layers} ||\n"
 
             dump_setup ={
-                'size': size, 'theta': 0.,
-                'phi': 0., 'opt_name': "Sgd",
+                'size': size, 'opt_name': "Sgd",
                 'learning_rate': "Scheduled",
                 'write_folder': write_folder,
                 'time_exe': time_exe, 
                 'architecture': architecture,
-                'sim_label': sim_label
-                    }
+                'sim_label': sim_label,
+                'title_label_callback': title_label_callback
+            }
             
             callback_artifacts = dump_callback(log, dump_setup)
 
@@ -234,14 +242,15 @@ for i, size in enumerate(sizes):
         dump_setup ={
 
             'lattice':{
-                'name': 'Triangular',
+                'name': 'Chain/Square',
                 'size': size, 
                 'bc': kwargs_lattice['bc'],
             },
             'coupling_model': {
-                'strength': strength,
-                'theta': 0,
-                'phi': 0, 
+                'X':XZ_field[0],
+                'Y':XZ_field[1],
+                'J':ZZ_hop[0],
+                'alpha': alpha
             },
 
             'model_NN': {
@@ -253,7 +262,7 @@ for i, size in enumerate(sizes):
                 "n_blocks": n_blocks,
                 "n_ffn_layers": n_ffn_layers,
                 "final_architecture": final_architecture,
-                'is_complex': True,
+                'is_complex': is_complex,
                 'symm_2D' : symm_2D,
                 'symm_Z2' : symm_Z2,
                 'trivial_Z2' : trivial_Z2
@@ -284,11 +293,13 @@ for i, size in enumerate(sizes):
             }
         }
 
+
         save_results(
             vstate, 
             dump_setup, 
-            x_ED = x_ED, 
+            x_ED = x_ED,
             write_folder = write_folder,
-            sim_label = sim_label
+            sim_label = sim_label,
+            ED_label=ED_label,
+            json_label=json_label
         )
-
