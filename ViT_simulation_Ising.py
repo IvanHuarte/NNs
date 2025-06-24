@@ -24,7 +24,7 @@ sys.path.append(str(Path(__file__).resolve().parent.parent / "Transformers/trans
 
 # Importar módulos necesarios
 from VA_project.lattice.lattice import Chain
-from VA_project.model.cm import IsingChainXZ
+from VA_project.model.cm import GeneralNeighborCoupling
 from VA_project.engine.runners import Runner
 from NN_module.sim_utils import (
     save_results, dump_callback
@@ -75,24 +75,7 @@ print(f"trivial_Z2: {trivial_Z2}")
 
 ### Training schedule ###
 
-# lr_schedule = cos_exp_scheduler(
-#         epochs=epochs,
-#         lr0=schedule['lr0'],
-#         decay=schedule['decay_exp'],
-#         cycles=schedule['cosine_cycles'],
-#         n=schedule['n'],
-#         lr_min=schedule['lr_min']
-#     )
-
-# lr_schedule = optax.warmup_exponential_decay_schedule(
-#     schedule["warmup_exponential_decay"]['lr0'],
-#     peak_value=schedule["warmup_exponential_decay"]['peak_value'],
-#     warmup_steps=schedule["warmup_exponential_decay"]['warmup_steps'],
-#     transition_steps=1,
-#     decay_rate=schedule["warmup_exponential_decay"]['decay_rate'],
-# )
-
-lr_schedule = scheduler_initializer(schedule['name'], schedule[schedule['name']])
+lr_schedule = scheduler_initializer(schedule['name'], schedule)
 
 optimizer = nk.optimizer.Sgd(learning_rate=lr_schedule)
 ds_schedule = optax.linear_schedule(1e-2, 1e-4, epochs)
@@ -101,12 +84,22 @@ SR = nk.optimizer.SR(diag_shift=ds_schedule)
 E_ED = None
 x_ED = None
 
+field_list=[[0.0,0.001,0.001], [-1.0,0.001,0.001]]
+coupling_list=[
+    [0.0, -10, -4],
+    [0.0, -4, -10],
+    [0.0, -4, -4],
+    [0.0, 4, 4],
+    [0.0, 4, 10],
+    [0.0, 10, 4]
+]
+
 for i, size in enumerate(sizes):
 
     N = int(np.prod(size)) 
     if N > 20: exact_diag = False
 
-    write_folder = write +  f"Oxalate_size_{size[0]}x{size[1]}/"
+    write_folder = write +  f"Size_{size[0]}x{size[1]}/"
 
     ###  Reseting Hilbert space object and the observables ###
     hi = nk.hilbert.Spin(s=1 / 2, N=N)
@@ -122,33 +115,16 @@ for i, size in enumerate(sizes):
     hi, nk.sampler.rules.MultipleRules([rule1, rule2], [pflip, pinvert])
     )
 
-    #for j, (theta, phi) in enumerate(zip(theta_list, phi_list)):
-    for j, (XZ_field, ZZ_hop, token_size, embedding_d, n_heads, n_blocks, n_ffn_layers) in enumerate(zip(
-            [ [0.0,0.001], [0.0,0.001], [0.0,0.001], [0.0,0.001], [0.0,0.001], [0.0,0.001]],
-            [ [-2], [-1], [-0.2], [0.4], [1.5], [3.5]],
-            [[2,1],[2,1], [2,1],[2,1], [2,1],[2,1]] , 
-            [32, 32, 32, 32, 32, 32], 
-            [2, 2, 2, 2, 2, 2], 
-            [2, 2, 2, 2, 2, 2], 
-            [2, 2, 2, 2, 2, 2])):   
-        
-        ## Update Hamiltonian
-        chain = Chain(size[0], **kwargs_lattice)
-        ising = IsingChainXZ(chain, XZ_field, ZZ_hop)
-        H = Runner(ising).build_hamiltonian()
+    for fields in field_list:
 
-        if exact_diag:# and not os.path.isfile(write_folder + f"Oxalate_xED_{size[0]}x{size[1]}_strength_{strength:.1f}_theta_{theta:.1f}_phi_{phi:.1f}.txt"):
-            print("Running exact diagonalization...")
-            E_ED, x_ED = Runner(ising).exact_energy_lanczos(eigenstates=True)
-            E_ED = float(E_ED.squeeze(-1))
-            print(f"Energy ED: {E_ED}")
+        for couplings in coupling_list:
 
-        # for token_size, embedding_d, n_heads, n_blocks, n_ffn_layers in zip(
-        #     [[2,1],[2,1], [2,1],[2,1], [2,2], [2,2], [2,2]] , 
-        #     [32,32,64,64,32,32,64,64], 
-        #     [4,4,4,4,4,4,4,4], 
-        #     [1,2,1,2, 1,2,1,2], 
-        #     [2,4,2,2, 2,4,2,2]):
+            for token_size, embedding_d, n_heads, n_blocks, n_ffn_layers in zip(
+                [[2,1]] , 
+                [32], 
+                [2], 
+                [2], 
+                [2]):
 
         # for token_size in [[2,1],[2,2]]:
         #     for embedding_d in [32]:
@@ -156,155 +132,180 @@ for i, size in enumerate(sizes):
         #             for n_blocks in [1,2]:
         #                 for n_ffn_layers in [2,4]:
 
-        print(f"\n---- Parameters: Size {size}  X={XZ_field[0]:1f}  Z={XZ_field[1]:1f}  ZZ={ZZ_hop[0]:1f} ----\n\n")
-        print(f"Token size: {token_size} \nEmbedding D: {embedding_d} \nHeads: {n_heads}\n")
-        callback_artifacts = {}
-        time_in = time.time()
-
-        model = BatchedSpinViT(
-            lattice_size=tuple(size),
-            token_size=tuple(token_size),
-            embedding_d=embedding_d,
-            n_heads=n_heads,
-            n_blocks=n_blocks,
-            n_ffn_layers=n_ffn_layers,
-            final_architecture=final_architecture,
-            is_complex=True,
-            symm_2D = symm_2D,
-            symm_Z2 = symm_Z2,
-            trivial_Z2 = trivial_Z2
-        )
-
-        vstate = nk.vqs.MCState(
-            sampler,
-            model,
-            n_samples=n_samples,
-            n_discard_per_chain=0,
-            chunk_size=None,
-        )
-
-        gs = nk.driver.VMC(
-            H,
-            optimizer,
-            variational_state=vstate,
-            preconditioner=SR
-        )
-
-        log = (
-            nk.logging.RuntimeLog()
-        )  # If instead of this logging you insert a string, it will be used as output prefix for a JSON file where the evolution of the energy at each epoch will be stored.
-        keeper = BestIterKeeper(H, N, 1e-8)
-
-        # keeper.filename = 'Somewhere' #It allows you to store the parameters of the model for the state with lowest energy found.
-        gs.run(n_iter=epochs, out=log, callback=[keeper.update], show_progress=True)
-
-        vstate=keeper.best_state
-
-        time_out = time.time()
-        time_exe= time_out - time_in
+    # for j, (field, ZZ_hop, token_size, embedding_d, n_heads, n_blocks, n_ffn_layers) in enumerate(zip(
+    #         [ [0.0,0.001,0.001], [0.0,0.001,0.001], [0.0,0.001,0.001], [-1.0,0.001,0.001], [-1.0,0.001,0.001], [-1.0,0.001,0.001]],
+    #         [ [0.0,], [-1], [-0.2], [0.4], [1.5], [3.5]],
+    #         [[2,1],[2,1], [2,1],[2,1], [2,1],[2,1]] , 
+    #         [32, 32, 32, 32, 32, 32], 
+    #         [2, 2, 2, 2, 2, 2], 
+    #         [2, 2, 2, 2, 2, 2], 
+    #         [2, 2, 2, 2, 2, 2])):   
         
-        if exact_diag:
-            keeper.E_ED = E_ED
-            log.E_ED = E_ED
+                ## Update Hamiltonian
+                field_terms= [ (fields[0],'X'), (fields[1],'Y'), (fields[2],'Z')]
+                coupling_terms= [ (couplings[0],'XX','NN'), (couplings[1],'YY','NN2'), (couplings[2],'ZZ','NN')]
 
-        ## Save results
+                chain = Chain(size[0], **kwargs_lattice)
+                cm = GeneralNeighborCoupling()
+                H = Runner(cm).build_hamiltonian()
 
-        sim_label = f"XZ_{XZ_field[0]}_{XZ_field[1]}_ZZ_{ZZ_hop[0]}_b_{token_size[0]}x{token_size[1]}_Demb_{embedding_d}_heads_{n_heads}_blocks_{n_blocks}_ffn_lay_{n_ffn_layers}"
-        if dump_simulation:
-            # For plotting architecture
-            architecture = f"|| b: {token_size}  D_emb: {embedding_d}  heads: {n_heads} ||\n"
-            architecture += f"|| n_blocks: {n_blocks}   ffn_layers: {n_ffn_layers} ||\n"
+                print(f"\n---- Parameters: Size {size} \n\nFields: {fields}  \nCouplings: {couplings} ----\n\n")
+                print(f"Token size: {token_size} \nEmbedding D: {embedding_d} \nHeads: {n_heads}\n")
+                print(f"Blocks: {n_blocks} \nffn_layers: {n_ffn_layers}")
+                if exact_diag:# and not os.path.isfile(write_folder + f"Oxalate_xED_{size[0]}x{size[1]}_strength_{strength:.1f}_theta_{theta:.1f}_phi_{phi:.1f}.txt"):
+                    print("Running exact diagonalization...")
+                    E_ED, x_ED = Runner(cm).exact_energy_lanczos(eigenstates=True)
+                    E_ED = float(E_ED.squeeze(-1))
+                    print(f"Energy ED: {E_ED}")
 
-            dump_setup ={
-                'size': size, 'theta': 0.,
-                'phi': 0., 'opt_name': "Sgd",
-                'learning_rate': "Scheduled",
-                'write_folder': write_folder,
-                'time_exe': time_exe, 
-                'architecture': architecture,
-                'sim_label': sim_label
+                callback_artifacts = {}
+                time_in = time.time()
+
+                model = BatchedSpinViT(
+                    lattice_size=tuple(size),
+                    token_size=tuple(token_size),
+                    embedding_d=embedding_d,
+                    n_heads=n_heads,
+                    n_blocks=n_blocks,
+                    n_ffn_layers=n_ffn_layers,
+                    final_architecture=final_architecture,
+                    is_complex=True,
+                    symm_2D = symm_2D,
+                    symm_Z2 = symm_Z2,
+                    trivial_Z2 = trivial_Z2
+                )
+
+                vstate = nk.vqs.MCState(
+                    sampler,
+                    model,
+                    n_samples=n_samples,
+                    n_discard_per_chain=0,
+                    chunk_size=None,
+                )
+
+                gs = nk.driver.VMC(
+                    H,
+                    optimizer,
+                    variational_state=vstate,
+                    preconditioner=SR
+                )
+
+                log = (
+                    nk.logging.RuntimeLog()
+                )  # If instead of this logging you insert a string, it will be used as output prefix for a JSON file where the evolution of the energy at each epoch will be stored.
+                keeper = BestIterKeeper(H, N, 1e-8)
+
+                # keeper.filename = 'Somewhere' #It allows you to store the parameters of the model for the state with lowest energy found.
+                gs.run(n_iter=epochs, out=log, callback=[keeper.update], show_progress=True)
+
+                vstate=keeper.best_state
+
+                time_out = time.time()
+                time_exe= time_out - time_in
+                
+                if exact_diag:
+                    keeper.E_ED = E_ED
+                    log.E_ED = E_ED
+
+                ## Save results
+
+                sim_label = f"Fields_{cm.operators[0]}_{fields}_Couplings_{cm.operators[1]}_{couplings}"
+                sim_label += f"b_{token_size[0]}x{token_size[1]}_Demb_{embedding_d}_heads_{n_heads}_blocks_{n_blocks}_ffn_lay_{n_ffn_layers}"
+                if dump_simulation:
+                    # For plotting architecture
+                    architecture = f"|| b: {token_size}  D_emb: {embedding_d}  heads: {n_heads} ||\n"
+                    architecture += f"|| n_blocks: {n_blocks}   ffn_layers: {n_ffn_layers} ||\n"
+
+                    dump_setup ={
+                        'size': size, 'theta': 0.,
+                        'phi': 0., 'opt_name': "Sgd",
+                        'learning_rate': "Scheduled",
+                        'write_folder': write_folder,
+                        'time_exe': time_exe, 
+                        'architecture': architecture,
+                        'sim_label': sim_label
+                            }
+                    
+                    callback_artifacts = dump_callback(log, dump_setup)
+
+                else:
+                    callback_artifacts = None
+                    
+
+                # Extract some results
+                vstate = keeper.best_state
+                E_best = float(keeper.best_energy)
+                vscore = float(keeper.vscore)
+
+                if exact_diag:
+                    error=float(np.abs(E_best-E_ED)/np.abs(E_ED))
+                else:
+                    E_ED = None
+                    x_ED = None
+                    error = None    
+
+                # Save the results
+
+                dump_setup ={
+
+                    'lattice':{
+                        'name': 'Triangular',
+                        'size': size, 
+                        'bc': kwargs_lattice['bc'],
+                    },
+                    'coupling_model': {
+                        'strength': strength,
+                        'theta': 0,
+                        'phi': 0, 
+                    },
+
+                    'model_NN': {
+                        'name': 'ViT',
+                        "lattice_size": size,
+                        "token_size": token_size,
+                        "embedding_d": embedding_d,
+                        "n_heads": n_heads,
+                        "n_blocks": n_blocks,
+                        "n_ffn_layers": n_ffn_layers,
+                        "final_architecture": final_architecture,
+                        'is_complex': True,
+                        'symm_2D' : symm_2D,
+                        'symm_Z2' : symm_Z2,
+                        'trivial_Z2' : trivial_Z2
+                    },
+
+                    'sampler': {
+                        'name': "MetropolisSampler",
+                        'n_samples': n_samples, 
+                        'rng': vstate.sampler_state.rng.tolist(), 
+                        'rules': 'LocalRule/InvertMagnetization'
+
+                    },
+                    'optimizer': "Sgd",
+                    "lr_schedule":{
+                        "name": schedule["name"],
+                        "setup": schedule[schedule["name"]]
+                    },
+
+                    'results':{
+                        'E_best': E_best,
+                        'E_ED': E_ED,
+                        'error': error,
+                        'vscore': vscore,
+                        'time_exe': time_exe, 
+                    },
+                    '_artifacts': {
+                        'callback': callback_artifacts
                     }
-            
-            callback_artifacts = dump_callback(log, dump_setup)
+                }
 
-        else:
-            callback_artifacts = None
-            
-
-        # Extract some results
-        vstate = keeper.best_state
-        E_best = float(keeper.best_energy)
-        vscore = float(keeper.vscore)
-
-        if exact_diag:
-            error=float(np.abs(E_best-E_ED)/np.abs(E_ED))
-        else:
-            E_ED = None
-            x_ED = None
-            error = None    
-
-        # Save the results
-
-        dump_setup ={
-
-            'lattice':{
-                'name': 'Triangular',
-                'size': size, 
-                'bc': kwargs_lattice['bc'],
-            },
-            'coupling_model': {
-                'strength': strength,
-                'theta': 0,
-                'phi': 0, 
-            },
-
-            'model_NN': {
-                'name': 'ViT',
-                "lattice_size": size,
-                "token_size": token_size,
-                "embedding_d": embedding_d,
-                "n_heads": n_heads,
-                "n_blocks": n_blocks,
-                "n_ffn_layers": n_ffn_layers,
-                "final_architecture": final_architecture,
-                'is_complex': True,
-                'symm_2D' : symm_2D,
-                'symm_Z2' : symm_Z2,
-                'trivial_Z2' : trivial_Z2
-            },
-
-            'sampler': {
-                'name': "MetropolisSampler",
-                'n_samples': n_samples, 
-                'rng': vstate.sampler_state.rng.tolist(), 
-                'rules': 'LocalRule/InvertMagnetization'
-
-            },
-            'optimizer': "Sgd",
-            "lr_schedule":{
-                "name": schedule["name"],
-                "setup": schedule[schedule["name"]]
-            },
-
-            'results':{
-                'E_best': E_best,
-                'E_ED': E_ED,
-                'error': error,
-                'vscore': vscore,
-                'time_exe': time_exe, 
-            },
-            '_artifacts': {
-                'callback': callback_artifacts
-            }
-        }
-
-        save_results(
-            vstate, 
-            dump_setup, 
-            x_ED = x_ED, 
-            write_folder = write_folder,
-            sim_label = sim_label
-        )
+                save_results(
+                    vstate, 
+                    dump_setup, 
+                    x_ED = x_ED, 
+                    write_folder = write_folder,
+                    sim_label = sim_label
+                )
 
 
 

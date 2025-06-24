@@ -23,8 +23,60 @@ import numpy.typing as npt
 
 from ..NN_utils import traslations_2D
 
-REAL_DTYPE = jnp.asarray(1.0).dtype
-#REAL_DTYPE = jnp.complex64
+
+DTYPE = jnp.complex64
+REAL_DTYPE = jnp.float32
+
+def complex_normal(stddev=1.0, dtype=DTYPE):
+    def init(key, shape, dtype=dtype):
+        key_r, key_i = jax.random.split(key)
+        real = jax.random.normal(key_r, shape, dtype=REAL_DTYPE) * stddev
+        imag = jax.random.normal(key_i, shape, dtype=REAL_DTYPE) * stddev
+        return (real + 1j * imag).astype(dtype)
+    return init
+
+def complex_lecun_normal(dtype=DTYPE):
+    def init(key, shape, dtype=dtype):
+        fan_in = shape[0] if len(shape) >= 2 else 1
+        stddev = jnp.sqrt(1.0 / fan_in)
+        key_r, key_i = jax.random.split(key)
+        real = jax.random.normal(key_r, shape, dtype=REAL_DTYPE) * stddev
+        imag = jax.random.normal(key_i, shape, dtype=REAL_DTYPE) * stddev
+        return (real + 1j * imag).astype(dtype)
+    return init
+
+def complex_swish_magnitude(z):  # Preserva la fase, actua sobre el modulo
+    mag = jnp.abs(z)
+    phase = jnp.angle(z)
+    swish_mag = mag * jax.nn.sigmoid(mag)
+    return swish_mag * jnp.exp(1j * phase)
+
+class DenseComplex(nn.Module):
+    features: int
+    use_bias: bool = True
+    dtype: jnp.dtype = DTYPE
+    kernel_init: callable = complex_normal()
+    bias_init: callable = complex_normal(1e-6)
+
+    @nn.compact
+    def __call__(self, x):
+        x = jnp.asarray(x, self.dtype)
+        kernel = self.param(
+            "kernel",
+            self.kernel_init,
+            (x.shape[-1], self.features),
+            self.dtype,
+        )
+        x = jnp.dot(x, kernel)
+        if self.use_bias:
+            bias = self.param(
+                "bias",
+                self.bias_init,
+                (self.features,),
+                self.dtype,
+            )
+            x = x + bias
+        return x
 
 class MultiLayerPerceptron(nn.Module):
     """
@@ -42,8 +94,8 @@ class MultiLayerPerceptron(nn.Module):
     """
 
     layer_widths: Sequence[int]
-    activation_function: Callable = nn.swish
-    kernel_init: Callable = nn.initializers.lecun_normal()
+    activation_function: Callable = complex_swish_magnitude
+    kernel_init: Callable = complex_lecun_normal
 
     @nn.compact
     def __call__(self, x) -> jt.ArrayLike:
@@ -53,10 +105,10 @@ class MultiLayerPerceptron(nn.Module):
             if w == 1:
                 normalizer = lambda x: x
             else:
-                normalizer = nn.LayerNorm(param_dtype=REAL_DTYPE)
+                normalizer = nn.LayerNorm(param_dtype=DTYPE)
             x = self.activation_function(
                 normalizer(
-                    nn.Dense(
+                    DenseComplex(
                         w,
                         kernel_init=self.kernel_init,
                         param_dtype=REAL_DTYPE,
@@ -82,11 +134,11 @@ class AffinityPosWeight(nn.Module):
         if self.token_lattice_size is not None:
             weight_row = self.param(
             "alpha_delta",
-            nn.initializers.truncated_normal(
+            complex_normal(
                 stddev=jnp.sqrt(1.0 / x.shape[-2])
             ),
             (x.shape[-2],),
-            REAL_DTYPE,
+            DTYPE,
             )
             weight = traslations_2D(
                 x=weight_row,
@@ -96,11 +148,11 @@ class AffinityPosWeight(nn.Module):
         else:
             weight=self.param(
                 "alpha_delta_nosymm",
-                nn.initializers.truncated_normal(
+                complex_normal(
                     stddev=jnp.sqrt(1.0 / x.shape[-2])
                 ),
                 (x.shape[-2],x.shape[-2]),
-                REAL_DTYPE,
+                DTYPE,
                 )
             #weight = jnp.tile(weight_row, (x.shape[-2], 1))
 
