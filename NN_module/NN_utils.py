@@ -55,11 +55,6 @@ def cos_exp_scheduler(epochs, lr0, decay, cycles, n, lr_min):
 
     return scheduler_callable
 
-scheduler_dict={
-    'cos_exp_scheduler':cos_exp_scheduler,
-    'warmup_exponential_decay': optax.warmup_exponential_decay_schedule
-}
-
 def scheduler_initializer(name, setup):
 
     epochs = setup['epochs']
