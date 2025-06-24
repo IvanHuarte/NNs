@@ -146,12 +146,13 @@ for i, size in enumerate(sizes):
                 coupling_terms= [ (couplings[0],'XX','NN'), (couplings[1],'YY','NN2'), (couplings[2],'ZZ','NN')]
 
                 chain = Chain(size[0], **kwargs_lattice)
-                cm = GeneralNeighborCoupling()
+                cm = GeneralNeighborCoupling(chain, field_terms, coupling_terms)
                 H = Runner(cm).build_hamiltonian()
 
                 print(f"\n---- Parameters: Size {size} \n\nFields: {fields}  \nCouplings: {couplings} ----\n\n")
                 print(f"Token size: {token_size} \nEmbedding D: {embedding_d} \nHeads: {n_heads}\n")
-                print(f"Blocks: {n_blocks} \nffn_layers: {n_ffn_layers}")
+                print(f"Blocks: {n_blocks} \nffn_layers: {n_ffn_layers}\n\n")
+
                 if exact_diag:# and not os.path.isfile(write_folder + f"Oxalate_xED_{size[0]}x{size[1]}_strength_{strength:.1f}_theta_{theta:.1f}_phi_{phi:.1f}.txt"):
                     print("Running exact diagonalization...")
                     E_ED, x_ED = Runner(cm).exact_energy_lanczos(eigenstates=True)
