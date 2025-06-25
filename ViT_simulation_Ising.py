@@ -1,10 +1,9 @@
 #!/home/ihuarte/miniconda3/envs/conda_env/bin/python
 import numpy as np
 import jax
-import jax.numpy as jnp
 import netket as nk
 import netket.experimental as nkx
-from netket.operator.spin import sigmax, sigmaz
+from netket.operator.spin import sigmaz
 import optax
 import json
 import time
@@ -29,7 +28,7 @@ from VA_project.engine.runners import Runner
 from NN_module.sim_utils import (
     save_results, dump_callback
 )
-from NN_module.NN_utils import scheduler_initializer, cos_exp_scheduler
+from NN_module.NN_utils import scheduler_initializer, phase_stats_ED, phase_stats_vstate
 from transformer_LR_WF.utils import *
 from NN_module.models.ViT_2D import BatchedSpinViT
 
@@ -49,7 +48,7 @@ embedding_d=config['embedding_d']
 n_heads=config['n_heads']
 n_blocks= config['n_blocks']
 n_ffn_layers = config['n_ffn_layers']
-final_architecture = ast.literal_eval(config['final_architecture'] )
+final_architecture = ast.literal_eval(config['final_architecture'])
 is_complex = config['is_complex']
 symm_2D = config['symm_2D']
 symm_Z2 = config['symm_Z2']
@@ -127,30 +126,31 @@ for i, size in enumerate(sizes):
                 [2], 
                 [2]):
 
-        # for token_size in [[2,1],[2,2]]:
-        #     for embedding_d in [32]:
-        #         for n_heads in [2,4,8]:
-        #             for n_blocks in [1,2]:
-        #                 for n_ffn_layers in [2,4]:
+                # for token_size in [[2,1],[2,2]]:
+                #     for embedding_d in [32]:
+                #         for n_heads in [2,4,8]:
+                #             for n_blocks in [1,2]:
+                #                 for n_ffn_layers in [2,4]:
 
-    # for j, (field, ZZ_hop, token_size, embedding_d, n_heads, n_blocks, n_ffn_layers) in enumerate(zip(
-    #         [ [0.0,0.001,0.001], [0.0,0.001,0.001], [0.0,0.001,0.001], [-1.0,0.001,0.001], [-1.0,0.001,0.001], [-1.0,0.001,0.001]],
-    #         [ [0.0,], [-1], [-0.2], [0.4], [1.5], [3.5]],
-    #         [[2,1],[2,1], [2,1],[2,1], [2,1],[2,1]] , 
-    #         [32, 32, 32, 32, 32, 32], 
-    #         [2, 2, 2, 2, 2, 2], 
-    #         [2, 2, 2, 2, 2, 2], 
-    #         [2, 2, 2, 2, 2, 2])):   
-        
+                # for j, (field, ZZ_hop, token_size, embedding_d, n_heads, n_blocks, n_ffn_layers) in enumerate(zip(
+                #         [ [0.0,0.001,0.001], [0.0,0.001,0.001], [0.0,0.001,0.001], [-1.0,0.001,0.001], [-1.0,0.001,0.001], [-1.0,0.001,0.001]],
+                #         [ [0.0,], [-1], [-0.2], [0.4], [1.5], [3.5]],
+                #         [[2,1],[2,1], [2,1],[2,1], [2,1],[2,1]] , 
+                #         [32, 32, 32, 32, 32, 32], 
+                #         [2, 2, 2, 2, 2, 2], 
+                #         [2, 2, 2, 2, 2, 2], 
+                #         [2, 2, 2, 2, 2, 2])):   
+                    
                 ## Update Hamiltonian
                 field_terms= [ (fields[0],'X'), (fields[1],'Y'), (fields[2],'Z')]
                 coupling_terms= [ (couplings[0],'XX','NN'), (couplings[1],'YY','NN2'), (couplings[2],'ZZ','NN')]
 
                 chain = Chain(size[0], **kwargs_lattice)
+                chain.plot_lattice(1)
                 cm = GeneralNeighborCoupling(chain, field_terms, coupling_terms)
                 H = Runner(cm).build_hamiltonian()
 
-                print(f"\n---- Parameters: Size {size} Fields: {fields}  \nCouplings: {couplings} ----\n\n")
+                print(f"\n---- Parameters: Size {size} Fields: {fields}  Couplings: {couplings} ----\n\n")
                 print(f"Token size: {token_size} \nEmbedding D: {embedding_d} \nHeads: {n_heads}\n")
                 print(f"Blocks: {n_blocks} \nffn_layers: {n_ffn_layers}\n\n")
 
@@ -230,7 +230,7 @@ for i, size in enumerate(sizes):
 
                 sim_label = f"Ising_simulation_" + coup_label + nn_label
                 ED_label = f"Ising_xED_" + coup_label
-                json_label = f"Oxalate_results_" + nn_label
+                json_label = f"Ising_results_" + nn_label
                 title_label_callback = f"Callback  "+ title_label + f"  ({size[0]}x{size[1]})"
 
                 
@@ -260,12 +260,21 @@ for i, size in enumerate(sizes):
                 E_best = float(keeper.best_energy)
                 vscore = float(keeper.vscore)
 
+                phase={}
                 if exact_diag:
                     error=float(np.abs(E_best-E_ED)/np.abs(E_ED))
+                    mean_ED, std_ED, psi_ED = phase_stats_ED(x_ED)
+                    phase['xED']={'mean':mean_ED, 'std':std_ED, 'psi': psi_ED}
+                    print(f"xED phase: {mean_ED} \u00b1 {std_ED}  ({psi_ED})")
+
                 else:
                     E_ED = None
                     x_ED = None
-                    error = None    
+                    error = None
+
+                mean, std, psi  = phase_stats_vstate(vstate)
+                phase['vstate']={'mean':mean, 'std':std, 'psi': psi}
+                print(f"VS phase: {mean} \u00b1 {std}  ({psi})\n \n")  
 
                 # Save the results
 

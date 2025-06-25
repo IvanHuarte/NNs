@@ -2,7 +2,7 @@
 
 "load_folder_sim":"/home/ihuarte/Escritorio/Ivan/NNs/First_sim/",     "_comment_sim":"Ruta de carga x_prev",
 
-"write_folder_sim":"/home/ihuarte/Escritorio/Ivan/NNs/Simulations/MLP/",    "sim <---> SSF":"Ruta donde se guardan los productos de simulaciones y donde se cargan los inputs de calc_SSF.py",
+"write_folder_sim":"/home/ihuarte/Escritorio/Ivan/NNs/prueba/",    "sim <---> SSF":"Ruta donde se guardan los productos de simulaciones y donde se cargan los inputs de calc_SSF.py",
 
 "write_folder_SSF": "/home/ihuarte/Escritorio/Ivan/NNs/First_sim/",   "SSF <---> plot":"Ruta donde se guardan los productos de SSF.py y donde se cargan los inputs de plot_SSF.py",
 
@@ -10,30 +10,50 @@
 
 
 "strength": 0.2,
-"sizes": [[4,4],[4,5],[7,7],[10,10]],
+"sizes": [[20,1]],
 "theta_list":[9.0, 54.0, 54.0, 54.0, 90.0],
 "phi_list":[72.0, 0.0, 216.0, 315.0, 115.2],
 
 "opt_name_list" : ["Sgd"],
-"learning_rate_list" : [0.1, 0.01],
-"iterations": 1000,
 
 "exact_diagonalization": true,
 "dump_sim_callback": true,
 "explore_mode": true,
 
 "alpha_list" : [
-    [4,4]
+    [2,2,2]
+],
+"activation_list" : [
+    [["selu","selu","selu"]]
 ],
 "output_dimension": 1,
-
-"activation_list" : [
-    [["relu",0],[0,"relu"],["elu",0],[0,"elu"],["selu",0],[0,"selu"]]
-],
+"symm_2D" : false,
+"symm_Z2" : false,
+"trivial_Z2" : true,
 
 "sampler": {
     "name": "MetropolisLocal",
-    "n_samples": 1000
+    "n_samples": 1008
+},
+
+"lr_schedule":{
+    "name": "warmup_exponential_decay",
+    "epochs":1000,
+
+    "warmup_exponential_decay":{
+        "lr0": 0.001,                 
+        "peak_value": 0.01,
+        "warmup_steps": 50,
+        "decay_rate": 0.995
+    },
+
+    "exp_cos_schedule":{
+        "lr0":0.3,          
+        "decay_exp":1.0,
+        "cosine_cycles": 2,
+        "n":0.1,
+        "lr_min": 0.01
+    }
 },
 
 "kwargs_lattice" : {

@@ -29,7 +29,7 @@ from VA_project.engine.runners import Runner
 from NN_module.sim_utils import (
     save_results, dump_callback
 )
-from NN_module.NN_utils import scheduler_initializer, cos_exp_scheduler
+from NN_module.NN_utils import scheduler_initializer, phase_stats_ED, phase_stats_vstate
 from transformer_LR_WF.utils import *
 from NN_module.models.ViT_2D import BatchedSpinViT
 
@@ -226,12 +226,21 @@ for i, size in enumerate(sizes):
         E_best = float(keeper.best_energy)
         vscore = float(keeper.vscore)
 
+        phase={}
         if exact_diag:
             error=float(np.abs(E_best-E_ED)/np.abs(E_ED))
+            mean_ED, std_ED, psi_ED = phase_stats_ED(x_ED)
+            phase['xED']={'mean':mean_ED, 'std':std_ED, 'psi': psi_ED}
+            print(f"xED phase: {mean_ED} \u00b1 {std_ED}  ({psi_ED})")
+
         else:
             E_ED = None
             x_ED = None
-            error = None    
+            error = None
+
+        mean, std, psi  = phase_stats_vstate(vstate)
+        phase['vstate']={'mean':mean, 'std':std, 'psi': psi}
+        print(f"VS phase: {mean} \u00b1 {std}  ({psi})\n \n")
 
         # Save the results
 

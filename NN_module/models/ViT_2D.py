@@ -24,7 +24,6 @@ import numpy.typing as npt
 from ..NN_utils import traslations_2D
 
 REAL_DTYPE = jnp.asarray(1.0).dtype
-#REAL_DTYPE = jnp.complex64
 
 class MultiLayerPerceptron(nn.Module):
     """

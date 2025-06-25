@@ -190,18 +190,26 @@ def phase_stats_vstate(vstate, eps=0.01):
     logpsi = vstate.log_value(flat_samples)
     phases = jnp.imag(logpsi)
 
-    mean = phases.mean(axis=0)
-    std = jnp.std(phases)
+    mean = float(phases.mean(axis=0))
+    std = float(jnp.std(phases))
+    if std>eps:
+        psi = 'complex'
+    else:
+        psi = 'real'
 
-    return mean, std, std<eps
+    return mean, std, psi
 
 
 def phase_stats_ED(x_ED, eps=0.01):
 
     phases = jnp.angle(x_ED)
 
-    mean = phases.mean(axis=0)
-    std = jnp.std(phases)
+    mean = float(phases.mean(axis=0)[0])
+    std = float(jnp.std(phases))
+    if std>eps:
+        psi = 'complex'
+    else:
+        psi = 'real'
 
-    return mean, std, std<eps
+    return mean, std, psi
 
