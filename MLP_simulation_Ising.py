@@ -44,7 +44,7 @@ trivial_Z2 = config['trivial_Z2']
 
 print(f"symm_2D: {symm_2D}")
 print(f"symm_Z2: {symm_Z2}")
-print(f"trivial_Z2: {trivial_Z2}")
+print(f"trivial_Z2: {trivial_Z2}\n \n")
 
 sampler_name = config['sampler']['name']            # Sampler settings
 n_samples = config['sampler']['n_samples']
