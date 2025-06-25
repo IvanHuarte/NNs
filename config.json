@@ -2,7 +2,7 @@
 
 "load_folder_sim":"/home/ihuarte/Escritorio/Ivan/NNs/First_sim/",     "_comment_sim":"Ruta de carga x_prev",
 
-"write_folder_sim":"/home/ihuarte/Escritorio/Ivan/NNs/prueba/",    "sim <---> SSF":"Ruta donde se guardan los productos de simulaciones y donde se cargan los inputs de calc_SSF.py",
+"write_folder_sim":"/home/ihuarte/Escritorio/Ivan/NNs/Simulations/YYZZ/Chain/MLP/",    "sim <---> SSF":"Ruta donde se guardan los productos de simulaciones y donde se cargan los inputs de calc_SSF.py",
 
 "write_folder_SSF": "/home/ihuarte/Escritorio/Ivan/NNs/First_sim/",   "SSF <---> plot":"Ruta donde se guardan los productos de SSF.py y donde se cargan los inputs de plot_SSF.py",
 
@@ -27,7 +27,7 @@
     [["selu","selu","selu"]]
 ],
 "output_dimension": 1,
-"symm_2D" : false,
+"symm_2D" : true,
 "symm_Z2" : false,
 "trivial_Z2" : true,
 
@@ -43,7 +43,7 @@
     "warmup_exponential_decay":{
         "lr0": 0.001,                 
         "peak_value": 0.01,
-        "warmup_steps": 50,
+        "warmup_steps": 100,
         "decay_rate": 0.995
     },
 

@@ -45,7 +45,8 @@ class MLP_Z2(nn.Module):
     param_dtype : Any = DTYPE
     hidden_alpha: Tuple[int, ...] = None
     activation: Tuple[Callable, ...] = None
-    output_dim: int = 1        
+    output_dim: int = 1
+    trivial: bool = True   
 
     @nn.compact
     def __call__(self, x):
@@ -103,6 +104,7 @@ class MLP_2D_Z2(nn.Module):
     hidden_alpha: int | Tuple[int, ...] = None
     activation: Callable | Tuple[Callable, ...] = None
     output_dim: int = 1
+    trivial: bool = True
 
     @nn.compact
     def __call__(self, x):
@@ -153,11 +155,12 @@ class BatchedMultiLayerPerceptron(nn.Module):
                 self.param_dtype,
                 self.hidden_alpha,
                 self.activation,
-                self.output_dim
+                self.output_dim,
+                self.trivial_Z2
             )
             
         elif self.symm_2D and not self.symm_Z2:
-            worker = MLP_2D_Z2(
+            worker = MLP_2D(
                 self.lattice_size,
                 self.param_dtype,
                 self.hidden_alpha,
@@ -166,12 +169,13 @@ class BatchedMultiLayerPerceptron(nn.Module):
             )
             
         elif not self.symm_2D and self.symm_Z2:
-            worker = MLP_2D_Z2(
+            worker = MLP_Z2(
                 self.lattice_size,
                 self.param_dtype,
                 self.hidden_alpha,
                 self.activation,
-                self.output_dim
+                self.output_dim,
+                self.trivial_Z2
             )
 
         else:
