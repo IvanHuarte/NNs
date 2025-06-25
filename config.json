@@ -42,8 +42,8 @@
 
     "warmup_exponential_decay":{
         "lr0": 0.001,                 
-        "peak_value": 0.01,
-        "warmup_steps": 100,
+        "peak_value": 0.5,
+        "warmup_steps": 50,
         "decay_rate": 0.995
     },
 
