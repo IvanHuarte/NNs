@@ -504,8 +504,9 @@ class SpinViT_2D_Z2(nn.Module):
 
 
 class BatchedSpinViT(nn.Module):
-    "Batched version of SpinViT, accepting several spin configurations at once."
 
+    "Batched version of SpinViT, accepting several spin configurations at once."
+    
     lattice_size: Tuple[int, int]
     token_size: Tuple[int, int]
     embedding_d: int

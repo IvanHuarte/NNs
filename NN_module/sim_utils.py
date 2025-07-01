@@ -14,7 +14,7 @@ from typing import Optional
 from datetime import date
 from platform import architecture, python_version
 import pathlib
-from NN_module.models.MLP import MultiLayerPerceptron
+from NN_module.models.MLP import BatchedMultiLayerPerceptron
 from NN_module.models.ViT_2D import BatchedSpinViT
 from NN_module.NN_utils import (
     activation_dict, sampler_dict, rule_dict
@@ -238,18 +238,19 @@ def save_results(vstate, setup, x_ED = None, write_folder = './', sim_label = ''
 def _init_model(N,model):
 
     if model['name'] == 'MLP':
-        dimensions=model['dense_dim']
-        hidden_alpha = tuple([dim//N for dim in dimensions])
         activation=model['activation']
         if all([type(act) in [str, int] for act in activation]):
             activation = tuple([activation_dict[act] if act != 0 else 0 for act in activation])
 
-        return MultiLayerPerceptron(
-            N=N,
-            hidden_alpha=hidden_alpha,
+        return BatchedMultiLayerPerceptron(
+            lattice_size=tuple(model['lattice_size']),
+            hidden_alpha=tuple(model['hidden_alpha']),
             activation=activation,
-            param_dtype=jnp.complex64,
-            output_dim=1
+            param_dtype=jnp.complex128,
+            output_dim=1,
+            symm_2D=model['symm_2D'],
+            symm_Z2=model['symm_Z2'],
+            trivial_Z2=model['trivial_Z2']
         )
     
     if model['name'] == 'ViT':

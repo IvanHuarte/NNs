@@ -68,11 +68,6 @@ activation_list = [[tuple(act) for act in activation] for activation in activati
 
 rng = jax.random.PRNGKey(666)
 
-alpha_list = [tuple(dim) for dim in alpha_list]
-activation_list = [[tuple(act) for act in activation] for activation in activation_list]
-
-rng = jax.random.PRNGKey(666)
-
 d=0 ; a=0 
 for i, size in enumerate(sizes):
 
@@ -99,7 +94,7 @@ for i, size in enumerate(sizes):
 
         if exact_diag:# and not os.path.isfile(write_folder + f"Oxalate_xED_{size[0]}x{size[1]}_strength_{strength:.1f}_theta_{theta:.1f}_phi_{phi:.1f}.txt"):
             print("Running exact diagonalization...")
-            E_ED, x_ED = Runner(cm).exact_energy_lanczos(eigenstates=True)
+            E_ED, x_ED = Runner(oxa.cm).exact_energy_lanczos(eigenstates=True)
             E_ED = float(E_ED.squeeze(-1))
             print(f"Energy ED: {E_ED}")
 
@@ -146,7 +141,7 @@ for i, size in enumerate(sizes):
                     log.E_ED = E_ED
 
                 ## Save Callback
-                title_label='MLP Oxalate'
+                title_label='MLP Oxalate '
                 act_label=''
                 dim_label=''
                 for act in activation_name:
