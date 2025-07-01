@@ -32,6 +32,7 @@ with open("/home/ihuarte/Escritorio/Ivan/NNs/config.json",'r') as f:
     config = json.load(f)
 
 sizes = config['sizes']
+strength = config['strength']
 theta_list = config['theta_list']
 phi_list = config['phi_list']
 kwargs_lattice = config['kwargs_lattice']
@@ -76,13 +77,19 @@ d=0 ; a=0
 for i, size in enumerate(sizes):
 
     N = int(np.prod(size)) 
-    if N > 20: exact_diag = False
+    if N > 20: 
+        exact_diag = False
+    else:
+        exact_diag = True
+
+    hi = nk.hilbert.Spin(s=0.5, N = int(np.prod(size)))
+    sampler = sampler_dict[sampler_name](hi, dtype=complex)
 
     write_folder = write +  f"Oxalate_size_{size[0]}x{size[1]}/"
 
     for j, (theta, phi) in enumerate(zip(theta_list, phi_list)):
 
-        # Create the Hamiltonian
+        # Update Hamiltonian
         oxa=OxalateJKGamma(
             size, 
             [strength, theta, phi],
@@ -90,157 +97,180 @@ for i, size in enumerate(sizes):
         )
         H = Runner(oxa.cm).build_hamiltonian()
 
-        if exact_diag:
-            E_ED, x_ED = Runner(oxa.cm).exact_energy_lanczos(eigenstates=True)
+        if exact_diag:# and not os.path.isfile(write_folder + f"Oxalate_xED_{size[0]}x{size[1]}_strength_{strength:.1f}_theta_{theta:.1f}_phi_{phi:.1f}.txt"):
+            print("Running exact diagonalization...")
+            E_ED, x_ED = Runner(cm).exact_energy_lanczos(eigenstates=True)
             E_ED = float(E_ED.squeeze(-1))
+            print(f"Energy ED: {E_ED}")
 
-        for d, alphas in enumerate(alpha_list): 
+        for a,alphas in enumerate(alpha_list): 
 
             dimensions = tuple([int(a*N) for a in alphas])
             
-            for a, activation_name in enumerate(activation_list[d]):
+            for activation_name in activation_list[a]:
 
                 activation = tuple([activation_dict[act] if act != 0 else 0 for act in activation_name])
+                
+                callback_artifacts = {}
+                time_in = time.time()
+                
+                # Initialize the model
+                model = BatchedMultiLayerPerceptron(
+                        lattice_size=tuple(size),
+                        param_dtype=jnp.complex128,
+                        hidden_alpha=alphas,
+                        activation=activation,
+                        symm_2D=symm_2D,
+                        symm_Z2=symm_Z2,
+                        trivial_Z2=trivial_Z2
+                    )
+            
+                vstate = nk.vqs.MCState(sampler, model, n_samples = n_samples)
 
-                for opt_name in opt_name_list:
+                gs = nk.VMC(
+                    hamiltonian=H,
+                    optimizer=optimizer,
+                    preconditioner=SR,
+                    variational_state=vstate)
+                
+                log = nk.logging.RuntimeLog()
+                keeper= BestIterKeeper(H, np.prod(size), baseline = 1e-8,
+                    #filename=pathlib.Path("best_state.nk"),
+                )
+                gs.run(n_iter=epochs, out=log, callback= [keeper.update])
+                time_out = time.time()
+                time_exe= time_out - time_in
+                
+                if exact_diag:
+                    keeper.E_ED = E_ED
+                    log.E_ED = E_ED
 
-                    for learning_rate in learning_rate_list:
+                ## Save Callback
+                title_label='MLP Oxalate'
+                act_label=''
+                dim_label=''
+                for act in activation_name:
+                    act_label += f"{act}_"
+                for a in alphas:
+                    dim_label += f"{a}_"
 
-                        print(f"\n---- Parameters: Size {size}  strength={strength:1f}  theta={theta:2f}  phi={phi:2f} ----\n\n")
-                        print(f"dimensions: {dimensions} \nactivation: {activation_name} \nopt_name: {opt_name} \nlearning_rate: {learning_rate}")
+                coup_label = f"Oxalate_simulation_{size[0]}x{size[1]}_strength_{strength}_theta_{theta}_phi_{phi}"
+                nn_label = f"alphas_{dim_label}_activations_{act_label}"
+                title_label += f"a: {strength} " + r"$\theta:%.1f \;\; \phi: %.1f$"%(theta, phi)
 
-                        callback_artifacts = {}
-                        time_in = time.time()
+                sim_label = f"Oxalate_simulation_" + coup_label + nn_label 
+                ED_label = f"Oxalate_xED_" + coup_label
+                json_label = f"Oxalate_results_" + nn_label
+                title_label_callback = f"Callback  "+ title_label + f"  ({size[0]}x{size[1]})"            
+
+                if dump_simulation:
+                    # For plotting architecture
+                    set_dim=[f"D({dim})" for dim in dimensions] 
+                    set_act=[f"A({act})" for act in activation_name]
+                    setup='||'
+                    for i in range(len(dimensions)):
+                        setup+=f" {set_dim[i]} |"
+                        setup+=f" {set_act[i]} |" if '0' not in set_act[i] else ''
                         
-                        # Initialize the model
-                        model = MultiLayerPerceptron(
-                                N = N,
-                                param_dtype=jnp.complex128,
-                                hidden_alpha=alphas,
-                                activation=activation,
-                            )
-                        #params = model.init(rng,jnp.ones((1,16), dtype=jnp.complex64))
-
-                        hi = nk.hilbert.Spin(s=0.5, N = int(np.prod(size)))
-
-                        sampler = sampler_dict[sampler_name](hi, dtype=complex)
-
-                        optimizer = optimizer_name_dict[opt_name](learning_rate=learning_rate)
-
-                        vstate = nk.vqs.MCState(sampler, model, n_samples = n_samples)
-                        is_holo = nk.utils.is_probably_holomorphic(vstate._apply_fun, vstate.parameters, vstate.samples, vstate.model_state)
-
-
-                        SR = nk.optimizer.SR(diag_shift = diag_shift, holomorphic = True)
-
-
-                        gs = nk.VMC(
-                            hamiltonian=H,
-                            optimizer=optimizer,
-                            preconditioner=SR,
-                            variational_state=vstate)
-                        
-                        log = nk.logging.RuntimeLog()
-                        keeper= BestIterKeeper(H, np.prod(size), baseline = 1e-8,
-                            #filename=pathlib.Path("best_state.nk"),
-                        )
-                        gs.run(n_iter=iterations, out=log, callback= [keeper.update])
-                        time_out = time.time()
-                        time_exe= time_out - time_in
-                        
-                        if exact_diag:
-                            keeper.E_ED = E_ED
-                            log.E_ED = E_ED
-
-
-                        sim_label = f"_{d}_{a}_{opt_name}_{learning_rate}"
-                        if dump_simulation:
-                            # For plotting architecture
-                            set_dim=[f"D({dim})" for dim in dimensions] 
-                            set_act=[f"A({act})" for act in activation_name]
-                            setup='||'
-                            for i in range(len(dimensions)):
-                                setup+=f" {set_dim[i]} |"
-                                setup+=f" {set_act[i]} |" if '0' not in set_act[i] else ''
-                                
-                            setup+="|"
-                            
-                            dump_setup ={
-                                        'size': size, 'theta': theta,
-                                        'phi': phi, 'opt_name': opt_name,
-                                        'learning_rate': learning_rate,
-                                        'write_folder': write_folder,
-                                        'time_exe': time_exe, 'architecture': setup,
-                                        'sim_label': sim_label
-                                    }
-                            
-                            callback_artifacts = dump_callback(log, dump_setup, write=True)
-
-                        else:
-                            callback_artifacts = None
-                           
-
-                        # Extract some results
-                        vstate = keeper.best_state
-                        E_best = float(keeper.best_energy)
-                        vscore = float(keeper.vscore)
-
-                        if exact_diag:
-                            error=float(np.abs(E_best-E_ED)/np.abs(E_ED))
-                        else:
-                            E_ED = None
-                            x_ED = None
-                            error = None    
-
-                        # Save the results
-
-                        dump_setup ={
-
-                            'lattice':{
-                                'name': 'Triangular',
-                                'size': size, 
-                                'bc': kwargs_lattice['bc'],
-                            },
-                            'coupling_model': {
-                                'strength': strength,
-                                'theta': theta,
-                                'phi': phi, 
-                            },
-
-                            'model_NN': {
-                                'name': 'MLP',
-                                'dense_dim': dimensions,
-                                'activation': activation_name
-                                
-                            },
-                            'sampler': {
-                                'name': sampler_name,
-                                'n_samples': n_samples, 
-                                'rng': vstate.sampler_state.rng.tolist() 
-
-                            },
-                            'optimizer': opt_name,
-                            'learning_rate': learning_rate,
-
-                            'results':{
-                                'E_best': E_best,
-                                'E_ED': E_ED,
-                                'error': error,
-                                'vscore': vscore,
-                                'time_exe': time_exe, 
-
-                            },
-                            '_artifacts': {
-                                'callback': callback_artifacts
-                            }
+                    setup+="|"
+                    
+                    dump_setup ={
+                            'size': size, 'opt_name': "Sgd",
+                            'learning_rate': "Scheduled",
+                            'write_folder': write_folder,
+                            'time_exe': time_exe, 
+                            'architecture': setup,
+                            'sim_label': sim_label,
+                            'title_label_callback': title_label_callback
                         }
+                    
+                    callback_artifacts = dump_callback(log, dump_setup, write=False)
 
-                        save_results(
-                            vstate, 
-                            dump_setup, 
-                            x_ED = x_ED, 
-                            write_folder = write_folder,
-                            sim_label = sim_label
-                        )
+                else:
+                    callback_artifacts = None
+                    
+
+                # Extract some results
+                vstate = keeper.best_state
+                E_best = float(keeper.best_energy)
+                vscore = float(keeper.vscore)
+
+                phase={}
+                if exact_diag:
+                    error=float(np.abs(E_best-E_ED)/np.abs(E_ED))
+                    mean_ED, std_ED, psi_ED = phase_stats_ED(x_ED)
+                    phase['xED']={'mean':mean_ED, 'std':std_ED, 'psi': psi_ED}
+                    print(f"xED phase: {mean_ED} \u00b1 {std_ED}  ({psi_ED})")
+
+                else:
+                    E_ED = None
+                    x_ED = None
+                    error = None
+
+                mean, std, psi  = phase_stats_vstate(vstate)
+                phase['vstate']={'mean':mean, 'std':std, 'psi': psi}
+                print(f"VS phase: {mean} \u00b1 {std}  ({psi})\n \n") 
+
+                # Save the results
+
+                dump_setup ={
+
+                    'lattice':{
+                        'name': 'Triangular',
+                        'size': size, 
+                        'bc': kwargs_lattice['bc'],
+                    },
+                    'coupling_model': {
+                        'strength': strength,
+                        'theta': theta,
+                        'phi': phi, 
+                    },
+
+                    'model_NN': {
+                        'name': 'MLP',
+                        "lattice_size":size,
+                        "param_dtype":"jnp.complex128",
+                        'hidden_alpha': alphas,
+                        'activation': activation_name,
+                        "symm_2D":symm_2D,
+                        "symm_Z2":symm_Z2,
+                        "trivial_Z2":trivial_Z2
                         
-                        sys.exit(0) 
+                    },
+                    'sampler': {
+                        'name': sampler_name,
+                        'n_samples': n_samples, 
+                        'rng': vstate.sampler_state.rng.tolist() 
+
+                    },
+                    'optimizer': 'Sgd',
+                    
+                    "lr_schedule":{
+                        "name": schedule["name"],
+                        "setup": schedule[schedule["name"]]
+                    },
+
+                    'results':{
+                        'E_best': E_best,
+                        'E_ED': E_ED,
+                        'error': error,
+                        'vscore': vscore,
+                        'time_exe': time_exe,
+                        'phase': phase
+
+                    },
+                    '_artifacts': {
+                        'callback': callback_artifacts
+                    }
+                }
+
+                save_results(
+                    vstate, 
+                    dump_setup, 
+                    x_ED = x_ED,
+                    write_folder = write_folder,
+                    sim_label = sim_label,
+                    ED_label=ED_label,
+                    json_label=json_label
+                )
+                
