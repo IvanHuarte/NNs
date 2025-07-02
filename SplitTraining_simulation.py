@@ -139,10 +139,11 @@ for i, size in enumerate(sizes):
         )
         H = Runner(oxa.cm).build_hamiltonian()
 
-        if exact_diag and not os.path.isfile(write_folder + f"Oxalate_xED_{size[0]}x{size[1]}_strength_{strength:.1f}_theta_{theta:.1f}_phi_{phi:.1f}.txt"):
+        if exact_diag:# and not os.path.isfile(write_folder + f"Oxalate_xED_{size[0]}x{size[1]}_strength_{strength:.1f}_theta_{theta:.1f}_phi_{phi:.1f}.txt"):
             print("Running exact diagonalization...")
             E_ED, x_ED = Runner(oxa.cm).exact_energy_lanczos(eigenstates=True)
             E_ED = float(E_ED.squeeze(-1))
+            print(f"Energy ED: {E_ED}")
 
         callback_artifacts = {}
         time_in = time.time()
@@ -170,13 +171,15 @@ for i, size in enumerate(sizes):
             symm_Z2_phase = symm_Z2_phase,
             trivial_Z2_phase = trivial_Z2_phase
         )
-
+        a={'a': 'Holacaracola'}
         vstate = nk.vqs.MCState(
             sampler,
             model,
             n_samples=n_samples,
             n_discard_per_chain=0,
             chunk_size=None,
+            init_fun=lambda model, rng, x: model.init(rng, x, **a),
+            apply_fun=lambda model, p, x: model.apply(p, x, **a)
         )
         
         gs = nk.driver.VMC(
@@ -194,7 +197,12 @@ for i, size in enumerate(sizes):
 
         # keeper.filename = 'Somewhere' #It allows you to store the parameters of the model for the state with lowest energy found.
         print(f"\nTraining module...")
+        print(f"model.train_phase = {model.train_phase}")
         gs.run(n_iter=epochs, out=log, callback=[keeper.update], show_progress=True)
+        mean, std, psi  = phase_stats_vstate(vstate)
+        print(f"VS phase: {mean} \u00b1 {std}  ({psi})\n \n")
+        import pprint
+        pprint.pprint(vstate.parameters.keys())
         print(f"Module Trained. Freezing module and training phase...")
 
         model = SplitTraining_ViT_MLP(
@@ -224,7 +232,7 @@ for i, size in enumerate(sizes):
         samples_last = vstate.sample(n_samples=n_samples).reshape(n_samples, N)
         params_phase_init = model.init(rng_module, samples_last) # Inicializacion de parametros de fase
         params_module = vstate.parameters  # Parametros del vstate con modulo entrenado
-
+        
   
 
         params_combined = {
@@ -252,6 +260,7 @@ for i, size in enumerate(sizes):
         )
 
         gs.run(n_iter=epochs, out=log, callback=[keeper.update], show_progress=True)
+        pprint.pprint(vstate.parameters.keys())
 
         vstate=keeper.best_state
 

@@ -40,7 +40,9 @@ class SplitTraining_ViT_MLP(nn.Module):
     train_phase: bool = False
 
     @nn.compact
-    def __call__(self, batch_x):
+    def __call__(self, batch_x, a=None):
+
+        print(a)
 
         # Module Training
         log_module = BatchedSpinViT(
