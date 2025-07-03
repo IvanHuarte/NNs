@@ -19,19 +19,21 @@ class MultiLayerPerceptron(nn.Module):
     hidden_alpha: int | Tuple[int, ...] = None
     activation: Callable | Tuple[Callable, ...] = None
     output_dim: int = 1
-    #kernel_init: Callable = nn.initializers.lecun_normal()
 
     @nn.compact
     def __call__(self, x):
-        #print("xshapeIN: ", x.shape)
+        if jnp.issubdtype(self.param_dtype, jnp.complexfloating):
+            normalizer = lambda x: x
+        else:
+            normalizer = nn.LayerNorm(param_dtype=self.param_dtype)
+
         hidden_dims =tuple([int(ha*self.N) for ha in self.hidden_alpha])
 
         for hi, act in zip(hidden_dims, self.activation):
-            x = nn.Dense(hi,
-                         #kernel_init=self.kernel_init,
-                         param_dtype=self.param_dtype)(x)
-            #x = nn.LayerNorm(param_dtype=self.param_dtype)(x)
-            
+            x = normalizer( 
+                nn.Dense(hi, param_dtype=self.param_dtype
+                        )(x)
+                )
             if callable(act):
                 x = act(x)
         x = nn.Dense(self.output_dim, param_dtype=self.param_dtype)(x)

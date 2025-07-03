@@ -171,15 +171,13 @@ for i, size in enumerate(sizes):
             symm_Z2_phase = symm_Z2_phase,
             trivial_Z2_phase = trivial_Z2_phase
         )
-        a={'a': 'Holacaracola'}
+
         vstate = nk.vqs.MCState(
             sampler,
             model,
             n_samples=n_samples,
             n_discard_per_chain=0,
-            chunk_size=None,
-            init_fun=lambda model, rng, x: model.init(rng, x, **a),
-            apply_fun=lambda model, p, x: model.apply(p, x, **a)
+            chunk_size=None
         )
         
         gs = nk.driver.VMC(
@@ -233,7 +231,6 @@ for i, size in enumerate(sizes):
         params_phase_init = model.init(rng_module, samples_last) # Inicializacion de parametros de fase
         params_module = vstate.parameters  # Parametros del vstate con modulo entrenado
         
-  
 
         params_combined = {
             "BatchedSpinViT_0": jax.tree_util.tree_map(lambda x: jnp.array(x), params_module["BatchedSpinViT_0"]),
@@ -260,7 +257,6 @@ for i, size in enumerate(sizes):
         )
 
         gs.run(n_iter=epochs, out=log, callback=[keeper.update], show_progress=True)
-        pprint.pprint(vstate.parameters.keys())
 
         vstate=keeper.best_state
 
