@@ -38,10 +38,15 @@ class SplitTraining_ViT_MLP(nn.Module):
     symm_Z2_phase: bool = False
     trivial_Z2_phase: bool = True
 
-    train_phase: bool = False
-
     @nn.compact
-    def __call__(self, batch_x: jnp.ndarray) -> jnp.ndarray:
+    def __call__(
+        self, 
+        batch_x: jnp.ndarray, 
+        * ,
+        train_modulus: bool = True,
+        train_phase: bool = True) -> jnp.ndarray:
+
+        #jax.debug.print("train_modulus = {}, train_phase = {}", train_modulus, train_phase)
 
         log_module = BatchedSpinViT(
                 lattice_size=self.lattice_size,
@@ -56,22 +61,22 @@ class SplitTraining_ViT_MLP(nn.Module):
                 symm_Z2 = self.symm_Z2_module,
                 trivial_Z2 = self.trivial_Z2_module
             )(batch_x)
-        if self.train_phase:
-            phase = BatchedMultiLayerPerceptron(
-                    lattice_size=self.lattice_size,
-                    param_dtype=self.param_dtype_phase,
-                    hidden_alpha=self.hidden_alpha,
-                    activation=self.activation,
-                    symm_2D=self.symm_2D_phase,
-                    symm_Z2=self.symm_Z2_phase,
-                    trivial_Z2=self.trivial_Z2_phase
-                )(batch_x)
-            return log_module + 1j * phase
-
-        # # Phase Training Mode
-        # if self.train_phase:
-        #     log_module = jax.lax.stop_gradient(log_module)
-        # else:
-        #     phase = jax.lax.stop_gradient(phase)
+    
+        phase = BatchedMultiLayerPerceptron(
+                lattice_size=self.lattice_size,
+                param_dtype=self.param_dtype_phase,
+                hidden_alpha=self.hidden_alpha,
+                activation=self.activation,
+                symm_2D=self.symm_2D_phase,
+                symm_Z2=self.symm_Z2_phase,
+                trivial_Z2=self.trivial_Z2_phase
+            )(batch_x)
         
-        return log_module #+ 1j * phase 
+        if not train_modulus:
+            log_module = jax.lax.stop_gradient(log_module)
+
+        if not train_phase:
+            phase = jax.lax.stop_gradient(phase)
+        
+        return log_module + 1j * phase
+

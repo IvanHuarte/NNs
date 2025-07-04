@@ -77,8 +77,7 @@ def scheduler_initializer(name, setup):
             transition_steps=1,
             decay_rate=setup['decay_rate'],
         )
-
-
+    
 
 def circulant(
     row: npt.ArrayLike, times: Optional[int] = None

@@ -1,6 +1,7 @@
 #!/home/ihuarte/miniconda3/envs/conda_env/bin/python
 import numpy as np
 import jax
+import jax.numpy as jnp
 import netket as nk
 import netket.experimental as nkx
 from netket.operator.spin import sigmaz
@@ -32,6 +33,8 @@ from NN_module.NN_utils import (
     activation_dict, scheduler_initializer, 
     phase_stats_ED, phase_stats_vstate
 )
+from NN_module.ST_utils import init_function, apply_function
+
 from transformer_LR_WF.utils import *
 from NN_module.models.split_training import SplitTraining_ViT_MLP
 
@@ -69,6 +72,8 @@ activations = [activation_dict[a] for a in activation_name]
 
 epochs = config['lr_schedule']['epochs']                   # Simulation settings
 schedule=config['lr_schedule']
+stairs = config['lr_schedule'][['lr_schedule']['name']]
+
 n_samples = config['n_samples']
 exact_diag = config['exact_diagonalization']
 dump_simulation = config['dump_sim_callback']
@@ -87,10 +92,14 @@ print(f"symm_Z2_module: {symm_Z2_module}     symm_Z2_phase: {symm_Z2_phase}")
 print(f"trivial_Z2_module: {trivial_Z2_module} trivial_Z2_phase: {trivial_Z2_phase}")
 
 ### Training schedule ###
+lr_schedule = jnp.logspace(
+    start=jnp.log10(stairs['lr0']),
+    stop=jnp.log10(stairs['lr_min']), 
+    num=stairs['sweeps']
+)
 
-lr_schedule = scheduler_initializer(schedule['name'], schedule)
+#scheduler_initializer(schedule['name'], schedule)
 
-optimizer = nk.optimizer.Sgd(learning_rate=lr_schedule)
 ds_schedule = optax.linear_schedule(1e-1, 1e-4, epochs)
 SR = nk.optimizer.SR(diag_shift=ds_schedule)
 
@@ -153,7 +162,7 @@ for i, size in enumerate(sizes):
                 #         [2, 2, 2, 2, 2, 2], 
                 #         [2, 2, 2, 2, 2, 2], 
                 #         [2, 2, 2, 2, 2, 2])):   
-                    
+                
                 ## Update Hamiltonian
                 field_terms= [ (fields[0],'X'), (fields[1],'Y'), (fields[2],'Z')]
                 coupling_terms= [ (couplings[0],'XX','NN'), (couplings[1],'YY','NN2'), (couplings[2],'ZZ','NN')]
@@ -167,7 +176,7 @@ for i, size in enumerate(sizes):
                 print(f"Token size: {token_size} \nEmbedding D: {embedding_d} \nHeads: {n_heads}\n")
                 print(f"Blocks: {n_blocks} \nffn_layers: {n_ffn_layers}\n\n")
 
-                if exact_diag:# and not os.path.isfile(write_folder + f"Oxalate_xED_{size[0]}x{size[1]}_strength_{strength:.1f}_theta_{theta:.1f}_phi_{phi:.1f}.txt"):
+                if False:#exact_diag:# and not os.path.isfile(write_folder + f"Oxalate_xED_{size[0]}x{size[1]}_strength_{strength:.1f}_theta_{theta:.1f}_phi_{phi:.1f}.txt"):
                     print("Running exact diagonalization...")
                     E_ED, x_ED = Runner(cm).exact_energy_lanczos(eigenstates=True)
                     E_ED = float(E_ED.squeeze(-1))
@@ -177,7 +186,6 @@ for i, size in enumerate(sizes):
                 time_in = time.time()
 
                 model = SplitTraining_ViT_MLP(
-                    train_phase = False,
 
                     lattice_size=tuple(size),
                     token_size=tuple(token_size),
@@ -199,83 +207,81 @@ for i, size in enumerate(sizes):
                     symm_Z2_phase = symm_Z2_phase,
                     trivial_Z2_phase = trivial_Z2_phase
                 )
-
-                vstate = nk.vqs.MCState(
-                    sampler,
-                    model,
-                    n_samples=n_samples,
-                    n_discard_per_chain=0,
-                    chunk_size=None
-                )
-                
-                gs = nk.driver.VMC(
-                    H,
-                    optimizer,
-                    variational_state=vstate,
-                    preconditioner=SR
-                )
-
+                ### Aqui
 
                 log = (
                     nk.logging.RuntimeLog()
                 )  # If instead of this logging you insert a string, it will be used as output prefix for a JSON file where the evolution of the energy at each epoch will be stored.
                 keeper = BestIterKeeper(H, N, 1e-8)
 
-                # keeper.filename = 'Somewhere' #It allows you to store the parameters of the model for the state with lowest energy found.
-                print(f"\nTraining module...")
-                print(f"model.train_phase = {model.train_phase}")
-                gs.run(n_iter=epochs, out=log, callback=[keeper.update], show_progress=True)
-                mean, std, psi  = phase_stats_vstate(vstate)
-                print(f"VS phase: {mean} \u00b1 {std}  ({psi})\n \n")
-                print(f"Module Trained. Freezing module and training phase...")
-
-                model = SplitTraining_ViT_MLP(
-                    train_phase = True,
-
-                    lattice_size=tuple(size),
-                    token_size=tuple(token_size),
-                    embedding_d=embedding_d,
-                    n_heads=n_heads,
-                    n_blocks=n_blocks,
-                    n_ffn_layers=n_ffn_layers,
-                    final_architecture=final_architecture,
-                    is_complex=is_complex,
-                    symm_2D_module = symm_2D_module,
-                    symm_Z2_module = symm_Z2_module,
-                    trivial_Z2_module = trivial_Z2_module,
-
-                    param_dtype_phase = jnp.float64,
-                    hidden_alpha = tuple(alphas),
-                    activation = tuple(activations),
-                    output_dim = output_dim,
-                    symm_2D_phase = symm_2D_phase,
-                    symm_Z2_phase = symm_Z2_phase,
-                    trivial_Z2_phase = trivial_Z2_phase
-                )
-                rng_module=vstate.sampler_state.rng
-                samples_last = vstate.sample(n_samples=n_samples).reshape(n_samples, N)
-                params_phase_init = model.init(rng_module, samples_last) # Inicializacion de parametros de fase
-                params_module = vstate.parameters  # Parametros del vstate con modulo entrenado
                 
-        
-
-                params_combined = {
-                    "BatchedSpinViT_0": jax.tree_util.tree_map(lambda x: jnp.array(x), params_module["BatchedSpinViT_0"]),
-                    "BatchedMultiLayerPerceptron_0": params_phase_init["params"]["BatchedMultiLayerPerceptron_0"]
-                }
-
-                mask = {"params": {"BatchedSpinViT_0": False, "BatchedMultiLayerPerceptron_0": True}}
-                optimizer_phase = optax.masked(optimizer, mask)
-
+                # Initialize vstate with parameters
                 vstate = nk.vqs.MCState(
                     sampler,
-                    model,
+                    model=None,
                     n_samples=n_samples,
                     n_discard_per_chain=0,
-                    chunk_size=None
+                    chunk_size=None,
+                    init_fun=init_function(model, modulus=False, phase=False),
+                    apply_fun=apply_function(model, modulus=False, phase=False)
                 )
-                vstate.parameters = params_combined
-                
+
+                mask_modulus = {"params": {
+                            "BatchedSpinViT_0": True, 
+                            "BatchedMultiLayerPerceptron_0": False
+                            }
+                        }
+                mask_phase = {"params": {
+                    "BatchedSpinViT_0": False, 
+                    "BatchedMultiLayerPerceptron_0": True
+                    }
+                }
+
+                epochs_per_run = epochs//(2*sweeps)
+
+                for i in range(sweeps):
+                    print(f"\nSweep {i+1} of {sweeps}...")
+                    for mask, train_modulus, train_phase, mode in zip(
+                        [mask_phase, mask_phase], 
+                        [True, False], 
+                        [False, True], 
+                        ['modulus', 'phase']
+                    ):
+                        
+                        variables = vstate.variables
+                        sampler = vstate.sampler
+                        optimizer_backend = nk.optimizer.Sgd(learning_rate=lr_schedule[i])
+                        optimizer = optax.masked(optimizer_backend, mask)
+
+                        vstate = nk.vqs.MCState(
+                            sampler,
+                            sampler_seed=vstate.sampler_state.rng,
+                            model=None,
+                            n_samples=n_samples,
+                            n_discard_per_chain=0,
+                            chunk_size=None,
+                            variables=variables,
+                            apply_fun=apply_function(model, modulus=False, phase=False)
+                        )
+
+                        gs = nk.driver.VMC(
+                            H,
+                            optimizer,
+                            variational_state=vstate,
+                            preconditioner=SR
+                        )
+                        print(f"\nTraining {mode} for {epochs_per_run} epochs...")
+
+                        gs.run(n_iter=epochs, out=log, callback=[keeper.update], show_progress=True)
+                        mean, std, psi  = phase_stats_vstate(vstate)
+                        print(f"VS phase: {mean} \u00b1 {std}  ({psi})")
+                        
+
+
+
+
+                sys.exit(0)
+
                 gs = nk.driver.VMC(
                     H,
                     optimizer,
@@ -283,7 +289,27 @@ for i, size in enumerate(sizes):
                     preconditioner=SR
                 )
 
+
+
+                # keeper.filename = 'Somewhere' #It allows you to store the parameters of the model for the state with lowest energy found.
+
                 gs.run(n_iter=epochs, out=log, callback=[keeper.update], show_progress=True)
+                mean, std, psi  = phase_stats_vstate(vstate)
+                print(f"VS phase: {mean} \u00b1 {std}  ({psi})\n \n")
+                print(f"Module Trained. Freezing module and training phase...")
+                
+                rng_module=vstate.sampler_state.rng
+                samples_last = vstate.sample(n_samples=n_samples).reshape(n_samples, N)
+                params_phase_init = model.init(rng_module, samples_last) # Inicializacion de parametros de fase
+                params_module = vstate.parameters  # Parametros del vstate con modulo entrenado
+                
+                params_combined = {
+                    "BatchedSpinViT_0": jax.tree_util.tree_map(lambda x: jnp.array(x), params_module["BatchedSpinViT_0"]),
+                    "BatchedMultiLayerPerceptron_0": params_phase_init["params"]["BatchedMultiLayerPerceptron_0"]
+                }
+                mask = {"params": {"BatchedSpinViT_0": False, "BatchedMultiLayerPerceptron_0": True}}
+                optimizer_phase = optax.masked(optimizer, mask)
+
 
                 vstate=keeper.best_state
 
