@@ -86,7 +86,6 @@ rule2 = InvertMagnetization()
 pinvert = 0.25
 pflip = 1 - pinvert
 
-
 print(f"symm_2D_module: {symm_2D_module}     symm_2D_phase: {symm_2D_phase}")
 print(f"symm_Z2_module: {symm_Z2_module}     symm_Z2_phase: {symm_Z2_phase}")
 print(f"trivial_Z2_module: {trivial_Z2_module} trivial_Z2_phase: {trivial_Z2_phase}")
@@ -99,9 +98,8 @@ lr_schedule = jnp.logspace(
 )
 
 #scheduler_initializer(schedule['name'], schedule)
+ds_schedule = jnp.linspace(1e-1, 1e-4, stairs['sweeps'])
 
-ds_schedule = optax.linear_schedule(1e-1, 1e-4, epochs)
-SR = nk.optimizer.SR(diag_shift=ds_schedule)
 
 E_ED = None
 x_ED = None
@@ -213,8 +211,8 @@ for i, size in enumerate(sizes):
                     nk.logging.RuntimeLog()
                 )  # If instead of this logging you insert a string, it will be used as output prefix for a JSON file where the evolution of the energy at each epoch will be stored.
                 keeper = BestIterKeeper(H, N, 1e-8)
+                # keeper.filename = 'Somewhere' #It allows you to store the parameters of the model for the state with lowest energy found.
 
-                
                 # Initialize vstate with parameters
                 vstate = nk.vqs.MCState(
                     sampler,
@@ -227,20 +225,24 @@ for i, size in enumerate(sizes):
                 )
 
                 mask_modulus = {"params": {
-                            "BatchedSpinViT_0": True, 
-                            "BatchedMultiLayerPerceptron_0": False
-                            }
-                        }
+                    "BatchedSpinViT_0": True, 
+                    "BatchedMultiLayerPerceptron_0": False
+                    }
+                }
                 mask_phase = {"params": {
                     "BatchedSpinViT_0": False, 
                     "BatchedMultiLayerPerceptron_0": True
                     }
                 }
 
-                epochs_per_run = epochs//(2*sweeps)
+                epochs_per_run = epochs//(2*stairs['sweeps'])
 
-                for i in range(sweeps):
-                    print(f"\nSweep {i+1} of {sweeps}...")
+                for i in range(stairs['sweeps']):
+
+                    print(f"\nSweep {i+1} of {stairs['sweeps']}...")
+                    optimizer_backend = nk.optimizer.Sgd(learning_rate=lr_schedule[i])
+                    SR = nk.optimizer.SR(diag_shift=ds_schedule[i])
+
                     for mask, train_modulus, train_phase, mode in zip(
                         [mask_phase, mask_phase], 
                         [True, False], 
@@ -250,7 +252,6 @@ for i, size in enumerate(sizes):
                         
                         variables = vstate.variables
                         sampler = vstate.sampler
-                        optimizer_backend = nk.optimizer.Sgd(learning_rate=lr_schedule[i])
                         optimizer = optax.masked(optimizer_backend, mask)
 
                         vstate = nk.vqs.MCState(
@@ -271,44 +272,9 @@ for i, size in enumerate(sizes):
                             preconditioner=SR
                         )
                         print(f"\nTraining {mode} for {epochs_per_run} epochs...")
-
                         gs.run(n_iter=epochs, out=log, callback=[keeper.update], show_progress=True)
                         mean, std, psi  = phase_stats_vstate(vstate)
                         print(f"VS phase: {mean} \u00b1 {std}  ({psi})")
-                        
-
-
-
-
-                sys.exit(0)
-
-                gs = nk.driver.VMC(
-                    H,
-                    optimizer,
-                    variational_state=vstate,
-                    preconditioner=SR
-                )
-
-
-
-                # keeper.filename = 'Somewhere' #It allows you to store the parameters of the model for the state with lowest energy found.
-
-                gs.run(n_iter=epochs, out=log, callback=[keeper.update], show_progress=True)
-                mean, std, psi  = phase_stats_vstate(vstate)
-                print(f"VS phase: {mean} \u00b1 {std}  ({psi})\n \n")
-                print(f"Module Trained. Freezing module and training phase...")
-                
-                rng_module=vstate.sampler_state.rng
-                samples_last = vstate.sample(n_samples=n_samples).reshape(n_samples, N)
-                params_phase_init = model.init(rng_module, samples_last) # Inicializacion de parametros de fase
-                params_module = vstate.parameters  # Parametros del vstate con modulo entrenado
-                
-                params_combined = {
-                    "BatchedSpinViT_0": jax.tree_util.tree_map(lambda x: jnp.array(x), params_module["BatchedSpinViT_0"]),
-                    "BatchedMultiLayerPerceptron_0": params_phase_init["params"]["BatchedMultiLayerPerceptron_0"]
-                }
-                mask = {"params": {"BatchedSpinViT_0": False, "BatchedMultiLayerPerceptron_0": True}}
-                optimizer_phase = optax.masked(optimizer, mask)
 
 
                 vstate=keeper.best_state
