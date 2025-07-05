@@ -40,7 +40,7 @@ from NN_module.models.split_training import SplitTraining_ViT_MLP
 
 # Cargamos configuracion de archivo json
 
-with open("/home/ihuarte/Escritorio/Ivan/NNs/config_split_training.json",'r') as f:
+with open("config_split_training.json",'r') as f:
     config = json.load(f)
 
 strength = config['strength']               # Lattice and coupling model
@@ -72,7 +72,7 @@ activations = [activation_dict[a] for a in activation_name]
 
 epochs = config['lr_schedule']['epochs']                   # Simulation settings
 schedule=config['lr_schedule']
-stairs = config['lr_schedule'][['lr_schedule']['name']]
+stairs = config['lr_schedule'][config['lr_schedule']['name']]
 
 n_samples = config['n_samples']
 exact_diag = config['exact_diagonalization']
@@ -174,11 +174,11 @@ for i, size in enumerate(sizes):
                 print(f"Token size: {token_size} \nEmbedding D: {embedding_d} \nHeads: {n_heads}\n")
                 print(f"Blocks: {n_blocks} \nffn_layers: {n_ffn_layers}\n\n")
 
-                if False:#exact_diag:# and not os.path.isfile(write_folder + f"Oxalate_xED_{size[0]}x{size[1]}_strength_{strength:.1f}_theta_{theta:.1f}_phi_{phi:.1f}.txt"):
-                    print("Running exact diagonalization...")
-                    E_ED, x_ED = Runner(cm).exact_energy_lanczos(eigenstates=True)
-                    E_ED = float(E_ED.squeeze(-1))
-                    print(f"Energy ED: {E_ED}")
+                # if exact_diag:# and not os.path.isfile(write_folder + f"Oxalate_xED_{size[0]}x{size[1]}_strength_{strength:.1f}_theta_{theta:.1f}_phi_{phi:.1f}.txt"):
+                #     print("Running exact diagonalization...")
+                #     E_ED, x_ED = Runner(cm).exact_energy_lanczos(eigenstates=True)
+                #     E_ED = float(E_ED.squeeze(-1))
+                #     print(f"Energy ED: {E_ED}")
 
                 callback_artifacts = {}
                 time_in = time.time()
@@ -205,7 +205,6 @@ for i, size in enumerate(sizes):
                     symm_Z2_phase = symm_Z2_phase,
                     trivial_Z2_phase = trivial_Z2_phase
                 )
-                ### Aqui
 
                 log = (
                     nk.logging.RuntimeLog()
@@ -237,6 +236,9 @@ for i, size in enumerate(sizes):
 
                 epochs_per_run = epochs//(2*stairs['sweeps'])
 
+                print(f"Epochs per run: {epochs_per_run}")
+                print(f"Epochs: {epochs}  Sweeps: {stairs['sweeps']}")
+
                 for i in range(stairs['sweeps']):
 
                     print(f"\nSweep {i+1} of {stairs['sweeps']}...")
@@ -249,11 +251,11 @@ for i, size in enumerate(sizes):
                         [False, True], 
                         ['modulus', 'phase']
                     ):
-                        
+                        print(f"OK")
                         variables = vstate.variables
                         sampler = vstate.sampler
                         optimizer = optax.masked(optimizer_backend, mask)
-
+                        print(f"OK")
                         vstate = nk.vqs.MCState(
                             sampler,
                             sampler_seed=vstate.sampler_state.rng,
@@ -264,15 +266,16 @@ for i, size in enumerate(sizes):
                             variables=variables,
                             apply_fun=apply_function(model, modulus=False, phase=False)
                         )
-
+                        print(f"OK")
                         gs = nk.driver.VMC(
                             H,
                             optimizer,
                             variational_state=vstate,
                             preconditioner=SR
                         )
+                        print(f"OK")
                         print(f"\nTraining {mode} for {epochs_per_run} epochs...")
-                        gs.run(n_iter=epochs, out=log, callback=[keeper.update], show_progress=True)
+                        gs.run(n_iter=epochs_per_run, out=log, callback=[keeper.update], show_progress=True)
                         mean, std, psi  = phase_stats_vstate(vstate)
                         print(f"VS phase: {mean} \u00b1 {std}  ({psi})")
 
