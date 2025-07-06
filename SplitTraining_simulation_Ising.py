@@ -266,14 +266,24 @@ for i, size in enumerate(sizes):
                             variables=variables,
                             apply_fun=apply_function(model, modulus=False, phase=False)
                         )
-                        print(f"OK")
+
+                        from jax import tree_util
+
+                        def check_dtypes(tree):
+                            return tree_util.tree_map(lambda x: x.dtype if hasattr(x, "dtype") else type(x), tree)
+
+                        print("Dtypes de vstate.variables['params']:")
+                        print(check_dtypes(vstate.variables["params"]))
+                        sys.exit(0)
                         gs = nk.driver.VMC(
                             H,
                             optimizer,
                             variational_state=vstate,
                             preconditioner=SR
                         )
-                        print(f"OK")
+                        
+                        print("VMC creado correctamente:", gs)
+
                         print(f"\nTraining {mode} for {epochs_per_run} epochs...")
                         gs.run(n_iter=epochs_per_run, out=log, callback=[keeper.update], show_progress=True)
                         mean, std, psi  = phase_stats_vstate(vstate)
