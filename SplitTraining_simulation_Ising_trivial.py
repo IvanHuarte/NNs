@@ -111,10 +111,9 @@ coupling_list=[
     [0.0, -4, -4],
     [0.0, 4, 4],
     [0.0, 4, 10],
-    [0.0, 10, 4]    sampler = nk.sampler.MetropolisSampler(
-    hi, nk.sampler.rules.MultipleRules([rule1, rule2], [pflip, pinvert])
-    )
+    [0.0, 10, 4]   
 ]
+
 
 for i, size in enumerate(sizes):
 

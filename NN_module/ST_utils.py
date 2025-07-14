@@ -1,3 +1,6 @@
+import flax
+import optax
+
 
 class WrappedModel:
     def __init__(self, model, train_modulus, train_phase):
@@ -42,4 +45,35 @@ def make_mask(params, predicate):
         else:
             return predicate(path)
     return apply_mask(params)
+
+
+
+def mask_modulus(path, leaf):
+    return 'freeze' if path[0] == 'BatchedSpinViT_0' else 'train'
+
+def mask_phase(path, leaf):
+    return 'freeze' if path[0] == 'BatchedMultiLayerPerceptron_0' else 'train'
+
+def masked_optimizer(params, transform_map, mode=None):
+    """Genera una máscara universal para `params` basada en el modo.
+    
+    Args:
+        params: Parámetros del modelo.
+        mode: Parte a la que aplicar la máscara ('modulus','phase')
+        transform_map: Mapa de transformaciones a aplicar.
+    Returns:
+        dict: Máscara con la misma estructura que `params`.
+    """
+
+    if mode == 'modulus':
+        trans_tree = flax.traverse_util.path_aware_map(mask_modulus, params)
+    elif mode == 'phase':
+        trans_tree = flax.traverse_util.path_aware_map(mask_phase, params)
+    else:
+        return transform_map['train']
+    
+    optimizer = optax.multi_transform(transform_map, trans_tree)
+    
+    return optimizer
+
 

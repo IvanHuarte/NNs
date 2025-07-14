@@ -38,7 +38,7 @@ from NN_module.models.split_training import SplitTraining_ViT_MLP
 
 # Cargamos configuracion de archivo json
 
-with open("/home/ihuarte/Escritorio/Ivan/NNs/config_split_training.json",'r') as f:
+with open("config_split_training.json",'r') as f:
     config = json.load(f)
 
 strength = config['strength']          # Lattice and coupling model
@@ -90,7 +90,7 @@ print(f"trivial_Z2_module: {trivial_Z2_module} trivial_Z2_phase: {trivial_Z2_pha
 ### Training schedule ###
 lr_schedule = scheduler_initializer(schedule['name'], schedule)
 
-optimizer = nk.optimizer.Sgd(learning_rate=lr_schedule)
+#optimizer = nk.optimizer.Sgd(learning_rate=lr_schedule)
 ds_schedule = optax.linear_schedule(1e-2, 1e-4, epochs)
 SR = nk.optimizer.SR(diag_shift=ds_schedule)
 
@@ -180,13 +180,20 @@ for i, size in enumerate(sizes):
             chunk_size=None
         )
         
+        transformations = {
+            'train': optax.sgd(0.1),
+            'freeze': optax.set_to_zero()
+        }
+
+        from NN_module.ST_utils import masked_optimizer
+        optimizer = masked_optimizer(vstate.parameters, transformations, mode = 'phase')
+
         gs = nk.driver.VMC(
             H,
             optimizer,
             variational_state=vstate,
             preconditioner=SR
         )
-
 
         log = (
             nk.logging.RuntimeLog()
@@ -195,12 +202,22 @@ for i, size in enumerate(sizes):
 
         # keeper.filename = 'Somewhere' #It allows you to store the parameters of the model for the state with lowest energy found.
         print(f"\nTraining module...")
-        print(f"model.train_phase = {model.train_phase}")
+        mean, std, psi  = phase_stats_vstate(vstate)
+        print(f"VS phase: {mean} \u00b1 {std}  ({psi})")
+
+        params0 = vstate.parameters
+
         gs.run(n_iter=epochs, out=log, callback=[keeper.update], show_progress=True)
+        params1 = vstate.parameters
         mean, std, psi  = phase_stats_vstate(vstate)
         print(f"VS phase: {mean} \u00b1 {std}  ({psi})\n \n")
+        def compare_params(p1, p2):
+            return jax.tree_util.tree_map(lambda a, b: not jnp.allclose(a, b), p1, p2)
+        print(f"Changes: {compare_params(params0, params1)}")
+
         import pprint
-        pprint.pprint(vstate.parameters.keys())
+        print(params0['BatchedMultiLayerPerceptron_0'])
+        print(params1['BatchedMultiLayerPerceptron_0'])
         print(f"Module Trained. Freezing module and training phase...")
 
         model = SplitTraining_ViT_MLP(
