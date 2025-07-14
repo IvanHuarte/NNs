@@ -38,13 +38,16 @@ class SplitTraining_ViT_MLP(nn.Module):
     symm_Z2_phase: bool = False
     trivial_Z2_phase: bool = True
 
+    train_modulus: bool = True
+    train_phase: bool = True
+
     @nn.compact
     def __call__(
         self, 
-        batch_x: jnp.ndarray, 
-        * ,
-        train_modulus: bool = True,
-        train_phase: bool = True) -> jnp.ndarray:
+        batch_x: jnp.ndarray) -> jnp.ndarray:
+        # * ,
+        # train_modulus: bool = True,
+        # train_phase: bool = True) -> jnp.ndarray:
 
         #jax.debug.print("train_modulus = {}, train_phase = {}", train_modulus, train_phase)
 
@@ -72,11 +75,11 @@ class SplitTraining_ViT_MLP(nn.Module):
                 trivial_Z2=self.trivial_Z2_phase
             )(batch_x)
         
-        if not train_modulus:
-            log_module = jax.lax.stop_gradient(log_module)
+        # if not self.train_modulus:
+        #     log_module = jax.lax.stop_gradient(log_module)
 
-        if not train_phase:
-            phase = jax.lax.stop_gradient(phase)
+        # if not self.train_phase:
+        #     phase = jax.lax.stop_gradient(phase)
         
         return log_module + 1j * phase
 

@@ -111,7 +111,9 @@ coupling_list=[
     [0.0, -4, -4],
     [0.0, 4, 4],
     [0.0, 4, 10],
-    [0.0, 10, 4]
+    [0.0, 10, 4]    sampler = nk.sampler.MetropolisSampler(
+    hi, nk.sampler.rules.MultipleRules([rule1, rule2], [pflip, pinvert])
+    )
 ]
 
 for i, size in enumerate(sizes):
@@ -184,6 +186,8 @@ for i, size in enumerate(sizes):
                 time_in = time.time()
 
                 model = SplitTraining_ViT_MLP(
+                    train_modulus=True,
+                    train_phase=True,
 
                     lattice_size=tuple(size),
                     token_size=tuple(token_size),
@@ -206,8 +210,6 @@ for i, size in enumerate(sizes):
                     trivial_Z2_phase = trivial_Z2_phase
                 )
 
-                #wrapped_model = WrappedModel(model, train_modulus=True, train_phase=True)
-
                 log = (
                     nk.logging.RuntimeLog()
                 )  # If instead of this logging you insert a string, it will be used as output prefix for a JSON file where the evolution of the energy at each epoch will be stored.
@@ -217,33 +219,31 @@ for i, size in enumerate(sizes):
                 # Initialize vstate with parameters
                 vstate = nk.vqs.MCState(
                     sampler,
-                    model=None,
-                    init_fun=init_function(model, modulus=True, phase=True),
-                    apply_fun=apply_function(model, modulus=True, phase=True),
+                    model=model,
                     n_samples=n_samples,
                     n_discard_per_chain=0,
                     chunk_size=None
                 )
 
-                # mask_modulus = {"params": {
-                #     "BatchedSpinViT_0": True, 
-                #     "BatchedMultiLayerPerceptron_0": False
-                #     }
-                # }
-                # mask_phase = {"params": {
-                #     "BatchedSpinViT_0": False, 
-                #     "BatchedMultiLayerPerceptron_0": True
-                #     }
-                # }
+                mask_modulus = {"params": {
+                    "BatchedSpinViT_0": True, 
+                    "BatchedMultiLayerPerceptron_0": False
+                    }
+                }
+                mask_phase = {"params": {
+                    "BatchedSpinViT_0": False, 
+                    "BatchedMultiLayerPerceptron_0": True
+                    }
+                }
 
-                def mask_modulus_predicate(path):
-                    return path[0] == 'BatchedSpinViT_0'
+                # def mask_modulus_predicate(path):
+                #     return path[0] == 'BatchedSpinViT_0'
 
-                def mask_phase_predicate(path):
-                    return path[0] == 'BatchedMultiLayerPerceptron_0'
+                # def mask_phase_predicate(path):
+                #     return path[0] == 'BatchedMultiLayerPerceptron_0'
 
-                mask_modulus = make_mask(vstate.parameters, mask_modulus_predicate)
-                mask_phase = make_mask(vstate.parameters, mask_phase_predicate)
+                # mask_modulus = make_mask(vstate.parameters, mask_modulus_predicate)
+                # mask_phase = make_mask(vstate.parameters, mask_phase_predicate)
 
                 print(f"Mask modulus: {mask_modulus}")
 
@@ -269,21 +269,44 @@ for i, size in enumerate(sizes):
                         ['modulus', 'phase']
                     ):
                         
-                        variables = vstate.variables
+                        parameters = vstate.parameters
                         sampler = vstate.sampler
                         optimizer = optax.masked(optimizer_backend, mask)
-                        #wrapped_model = WrappedModel(model, train_modulus=train_modulus, train_phase=train_phase)
+
+                        model = SplitTraining_ViT_MLP(
+                            train_modulus=train_modulus,
+                            train_phase=train_phase,
+
+                            lattice_size=tuple(size),
+                            token_size=tuple(token_size),
+                            embedding_d=embedding_d,
+                            n_heads=n_heads,
+                            n_blocks=n_blocks,
+                            n_ffn_layers=n_ffn_layers,
+                            final_architecture=final_architecture,
+                            is_complex=is_complex,
+                            symm_2D_module = symm_2D_module,
+                            symm_Z2_module = symm_Z2_module,
+                            trivial_Z2_module = trivial_Z2_module,
+
+                            param_dtype_phase = jnp.float64,
+                            hidden_alpha = tuple(alphas),
+                            activation = tuple(activations),
+                            output_dim = output_dim,
+                            symm_2D_phase = symm_2D_phase,
+                            symm_Z2_phase = symm_Z2_phase,
+                            trivial_Z2_phase = trivial_Z2_phase
+                        )
                         
                         vstate = nk.vqs.MCState(
                             sampler,
                             sampler_seed=vstate.sampler_state.rng,
-                            apply_fun=apply_function(model, modulus=train_modulus, phase=train_phase),
-                            model=None,
+                            model=model,
                             n_samples=n_samples,
                             n_discard_per_chain=0,
-                            chunk_size=None,
-                            variables=variables
+                            chunk_size=None
                         )
+                        vstate.parameters = parameters
 
                         # print(jax.tree_util.tree_map(lambda x: x, mask_modulus),'\n\n')  
                         # print(jax.tree_util.tree_map(lambda x: x, mask_phase)) 
@@ -294,8 +317,9 @@ for i, size in enumerate(sizes):
                             H,
                             optimizer,
                             variational_state=vstate,
-                            #preconditioner=SR
+                            preconditioner=SR
                         )
+                        
                         # print(jax.tree_util.tree_structure(vstate.parameters))
                         # print(vstate.variables['params'].keys(  ))
 
