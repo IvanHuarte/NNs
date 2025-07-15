@@ -69,8 +69,10 @@ def masked_optimizer(params, transform_map, mode=None):
         trans_tree = flax.traverse_util.path_aware_map(mask_modulus, params)
     elif mode == 'phase':
         trans_tree = flax.traverse_util.path_aware_map(mask_phase, params)
-    else:
+    elif mode is None:
         return transform_map['train']
+    else:
+        raise ValueError(f"Unknown mode: {mode}. Must be 'modulus', 'phase' or None (for both).")
     
     optimizer = optax.multi_transform(transform_map, trans_tree)
     

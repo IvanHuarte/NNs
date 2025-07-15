@@ -33,10 +33,10 @@ from NN_module.NN_utils import (
     activation_dict, scheduler_initializer, 
     phase_stats_ED, phase_stats_vstate
 )
-from NN_module.ST_utils import WrappedModel, init_function, apply_function, make_mask
+from NN_module.ST_utils import masked_optimizer
 
 from transformer_LR_WF.utils import *
-from NN_module.models.split_training import SplitTraining_ViT_MLP
+from NN_module.models.split_training import SplitTraining_ViT_MLP, SplitTraining_ViT_CNN
 
 # Cargamos configuracion de archivo json
 
@@ -97,6 +97,11 @@ lr_schedule = jnp.logspace(
     num=stairs['sweeps']
 )
 
+transformations = {
+    'train': optax.sgd(0.1),
+    'freeze': optax.set_to_zero()
+}
+
 #lr_schedule=scheduler_initializer(schedule['name'], schedule)
 ds_schedule = jnp.linspace(1e-1, 1e-4, stairs['sweeps'])
 
@@ -119,7 +124,7 @@ for i, size in enumerate(sizes):
     N = int(np.prod(size)) 
     if N > 20: exact_diag = False
 
-    write_folder = write +  f"Size_{size[0]}x{size[1]}/"
+    write_folder_size = write +  f"Size_{size[0]}x{size[1]}/"
 
     ###  Reseting Hilbert space object and the observables ###
     hi = nk.hilbert.Spin(s=1 / 2, N=N)
@@ -145,6 +150,8 @@ for i, size in enumerate(sizes):
                 [2], 
                 [2], 
                 [2]):
+
+
 
                 # for token_size in [[2,1],[2,2]]:
                 #     for embedding_d in [32]:
@@ -174,291 +181,278 @@ for i, size in enumerate(sizes):
                 print(f"Token size: {token_size} \nEmbedding D: {embedding_d} \nHeads: {n_heads}\n")
                 print(f"Blocks: {n_blocks} \nffn_layers: {n_ffn_layers}\n\n")
 
-                # if exact_diag:# and not os.path.isfile(write_folder + f"Oxalate_xED_{size[0]}x{size[1]}_strength_{strength:.1f}_theta_{theta:.1f}_phi_{phi:.1f}.txt"):
-                #     print("Running exact diagonalization...")
-                #     E_ED, x_ED = Runner(cm).exact_energy_lanczos(eigenstates=True)
-                #     E_ED = float(E_ED.squeeze(-1))
-                #     print(f"Energy ED: {E_ED}")
+                if exact_diag:# and not os.path.isfile(write_folder + f"Oxalate_xED_{size[0]}x{size[1]}_strength_{strength:.1f}_theta_{theta:.1f}_phi_{phi:.1f}.txt"):
+                    print("Running exact diagonalization...")
+                    E_ED, x_ED = Runner(cm).exact_energy_lanczos(eigenstates=True)
+                    E_ED = float(E_ED.squeeze(-1))
+                    print(f"Energy ED: {E_ED}")
 
-                callback_artifacts = {}
-                time_in = time.time()
+                for sweeps in [50, 20, 10, 5, 2, 1]:
+                    stairs['sweeps'] = sweeps
+                    print(f"\nRunning with {sweeps} sweeps...")
+                    write_folder = write_folder_size + f"{sweeps}"
 
-                model = SplitTraining_ViT_MLP(
+                    callback_artifacts = {}
+                    time_in = time.time()
 
-                    lattice_size=tuple(size),
-                    token_size=tuple(token_size),
-                    embedding_d=embedding_d,
-                    n_heads=n_heads,
-                    n_blocks=n_blocks,
-                    n_ffn_layers=n_ffn_layers,
-                    final_architecture=final_architecture,
-                    is_complex=is_complex,
-                    symm_2D_module = symm_2D_module,
-                    symm_Z2_module = symm_Z2_module,
-                    trivial_Z2_module = trivial_Z2_module,
+                    # model = SplitTraining_ViT_MLP(
 
-                    param_dtype_phase = jnp.float64,
-                    hidden_alpha = tuple(alphas),
-                    activation = tuple(activations),
-                    output_dim = output_dim,
-                    symm_2D_phase = symm_2D_phase,
-                    symm_Z2_phase = symm_Z2_phase,
-                    trivial_Z2_phase = trivial_Z2_phase
-                )
+                    #     lattice_size=tuple(size),
+                    #     token_size=tuple(token_size),
+                    #     embedding_d=embedding_d,
+                    #     n_heads=n_heads,
+                    #     n_blocks=n_blocks,
+                    #     n_ffn_layers=n_ffn_layers,
+                    #     final_architecture=final_architecture,
+                    #     is_complex=is_complex,
+                    #     symm_2D_module = symm_2D_module,
+                    #     symm_Z2_module = symm_Z2_module,
+                    #     trivial_Z2_module = trivial_Z2_module,
 
-                #wrapped_model = WrappedModel(model, train_modulus=True, train_phase=True)
+                    #     param_dtype_phase = jnp.float64,
+                    #     hidden_alpha = tuple(alphas),
+                    #     activation = tuple(activations),
+                    #     output_dim = output_dim,
+                    #     symm_2D_phase = symm_2D_phase,
+                    #     symm_Z2_phase = symm_Z2_phase,
+                    #     trivial_Z2_phase = trivial_Z2_phase
+                    # )
 
-                log = (
-                    nk.logging.RuntimeLog()
-                )  # If instead of this logging you insert a string, it will be used as output prefix for a JSON file where the evolution of the energy at each epoch will be stored.
-                keeper = BestIterKeeper(H, N, 1e-8)
-                # keeper.filename = 'Somewhere' #It allows you to store the parameters of the model for the state with lowest energy found.
+                    model = SplitTraining_ViT_CNN(
 
-                # Initialize vstate with parameters
-                vstate = nk.vqs.MCState(
-                    sampler,
-                    model=None,
-                    init_fun=init_function(model, modulus=True, phase=True),
-                    apply_fun=apply_function(model, modulus=True, phase=True),
-                    n_samples=n_samples,
-                    n_discard_per_chain=0,
-                    chunk_size=None
-                )
+                        lattice_size=tuple(size),
+                        token_size=tuple(token_size),
+                        embedding_d=embedding_d,
+                        n_heads=n_heads,
+                        n_blocks=n_blocks,
+                        n_ffn_layers=n_ffn_layers,
+                        final_architecture=final_architecture,
+                        is_complex=is_complex,
+                        symm_2D_module = symm_2D_module,
+                        symm_Z2_module = symm_Z2_module,
+                        trivial_Z2_module = trivial_Z2_module,
 
-                # mask_modulus = {"params": {
-                #     "BatchedSpinViT_0": True, 
-                #     "BatchedMultiLayerPerceptron_0": False
-                #     }
-                # }
-                # mask_phase = {"params": {
-                #     "BatchedSpinViT_0": False, 
-                #     "BatchedMultiLayerPerceptron_0": True
-                #     }
-                # }
+                        block_features=tuple([32]),
+                        filter_size=tuple([3,1]),
+                        n_ffn_layers_cnn=1,
+                        #activation=flax.linen.tanh
+                    )
 
-                def mask_modulus_predicate(path):
-                    return path[0] == 'BatchedSpinViT_0'
+                    log = (
+                        nk.logging.RuntimeLog()
+                    )  # If instead of this logging you insert a string, it will be used as output prefix for a JSON file where the evolution of the energy at each epoch will be stored.
+                    keeper = BestIterKeeper(H, N, 1e-8)
+                    # keeper.filename = 'Somewhere' #It allows you to store the parameters of the model for the state with lowest energy found.
 
-                def mask_phase_predicate(path):
-                    return path[0] == 'BatchedMultiLayerPerceptron_0'
+                    # Initialize vstate with parameters
+                    vstate = nk.vqs.MCState(
+                        sampler,
+                        model=model,
+                        n_samples=n_samples,
+                        n_discard_per_chain=0,
+                        chunk_size=None
+                    )
 
-                mask_modulus = make_mask(vstate.parameters, mask_modulus_predicate)
-                mask_phase = make_mask(vstate.parameters, mask_phase_predicate)
+                    epochs_per_run = epochs//(2*stairs['sweeps'])
 
-                print(f"Mask modulus: {mask_modulus}")
+                    print(f"Epochs per run: {epochs_per_run}")
+                    print(f"Epochs: {epochs}  Sweeps: {stairs['sweeps']}")
 
-                epochs_per_run = epochs//(2*stairs['sweeps'])
+                    for i in range(stairs['sweeps']):
 
-                print(f"Epochs per run: {epochs_per_run}")
-                print(f"Epochs: {epochs}  Sweeps: {stairs['sweeps']}")
+                        print(f"\nSweep {i+1} of {stairs['sweeps']}...")
+                        transformations['train'] = optax.sgd(learning_rate=lr_schedule[i])
+                        SR = nk.optimizer.SR(diag_shift=ds_schedule[i])
 
-                print(f"Initial phase:")
-                mean, std, psi  = phase_stats_vstate(vstate)
-                print(f"VS phase: {mean} \u00b1 {std}  ({psi})")
+                        for mask in ['phase', 'modulus']:
+                            mode = [m for m in ['phase', 'modulus'] if m != mask][0]
+                            
+                            variables = vstate.variables
+                            sampler = vstate.sampler
+                            optimizer = masked_optimizer(vstate.parameters, transformations, mode = mask)
+                            
+                            vstate = nk.vqs.MCState(
+                                sampler,
+                                sampler_seed=vstate.sampler_state.rng,
+                                model=model,
+                                n_samples=n_samples,
+                                n_discard_per_chain=0,
+                                chunk_size=None,
+                                variables=variables
+                            )
 
-                for i in range(stairs['sweeps']):
+                            # print(jax.tree_util.tree_map(lambda x: x, mask_modulus),'\n\n')  
+                            # print(jax.tree_util.tree_map(lambda x: x, mask_phase)) 
 
-                    print(f"\nSweep {i+1} of {stairs['sweeps']}...")
-                    optimizer_backend = nk.optimizer.Sgd(learning_rate=lr_schedule[i])
-                    SR = nk.optimizer.SR(diag_shift=ds_schedule[i])
+                            gs = nk.driver.VMC(
+                                H,
+                                optimizer,
+                                variational_state=vstate,
+                                preconditioner=SR
+                            )
+                            # print(jax.tree_util.tree_structure(vstate.parameters))
+                            # print(vstate.variables['params'].keys(  ))
 
-                    for mask, train_modulus, train_phase, mode in zip(
-                        [mask_phase, mask_modulus], 
-                        [True, False], 
-                        [False, True], 
-                        ['modulus', 'phase']
-                    ):
+
+                            print(f"\nTraining {mode} for {epochs_per_run} epochs...")
+                            gs.run(n_iter=epochs_per_run, out=log, callback=[keeper.update], show_progress=True)
+                            mean, std, psi  = phase_stats_vstate(vstate)
+                            print(f"VS phase: {mean} \u00b1 {std}  ({psi})")
+
+
+                    vstate=keeper.best_state
+
+                    time_out = time.time()
+                    time_exe= time_out - time_in
+                    
+                    if exact_diag:
+                        keeper.E_ED = E_ED
+                        log.E_ED = E_ED
+
+                    ## Save results
+                    flat_fields=''
+                    field_values=''
+                    title_label=''
+                    for f,v in zip(['X','Y','Z'], fields):
+                        flat_fields += f + '_'
+                        field_values += f"{v}" + '_'
+                        title_label += f"{f}:{v}  "
+
+                    flat_couplings=''
+                    coupling_values=''
+                    for f,v in zip(['XX','YY','ZZ'], couplings):
+                        flat_couplings += f + '_'
+                        coupling_values += f"{v}" + '_'
+                        title_label += f"{f}:{v}  "
+                    
+                    coup_label = f"{size[0]}x{size[1]}_fields_{flat_fields}_{field_values}_couplings_{flat_couplings}_{coupling_values}"
+                    nn_label = f"b_{token_size[0]}x{token_size[1]}_Demb_{embedding_d}_heads_{n_heads}_blocks_{n_blocks}_ffn_lay_{n_ffn_layers}"
+
+                    sim_label = f"Ising_simulation_" + coup_label + nn_label
+                    ED_label = f"Ising_xED_" + coup_label
+                    json_label = f"Ising_results_" + nn_label
+                    title_label_callback = f"Callback  "+ title_label + f"  ({size[0]}x{size[1]})"
+
+                    
+                    if dump_simulation:
+                        # For plotting architecture
+                        architecture = f"|| b: {token_size}  D_emb: {embedding_d}  heads: {n_heads} ||\n"
+                        architecture += f"|| n_blocks: {n_blocks}   ffn_layers: {n_ffn_layers} ||\n"
+
+                        dump_setup ={
+                            'size': size, 'opt_name': "Sgd",
+                            'learning_rate': "Scheduled",
+                            'write_folder': write_folder,
+                            'time_exe': time_exe, 
+                            'architecture': architecture,
+                            'sim_label': sim_label,
+                            'title_label_callback': title_label_callback
+                        }
                         
-                        variables = vstate.variables
-                        sampler = vstate.sampler
-                        optimizer = optax.masked(optimizer_backend, mask)
-                        #wrapped_model = WrappedModel(model, train_modulus=train_modulus, train_phase=train_phase)
+                        callback_artifacts = dump_callback(log, dump_setup)
+
+                    else:
+                        callback_artifacts = None
                         
-                        vstate = nk.vqs.MCState(
-                            sampler,
-                            sampler_seed=vstate.sampler_state.rng,
-                            apply_fun=apply_function(model, modulus=train_modulus, phase=train_phase),
-                            model=None,
-                            n_samples=n_samples,
-                            n_discard_per_chain=0,
-                            chunk_size=None,
-                            variables=variables
-                        )
 
-                        # print(jax.tree_util.tree_map(lambda x: x, mask_modulus),'\n\n')  
-                        # print(jax.tree_util.tree_map(lambda x: x, mask_phase)) 
-                        
-                        # sys.exit(0)
+                    # Extract some results
+                    vstate = keeper.best_state
+                    E_best = float(keeper.best_energy)
+                    vscore = float(keeper.vscore)
 
-                        gs = nk.driver.VMC(
-                            H,
-                            optimizer,
-                            variational_state=vstate,
-                            #preconditioner=SR
-                        )
-                        # print(jax.tree_util.tree_structure(vstate.parameters))
-                        # print(vstate.variables['params'].keys(  ))
+                    phase={}
+                    if exact_diag:
+                        error=float(np.abs(E_best-E_ED)/np.abs(E_ED))
+                        mean_ED, std_ED, psi_ED = phase_stats_ED(x_ED)
+                        phase['xED']={'mean':mean_ED, 'std':std_ED, 'psi': psi_ED}
+                        print(f"xED phase: {mean_ED} \u00b1 {std_ED}  ({psi_ED})")
 
+                    else:
+                        E_ED = None
+                        x_ED = None
+                        error = None
 
-                        print(f"\nTraining {mode} for {epochs_per_run} epochs...")
-                        gs.run(n_iter=epochs_per_run, out=log, callback=[keeper.update], show_progress=True)
-                        mean, std, psi  = phase_stats_vstate(vstate)
-                        print(f"VS phase: {mean} \u00b1 {std}  ({psi})")
+                    mean, std, psi  = phase_stats_vstate(vstate)
+                    phase['vstate']={'mean':mean, 'std':std, 'psi': psi}
+                    print(f"VS phase: {mean} \u00b1 {std}  ({psi})\n \n")  
 
-
-                vstate=keeper.best_state
-
-                time_out = time.time()
-                time_exe= time_out - time_in
-                
-                if exact_diag:
-                    keeper.E_ED = E_ED
-                    log.E_ED = E_ED
-
-                ## Save results
-                flat_fields=''
-                field_values=''
-                title_label=''
-                for f,v in zip(['X','Y','Z'], fields):
-                    flat_fields += f + '_'
-                    field_values += f"{v}" + '_'
-                    title_label += f"{f}:{v}  "
-
-                flat_couplings=''
-                coupling_values=''
-                for f,v in zip(['XX','YY','ZZ'], couplings):
-                    flat_couplings += f + '_'
-                    coupling_values += f"{v}" + '_'
-                    title_label += f"{f}:{v}  "
-                
-                coup_label = f"{size[0]}x{size[1]}_fields_{flat_fields}_{field_values}_couplings_{flat_couplings}_{coupling_values}"
-                nn_label = f"b_{token_size[0]}x{token_size[1]}_Demb_{embedding_d}_heads_{n_heads}_blocks_{n_blocks}_ffn_lay_{n_ffn_layers}"
-
-                sim_label = f"Ising_simulation_" + coup_label + nn_label
-                ED_label = f"Ising_xED_" + coup_label
-                json_label = f"Ising_results_" + nn_label
-                title_label_callback = f"Callback  "+ title_label + f"  ({size[0]}x{size[1]})"
-
-                
-                if dump_simulation:
-                    # For plotting architecture
-                    architecture = f"|| b: {token_size}  D_emb: {embedding_d}  heads: {n_heads} ||\n"
-                    architecture += f"|| n_blocks: {n_blocks}   ffn_layers: {n_ffn_layers} ||\n"
+                    # Save the results
 
                     dump_setup ={
-                        'size': size, 'opt_name': "Sgd",
-                        'learning_rate': "Scheduled",
-                        'write_folder': write_folder,
-                        'time_exe': time_exe, 
-                        'architecture': architecture,
-                        'sim_label': sim_label,
-                        'title_label_callback': title_label_callback
+
+                        'lattice':{
+                            'name': 'Chain/Square',
+                            'size': size, 
+                            'bc': kwargs_lattice['bc'],
+                        },
+                        'coupling_model': {
+                            'operators': cm.operators,
+                            'field': fields,
+                            'couplings': couplings
+                        },
+
+                        'model_NN': {
+                            "name": 'SplitTraining_ViT_MLP',
+
+                            "lattice_size":size,
+                            "token_size":token_size,
+                            "embedding_d":embedding_d,
+                            "n_heads":n_heads,
+                            "n_blocks":n_blocks,
+                            "n_ffn_layers":n_ffn_layers,
+                            "final_architecture":final_architecture,
+                            "is_complex":is_complex,
+                            "symm_2D_module" : symm_2D_module,
+                            "symm_Z2_module" : symm_Z2_module,
+                            "trivial_Z2_module" : trivial_Z2_module,
+
+                            "param_dtype_phase" : "jnp.float64",
+                            "hidden_alpha" : alphas,
+                            "activation" : activation_name,
+                            "output_dim" : output_dim,
+                            "symm_2D_phase" : symm_2D_phase,
+                            "symm_Z2_phase" : symm_Z2_phase,
+                            "trivial_Z2_phase" : trivial_Z2_phase
+                        },
+
+                        'sampler': {
+                            'name': "MetropolisSampler",
+                            'n_samples': n_samples, 
+                            'rng': vstate.sampler_state.rng.tolist(), 
+                            'rules': 'LocalRule/InvertMagnetization'
+
+                        },
+                        'optimizer': "Sgd",
+                        "lr_schedule":{
+                            "name": schedule["name"],
+                            "setup": schedule[schedule["name"]]
+                        },
+
+                        'results':{
+                            'E_best': E_best,
+                            'E_ED': E_ED,
+                            'error': error,
+                            'vscore': vscore,
+                            'time_exe': time_exe, 
+                        },
+                        '_artifacts': {
+                            'callback': callback_artifacts
+                        }
                     }
-                    
-                    callback_artifacts = dump_callback(log, dump_setup)
 
-                else:
-                    callback_artifacts = None
-                    
-
-                # Extract some results
-                vstate = keeper.best_state
-                E_best = float(keeper.best_energy)
-                vscore = float(keeper.vscore)
-
-                phase={}
-                if exact_diag:
-                    error=float(np.abs(E_best-E_ED)/np.abs(E_ED))
-                    mean_ED, std_ED, psi_ED = phase_stats_ED(x_ED)
-                    phase['xED']={'mean':mean_ED, 'std':std_ED, 'psi': psi_ED}
-                    print(f"xED phase: {mean_ED} \u00b1 {std_ED}  ({psi_ED})")
-
-                else:
-                    E_ED = None
-                    x_ED = None
-                    error = None
-
-                mean, std, psi  = phase_stats_vstate(vstate)
-                phase['vstate']={'mean':mean, 'std':std, 'psi': psi}
-                print(f"VS phase: {mean} \u00b1 {std}  ({psi})\n \n")  
-
-                # Save the results
-
-                dump_setup ={
-
-                    'lattice':{
-                        'name': 'Chain/Square',
-                        'size': size, 
-                        'bc': kwargs_lattice['bc'],
-                    },
-                    'coupling_model': {
-                        'operators': cm.operators,
-                        'field': fields,
-                        'couplings': couplings
-                    },
-
-                    'model_NN': {
-                        "name": 'SplitTraining_ViT_MLP',
-
-                        "lattice_size":size,
-                        "token_size":token_size,
-                        "embedding_d":embedding_d,
-                        "n_heads":n_heads,
-                        "n_blocks":n_blocks,
-                        "n_ffn_layers":n_ffn_layers,
-                        "final_architecture":final_architecture,
-                        "is_complex":is_complex,
-                        "symm_2D_module" : symm_2D_module,
-                        "symm_Z2_module" : symm_Z2_module,
-                        "trivial_Z2_module" : trivial_Z2_module,
-
-                        "param_dtype_phase" : "jnp.float64",
-                        "hidden_alpha" : alphas,
-                        "activation" : activation_name,
-                        "output_dim" : output_dim,
-                        "symm_2D_phase" : symm_2D_phase,
-                        "symm_Z2_phase" : symm_Z2_phase,
-                        "trivial_Z2_phase" : trivial_Z2_phase
-                    },
-
-                    'sampler': {
-                        'name': "MetropolisSampler",
-                        'n_samples': n_samples, 
-                        'rng': vstate.sampler_state.rng.tolist(), 
-                        'rules': 'LocalRule/InvertMagnetization'
-
-                    },
-                    'optimizer': "Sgd",
-                    "lr_schedule":{
-                        "name": schedule["name"],
-                        "setup": schedule[schedule["name"]]
-                    },
-
-                    'results':{
-                        'E_best': E_best,
-                        'E_ED': E_ED,
-                        'error': error,
-                        'vscore': vscore,
-                        'time_exe': time_exe, 
-                    },
-                    '_artifacts': {
-                        'callback': callback_artifacts
-                    }
-                }
-
-                save_results(
-                    vstate, 
-                    dump_setup, 
-                    x_ED = x_ED,
-                    write_folder = write_folder,
-                    sim_label = sim_label,
-                    ED_label=ED_label,
-                    json_label=json_label
-                )
+                    save_results(
+                        vstate, 
+                        dump_setup, 
+                        x_ED = x_ED,
+                        write_folder = write_folder,
+                        sim_label = sim_label,
+                        ED_label=ED_label,
+                        json_label=json_label
+                    )
 
 
 
 
 
-    
+        
 

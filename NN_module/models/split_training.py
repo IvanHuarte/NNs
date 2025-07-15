@@ -6,8 +6,66 @@ import jax.numpy as jnp
 
 from .MLP import BatchedMultiLayerPerceptron
 from .ViT_2D import BatchedSpinViT
+from .CNN import CNN
 
 DTYPE = jnp.float64
+
+class SplitTraining_ViT_CNN(nn.Module):
+
+    """
+    Flax module to train module and phase separately
+    """
+
+    lattice_size: Tuple[int, int]
+
+    "Module settings ViT"
+    token_size: Tuple[int, int]
+    embedding_d: int
+    n_heads: int
+    n_blocks: int
+    n_ffn_layers: int
+    final_architecture: Sequence[int]
+    is_complex: bool = False
+    symm_2D_module: bool = False
+    symm_Z2_module: bool = False
+    trivial_Z2_module: bool = True
+
+    "Phase settings CNN"
+
+    block_features: tuple = (32)  # Features for each convolutional block
+    filter_size: tuple  = (3,3)   # Size of the convolutional filter
+    n_ffn_layers_cnn: int = 1  # Number of fully connected layers after convolutional blocks
+    activation: Callable = nn.tanh  # Activation function
+
+    @nn.compact
+    def __call__(
+        self, 
+        batch_x: jnp.ndarray) -> jnp.ndarray:
+
+        log_module = BatchedSpinViT(
+                lattice_size=self.lattice_size,
+                token_size=self.token_size,
+                embedding_d=self.embedding_d,
+                n_heads=self.n_heads,
+                n_blocks=self.n_blocks,
+                n_ffn_layers=self.n_ffn_layers,
+                final_architecture=self.final_architecture,
+                is_complex=self.is_complex,
+                symm_2D = self.symm_2D_module,
+                symm_Z2 = self.symm_Z2_module,
+                trivial_Z2 = self.trivial_Z2_module
+            )(batch_x)
+    
+        phase = CNN(
+                lattice_size=self.lattice_size,
+                block_features=self.block_features,
+                filter_size=self.filter_size,
+                n_ffn_layers=self.n_ffn_layers,
+                activation=self.activation
+            )(batch_x)
+    
+        return log_module + 1j * phase
+
 
 class SplitTraining_ViT_MLP(nn.Module):
 
@@ -38,18 +96,10 @@ class SplitTraining_ViT_MLP(nn.Module):
     symm_Z2_phase: bool = False
     trivial_Z2_phase: bool = True
 
-    train_modulus: bool = True
-    train_phase: bool = True
-
     @nn.compact
     def __call__(
         self, 
         batch_x: jnp.ndarray) -> jnp.ndarray:
-        # * ,
-        # train_modulus: bool = True,
-        # train_phase: bool = True) -> jnp.ndarray:
-
-        #jax.debug.print("train_modulus = {}, train_phase = {}", train_modulus, train_phase)
 
         log_module = BatchedSpinViT(
                 lattice_size=self.lattice_size,
@@ -74,12 +124,6 @@ class SplitTraining_ViT_MLP(nn.Module):
                 symm_Z2=self.symm_Z2_phase,
                 trivial_Z2=self.trivial_Z2_phase
             )(batch_x)
-        
-        # if not self.train_modulus:
-        #     log_module = jax.lax.stop_gradient(log_module)
 
-        # if not self.train_phase:
-        #     phase = jax.lax.stop_gradient(phase)
         
         return log_module + 1j * phase
-
