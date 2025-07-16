@@ -96,14 +96,14 @@ lr_schedule = jnp.logspace(
     stop=jnp.log10(stairs['lr_min']), 
     num=stairs['sweeps']
 )
-
+ds_schedule = jnp.linspace(1e-1, 1e-4, stairs['sweeps'])
 transformations = {
     'train': optax.sgd(0.1),
     'freeze': optax.set_to_zero()
 }
 
 #lr_schedule=scheduler_initializer(schedule['name'], schedule)
-ds_schedule = jnp.linspace(1e-1, 1e-4, stairs['sweeps'])
+
 
 
 E_ED = None
@@ -191,34 +191,17 @@ for i, size in enumerate(sizes):
                     stairs['sweeps'] = sweeps
                     print(f"\nRunning with {sweeps} sweeps...")
                     write_folder = write_folder_size + f"{sweeps}"
+                    lr_schedule = jnp.logspace(
+                        start=jnp.log10(stairs['lr0']),
+                        stop=jnp.log10(stairs['lr_min']), 
+                        num=stairs['sweeps']
+                    )
+                    ds_schedule = jnp.linspace(1e-1, 1e-4, stairs['sweeps'])
 
                     callback_artifacts = {}
                     time_in = time.time()
 
-                    # model = SplitTraining_ViT_MLP(
-
-                    #     lattice_size=tuple(size),
-                    #     token_size=tuple(token_size),
-                    #     embedding_d=embedding_d,
-                    #     n_heads=n_heads,
-                    #     n_blocks=n_blocks,
-                    #     n_ffn_layers=n_ffn_layers,
-                    #     final_architecture=final_architecture,
-                    #     is_complex=is_complex,
-                    #     symm_2D_module = symm_2D_module,
-                    #     symm_Z2_module = symm_Z2_module,
-                    #     trivial_Z2_module = trivial_Z2_module,
-
-                    #     param_dtype_phase = jnp.float64,
-                    #     hidden_alpha = tuple(alphas),
-                    #     activation = tuple(activations),
-                    #     output_dim = output_dim,
-                    #     symm_2D_phase = symm_2D_phase,
-                    #     symm_Z2_phase = symm_Z2_phase,
-                    #     trivial_Z2_phase = trivial_Z2_phase
-                    # )
-
-                    model = SplitTraining_ViT_CNN(
+                    model = SplitTraining_ViT_MLP(
 
                         lattice_size=tuple(size),
                         token_size=tuple(token_size),
@@ -232,11 +215,34 @@ for i, size in enumerate(sizes):
                         symm_Z2_module = symm_Z2_module,
                         trivial_Z2_module = trivial_Z2_module,
 
-                        block_features=tuple([32]),
-                        filter_size=tuple([3,1]),
-                        n_ffn_layers_cnn=1,
-                        #activation=flax.linen.tanh
+                        param_dtype_phase = jnp.float64,
+                        hidden_alpha = tuple(alphas),
+                        activation = tuple(activations),
+                        output_dim = output_dim,
+                        symm_2D_phase = symm_2D_phase,
+                        symm_Z2_phase = symm_Z2_phase,
+                        trivial_Z2_phase = trivial_Z2_phase
                     )
+
+                    # model = SplitTraining_ViT_CNN(
+
+                    #     lattice_size=tuple(size),
+                    #     token_size=tuple(token_size),
+                    #     embedding_d=embedding_d,
+                    #     n_heads=n_heads,
+                    #     n_blocks=n_blocks,
+                    #     n_ffn_layers=n_ffn_layers,
+                    #     final_architecture=final_architecture,
+                    #     is_complex=is_complex,
+                    #     symm_2D_module = symm_2D_module,
+                    #     symm_Z2_module = symm_Z2_module,
+                    #     trivial_Z2_module = trivial_Z2_module,
+
+                    #     block_features=tuple([32]),
+                    #     filter_size=tuple([3,1]),
+                    #     n_ffn_layers_cnn=1,
+                    #     #activation=flax.linen.tanh
+                    # )
 
                     log = (
                         nk.logging.RuntimeLog()

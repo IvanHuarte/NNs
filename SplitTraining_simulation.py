@@ -159,6 +159,13 @@ for i, size in enumerate(sizes):
             stairs['sweeps'] = sweeps
             print(f"\nRunning with {sweeps} sweeps...")
             write_folder = write_folder_size + f"{sweeps}"
+            lr_schedule = jnp.logspace(
+                start=jnp.log10(stairs['lr0']),
+                stop=jnp.log10(stairs['lr_min']), 
+                num=stairs['sweeps']
+            )
+            ds_schedule = jnp.linspace(1e-1, 1e-4, stairs['sweeps'])
+
 
             callback_artifacts = {}
             time_in = time.time()
