@@ -151,8 +151,6 @@ for i, size in enumerate(sizes):
                 [2], 
                 [2]):
 
-
-
                 # for token_size in [[2,1],[2,2]]:
                 #     for embedding_d in [32]:
                 #         for n_heads in [2,4,8]:

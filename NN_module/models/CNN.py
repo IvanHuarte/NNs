@@ -13,17 +13,14 @@ class ConvBlock(nn.Module):
 
     features: int
     kernel_size: tuple 
-    use_batchnorm: bool = True
-
-    activation: Callable = nn.swish
+    activation: Callable = nn.tanh
     use_pooling: bool = False
     
     @nn.compact
     def __call__(self, x: jnp.ndarray) -> jnp.ndarray:
         # Convolución sin padding adicional
         x = nn.Conv(features=self.features, kernel_size=self.kernel_size, padding="VALID")(x)
-        if self.use_batchnorm:
-            x = nn.LayerNorm(dtype=REAL_DTYPE)(x)
+        x = nn.LayerNorm(dtype=REAL_DTYPE)(x)
         x = self.activation(x)
 
         if self.use_pooling:
@@ -61,8 +58,8 @@ class CNN(nn.Module):
             x = ConvBlock(
                 features=feature, 
                 kernel_size=self.filter_size,
-                use_batchnorm=True,
-                use_pooling=True
+                use_pooling=True,
+                activation=nn.tanh
                 )(x)
 
         # Flatten the output for the fully connected layers
