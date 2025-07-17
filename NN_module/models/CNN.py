@@ -22,9 +22,12 @@ class ConvBlock(nn.Module):
         x = nn.Conv(features=self.features, kernel_size=self.kernel_size, padding="VALID")(x)
         x = nn.LayerNorm(dtype=REAL_DTYPE)(x)
         x = self.activation(x)
+        print(f"Shape after ConvBlock: {x.shape}")
 
         if self.use_pooling:
             x = nn.max_pool(x, window_shape=(2, 2), strides=(2, 2), padding='SAME')
+
+        print(f"Shape after pooling (if applied): {x.shape}")
         return x
 
 
@@ -37,7 +40,7 @@ class CNN(nn.Module):
     filter_size: tuple     # Size of the convolutional filter
 
     n_ffn_layers: int = 1  # Number of fully connected layers after convolutional blocks
-    activation: Callable = nn.tanh  # Activation function
+    activation: Callable = nn.relu  # Activation function
         
     
     @nn.compact
@@ -52,27 +55,28 @@ class CNN(nn.Module):
             pad_y = 0 
 
         # Padding periódico manual
-        x = jnp.pad(x, ((0, 0), (pad_x, pad_x), (pad_y, pad_y), (0, 0)), mode="wrap")
         
+        print(f"Input shape after padding: {x.shape}")
         for feature in self.block_features:
+            x = jnp.pad(x, ((0, 0), (pad_x, pad_x), (pad_y, pad_y), (0, 0)), mode="wrap")
             x = ConvBlock(
                 features=feature, 
                 kernel_size=self.filter_size,
                 use_pooling=True,
-                activation=nn.tanh
+                activation=self.activation
                 )(x)
 
         # Flatten the output for the fully connected layers
         x = x.reshape((x.shape[0], -1)) 
+        print(f"Shape after convolutional blocks: {x.shape}")
         
         # Final MLP layers
         for _ in range(self.n_ffn_layers):
             norm = nn.LayerNorm(param_dtype=REAL_DTYPE)
-            x = self.activation(
-                norm(
+            x = norm(
                     nn.Dense(x.shape[-1])(x)
                     )
-            )
+    
         x = nn.Dense(1, dtype=REAL_DTYPE)(x)  # Output layer
 
         return x.squeeze()

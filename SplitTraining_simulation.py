@@ -155,7 +155,7 @@ for i, size in enumerate(sizes):
             E_ED = float(E_ED.squeeze(-1))
             print(f"Energy ED: {E_ED}")
 
-        for sweeps in [50, 20, 10, 5, 2, 1]:
+        for sweeps in [50, 20, 10]:
             stairs['sweeps'] = sweeps
             print(f"\nRunning with {sweeps} sweeps...")
             write_folder = write_folder_size + f"sweeps_{sweeps}/"
@@ -207,9 +207,9 @@ for i, size in enumerate(sizes):
                 symm_Z2_module = symm_Z2_module,
                 trivial_Z2_module = trivial_Z2_module,
 
-                block_features=tuple([32]),
-                filter_size=tuple([3,1]),
-                n_ffn_layers_cnn=1,
+                block_features=tuple([16,32]),
+                filter_size=tuple([3,3]),
+                n_ffn_layers_cnn=2,
                 #activation=flax.linen.tanh
             )
 
@@ -227,7 +227,7 @@ for i, size in enumerate(sizes):
                 n_discard_per_chain=0,
                 chunk_size=None
             )
-            params0 = vstate.parameters
+            #params0 = vstate.parameters
 
             epochs_per_run = epochs//(2*stairs['sweeps'])
 
@@ -257,7 +257,6 @@ for i, size in enumerate(sizes):
                         variables=variables
                     )
  
-
                     gs = nk.driver.VMC(
                         H,
                         optimizer,
