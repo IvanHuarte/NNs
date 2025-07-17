@@ -33,7 +33,7 @@ from NN_module.NN_utils import (
     activation_dict, scheduler_initializer, 
     phase_stats_ED, phase_stats_vstate
 )
-from NN_module.ST_utils import masked_optimizer
+from NN_module.ST_utils import compare_params, masked_optimizer
 from transformer_LR_WF.utils import *
 from NN_module.models.split_training import SplitTraining_ViT_MLP, SplitTraining_ViT_CNN
 
@@ -170,30 +170,7 @@ for i, size in enumerate(sizes):
             callback_artifacts = {}
             time_in = time.time()
 
-            model = SplitTraining_ViT_MLP(
-
-                lattice_size=tuple(size),
-                token_size=tuple(token_size),
-                embedding_d=embedding_d,
-                n_heads=n_heads,
-                n_blocks=n_blocks,
-                n_ffn_layers=n_ffn_layers,
-                final_architecture=final_architecture,
-                is_complex=is_complex,
-                symm_2D_module = symm_2D_module,
-                symm_Z2_module = symm_Z2_module,
-                trivial_Z2_module = trivial_Z2_module,
-
-                param_dtype_phase = jnp.float64,
-                hidden_alpha = tuple(alphas),
-                activation = tuple(activations),
-                output_dim = output_dim,
-                symm_2D_phase = symm_2D_phase,
-                symm_Z2_phase = symm_Z2_phase,
-                trivial_Z2_phase = trivial_Z2_phase
-            )
-
-            # model = SplitTraining_ViT_CNN(
+            # model = SplitTraining_ViT_MLP(
 
             #     lattice_size=tuple(size),
             #     token_size=tuple(token_size),
@@ -207,11 +184,34 @@ for i, size in enumerate(sizes):
             #     symm_Z2_module = symm_Z2_module,
             #     trivial_Z2_module = trivial_Z2_module,
 
-            #     block_features=tuple([32]),
-            #     filter_size=tuple([3,1]),
-            #     n_ffn_layers_cnn=1,
-            #     #activation=flax.linen.tanh
+            #     param_dtype_phase = jnp.float64,
+            #     hidden_alpha = tuple(alphas),
+            #     activation = tuple(activations),
+            #     output_dim = output_dim,
+            #     symm_2D_phase = symm_2D_phase,
+            #     symm_Z2_phase = symm_Z2_phase,
+            #     trivial_Z2_phase = trivial_Z2_phase
             # )
+
+            model = SplitTraining_ViT_CNN(
+
+                lattice_size=tuple(size),
+                token_size=tuple(token_size),
+                embedding_d=embedding_d,
+                n_heads=n_heads,
+                n_blocks=n_blocks,
+                n_ffn_layers=n_ffn_layers,
+                final_architecture=final_architecture,
+                is_complex=is_complex,
+                symm_2D_module = symm_2D_module,
+                symm_Z2_module = symm_Z2_module,
+                trivial_Z2_module = trivial_Z2_module,
+
+                block_features=tuple([32]),
+                filter_size=tuple([3,1]),
+                n_ffn_layers_cnn=1,
+                #activation=flax.linen.tanh
+            )
 
             log = (
                 nk.logging.RuntimeLog()
@@ -227,6 +227,7 @@ for i, size in enumerate(sizes):
                 n_discard_per_chain=0,
                 chunk_size=None
             )
+            params0 = vstate.parameters
 
             epochs_per_run = epochs//(2*stairs['sweeps'])
 
@@ -235,11 +236,11 @@ for i, size in enumerate(sizes):
 
             for i in range(stairs['sweeps']):
 
-                print(f"\nSweep {i+1} of {stairs['sweeps']}...")
+                print(f"\nSweep {i+1} of {stairs['sweeps']}......   lr: {lr_schedule[i]:.4f}  ds: {ds_schedule[i]:.4f}\n")
                 transformations['train'] = optax.sgd(learning_rate=lr_schedule[i])
                 SR = nk.optimizer.SR(diag_shift=ds_schedule[i])
 
-                for mask in ['phase', 'modulus']:
+                for mask in ['modulus', 'phase']:
                     mode = [m for m in ['phase', 'modulus'] if m != mask][0]
                     
                     variables = vstate.variables
@@ -255,9 +256,7 @@ for i, size in enumerate(sizes):
                         chunk_size=None,
                         variables=variables
                     )
-
-                    # print(jax.tree_util.tree_map(lambda x: x, mask_modulus),'\n\n')  
-                    # print(jax.tree_util.tree_map(lambda x: x, mask_phase)) 
+ 
 
                     gs = nk.driver.VMC(
                         H,
@@ -273,6 +272,10 @@ for i, size in enumerate(sizes):
                     gs.run(n_iter=epochs_per_run, out=log, callback=[keeper.update], show_progress=True)
                     mean, std, psi  = phase_stats_vstate(vstate)
                     print(f"VS phase: {mean} \u00b1 {std}  ({psi})")
+                    # params1 = vstate.parameters
+                    # diffs = compare_params(params0, params1)
+                    # print(diffs)
+                    # params0 = params1
 
             vstate=keeper.best_state
 

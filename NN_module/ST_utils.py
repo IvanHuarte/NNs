@@ -1,3 +1,4 @@
+import jax
 import flax
 import optax
 
@@ -52,7 +53,7 @@ def mask_modulus(path, leaf):
     return 'freeze' if path[0] == 'BatchedSpinViT_0' else 'train'
 
 def mask_phase(path, leaf):
-    return 'freeze' if path[0] == 'BatchedMultiLayerPerceptron_0' else 'train'
+    return 'freeze' if path[0] in ('BatchedMultiLayerPerceptron_0', 'CNN_0') else 'train'
 
 def masked_optimizer(params, transform_map, mode=None):
     """Genera una máscara universal para `params` basada en el modo.
@@ -79,3 +80,9 @@ def masked_optimizer(params, transform_map, mode=None):
     return optimizer
 
 
+def compare_params(old_params, new_params, atol=1e-12):
+    def compare_fn(p_old, p_new):
+        return not jax.numpy.allclose(p_old, p_new, atol=atol)
+
+    diffs = jax.tree_util.tree_map(compare_fn, old_params, new_params)
+    return diffs
