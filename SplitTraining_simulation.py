@@ -10,11 +10,13 @@ import json
 import time
 import ast
 import os
-os.environ["XLA_PYTHON_CLIENT_PREALLOCATE"] = "false"
+#os.environ["XLA_PYTHON_CLIENT_PREALLOCATE"] = "false"
 
 jax.config.update("jax_enable_x64", True)
 jax.config.update("jax_platform_name", "gpu")
 jax.devices()
+
+
 
 # Añadir los directorios necesarios
 import sys
@@ -207,9 +209,9 @@ for i, size in enumerate(sizes):
                 symm_Z2_module = symm_Z2_module,
                 trivial_Z2_module = trivial_Z2_module,
 
-                block_features=tuple([16,32]),
+                block_features=tuple([32]),
                 filter_size=tuple([3,3]),
-                n_ffn_layers_cnn=2,
+                n_ffn_layers_cnn=1,
                 #activation=flax.linen.tanh
             )
 

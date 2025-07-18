@@ -7,9 +7,39 @@ from typing import Callable, Tuple, Any
 
 REAL_DTYPE = jnp.asarray(1.0).dtype
 
+class TriangularMaskedConv(nn.Module):
+    features: int  
+
+    @nn.compact
+    def __call__(self, x):
+        x = x.astype(REAL_DTYPE)
+        kernel_shape = (3, 3, x.shape[-1], self.features)
+        kernel = self.param("kernel", nn.initializers.lecun_normal(), kernel_shape, dtype=REAL_DTYPE)
+        mask = jnp.array([
+            [0, 1, 1],
+            [1, 1, 1],
+            [1, 1, 0],
+        ], dtype=REAL_DTYPE)  # Máscara para triangular
+
+        mask = mask[:, :, None, None]  # para broadcast en canales
+        masked_kernel = kernel * mask
+
+        return jax.lax.conv_general_dilated(
+            x,
+            masked_kernel,
+            window_strides=(1, 1),
+            padding="VALID",
+            dimension_numbers=("NHWC", "HWIO", "NHWC"),
+        )
+
+
+
 
 class ConvBlock(nn.Module):
-    """A simple convolutional block with optional batch normalization and pooling."""
+    """A simple convolutional block with optional batch normalization and pooling.
+    It expects an already padded input, so no additional padding is applied.
+    The input shape is expected to be (batch_size, height, width, channels).
+    """
 
     features: int
     kernel_size: tuple 
@@ -19,15 +49,17 @@ class ConvBlock(nn.Module):
     @nn.compact
     def __call__(self, x: jnp.ndarray) -> jnp.ndarray:
         # Convolución sin padding adicional
-        x = nn.Conv(features=self.features, kernel_size=self.kernel_size, padding="VALID")(x)
+        # x = nn.Conv(features=self.features, kernel_size=self.kernel_size, padding="VALID")(x)
+        x = TriangularMaskedConv(features=self.features)(x)
+        
         x = nn.LayerNorm(dtype=REAL_DTYPE)(x)
         x = self.activation(x)
-        print(f"Shape after ConvBlock: {x.shape}")
+        #print(f"Shape after ConvBlock: {x.shape}")
 
         if self.use_pooling:
             x = nn.max_pool(x, window_shape=(2, 2), strides=(2, 2), padding='SAME')
 
-        print(f"Shape after pooling (if applied): {x.shape}")
+        #print(f"Shape after pooling (if applied): {x.shape}")
         return x
 
 
@@ -56,7 +88,7 @@ class CNN(nn.Module):
 
         # Padding periódico manual
         
-        print(f"Input shape after padding: {x.shape}")
+        #print(f"Input shape after padding: {x.shape}")
         for feature in self.block_features:
             x = jnp.pad(x, ((0, 0), (pad_x, pad_x), (pad_y, pad_y), (0, 0)), mode="wrap")
             x = ConvBlock(
@@ -68,7 +100,7 @@ class CNN(nn.Module):
 
         # Flatten the output for the fully connected layers
         x = x.reshape((x.shape[0], -1)) 
-        print(f"Shape after convolutional blocks: {x.shape}")
+        #print(f"Shape after convolutional blocks: {x.shape}")
         
         # Final MLP layers
         for _ in range(self.n_ffn_layers):
