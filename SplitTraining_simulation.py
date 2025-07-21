@@ -195,25 +195,25 @@ for i, size in enumerate(sizes):
                 trivial_Z2_phase = trivial_Z2_phase
             )
 
-            # model = SplitTraining_ViT_CNN(
+            model = SplitTraining_ViT_CNN(
 
-            #     lattice_size=tuple(size),
-            #     token_size=tuple(token_size),
-            #     embedding_d=embedding_d,
-            #     n_heads=n_heads,
-            #     n_blocks=n_blocks,
-            #     n_ffn_layers=n_ffn_layers,
-            #     final_architecture=final_architecture,
-            #     is_complex=is_complex,
-            #     symm_2D_module = symm_2D_module,
-            #     symm_Z2_module = symm_Z2_module,
-            #     trivial_Z2_module = trivial_Z2_module,
+                lattice_size=tuple(size),
+                token_size=tuple(token_size),
+                embedding_d=embedding_d,
+                n_heads=n_heads,
+                n_blocks=n_blocks,
+                n_ffn_layers=n_ffn_layers,
+                final_architecture=final_architecture,
+                is_complex=is_complex,
+                symm_2D_module = symm_2D_module,
+                symm_Z2_module = symm_Z2_module,
+                trivial_Z2_module = trivial_Z2_module,
 
-            #     block_features=tuple([32]),
-            #     filter_size=tuple([3,3]),
-            #     n_ffn_layers_cnn=1,
-            #     #activation=flax.linen.tanh
-            # )
+                block_features=tuple([32]),
+                filter_size=tuple([3,3]),
+                n_ffn_layers_cnn=1,
+                #activation=flax.linen.tanh
+            )
 
             log = (
                 nk.logging.RuntimeLog()

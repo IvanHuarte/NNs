@@ -1,25 +1,29 @@
-import netket as nk
-import netket.nn
 import flax.linen as nn
 import jax
 import jax.numpy as jnp
-from typing import Callable, Tuple, Any
+import jax.typing as jt
+from typing import Callable, Tuple
 
 REAL_DTYPE = jnp.asarray(1.0).dtype
 
 class TriangularMaskedConv(nn.Module):
+    """
+    It expects an already padded input
+    """
     features: int  
+    kernel: Tuple = (3,3)
+    strides: Tuple = (1,1)
 
     @nn.compact
-    def __call__(self, x):
+    def __call__(self, x: jt.ArrayLike) -> jt.ArrayLike:
         x = x.astype(REAL_DTYPE)
-        kernel_shape = (3, 3, x.shape[-1], self.features)
+        kernel_shape = (*self.kernel, x.shape[-1], self.features)
         kernel = self.param("kernel", nn.initializers.lecun_normal(), kernel_shape, dtype=REAL_DTYPE)
         mask = jnp.array([
             [0, 1, 1],
             [1, 1, 1],
             [1, 1, 0],
-        ], dtype=REAL_DTYPE)  # Máscara para triangular
+        ])  # Máscara para triangular
 
         mask = mask[:, :, None, None]  # para broadcast en canales
         masked_kernel = kernel * mask
@@ -27,7 +31,7 @@ class TriangularMaskedConv(nn.Module):
         return jax.lax.conv_general_dilated(
             x,
             masked_kernel,
-            window_strides=(1, 1),
+            window_strides=self.strides,
             padding="VALID",
             dimension_numbers=("NHWC", "HWIO", "NHWC"),
         )
