@@ -361,6 +361,17 @@ for i, size in enumerate(sizes):
                 json_label=json_label
             )
 
+            import time
+            import subprocess
+            time.sleep(2)
+
+            artifact_path = write_folder + json_label + ".json"
+            script_path = "/home/ihuarte/Escritorio/Ivan/NNs/plot_phase.py"
+
+            subprocess.run(["python", script_path, "-a", artifact_path])
+
+
+
 
 
 
