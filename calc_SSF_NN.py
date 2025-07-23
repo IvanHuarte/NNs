@@ -22,9 +22,9 @@ import chebyoxa.utils as utils
 from chebyoxa_functions import *
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--artifact_path', type=str, required=True, help='Path al artefacto principal que recoge los resultados de la simulacion')
-parser.add_argument('--write_folder', type=str, required=True, help='Path donde escribir los SSF')
-parser.add_argument('--explore_mode', type=str, help='Modo para discriminar simulaciones con los mismos parametros')
+parser.add_argument("-a", '--artifact_path', type=str, required=True, help='Path al artefacto principal que recoge los resultados de la simulacion')
+parser.add_argument("-w", '--write_folder', type=str, required=True, help='Path donde escribir los SSF')
+parser.add_argument("-exp", '--explore_mode', type=str, help='Modo para discriminar simulaciones con los mismos parametros')
 args=parser.parse_args()
 
 path_artifact= args.artifact_path

@@ -117,6 +117,9 @@ def architecture_label(name, model_setup):
         architecture += f"|| block_channels: {model_setup['block_channels']}    kernel:{model_setup['kernel_size']}    n_ffn_lay:{model_setup['n_ffn_layers_cnn']} ||"
         return architecture
     
+def get_filenames_from_settings():
+    pass
+    
 
 
 def dump_callback(logger, settings, write = False):
@@ -169,7 +172,7 @@ def dump_callback(logger, settings, write = False):
         ax[0].hlines(E_gr,0,len(E_hist), color='green', label='ED Energy')
                     
     ax[0].plot(E_hist, color='blue', label='E')
-    ax[0].text(0.45, 0.93, architecture_display, transform=ax[0].transAxes, fontsize=12, color='k', ha='center', va='center',
+    ax[0].text(0.45, 0.8, architecture_display, transform=ax[0].transAxes, fontsize=12, color='k', ha='center', va='center',
             bbox=dict(boxstyle='round', facecolor='white', alpha=0.7))
     ax[0].text(0.9, 0.75, setup_sim, transform=ax[0].transAxes, fontsize=10, color='k', ha='center', va='center',
             bbox=dict(boxstyle='round', facecolor='white', alpha=0.7))

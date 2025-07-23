@@ -22,10 +22,10 @@ sys.path.append(str(Path(__file__).resolve().parent.parent / "chebyoxa"))
 import chebyoxa.utils as utils
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--artifact_path', type=str, required=True, help='Path al artefacto principal que recoge los resultados de la simulacion')
-parser.add_argument('--write_folder', type=str, required=True, help='Path donde guardar los plots de los SSF')
-parser.add_argument('--explore_mode', type=bool, help='Modo para discriminar simulaciones con los mismos parametros', default=False)
-parser.add_argument('--plot_error', type=bool, help='Plotear el error relativo entre el SSF obtenido y el de ED', default=False)
+parser.add_argument("-a",'--artifact_path', type=str, required=True, help='Path al artefacto principal que recoge los resultados de la simulacion')
+parser.add_argument("-w",'--write_folder', type=str, required=True, help='Path donde guardar los plots de los SSF')
+parser.add_argument("-exp",'--explore_mode', type=bool, help='Modo para discriminar simulaciones con los mismos parametros', default=False)
+parser.add_argument("-err",'--plot_error', type=bool, help='Plotear el error relativo entre el SSF obtenido y el de ED', default=False)
 args=parser.parse_args()
 
 path_artifact= args.artifact_path
@@ -176,7 +176,7 @@ for j, SSF in enumerate(plots_ssf):
     plt.colorbar(im, ax=ax)
     plt.xlabel(r"$k_x/\pi$")
     plt.ylabel(r"$k_y/\pi$")
-    plt.title(r"$a= %.1f$  $\theta = %.1f$  $\phi = %.1f$    "%(strength,theta,phi)+ SSF_label[j]+ f"   {size}")
+    plt.title(r"$a= %.1f$  $\theta = %.1f$  $\phi = %.1f$    "%(strength,theta,phi)+ SSF_label[j]+ f"   {size}", fontsize=8)
 
     if j == 0:
         
@@ -184,7 +184,7 @@ for j, SSF in enumerate(plots_ssf):
             ax.text(-0.1, -0.18, f"                 OPT\nEnergy: {E_best:3.4f} \nE/N:    {E_best/np.prod(size):3.4f}",transform=ax.transAxes,fontsize=8,bbox=dict(facecolor="white", alpha=0.4))
         else:
             ax.text(-0.1, -0.18, f"                 OPT            ED            error \nEnergy: {E_best:3.5f}   {E_ED:3.5f}   {error:3.3e} \nE/N:      {E_best/np.prod(size):3.5f}   {E_ED/np.prod(size):3.5f}   {error/np.prod(size):.3e}",transform=ax.transAxes,fontsize=8,bbox=dict(facecolor="white", alpha=0.4))
-        ax.text(0.90, -0.18, f"{model_data}", transform=ax.transAxes, fontsize=8, bbox=dict(facecolor="white", alpha=0.4))
+        #ax.text(0.90, -0.18, f"{model_data}", transform=ax.transAxes, fontsize=8, bbox=dict(facecolor="white", alpha=0.4))
 
     if j == 1:
         ax.text(-0.1, -0.18, f"                 ED\nEnergy: {E_ED:3.4f} \nE/N:      {E_ED/np.prod(size):3.4f}",transform=ax.transAxes,fontsize=8,bbox=dict(facecolor="white", alpha=0.4))

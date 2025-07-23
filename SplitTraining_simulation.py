@@ -41,17 +41,16 @@ from transformer_LR_WF.utils import *
 with open("config_split_training.json",'r') as f:
     config = json.load(f)
 
-strength = config['strength']                # Lattice and coupling model
-theta_list = config['theta_list']
-phi_list = config['phi_list']
+cm_name = config['CM']['selection']
+strength = config['CM'][cm_name]['strength']                # Lattice and coupling model
+theta_list = config['CM'][cm_name]['theta_list']
+phi_list = config['CM'][cm_name]['phi_list']
 sizes = config['sizes']
 kwargs_lattice = config['kwargs_lattice']
 
 model_name=config["model_NN"]["selection"]
 model_setup = config["model_NN"][model_name]
-model_label= config['CM_label']+model_name
-
-
+model_label= cm_name+'_'+model_name
 
 token_size=model_setup['token_size']              # ViT architecture settings
 embedding_d=model_setup['embedding_d']
@@ -258,10 +257,13 @@ for i, size in enumerate(sizes):
                 log.E_ED = E_ED
 
             ## Save results
-            sim_label = f"Oxalate_simulation_{size[0]}x{size[1]}_strength_{strength}_theta_{theta}_phi_{phi}_b_{token_size[0]}x{token_size[1]}_Demb_{embedding_d}_heads_{n_heads}_blocks_{n_blocks}_ffn_lay_{n_ffn_layers}"
+            
+            sim_label = f"Oxalate_simulation_"+model_label+f"{size[0]}x{size[1]}_strength_{strength}_theta_{theta}_phi_{phi}_b_{token_size[0]}x{token_size[1]}_Demb_{embedding_d}_heads_{n_heads}_blocks_{n_blocks}_ffn_lay_{n_ffn_layers}"
             ED_label = f"Oxalate_xED_{size[0]}x{size[1]}_strength_{strength}_theta_{theta}_phi_{phi}_ED"
             json_label = f"Oxalate_results_"+model_name+f"_{size[0]}x{size[1]}_strength_{strength}_theta_{theta}_phi_{phi}_b_{token_size[0]}x{token_size[1]}_Demb_{embedding_d}_heads_{n_heads}_blocks_{n_blocks}_ffn_lay_{n_ffn_layers}"
             title_label_callback = f"Callback Split "+model_name+" " + r"$\theta = %.1f$  $\phi = %.1f$"%(theta,phi) + f"  ({size[0]}x{size[1]})"
+
+            #sim_label, ED_label, json_label,title_label_callback =  get_filenames_from_settings()
 
             if dump_simulation:
                 # For plotting architecture
