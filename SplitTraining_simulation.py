@@ -16,8 +16,6 @@ jax.config.update("jax_enable_x64", True)
 jax.config.update("jax_platform_name", "gpu")
 jax.devices()
 
-
-
 # Añadir los directorios necesarios
 import sys
 from pathlib import Path
@@ -29,7 +27,7 @@ sys.path.append(str(Path(__file__).resolve().parent.parent / "Transformers/trans
 from VA_project.model.model import OxalateJKGamma
 from VA_project.engine.runners import Runner
 from NN_module.sim_utils import (
-    save_results, dump_callback
+    save_results, dump_callback, init_model, architecture_label
 )
 from NN_module.NN_utils import (
     activation_dict, scheduler_initializer, 
@@ -37,40 +35,42 @@ from NN_module.NN_utils import (
 )
 from NN_module.ST_utils import compare_params, masked_optimizer
 from transformer_LR_WF.utils import *
-from NN_module.models.split_training import SplitTraining_ViT_MLP, SplitTraining_ViT_CNN
 
 # Cargamos configuracion de archivo json
 
 with open("config_split_training.json",'r') as f:
     config = json.load(f)
 
-strength = config['strength']          # Lattice and coupling model
+strength = config['strength']                # Lattice and coupling model
 theta_list = config['theta_list']
 phi_list = config['phi_list']
 sizes = config['sizes']
 kwargs_lattice = config['kwargs_lattice']
 
-token_size=config['token_size']              # ViT architecture settings
-embedding_d=config['embedding_d']
-n_heads=config['n_heads']
-n_blocks= config['n_blocks']
-n_ffn_layers = config['n_ffn_layers']
-final_architecture = ast.literal_eval(config['final_architecture'] )
-is_complex = config['is_complex']
-symm_2D_module = config['symm_2D_module']
-symm_Z2_module = config['symm_Z2_module']
-trivial_Z2_module = config['trivial_Z2_module']
+model_name=config["model_NN"]["selection"]
+model_setup = config["model_NN"][model_name]
+model_label= config['CM_label']+model_name
 
-alpha_list = config['alpha_list']         # MLP architecture settings
-activation_list = config['activation_list']
-symm_2D_phase = config['symm_2D_phase']
-symm_Z2_phase = config['symm_Z2_phase']
-trivial_Z2_phase = config['trivial_Z2_phase']
-output_dim = config['output_dimension']
-alphas = alpha_list[0]
-activation_name = activation_list[0]
-activations = [activation_dict[a] for a in activation_name]
 
+
+token_size=model_setup['token_size']              # ViT architecture settings
+embedding_d=model_setup['embedding_d']
+n_heads=model_setup['n_heads']
+n_blocks= model_setup['n_blocks']
+n_ffn_layers = model_setup['n_ffn_layers']
+final_architecture = ast.literal_eval(model_setup['final_architecture'] )
+is_complex = model_setup['is_complex']
+symm_2D_module = model_setup['symm_2D_module']
+symm_Z2_module = model_setup['symm_Z2_module']
+trivial_Z2_module = model_setup['trivial_Z2_module']
+
+# alpha_list = model_setup['alpha_list']            # MLP architecture settings
+# activation_list = model_setup['activation_list']
+# symm_2D_phase = model_setup['symm_2D_phase']
+# symm_Z2_phase = model_setup['symm_Z2_phase']
+# trivial_Z2_phase = model_setup['trivial_Z2_phase']
+# output_dim = model_setup['output_dimension']
+# alphas = alpha_list[0]
 
 epochs = config['lr_schedule']['epochs']        # Simulation settings
 schedule=config['lr_schedule']
@@ -78,7 +78,28 @@ stairs = config['lr_schedule'][config['lr_schedule']['name']]
 n_samples = config['n_samples']
 exact_diag = config['exact_diagonalization']
 dump_simulation = config['dump_sim_callback']
-write = config['write_folder_sim']
+
+if  model_name=="SplitTraining_ViT_MLP": 
+    conditions = [symm_2D_module, symm_2D_phase,symm_Z2_module,symm_Z2_phase],
+    labels = ["_2DM","_2DP","_Z2M","_Z2P"]
+    print(f"symm_2D_module: {symm_2D_module}     symm_2D_phase: {symm_2D_phase}")
+    print(f"symm_Z2_module: {symm_Z2_module}     symm_Z2_phase: {symm_Z2_phase}")
+    print(f"trivial_Z2_module: {trivial_Z2_module} trivial_Z2_phase: {trivial_Z2_phase}")
+
+elif  model_name == "SplitTraining_ViT_CNN":
+    conditions = [symm_2D_module,symm_Z2_module],
+    labels = ["_2DM","_Z2M"]
+    print(f"symm_2D_module: {symm_2D_module}    symm_Z2_module: {symm_Z2_module}    trivial_Z2_module: {trivial_Z2_module}")
+
+
+symm=''
+for cond, label in zip():
+    if cond:
+        symm+=label
+        if label == '_Z2M':  symm += "t" if trivial_Z2_module else "nt"
+        if label == '_Z2P':  symm += "t" if trivial_Z2_phase else "nt"
+    
+write = config['write_folder_sim'] + model_label+ symm + "/"
 
 
 ### MC sampling rules ###
@@ -87,9 +108,7 @@ rule2 = InvertMagnetization()
 pinvert = 0.25
 pflip = 1 - pinvert
 
-print(f"symm_2D_module: {symm_2D_module}     symm_2D_phase: {symm_2D_phase}")
-print(f"symm_Z2_module: {symm_Z2_module}     symm_Z2_phase: {symm_Z2_phase}")
-print(f"trivial_Z2_module: {trivial_Z2_module} trivial_Z2_phase: {trivial_Z2_phase}")
+
 
 ### Training schedule ###
 lr_schedule = jnp.logspace(
@@ -110,11 +129,12 @@ E_ED = None
 x_ED = None
 
 for i, size in enumerate(sizes):
+    model_setup['lattice_size']=size
 
     N = int(np.prod(size)) 
     if N > 20: exact_diag = False
 
-    write_folder_size = write +  f"Oxalate_size_{size[0]}x{size[1]}/"
+    write_folder_size = write +  f"Size_{size[0]}x{size[1]}/"
 
     ###  Reseting Hilbert space object and the observables ###
     hi = nk.hilbert.Spin(s=1 / 2, N=N)
@@ -131,17 +151,8 @@ for i, size in enumerate(sizes):
     )
 
     for j, (theta, phi) in enumerate(zip(theta_list, phi_list)):
-    # for j, (theta, phi,token_size, embedding_d, n_heads, n_blocks, n_ffn_layers) in enumerate(zip(
-    #         [ 9.0, 54.0, 54.0, 54.0, 90.0],
-    #         [ 72.0, 0.0, 216.0, 315.0, 115.2],
-    #         [[2,1],[2,1], [2,1],[2,1], [2,1]] , 
-    #         [32, 32, 32, 32, 64], 
-    #         [2, 2, 2, 2, 2], 
-    #         [2, 2, 2, 2, 2], 
-    #         [2, 2, 2, 2, 2])):   
-        
+
         print(f"\n---- Parameters: Size {size}  strength={strength:1f}  theta={theta:2f}  phi={phi:2f} ----\n\n")
-        print(f"Token size: {token_size} \nEmbedding D: {embedding_d} \nHeads: {n_heads}\n")
         
         ## Update Hamiltonian
         oxa=OxalateJKGamma(
@@ -151,13 +162,13 @@ for i, size in enumerate(sizes):
         )
         H = Runner(oxa.cm).build_hamiltonian()
 
-        if exact_diag:# and not os.path.isfile(write_folder + f"Oxalate_xED_{size[0]}x{size[1]}_strength_{strength:.1f}_theta_{theta:.1f}_phi_{phi:.1f}.txt"):
+        if exact_diag:
             print("Running exact diagonalization...")
             E_ED, x_ED = Runner(oxa.cm).exact_energy_lanczos(eigenstates=True)
             E_ED = float(E_ED.squeeze(-1))
             print(f"Energy ED: {E_ED}")
 
-        for sweeps in [50, 20, 10]:
+        for sweeps in [50]:
             stairs['sweeps'] = sweeps
             print(f"\nRunning with {sweeps} sweeps...")
             write_folder = write_folder_size + f"sweeps_{sweeps}/"
@@ -168,52 +179,10 @@ for i, size in enumerate(sizes):
             )
             ds_schedule = jnp.linspace(1e-1, 1e-4, stairs['sweeps'])
 
-
             callback_artifacts = {}
             time_in = time.time()
 
-            model = SplitTraining_ViT_MLP(
-
-                lattice_size=tuple(size),
-                token_size=tuple(token_size),
-                embedding_d=embedding_d,
-                n_heads=n_heads,
-                n_blocks=n_blocks,
-                n_ffn_layers=n_ffn_layers,
-                final_architecture=final_architecture,
-                is_complex=is_complex,
-                symm_2D_module = symm_2D_module,
-                symm_Z2_module = symm_Z2_module,
-                trivial_Z2_module = trivial_Z2_module,
-
-                param_dtype_phase = jnp.float64,
-                hidden_alpha = tuple(alphas),
-                activation = tuple(activations),
-                output_dim = output_dim,
-                symm_2D_phase = symm_2D_phase,
-                symm_Z2_phase = symm_Z2_phase,
-                trivial_Z2_phase = trivial_Z2_phase
-            )
-
-            model = SplitTraining_ViT_CNN(
-
-                lattice_size=tuple(size),
-                token_size=tuple(token_size),
-                embedding_d=embedding_d,
-                n_heads=n_heads,
-                n_blocks=n_blocks,
-                n_ffn_layers=n_ffn_layers,
-                final_architecture=final_architecture,
-                is_complex=is_complex,
-                symm_2D_module = symm_2D_module,
-                symm_Z2_module = symm_Z2_module,
-                trivial_Z2_module = trivial_Z2_module,
-
-                block_features=tuple([32]),
-                filter_size=tuple([3,3]),
-                n_ffn_layers_cnn=1,
-                #activation=flax.linen.tanh
-            )
+            model = init_model(model_name, model_setup)
 
             log = (
                 nk.logging.RuntimeLog()
@@ -291,14 +260,12 @@ for i, size in enumerate(sizes):
             ## Save results
             sim_label = f"Oxalate_simulation_{size[0]}x{size[1]}_strength_{strength}_theta_{theta}_phi_{phi}_b_{token_size[0]}x{token_size[1]}_Demb_{embedding_d}_heads_{n_heads}_blocks_{n_blocks}_ffn_lay_{n_ffn_layers}"
             ED_label = f"Oxalate_xED_{size[0]}x{size[1]}_strength_{strength}_theta_{theta}_phi_{phi}_ED"
-            json_label = f"Oxalate_results_{size[0]}x{size[1]}_strength_{strength}_theta_{theta}_phi_{phi}_b_{token_size[0]}x{token_size[1]}_Demb_{embedding_d}_heads_{n_heads}_blocks_{n_blocks}_ffn_lay_{n_ffn_layers}"
-            title_label_callback = f"Callback Split "+ r"$\theta = %.1f$  $\phi = %.1f$"%(theta,phi) + f"  ({size[0]}x{size[1]})"
+            json_label = f"Oxalate_results_"+model_name+f"_{size[0]}x{size[1]}_strength_{strength}_theta_{theta}_phi_{phi}_b_{token_size[0]}x{token_size[1]}_Demb_{embedding_d}_heads_{n_heads}_blocks_{n_blocks}_ffn_lay_{n_ffn_layers}"
+            title_label_callback = f"Callback Split "+model_name+" " + r"$\theta = %.1f$  $\phi = %.1f$"%(theta,phi) + f"  ({size[0]}x{size[1]})"
 
             if dump_simulation:
                 # For plotting architecture
-                architecture = f"|| b: {token_size}  D_emb: {embedding_d}  heads: {n_heads} ||\n"
-                architecture += f"|| n_blocks: {n_blocks}   ffn_layers: {n_ffn_layers} ||\n"
-
+                architecture=architecture_label(model_name, model_setup)
                 dump_setup ={
                     'size': size, 'opt_name': "Sgd",
                     'learning_rate': "Scheduled",
@@ -345,6 +312,7 @@ for i, size in enumerate(sizes):
                     'size': size, 
                     'bc': kwargs_lattice['bc'],
                 },
+
                 'coupling_model': {
                     'strength': strength,
                     'theta': theta,
@@ -352,27 +320,8 @@ for i, size in enumerate(sizes):
                 },
 
                 'model_NN': {
-                    "name": 'SplitTraining_ViT_MLP',
-
-                    "lattice_size":size,
-                    "token_size":token_size,
-                    "embedding_d":embedding_d,
-                    "n_heads":n_heads,
-                    "n_blocks":n_blocks,
-                    "n_ffn_layers":n_ffn_layers,
-                    "final_architecture":final_architecture,
-                    "is_complex":is_complex,
-                    "symm_2D_module" : symm_2D_module,
-                    "symm_Z2_module" : symm_Z2_module,
-                    "trivial_Z2_module" : trivial_Z2_module,
-
-                    "param_dtype_phase" : "jnp.float64",
-                    "hidden_alpha" : alphas,
-                    "activation" : activation_name,
-                    "output_dim" : output_dim,
-                    "symm_2D_phase" : symm_2D_phase,
-                    "symm_Z2_phase" : symm_Z2_phase,
-                    "trivial_Z2_phase" : trivial_Z2_phase
+                    "name": model_name,
+                    "setup":model_setup,
                 },
 
                 'sampler': {

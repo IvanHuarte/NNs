@@ -212,3 +212,66 @@ def phase_stats_ED(x_ED, eps=0.01):
 
     return mean, std, psi
 
+
+def modphase_extended(x, sigmas=3):
+    """
+    Calculates modulus and phase for a expanded hilbert vector. Returns also statics for both
+    modulus and phase and detects symmetry peaks for phase.
+
+    Input:
+        - x (ArrayLike) Wavefunction (C²)
+        - sigmas: Number of sigmas to establish the threshold for values considered peaks
+    
+    Return:
+        - modulus
+        - phase
+        - stats: Statistics as the mean and standard deviation for modulus and phase. Phase 
+                 also includes info about phase peaks. peaks:(angle, counts)
+    """
+
+    mod = jnp.abs(x)
+    phase = jnp.angle(x)
+
+    mean_mod=mod.mean()
+    std_mod=mod.std()
+    mean_phase=phase.mean()
+    std_phase=phase.std()
+
+    stats={
+        'modulus': {
+            'mean': mean_mod,
+            'std': std_mod
+        },
+        'phase': {
+            'mean': mean_phase,
+            'std': std_phase            
+        }
+    }
+
+    counts,values=jnp.histogram(phase,bins=1000000)
+    nonzero_mask=jnp.where(counts!=0.0)[0]
+    nonzero_counts, nonzero_values=counts[nonzero_mask],values[nonzero_mask]
+    mean=nonzero_counts.mean()
+    std=nonzero_counts.std()
+    
+    if std>3/2*mean:
+        
+        peaks_idx=jnp.where(nonzero_counts>mean+sigmas*std)
+        peaks_x=nonzero_values[peaks_idx]
+        counts_x=nonzero_counts[peaks_idx]
+
+        idx=jnp.argsort(peaks_x)
+        peaks=peaks_x[idx]
+        peak_counts=counts_x[idx]
+
+        stats['peaks']={
+            'values': peaks,
+            'counts': peak_counts,
+            'count_mean': mean,
+            'count_std': std
+        }
+    else:
+        stats['peaks'] = None
+
+
+    return mod, phase, stats

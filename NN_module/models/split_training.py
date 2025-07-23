@@ -31,9 +31,8 @@ class SplitTraining_ViT_CNN(nn.Module):
     trivial_Z2_module: bool = True
 
     "Phase settings CNN"
-
-    block_features: tuple = (32)  # Features for each convolutional block
-    filter_size: tuple  = (3,3)   # Size of the convolutional filter
+    block_channels: tuple = (32)  # Features for each convolutional block
+    kernel_size: tuple  = (3,3)   # Size of the convolutional filter
     n_ffn_layers_cnn: int = 1  # Number of fully connected layers after convolutional blocks
     activation: Callable = nn.tanh  # Activation function
 
@@ -58,8 +57,8 @@ class SplitTraining_ViT_CNN(nn.Module):
     
         phase = CNN(
                 lattice_size=self.lattice_size,
-                block_features=self.block_features,
-                filter_size=self.filter_size,
+                block_channels=self.block_channels,
+                kernel_size=self.kernel_size,
                 n_ffn_layers=self.n_ffn_layers,
                 activation=self.activation
             )(batch_x)

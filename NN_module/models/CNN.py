@@ -53,8 +53,8 @@ class ConvBlock(nn.Module):
     @nn.compact
     def __call__(self, x: jnp.ndarray) -> jnp.ndarray:
         # Convolución sin padding adicional
-        # x = nn.Conv(features=self.features, kernel_size=self.kernel_size, padding="VALID")(x)
-        x = TriangularMaskedConv(features=self.features)(x)
+        x = nn.Conv(features=self.features, kernel_size=self.kernel_size, padding="VALID")(x)
+        #x = TriangularMaskedConv(features=self.features)(x)
         
         x = nn.LayerNorm(dtype=REAL_DTYPE)(x)
         x = self.activation(x)
@@ -72,8 +72,8 @@ class CNN(nn.Module):
     
     lattice_size: Tuple[int, int]  # Size of the input image (height, width)
 
-    block_features: tuple  # Features for each convolutional block
-    filter_size: tuple     # Size of the convolutional filter
+    block_channels: tuple  # Features for each convolutional block
+    kernel_size: tuple     # Size of the convolutional filter
 
     n_ffn_layers: int = 1  # Number of fully connected layers after convolutional blocks
     activation: Callable = nn.relu  # Activation function
@@ -82,8 +82,8 @@ class CNN(nn.Module):
     @nn.compact
     def __call__(self, x: jnp.ndarray) -> jnp.ndarray:
         
-        pad_x = self.filter_size[0] // 2
-        pad_y = self.filter_size[1] // 2
+        pad_x = self.kernel_size[0] // 2
+        pad_y = self.kernel_size[1] // 2
 
         x = x.reshape((-1, *self.lattice_size, 1))
         
@@ -93,11 +93,11 @@ class CNN(nn.Module):
         # Padding periódico manual
         
         #print(f"Input shape after padding: {x.shape}")
-        for feature in self.block_features:
+        for feature in self.block_channels:
             x = jnp.pad(x, ((0, 0), (pad_x, pad_x), (pad_y, pad_y), (0, 0)), mode="wrap")
             x = ConvBlock(
                 features=feature, 
-                kernel_size=self.filter_size,
+                kernel_size=self.kernel_size,
                 use_pooling=True,
                 activation=self.activation
                 )(x)
@@ -109,9 +109,7 @@ class CNN(nn.Module):
         # Final MLP layers
         for _ in range(self.n_ffn_layers):
             norm = nn.LayerNorm(param_dtype=REAL_DTYPE)
-            x = norm(
-                    nn.Dense(x.shape[-1])(x)
-                    )
+            x = norm(nn.Dense(x.shape[-1])(x))
     
         x = nn.Dense(1, dtype=REAL_DTYPE)(x)  # Output layer
 

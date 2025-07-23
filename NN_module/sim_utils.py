@@ -1,6 +1,7 @@
 import os
 import copy
 import json
+import ast
 import numpy as np
 import scipy as sp
 import matplotlib.pyplot as plt
@@ -16,6 +17,7 @@ from platform import architecture, python_version
 import pathlib
 from NN_module.models.MLP import BatchedMultiLayerPerceptron
 from NN_module.models.ViT_2D import BatchedSpinViT
+from NN_module.models.split_training import SplitTraining_ViT_MLP, SplitTraining_ViT_CNN
 from NN_module.NN_utils import (
     activation_dict, sampler_dict, rule_dict
 )
@@ -72,6 +74,49 @@ class BestIterKeeper:
                     file.write(flax.serialization.to_bytes(driver.state))
 
         return self.vscore > self.baseline
+
+        
+def architecture_label(name, model_setup):
+
+    if name == 'MLP':
+        set_dim=[f"D({dim})" for dim in model_setup['dimensions']] 
+        set_act=[f"A({act})" for act in model_setup['activations']]
+        setup='||'
+        for i in range(len(model_setup['dimensions'])):
+            setup+=f" {set_dim[i]} |"
+            setup+=f" {set_act[i]} |" if '0' not in set_act[i] else ''
+        setup+="|"
+        architecture = setup
+        return architecture
+
+    elif name == 'ViT':
+        architecture = f"|| b: {model_setup['token_size']}  D_emb: {model_setup['embedding_d']}  heads: {model_setup['n_heads']} ||\n"
+        architecture += f"|| n_blocks: {model_setup['n_blocks']}   ffn_layers: {model_setup['n_ffn_layers']} ||\n"
+        return architecture
+    
+    elif name == 'SplitTraining_ViT_MLP':
+        architecture = f"ViT \n"
+        architecture += f"|| b: {model_setup['token_size']}  D_emb: {model_setup['embedding_d']}  heads: {model_setup['n_heads']} ||\n"
+        architecture += f"|| n_blocks: {model_setup['n_blocks']}   ffn_layers: {model_setup['n_ffn_layers']} ||\n"
+        architecture += f"MLP \n"
+        set_dim=[f"D({dim})" for dim in model_setup['dimensions']] 
+        set_act=[f"A({act})" for act in model_setup['activations']]
+        setup='||'
+        for i in range(len(model_setup['dimensions'])):
+            setup+=f" {set_dim[i]} |"
+            setup+=f" {set_act[i]} |" if '0' not in set_act[i] else ''
+        setup+="|"
+        architecture += setup
+        return architecture
+    
+    elif name == 'SplitTraining_ViT_CNN':
+        architecture = f"ViT \n"
+        architecture += f"|| b: {model_setup['token_size']}  D_emb: {model_setup['embedding_d']}  heads: {model_setup['n_heads']} ||\n"
+        architecture += f"|| n_blocks: {model_setup['n_blocks']}   ffn_layers: {model_setup['n_ffn_layers']} ||\n"
+        architecture += f"CNN\n"
+        architecture += f"|| block_channels: {model_setup['block_channels']}    kernel:{model_setup['kernel_size']}    n_ffn_lay:{model_setup['n_ffn_layers_cnn']} ||"
+        return architecture
+    
 
 
 def dump_callback(logger, settings, write = False):
@@ -175,7 +220,6 @@ def dump_callback(logger, settings, write = False):
         callback_artifacts['vscore'] = vscore_path
     
     return callback_artifacts
-        
 
 def save_results(vstate, setup, x_ED = None, write_folder = './', sim_label = '', ED_label = '', json_label = ''):
     """Save the results of the simulation.
@@ -186,7 +230,6 @@ def save_results(vstate, setup, x_ED = None, write_folder = './', sim_label = ''
         write_folder: The folder to save the results.
         sim_label: A label for the simulation.
     """
-    
 
     os.makedirs(write_folder, exist_ok = True)
 
@@ -235,44 +278,101 @@ def save_results(vstate, setup, x_ED = None, write_folder = './', sim_label = ''
 
 
 
-def _init_model(N,model):
+def init_model(name, model_setup):
 
-    if model['name'] == 'MLP':
-        activation=model['activation']
+    if name == 'MLP':
+        activation=model_setup['activation']
         if all([type(act) in [str, int] for act in activation]):
             activation = tuple([activation_dict[act] if act != 0 else 0 for act in activation])
 
         return BatchedMultiLayerPerceptron(
-            lattice_size=tuple(model['lattice_size']),
-            hidden_alpha=tuple(model['hidden_alpha']),
+            lattice_size=tuple(model_setup['lattice_size']),
+            hidden_alpha=tuple(model_setup['hidden_alpha']),
             activation=activation,
             param_dtype=jnp.complex128,
             output_dim=1,
-            symm_2D=model['symm_2D'],
-            symm_Z2=model['symm_Z2'],
-            trivial_Z2=model['trivial_Z2']
+            symm_2D=model_setup['symm_2D'],
+            symm_Z2=model_setup['symm_Z2'],
+            trivial_Z2=model_setup['trivial_Z2']
         )
     
-    if model['name'] == 'ViT':
+    if name == 'ViT':
         return BatchedSpinViT(
-            lattice_size=tuple(model['lattice_size']),
-            token_size=tuple(model['token_size']),
-            embedding_d=model['embedding_d'],
-            n_heads=model['n_heads'],
-            n_blocks=model['n_blocks'],
-            n_ffn_layers=model['n_ffn_layers'],
-            final_architecture=tuple(model['final_architecture']),
-            is_complex=model['is_complex'],
-            symm_2D = model['symm_2D'],
-            symm_Z2 = model['symm_Z2'],
-            trivial_Z2 = model['trivial_Z2']
+            lattice_size=tuple(model_setup['lattice_size']),
+            token_size=tuple(model_setup['token_size']),
+            embedding_d=model_setup['embedding_d'],
+            n_heads=model_setup['n_heads'],
+            n_blocks=model_setup['n_blocks'],
+            n_ffn_layers=model_setup['n_ffn_layers'],
+            final_architecture=tuple(model_setup['final_architecture']),
+            is_complex=model_setup['is_complex'],
+            symm_2D = model_setup['symm_2D'],
+            symm_Z2 = model_setup['symm_Z2'],
+            trivial_Z2 = model_setup['trivial_Z2']
         )
+    if name == 'SplitTraining_ViT_MLP':
 
-def load_vstate(setup):
+        activation=model_setup['activation']
+        if all([type(act) in [str, int] for act in activation]):
+            activation = tuple([activation_dict[act] if act != 0 else 0 for act in activation])
+        return SplitTraining_ViT_MLP(
+
+                lattice_size=tuple(model_setup['lattice_size']),
+                token_size=tuple(model_setup['token_size']),
+                embedding_d=model_setup['embedding_d'],
+                n_heads=model_setup['n_heads'],
+                n_blocks=model_setup['n_blocks'],
+                n_ffn_layers=model_setup['n_ffn_layers'],
+                final_architecture=tuple(model_setup['final_architecture']),
+                is_complex=model_setup['is_complex'],
+                symm_2D_module = model_setup['symm_2D_module'],
+                symm_Z2_module = model_setup['symm_Z2_module'],
+                trivial_Z2_module = model_setup['trivial_Z2_module'],
+
+                param_dtype_phase = jnp.float64,
+                hidden_alpha = tuple(["hidden_alpha"]),
+                activation = activation,
+                output_dim = model_setup["output_dim"],
+                symm_2D_phase = model_setup["symm_2D_phase"],
+                symm_Z2_phase = model_setup["symm_Z2_phase"],
+                trivial_Z2_phase = model_setup["trivial_Z2_phase"]
+        )
+    if name == 'SplitTraining_ViT_CNN':
+        return SplitTraining_ViT_CNN(
+
+            lattice_size=tuple(model_setup['lattice_size']),
+            token_size=tuple(model_setup['token_size']),
+            embedding_d=model_setup['embedding_d'],
+            n_heads=model_setup['n_heads'],
+            n_blocks=model_setup['n_blocks'],
+            n_ffn_layers=model_setup['n_ffn_layers'],
+            final_architecture=ast.literal_eval(model_setup['final_architecture']),
+            is_complex=model_setup['is_complex'],
+            symm_2D_module = model_setup['symm_2D_module'],
+            symm_Z2_module = model_setup['symm_Z2_module'],
+            trivial_Z2_module = model_setup['trivial_Z2_module'],
+
+            block_channels=tuple(model_setup['block_channels']),
+            kernel_size=tuple(model_setup['kernel_size']),
+            n_ffn_layers_cnn=model_setup['n_ffn_layers_cnn']
+        )
+    
+def print_tree_keys(obj, indent=0):
+    prefix = '  ' * indent
+    if isinstance(obj, dict):
+        for key, value in obj.items():
+            print(f"{prefix}{key}")
+            print_tree_keys(value, indent + 1)
+    elif isinstance(obj, list):
+        for i, item in enumerate(obj):
+            print(f"{prefix}- [{i}]")
+            print_tree_keys(item, indent + 1)
+
+def load_vstate(setup, tree_data=False):
 
     # Initialize model
     N = int(np.prod( setup['lattice']['size'] ))
-    model = _init_model(N,setup["model_NN"])
+    model = init_model(setup["model_NN"]["name"],setup["model_NN"]["setup"])
 
     # Initialize hilbert space
     hi = nk.hilbert.Spin(s=0.5, N = N)
@@ -296,6 +396,13 @@ def load_vstate(setup):
 
     vs = nk.vqs.MCState(sampler, model, n_samples = n_samples, seed = 0)
     dummy_params=dummy_params["params"]    
+
+    if tree_data:      # For debugging
+        import msgpack
+        with open(setup['_artifacts']['vstate'], "rb") as f:
+            data = msgpack.unpack(f, raw=False)
+        print_tree_keys(data)
+
 
     vs_path = setup['results']['vstate']
     with open(vs_path, "rb") as f:
