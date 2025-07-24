@@ -79,10 +79,10 @@ class BestIterKeeper:
 def architecture_label(name, model_setup):
 
     if name == 'MLP':
-        set_dim=[f"D({dim})" for dim in model_setup['dimensions']] 
-        set_act=[f"A({act})" for act in model_setup['activations']]
+        set_dim=[f"D({dim})" for dim in model_setup['hidden_alpha']] 
+        set_act=[f"A({act})" for act in model_setup['activation']]
         setup='||'
-        for i in range(len(model_setup['dimensions'])):
+        for i in range(len(model_setup['hidden_alpha'])):
             setup+=f" {set_dim[i]} |"
             setup+=f" {set_act[i]} |" if '0' not in set_act[i] else ''
         setup+="|"
@@ -99,10 +99,10 @@ def architecture_label(name, model_setup):
         architecture += f"|| b: {model_setup['token_size']}  D_emb: {model_setup['embedding_d']}  heads: {model_setup['n_heads']} ||\n"
         architecture += f"|| n_blocks: {model_setup['n_blocks']}   ffn_layers: {model_setup['n_ffn_layers']} ||\n"
         architecture += f"MLP \n"
-        set_dim=[f"D({dim})" for dim in model_setup['dimensions']] 
-        set_act=[f"A({act})" for act in model_setup['activations']]
+        set_dim=[f"D({dim})" for dim in model_setup['hidden_alpha']] 
+        set_act=[f"A({act})" for act in model_setup['activation']]
         setup='||'
-        for i in range(len(model_setup['dimensions'])):
+        for i in range(len(model_setup['hidden_alpha'])):
             setup+=f" {set_dim[i]} |"
             setup+=f" {set_act[i]} |" if '0' not in set_act[i] else ''
         setup+="|"
@@ -117,11 +117,82 @@ def architecture_label(name, model_setup):
         architecture += f"|| block_channels: {model_setup['block_channels']}    kernel:{model_setup['kernel_size']}    n_ffn_lay:{model_setup['n_ffn_layers_cnn']} ||"
         return architecture
     
-def get_filenames_from_settings():
-    pass
+def get_filenames_from_settings(cm_name, nn_name, **kwargs):
+    
+    model_label = cm_name + '_' + nn_name
+    size=kwargs['size']
+
+    if cm_name == 'Oxalate':
+        strength = kwargs['strength'] ; theta = kwargs['theta'] ; phi = kwargs['phi']
+        cparams= f"_strength_{strength}_theta_{theta}_phi_{phi}"
+        call_params = r"$a = %.1f$  $\theta = %.1f$  $\phi = %.1f$"%(strength,theta,phi)
+
+    elif cm_name == 'Chain_YYZZ':
+        fields = kwargs['fields'] ; couplings = kwargs['couplings']
+        flat_fields=''
+        field_values=''
+        call_params=''
+        for f,v in zip(['X','Y','Z'], fields):
+            flat_fields += f + '_'
+            field_values += f"{v}" + '_'
+            call_params += f"{f}:{v}  "
+
+        flat_couplings=''
+        coupling_values=''
+        for f,v in zip(['XX','YY','ZZ'], couplings):
+            flat_couplings += f + '_'
+            coupling_values += f"{v}" + '_'
+            call_params += f"{f}:{v}  "
+
+    if nn_name == 'MLP':
+        alphas = kwargs['hidden_alpha'] ; activation = kwargs['activation'] 
+        act_label=''
+        dim_label=''
+        for act in activation:
+            act_label += f"{act}_"
+        for a in alphas:
+            dim_label += f"{a}_"
+        nnparams = f"_alphas_{dim_label}_activations_{act_label}"
+
+    elif nn_name == 'ViT':
+        token_size = kwargs['token_size'] ; embedding_d = kwargs['embedding_d'] ; n_heads = kwargs['n_heads'] 
+        n_blocks = kwargs['n_blocks'] ; n_ffn_layers = kwargs['n_ffn_layers']
+        nnparams = f"_b_{token_size[0]}x{token_size[1]}_Demb_{embedding_d}_heads_{n_heads}_blocks_{n_blocks}_ffn_lay_{n_ffn_layers}"
+    
+    elif nn_name == 'SplitTraining_ViT_MLP':
+        token_size = kwargs['token_size'] ; embedding_d = kwargs['embedding_d'] ; n_heads = kwargs['n_heads']   # ViT
+        n_blocks = kwargs['n_blocks'] ; n_ffn_layers = kwargs['n_ffn_layers']
+        alphas = kwargs['hidden_alpha'] ; activation = kwargs['activation']     # MLP
+        act_label=''
+        dim_label=''
+        for act in activation:
+            act_label += f"{act}_"
+        for a in alphas:
+            dim_label += f"{a}_"
+        
+        nnparams= f"_ViT_b_{token_size[0]}x{token_size[1]}_Demb_{embedding_d}_heads_{n_heads}_blocks_{n_blocks}_ffn_lay_{n_ffn_layers}__MLP_alphas_{dim_label}_activations_{act_label}"
+        
+    
+    elif nn_name == 'SplitTraining_ViT_CNN':
+        token_size = kwargs['token_size'] ; embedding_d = kwargs['embedding_d'] ; n_heads = kwargs['n_heads']   # ViT
+        n_blocks = kwargs['n_blocks'] ; n_ffn_layers = kwargs['n_ffn_layers']
+        block_channels = kwargs['block_channels'] ; kernel_size = kwargs['kernel_size'] ; n_ffn_layers_cnn = kwargs['n_ffn_layers_cnn']     # CNN
+        cha_label=''
+        for ch in block_channels:
+            cha_label += f"{ch}_"
+        nnparams = f"_channels_{cha_label}kernel_{kernel_size[0]}x{kernel_size[1]}_n_ffn_lay_{n_ffn_layers_cnn}"
+
     
 
+    sim_label = model_label + f"_simulation_{size[0]}x{size[1]}"+ cparams + nnparams
+    ED_label = model_label + f"_xED_{size[0]}x{size[1]}"+cparams
+    json_label = model_label+f"_results_{size[0]}x{size[1]}"+ cparams + nnparams
+    title_label_callback = f"Callback "+model_label+" " + call_params + f"  ({size[0]}x{size[1]})"
 
+    return sim_label, ED_label, json_label, title_label_callback
+
+        
+        
 def dump_callback(logger, settings, write = False):
 
     callback_artifacts = {}
@@ -326,15 +397,15 @@ def init_model(name, model_setup):
                 n_heads=model_setup['n_heads'],
                 n_blocks=model_setup['n_blocks'],
                 n_ffn_layers=model_setup['n_ffn_layers'],
-                final_architecture=tuple(model_setup['final_architecture']),
+                final_architecture=ast.literal_eval(model_setup['final_architecture']),
                 is_complex=model_setup['is_complex'],
                 symm_2D_module = model_setup['symm_2D_module'],
                 symm_Z2_module = model_setup['symm_Z2_module'],
                 trivial_Z2_module = model_setup['trivial_Z2_module'],
 
                 param_dtype_phase = jnp.float64,
-                hidden_alpha = tuple(["hidden_alpha"]),
-                activation = activation,
+                hidden_alpha = tuple(model_setup["hidden_alpha"]),
+                activation = tuple(activation),
                 output_dim = model_setup["output_dim"],
                 symm_2D_phase = model_setup["symm_2D_phase"],
                 symm_Z2_phase = model_setup["symm_Z2_phase"],

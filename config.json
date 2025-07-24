@@ -9,8 +9,8 @@
 "write_folder_figures":"/home/ihuarte/Escritorio/Ivan/Oxalatos/prueba_scripts/figures", 
 
 
+"sizes":[[4,3],[4,4],[4,5]],
 "strength": 0.2,
-"sizes": [[4,4]],
 "theta_list":[9.0, 54.0, 54.0, 54.0, 90.0],
 "phi_list":[72.0, 0.0, 216.0, 315.0, 115.2],
 
@@ -60,5 +60,103 @@
     "bc":"periodic",
     "order": "default_2"
 }
+
+
+    
+
+    "CM": {
+        "selection": "Oxalate", 
+
+        "Oxalate":{
+            "strength": 0.2,
+            "theta_list":[ 9.0, 54.0, 54.0, 54.0, 90.0],
+            "phi_list":[ 72.0, 0.0, 216.0, 315.0, 115.2]
+        },
+        "Chain_YYZZ":{
+            "field_list": [[0.0,0.001,0.001], [-1.0,0.001,0.001]],
+            "coupling_list":[
+                [0.0, -10, -4],
+                [0.0, -4, -10],
+                [0.0, -4, -4],
+                [0.0, 4, 4],
+                [0.0, 4, 10],
+                [0.0, 10, 4]
+            ]
+        }
+
+    },
+
+    "model_NN":{
+        "selection":"MLP",
+
+        "MLP":{
+            "hidden_alpha" :  [
+                [2,2,2]
+            ],
+            "activation" : [
+                ["selu","selu","selu"]
+            ],
+            "output_dim" : 1,
+            "symm_2D_phase" : false, 
+            "symm_Z2_phase" : false,
+            "trivial_Z2_phase" : true
+        },
+
+        "SplitTraining_ViT_CNN":{
+            "token_size": [2,1],
+            "embedding_d": 32,
+            "n_heads": 4,
+            "n_blocks": 2,
+            "n_ffn_layers": 2,
+            "is_complex": false,
+            "final_architecture": "(5,)",
+            "symm_2D_module" : false,
+            "symm_Z2_module" : false,
+            "trivial_Z2_module" : true,
+
+            "block_channels": [32],
+            "kernel_size": [3,3],
+            "n_ffn_layers_cnn": 1
+        }
+
+    },
+
+    "n_samples": 1008,
+    "exact_diagonalization": true,
+    "dump_sim_callback": true,
+    "explore_mode": true,
+
+    "lr_schedule":{
+        "name": "stairs_schedule",
+        "epochs":4000,
+
+        "warmup_exponential_decay":{
+            "lr0": 0.001,                 
+            "peak_value": 0.01,
+            "warmup_steps": 100,
+            "decay_rate": 0.99
+        },
+
+        "exp_cos_schedule":{
+            "lr0":0.3,          
+            "decay_exp":1.0,
+            "cosine_cycles": 2,
+            "n":0.1,
+            "lr_min": 0.01
+        },
+        "stairs_schedule":{
+            "lr0": 1.0,
+            "lr_min": 0.01,
+            "sweeps": 20  
+        }
+    },
+
+    "kwargs_lattice" : {
+        "bc":"periodic",
+        "order": "default_2"
+    }
+
+}
+
 
 }

@@ -168,15 +168,23 @@ for i, size in enumerate(sizes):
             print(f"Energy ED: {E_ED}")
 
         for sweeps in [50]:
-            stairs['sweeps'] = sweeps
-            print(f"\nRunning with {sweeps} sweeps...")
+            stairs['sweeps'] = sweeps if stairs['sweeps'] != 0 else 0
+            print(f"\nRunning with {stairs['sweeps']} sweeps...")
             write_folder = write_folder_size + f"sweeps_{sweeps}/"
-            lr_schedule = jnp.logspace(
-                start=jnp.log10(stairs['lr0']),
-                stop=jnp.log10(stairs['lr_min']), 
-                num=stairs['sweeps']
-            )
-            ds_schedule = jnp.linspace(1e-1, 1e-4, stairs['sweeps'])
+            if stairs['sweeps'] !=0:
+                ds_schedule = jnp.linspace(1e-2, 1e-4, stairs['sweeps'])
+                lr_schedule = jnp.logspace(
+                    start=jnp.log10(stairs['lr0']),
+                    stop=jnp.log10(stairs['lr_min']), 
+                    num=stairs['sweeps']
+                )
+
+            else:
+                ds_schedule = optax.linear_schedule(1e-2, 1e-4, epochs)
+                SR = nk.optimizer.SR(diag_shift=ds_schedule)
+                lr_schedule=lr_schedule = scheduler_initializer("warmup_exponential_decay", config['lr_schedule'])
+                optimizer = nk.optimizer.Sgd(learning_rate=lr_schedule)
+            
 
             callback_artifacts = {}
             time_in = time.time()
@@ -191,60 +199,66 @@ for i, size in enumerate(sizes):
 
             # Initialize vstate with parameters
             vstate = nk.vqs.MCState(
-                sampler,
-                model=model,
-                n_samples=n_samples,
-                n_discard_per_chain=0,
-                chunk_size=None
+                sampler, model=model, n_samples=n_samples,
+                n_discard_per_chain=0, chunk_size=None
             )
             #params0 = vstate.parameters
 
-            epochs_per_run = epochs//(2*stairs['sweeps'])
 
-            print(f"Epochs per run: {epochs_per_run}")
+
             print(f"Epochs: {epochs}  Sweeps: {stairs['sweeps']}")
+            
+            if stairs['sweeps'] !=0:    # Alternated training between modulus and phase
 
-            for i in range(stairs['sweeps']):
+                epochs_per_run = epochs//(2*stairs['sweeps'])
+                print(f"Epochs per run: {epochs_per_run}")
 
-                print(f"\nSweep {i+1} of {stairs['sweeps']}......   lr: {lr_schedule[i]:.4f}  ds: {ds_schedule[i]:.4f}\n")
-                transformations['train'] = optax.sgd(learning_rate=lr_schedule[i])
-                SR = nk.optimizer.SR(diag_shift=ds_schedule[i])
+                for i in range(stairs['sweeps']):
 
-                for mask in ['modulus', 'phase']:
-                    mode = [m for m in ['phase', 'modulus'] if m != mask][0]
-                    
-                    variables = vstate.variables
-                    sampler = vstate.sampler
-                    optimizer = masked_optimizer(vstate.parameters, transformations, mode = mask)
-                    
-                    vstate = nk.vqs.MCState(
-                        sampler,
-                        sampler_seed=vstate.sampler_state.rng,
-                        model=model,
-                        n_samples=n_samples,
-                        n_discard_per_chain=0,
-                        chunk_size=None,
-                        variables=variables
-                    )
- 
-                    gs = nk.driver.VMC(
-                        H,
-                        optimizer,
-                        variational_state=vstate,
-                        preconditioner=SR
-                    )
-                    # print(jax.tree_util.tree_structure(vstate.parameters))
-                    # print(vstate.variables['params'].keys(  ))
+                    print(f"\nSweep {i+1} of {stairs['sweeps']}......   lr: {lr_schedule[i]:.4f}  ds: {ds_schedule[i]:.4f}\n")
+                    transformations['train'] = optax.sgd(learning_rate=lr_schedule[i])
+                    SR = nk.optimizer.SR(diag_shift=ds_schedule[i])
+
+                    for mask in ['modulus', 'phase']:
+                        mode = [m for m in ['phase', 'modulus'] if m != mask][0]
+                        
+                        variables = vstate.variables
+                        sampler = vstate.sampler
+                        optimizer = masked_optimizer(vstate.parameters, transformations, mode = mask)
+                        
+                        vstate = nk.vqs.MCState(
+                            sampler,
+                            sampler_seed=vstate.sampler_state.rng,
+                            model=model,
+                            n_samples=n_samples,
+                            n_discard_per_chain=0,
+                            chunk_size=None,
+                            variables=variables
+                        )
+    
+                        gs = nk.driver.VMC(
+                            H,
+                            optimizer,
+                            variational_state=vstate,
+                            preconditioner=SR
+                        )
+                        # print(jax.tree_util.tree_structure(vstate.parameters))
+                        # print(vstate.variables['params'].keys(  ))
 
 
-                    print(f"\nTraining {mode} for {epochs_per_run} epochs...")
-                    gs.run(n_iter=epochs_per_run, out=log, callback=[keeper.update], show_progress=True)
-                    mean, std, psi  = phase_stats_vstate(vstate)
-                    print(f"VS phase: {mean} \u00b1 {std}  ({psi})")
-                    # params1 = vstate.parameters
-                    # diffs = compare_params(params0, params1)
-                    # print(diffs)
-                    # params0 = params1
+                        print(f"\nTraining {mode} for {epochs_per_run} epochs...")
+                        gs.run(n_iter=epochs_per_run, out=log, callback=[keeper.update], show_progress=True)
+                        mean, std, psi  = phase_stats_vstate(vstate)
+                        print(f"VS phase: {mean} \u00b1 {std}  ({psi})")
+
+
+            else:       # Training modulus and phase at the same time
+                gs = nk.driver.VMC(
+                    H,
+                    optimizer,
+                    variational_state=vstate,
+                    preconditioner=SR
+                ).run(n_iter=epochs, out=log, callback=[keeper.update], show_progress=True)
                     
 
             vstate=keeper.best_state
@@ -361,14 +375,17 @@ for i, size in enumerate(sizes):
                 json_label=json_label
             )
 
-            import time
-            import subprocess
-            time.sleep(2)
+            if stairs['sweeps'] ==0:
+                break
 
-            artifact_path = write_folder + json_label + ".json"
-            script_path = "/home/ihuarte/Escritorio/Ivan/NNs/plot_phase.py"
+            # import time
+            # import subprocess
+            # time.sleep(2)
 
-            subprocess.run(["python", script_path, "-a", artifact_path])
+            # artifact_path = write_folder + json_label + ".json"
+            # script_path = "/home/ihuarte/Escritorio/Ivan/NNs/plot_phase.py"
+
+            # subprocess.run(["python", script_path, "-a", artifact_path])
 
 
 
