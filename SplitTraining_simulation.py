@@ -23,91 +23,50 @@ sys.path.append(str(Path(__file__).resolve().parent.parent / "ATMOS_VA/VA_projec
 sys.path.append(str(Path(__file__).resolve().parent.parent / "Transformers/transformer_LR_WF_public"))
 
 # Importar módulos necesarios
-
 from VA_project.model.model import OxalateJKGamma
 from VA_project.engine.runners import Runner
 from NN_module.sim_utils import (
-    save_results, dump_callback, init_model, architecture_label
+    save_results, dump_callback, init_model, architecture_label,
+    get_filenames_from_settings, get_write_folder_from_model,
+    display_simulation_settings
 )
 from NN_module.NN_utils import (
     activation_dict, scheduler_initializer, 
-    phase_stats_ED, phase_stats_vstate
+    phase_stats_ED, phase_stats_vstate,
+    modphase
 )
 from NN_module.ST_utils import compare_params, masked_optimizer
 from transformer_LR_WF.utils import *
 
 # Cargamos configuracion de archivo json
-
 with open("config_split_training.json",'r') as f:
     config = json.load(f)
 
-cm_name = config['CM']['selection']
-strength = config['CM'][cm_name]['strength']                # Lattice and coupling model
-theta_list = config['CM'][cm_name]['theta_list']
-phi_list = config['CM'][cm_name]['phi_list']
+cm_model_name = config['CM']['selection']
+nn_model_name=config["model_NN"]["selection"]
+nn_model_setup = config["model_NN"][nn_model_name]
+model_label= cm_model_name+'_'+nn_model_name
+
 sizes = config['sizes']
+strength = config['CM'][cm_model_name]['strength']                # Lattice and coupling model
+theta_list = config['CM'][cm_model_name]['theta_list']
+phi_list = config['CM'][cm_model_name]['phi_list']
 kwargs_lattice = config['kwargs_lattice']
 
-model_name=config["model_NN"]["selection"]
-model_setup = config["model_NN"][model_name]
-model_label= cm_name+'_'+model_name
-
-token_size=model_setup['token_size']              # ViT architecture settings
-embedding_d=model_setup['embedding_d']
-n_heads=model_setup['n_heads']
-n_blocks= model_setup['n_blocks']
-n_ffn_layers = model_setup['n_ffn_layers']
-final_architecture = ast.literal_eval(model_setup['final_architecture'] )
-is_complex = model_setup['is_complex']
-symm_2D_module = model_setup['symm_2D_module']
-symm_Z2_module = model_setup['symm_Z2_module']
-trivial_Z2_module = model_setup['trivial_Z2_module']
-
-# alpha_list = model_setup['alpha_list']            # MLP architecture settings
-# activation_list = model_setup['activation_list']
-# symm_2D_phase = model_setup['symm_2D_phase']
-# symm_Z2_phase = model_setup['symm_Z2_phase']
-# trivial_Z2_phase = model_setup['trivial_Z2_phase']
-# output_dim = model_setup['output_dimension']
-# alphas = alpha_list[0]
-
-epochs = config['lr_schedule']['epochs']        # Simulation settings
+epochs = config['lr_schedule']['epochs']                          # Simulation settings
 schedule=config['lr_schedule']
 stairs = config['lr_schedule'][config['lr_schedule']['name']]
 n_samples = config['n_samples']
 exact_diag = config['exact_diagonalization']
 dump_simulation = config['dump_sim_callback']
-
-if  model_name=="SplitTraining_ViT_MLP": 
-    conditions = [symm_2D_module, symm_2D_phase,symm_Z2_module,symm_Z2_phase],
-    labels = ["_2DM","_2DP","_Z2M","_Z2P"]
-    print(f"symm_2D_module: {symm_2D_module}     symm_2D_phase: {symm_2D_phase}")
-    print(f"symm_Z2_module: {symm_Z2_module}     symm_Z2_phase: {symm_Z2_phase}")
-    print(f"trivial_Z2_module: {trivial_Z2_module} trivial_Z2_phase: {trivial_Z2_phase}")
-
-elif  model_name == "SplitTraining_ViT_CNN":
-    conditions = [symm_2D_module,symm_Z2_module],
-    labels = ["_2DM","_Z2M"]
-    print(f"symm_2D_module: {symm_2D_module}    symm_Z2_module: {symm_Z2_module}    trivial_Z2_module: {trivial_Z2_module}")
-
-
-symm=''
-for cond, label in zip():
-    if cond:
-        symm+=label
-        if label == '_Z2M':  symm += "t" if trivial_Z2_module else "nt"
-        if label == '_Z2P':  symm += "t" if trivial_Z2_phase else "nt"
     
-write = config['write_folder_sim'] + model_label+ symm + "/"
-
+write = get_write_folder_from_model(config)
 
 ### MC sampling rules ###
 rule1 = nk.sampler.rules.LocalRule()
 rule2 = InvertMagnetization()
 pinvert = 0.25
 pflip = 1 - pinvert
-
-
 
 ### Training schedule ###
 lr_schedule = jnp.logspace(
@@ -128,7 +87,7 @@ E_ED = None
 x_ED = None
 
 for i, size in enumerate(sizes):
-    model_setup['lattice_size']=size
+    nn_model_setup['lattice_size']=size
 
     N = int(np.prod(size)) 
     if N > 20: exact_diag = False
@@ -151,7 +110,10 @@ for i, size in enumerate(sizes):
 
     for j, (theta, phi) in enumerate(zip(theta_list, phi_list)):
 
-        print(f"\n---- Parameters: Size {size}  strength={strength:1f}  theta={theta:2f}  phi={phi:2f} ----\n\n")
+        config['CM'][cm_model_name]['theta']=theta
+        config['CM'][cm_model_name]['phi']=phi
+        config['size']=size
+        display_simulation_settings(config)
         
         ## Update Hamiltonian
         oxa=OxalateJKGamma(
@@ -169,6 +131,7 @@ for i, size in enumerate(sizes):
 
         for sweeps in [50]:
             stairs['sweeps'] = sweeps if stairs['sweeps'] != 0 else 0
+            schedule["stairs_schedule"]["sweeps"] = stairs['sweeps']
             print(f"\nRunning with {stairs['sweeps']} sweeps...")
             write_folder = write_folder_size + f"sweeps_{sweeps}/"
             if stairs['sweeps'] !=0:
@@ -185,11 +148,10 @@ for i, size in enumerate(sizes):
                 lr_schedule=lr_schedule = scheduler_initializer("warmup_exponential_decay", config['lr_schedule'])
                 optimizer = nk.optimizer.Sgd(learning_rate=lr_schedule)
             
-
             callback_artifacts = {}
             time_in = time.time()
 
-            model = init_model(model_name, model_setup)
+            model = init_model(nn_model_name, nn_model_setup)
 
             log = (
                 nk.logging.RuntimeLog()
@@ -202,9 +164,6 @@ for i, size in enumerate(sizes):
                 sampler, model=model, n_samples=n_samples,
                 n_discard_per_chain=0, chunk_size=None
             )
-            #params0 = vstate.parameters
-
-
 
             print(f"Epochs: {epochs}  Sweeps: {stairs['sweeps']}")
             
@@ -259,9 +218,6 @@ for i, size in enumerate(sizes):
                     variational_state=vstate,
                     preconditioner=SR
                 ).run(n_iter=epochs, out=log, callback=[keeper.update], show_progress=True)
-                    
-
-            vstate=keeper.best_state
 
             time_out = time.time()
             time_exe= time_out - time_in
@@ -271,17 +227,15 @@ for i, size in enumerate(sizes):
                 log.E_ED = E_ED
 
             ## Save results
+            _kwargs = config['model_NN'][nn_model_name]
+            _kwargs['size']=size ; _kwargs['strength']=strength 
+            _kwargs['theta']=theta ; _kwargs['phi']=phi
             
-            sim_label = f"Oxalate_simulation_"+model_label+f"{size[0]}x{size[1]}_strength_{strength}_theta_{theta}_phi_{phi}_b_{token_size[0]}x{token_size[1]}_Demb_{embedding_d}_heads_{n_heads}_blocks_{n_blocks}_ffn_lay_{n_ffn_layers}"
-            ED_label = f"Oxalate_xED_{size[0]}x{size[1]}_strength_{strength}_theta_{theta}_phi_{phi}_ED"
-            json_label = f"Oxalate_results_"+model_name+f"_{size[0]}x{size[1]}_strength_{strength}_theta_{theta}_phi_{phi}_b_{token_size[0]}x{token_size[1]}_Demb_{embedding_d}_heads_{n_heads}_blocks_{n_blocks}_ffn_lay_{n_ffn_layers}"
-            title_label_callback = f"Callback Split "+model_name+" " + r"$\theta = %.1f$  $\phi = %.1f$"%(theta,phi) + f"  ({size[0]}x{size[1]})"
-
-            #sim_label, ED_label, json_label,title_label_callback =  get_filenames_from_settings()
+            sim_label, ED_label, json_label, title_label_callback = get_filenames_from_settings(config['CM']['selection'], config['model_NN']['selection'], **_kwargs )
 
             if dump_simulation:
                 # For plotting architecture
-                architecture=architecture_label(model_name, model_setup)
+                architecture=architecture_label(nn_model_name, nn_model_setup)
                 dump_setup ={
                     'size': size, 'opt_name': "Sgd",
                     'learning_rate': "Scheduled",
@@ -303,30 +257,32 @@ for i, size in enumerate(sizes):
             E_best = float(keeper.best_energy)
             vscore = float(keeper.vscore)
 
-            phase={}
+            modphase_results={}
             if exact_diag:
                 error=float(np.abs(E_best-E_ED)/np.abs(E_ED))
-                mean_ED, std_ED, psi_ED = phase_stats_ED(x_ED)
-                phase['xED']={'mean':mean_ED, 'std':std_ED, 'psi': psi_ED}
-                print(f"xED phase: {mean_ED} \u00b1 {std_ED}  ({psi_ED})")
+                mp_array_ED, stats_ED = modphase(x_ED)
+                modphase_results['xED']= stats_ED
+                print(f"xED phase: {stats_ED['phase']['mean']} \u00b1 {stats_ED['phase']['std']}  ({stats_ED['type']})")
 
             else:
                 E_ED = None
                 x_ED = None
                 error = None
 
-            mean, std, psi  = phase_stats_vstate(vstate)
-            phase['vstate']={'mean':mean, 'std':std, 'psi': psi}
-            print(f"VS phase: {mean} \u00b1 {std}  ({psi})\n \n")
+            mp_array_vs, stats_vs = modphase(vstate)
+            modphase_results['vstate']= stats_vs
+            print(f"vstate phase: {stats_vs['phase']['mean']} \u00b1 {stats_vs['phase']['std']}  ({stats_vs['type']})")
 
             # Save the results
 
             dump_setup ={
+                'model_label': model_label,
 
                 'lattice':{
                     'name': 'Triangular',
                     'size': size, 
                     'bc': kwargs_lattice['bc'],
+                    'order': kwargs_lattice['order']
                 },
 
                 'coupling_model': {
@@ -336,8 +292,8 @@ for i, size in enumerate(sizes):
                 },
 
                 'model_NN': {
-                    "name": model_name,
-                    "setup":model_setup,
+                    "name": nn_model_name,
+                    "setup":nn_model_setup,
                 },
 
                 'sampler': {
@@ -358,7 +314,9 @@ for i, size in enumerate(sizes):
                     'E_ED': E_ED,
                     'error': error,
                     'vscore': vscore,
-                    'time_exe': time_exe
+                    'time_exe': time_exe,
+                    'modphase': modphase_results
+                    
                 },
                 '_artifacts': {
                     'callback': callback_artifacts
@@ -369,6 +327,8 @@ for i, size in enumerate(sizes):
                 vstate, 
                 dump_setup, 
                 x_ED = x_ED,
+                modphase=mp_array_vs,
+                modphase_ED= mp_array_ED,
                 write_folder = write_folder,
                 sim_label = sim_label,
                 ED_label=ED_label,

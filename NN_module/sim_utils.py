@@ -74,8 +74,113 @@ class BestIterKeeper:
                     file.write(flax.serialization.to_bytes(driver.state))
 
         return self.vscore > self.baseline
+    
+def get_write_folder_from_model(config):
 
+    name = config['model_NN']['selection']
+    model_setup = config['model_NN'][name]
+    model_label= config['CM']['selection'] +'_'+ name
+
+    if  name == "SplitTraining_ViT_MLP": 
         
+        conditions = [model_setup['symm_2D_module'], model_setup['symm_2D_phase'], 
+                      model_setup['symm_Z2_module'], model_setup['symm_Z2_phase']]
+        labels = ["_2DM","_2DP","_Z2M","_Z2P"]
+  
+
+    elif  name == "SplitTraining_ViT_CNN":
+        conditions = [model_setup['symm_2D_module'], model_setup['symm_Z2_module']]
+        labels = ["_2DM","_Z2M"]
+
+    symm=''
+    for cond, label in zip(conditions,labels):
+        if cond:
+            symm+=label
+            if label == '_Z2M':  symm += "t" if model_setup['trivial_Z2_module'] else "nt"
+            if label == '_Z2P':  symm += "t" if model_setup['trivial_Z2_phase'] else "nt"
+        
+    return config['write_folder_sim'] + model_label+ symm + "/"
+
+
+from rich.console import Console
+from rich.panel import Panel
+from rich.text import Text
+from rich.table import Table
+
+
+def _grouped_param_table(params: dict, n_cols: int = 3) -> Table:
+    table = Table.grid(padding=(0, 4))
+    cols = [[] for _ in range(n_cols)]
+    
+    items = list(params.items())
+    for i, (key, val) in enumerate(items):
+        if key.endswith("_list"):
+            continue  
+        val_str = repr(val)
+        cols[i % n_cols].append((f"[bold]{key}[/]", val_str))
+        
+    # Añadir las columnas al table
+    for col in cols:
+        column = Table.grid()
+        for k, v in col:
+            column.add_row(f"{k} =", v)
+        table.add_column(justify="left", no_wrap=True)
+        table.columns[-1].renderable = column
+
+    return table
+
+
+def display_simulation_settings(settings, n_cols=3):
+    console=Console()
+    cm_sel = settings["CM"]["selection"]
+    nn_sel = settings["model_NN"]["selection"]
+
+    cm_color= 'red'
+    nn_color= 'yellow'
+    
+    # Título principal
+    title_text = f"[bold blue]🔧 CM:[/] [{cm_color}]{cm_sel}[/]   [bold blue]🧠 NN_architecture:[/] [{nn_color}]{nn_sel}[/]"
+    console.rule(title_text)
+
+    def _group_params(params_dict):
+        # Filtra claves no relevantes
+        items = [(k, v) for k, v in params_dict.items() if not isinstance(v, list) and not k.endswith("_list")]
+        grouped = [items[i:i + n_cols] for i in range(0, len(items), n_cols)]
+
+        table = Table(show_header=False, box=None, pad_edge=False)
+        for i in range(n_cols):
+            table.add_column(justify="left")
+        for group in grouped:
+            row = [f"[bold]{k}[/]= {v}" for k, v in group]
+            while len(row) < n_cols:
+                row.append("")
+            table.add_row(*row)
+        return table
+    
+    # Size
+    size = settings.get("size", None)
+    if isinstance(size, (list, tuple)) and all(isinstance(x, int) for x in size):
+        size_str = "x".join(map(str, size))
+        console.print(f"[bold yellow]🧱 Size:[/] [cyan]{size_str}[/]\n")
+
+    # Panel de acoplamiento
+    cm_dict = settings["CM"].get(cm_sel, {})
+    if isinstance(cm_dict, dict):
+        table_cm = _group_params(cm_dict)
+        panel_cm = Panel(table_cm, title=f"[bold]{cm_sel}[/]")
+        console.print(panel_cm)
+
+    # Panel de red neuronal
+    nn_dict = settings["model_NN"].get(nn_sel, {})
+    if isinstance(nn_dict, dict):
+        table_nn = _group_params(nn_dict)
+        panel_nn = Panel(table_nn, title=f"[bold]{nn_sel}[/]", border_style="magenta")
+        console.print(panel_nn)
+
+    console.rule("[bold green]")
+
+
+
 def architecture_label(name, model_setup):
 
     if name == 'MLP':
@@ -243,7 +348,7 @@ def dump_callback(logger, settings, write = False):
         ax[0].hlines(E_gr,0,len(E_hist), color='green', label='ED Energy')
                     
     ax[0].plot(E_hist, color='blue', label='E')
-    ax[0].text(0.45, 0.8, architecture_display, transform=ax[0].transAxes, fontsize=12, color='k', ha='center', va='center',
+    ax[0].text(0.45, 0.85, architecture_display, transform=ax[0].transAxes, fontsize=12, color='k', ha='center', va='center',
             bbox=dict(boxstyle='round', facecolor='white', alpha=0.7))
     ax[0].text(0.9, 0.75, setup_sim, transform=ax[0].transAxes, fontsize=10, color='k', ha='center', va='center',
             bbox=dict(boxstyle='round', facecolor='white', alpha=0.7))
@@ -295,7 +400,7 @@ def dump_callback(logger, settings, write = False):
     
     return callback_artifacts
 
-def save_results(vstate, setup, x_ED = None, write_folder = './', sim_label = '', ED_label = '', json_label = ''):
+def save_results(vstate, setup, x_ED = None, modphase=None, modphase_ED=None, write_folder = './', sim_label = '', ED_label = '', json_label = ''):
     """Save the results of the simulation.
     Args:
         vstate: The variational state.
@@ -326,6 +431,18 @@ def save_results(vstate, setup, x_ED = None, write_folder = './', sim_label = ''
         if not os.path.isfile(write_folder + file_ED):
             np.savetxt(path_ED, x_ED)
         setup['_artifacts']['x_ED'] = path_ED
+
+    # Save modulus and phase from vstate and/or xED
+    setup['_artifacts']['modphase']={}
+    if modphase is not None:
+        modphase_path = write_folder + file + "_modphase_vstate.txt"
+        np.savetxt(modphase_path, modphase)
+        setup['_artifacts']['modphase']['vstate'] = modphase_path
+
+    if modphase_ED is not None:
+        modphase_ED_path = write_folder + file_ED + "_modphase_xED.txt"
+        np.savetxt(modphase_ED_path, modphase)
+        setup['_artifacts']['modphase']['xED'] = modphase_ED_path
 
     #Write metadata in main setup artifact
     metadata = {

@@ -34,10 +34,15 @@ explore_mode = args.explore_mode
 with open(path_artifact,'r') as f:
     artifact = json.load(f)
 
+if not 'modphase' in artifact['_artifacts']:
+    print("ERROR: Artifact has no modulus and phase files")
+    sys.exit(1, f"Exiting...")
+
 strength = artifact['coupling_model']['strength']
 size = artifact['lattice']['size']
 theta = artifact['coupling_model']['theta']
 phi = artifact['coupling_model']['phi']
+N = int(np.array(size).prod())
 
 filename = f"Oxalate_" + artifact["model_NN"]["name"] + f"_SSF_strength_{strength:2f}_theta_{theta:2f}_phi_{phi:2f}"
 
@@ -56,19 +61,15 @@ if explore_mode:                    # If True checks sucessive files and assign 
 
 
 ED_file=None
-if 'x_ED' in artifact['_artifacts']:
-    ED_file = artifact['_artifacts']['x_ED']
+if 'x_ED' in artifact['_artifacts']['modphase']:
+    ED_file = artifact['_artifacts']['modphase']['xED']
+    mod_ED, phase_ED = np.loadtxt(ED_file)
+    stats_ED = artifact['results']['modphase']['xED']
 
 # Get modulus and phase
-vstate = load_vstate(artifact, tree_data=False)
-x_vs = vstate.to_array()
-mod_vs, phase_vs, stats_vs = modphase_extended(x_vs)
-
-if ED_file is not None:
-    x_ED=np.loadtxt(ED_file, dtype=complex)
-    mod_ED, phase_ED, stats_ED = modphase_extended(x_ED)
-
-
+vs_file = artifact['_artifacts']['modphase']['vstate']
+mod_vs, phase_vs = np.loadtxt(vs_file)
+stats_vs = artifact['results']['modphase']['vstate']
 
 # Plot
 # If ED exists
@@ -80,8 +81,8 @@ if ED_file is not None:
     ax[0].set_xticks([])
     ax[0].set_ylabel(r"$Modulus$")
     ax[0].set_ylim(-0.01,max(max(mod_ED),max(mod_vs))*9/8)
-    ax[0].plot(mod_vs, alpha=0.6, color='r', label='vstate')
-    ax[0].plot(mod_ED, alpha=0.6, label='ED')
+    ax[0].plot(mod_vs, alpha=0.6, color='r', label=f"vstate")
+    ax[0].plot(mod_ED, alpha=0.6, label= f"ED")
     ax[0].legend()
 
     ax[1].set_xticks([])
@@ -102,9 +103,10 @@ if ED_file is not None:
 
     ax[3].set_xlabel(r"$Phase\;(radians)$")
     ax[3].set_ylabel(r"$Phase \;histogram$")
-    ax[3].hist(phase_ED, bins=1000, range=(-np.pi, np.pi), density=True, alpha=0.7, label='ED')
-    ax[3].hist(phase_vs, bins=1000, range=(-np.pi, np.pi), color='r', density=True, alpha=0.7, label='vstate')
-
+    ax[3].hist(phase_ED, bins=1000, range=(-np.pi, np.pi), density=True, alpha=0.7, label=f"ED  ({stats_ED['type']})")
+    ax[3].hist(phase_vs, bins=1000, range=(-np.pi, np.pi), color='r', density=True, alpha=0.7, label=f"vstate ({stats_vs['type']})")
+    ax[3].text(0.8, 0.7, r"$\varphi_{ED}=%.2f \pm %.2f$" + '\n' + r"$\varphi_{vs}=%.2f \pm %.2f$"%(stats_ED['mean'], stats_ED['std'], stats_vs['mean'],stats_vs['std']), 
+               transform=ax[3].transAxes, bbox=dict(facecolor="white", alpha=0.4, fontsize=10))
 
     transform = mtransforms.blended_transform_factory(ax[3].transData, ax[3].transAxes)
     if stats_ED['peaks'] is not None:
@@ -130,7 +132,7 @@ else:
     ax[0].plot(mod_ED, alpha=0.6, label='ED')
     ax[0].legend()
 
-    ax[2].set_xlabel(r"$C_i$")
+    ax[1].set_xlabel(r"$C_i$")
     ax[1].set_xticks([])
     ax[1].set_yticks([-np.pi,-np.pi/2,0,np.pi/2,np.pi])
     ax[1].set_yticklabels([r"$-\pi$",r"$-\pi/2$",r"$0$",r"$\pi/2$",r"$\pi$"])
@@ -143,8 +145,8 @@ else:
     ax[2].set_xlabel(r"$Phase\;(radians)$")
     ax[2].set_ylabel(r"$Phase \;histogram$")
     ax[2].hist(phase_vs, bins=1000, range=(-np.pi, np.pi), color='r', density=True, alpha=0.7, label='vstate')
-
-
+    ax[3].text(0.8, 0.7,r"$\varphi_{vs}=%.2f \pm %.2f$"%(stats_ED['mean'], stats_ED['std'], stats_vs['mean'],stats_vs['std']), 
+            transform=ax[3].transAxes, bbox=dict(facecolor="white", alpha=0.4, fontsize=10))
     transform = mtransforms.blended_transform_factory(ax[3].transData, ax[3].transAxes)
 
     if stats_vs['peaks'] is not None:

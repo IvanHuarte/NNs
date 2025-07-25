@@ -1,8 +1,9 @@
-import netket as nk
-import flax.linen as nn
+import numpy as np
 import jax
-import optax
 import jax.numpy as jnp
+import optax
+import flax.linen as nn
+import netket as nk
 import numpy.typing as npt
 from typing import Optional, Tuple
 import sys
@@ -199,7 +200,7 @@ def phase_stats_vstate(vstate, eps=0.01):
     return mean, std, psi
 
 
-def phase_stats_ED(x_ED, eps=0.01):
+def phase_stats_ED(x_ED, eps=0.1):
 
     phases = jnp.angle(x_ED)
 
@@ -213,7 +214,7 @@ def phase_stats_ED(x_ED, eps=0.01):
     return mean, std, psi
 
 
-def modphase_extended(x, sigmas=3):
+def modphase_extended(mod, phase, sigmas=1):
     """
     Calculates modulus and phase for a expanded hilbert vector. Returns also statics for both
     modulus and phase and detects symmetry peaks for phase.
@@ -228,23 +229,27 @@ def modphase_extended(x, sigmas=3):
         - stats: Statistics as the mean and standard deviation for modulus and phase. Phase 
                  also includes info about phase peaks. peaks:(angle, counts)
     """
-
-    mod = jnp.abs(x)
-    phase = jnp.angle(x)
+    phase = (phase + jnp.pi) % (2 * jnp.pi) - jnp.pi       # Put on interval[-pi,pi) 
 
     mean_mod=mod.mean()
     std_mod=mod.std()
     mean_phase=phase.mean()
     std_phase=phase.std()
 
+    if std_phase>0.1:
+        psi = 'complex'
+    else:
+        psi = 'real'
+
     stats={
+        'type': psi,
         'modulus': {
-            'mean': mean_mod,
-            'std': std_mod
+            'mean': float(mean_mod),
+            'std': float(std_mod)
         },
         'phase': {
-            'mean': mean_phase,
-            'std': std_phase            
+            'mean': float(mean_phase),
+            'std': float(std_phase)         
         }
     }
 
@@ -254,7 +259,7 @@ def modphase_extended(x, sigmas=3):
     mean=nonzero_counts.mean()
     std=nonzero_counts.std()
     
-    if std>3/2*mean:
+    if std>mean:
         
         peaks_idx=jnp.where(nonzero_counts>mean+sigmas*std)
         peaks_x=nonzero_values[peaks_idx]
@@ -265,13 +270,45 @@ def modphase_extended(x, sigmas=3):
         peak_counts=counts_x[idx]
 
         stats['peaks']={
-            'values': peaks,
-            'counts': peak_counts,
-            'count_mean': mean,
-            'count_std': std
+            'values': [float(p) for p in peaks],
+            'counts': [float(pc) for pc in peak_counts],
+            'count_mean': float(mean),
+            'count_std': float(std)
         }
     else:
         stats['peaks'] = None
 
+    mod_phase = np.array([mod,phase])
+    
+    return mod_phase, stats
 
-    return mod, phase, stats
+
+def modphase(xvs):
+
+    if isinstance(xvs, (np.ndarray, jax.Array)):
+        print('ED in modphase')
+        mod = jnp.abs(xvs)
+        phase = jnp.angle(xvs)    
+        return modphase_extended(mod,phase)
+
+    elif isinstance(xvs, nk.vqs.VariationalState):
+        try:
+            print("vstate in modphase")
+            x = xvs.to_array()
+            mod = jnp.abs(x)
+            phase = jnp.angle(x)
+            return modphase_extended(mod,phase)
+        
+        except (MemoryError, RuntimeError, ValueError) as error:
+            print("Y por aqui")
+            samples = x.samples
+            flat_samples = samples.reshape(-1, samples.shape[-1])
+            logpsi = x.log_value(flat_samples)
+
+            mod = jnp.exp(jnp.real(logpsi)) 
+            phase = jnp.imag(logpsi)
+            return modphase_extended(mod, phase)
+        
+    else:
+        print("ERROR: Unknown input instance for vstate") 
+        sys.exit(1)
