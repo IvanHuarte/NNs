@@ -107,36 +107,13 @@ from rich.panel import Panel
 from rich.text import Text
 from rich.table import Table
 
-
-def _grouped_param_table(params: dict, n_cols: int = 3) -> Table:
-    table = Table.grid(padding=(0, 4))
-    cols = [[] for _ in range(n_cols)]
-    
-    items = list(params.items())
-    for i, (key, val) in enumerate(items):
-        if key.endswith("_list"):
-            continue  
-        val_str = repr(val)
-        cols[i % n_cols].append((f"[bold]{key}[/]", val_str))
-        
-    # Añadir las columnas al table
-    for col in cols:
-        column = Table.grid()
-        for k, v in col:
-            column.add_row(f"{k} =", v)
-        table.add_column(justify="left", no_wrap=True)
-        table.columns[-1].renderable = column
-
-    return table
-
-
 def display_simulation_settings(settings, n_cols=3):
     console=Console()
     cm_sel = settings["CM"]["selection"]
     nn_sel = settings["model_NN"]["selection"]
 
-    cm_color= 'red'
-    nn_color= 'yellow'
+    cm_color= "red"
+    nn_color= "bright_yellow"
     
     # Título principal
     title_text = f"[bold blue]🔧 CM:[/] [{cm_color}]{cm_sel}[/]   [bold blue]🧠 NN_architecture:[/] [{nn_color}]{nn_sel}[/]"
@@ -167,14 +144,14 @@ def display_simulation_settings(settings, n_cols=3):
     cm_dict = settings["CM"].get(cm_sel, {})
     if isinstance(cm_dict, dict):
         table_cm = _group_params(cm_dict)
-        panel_cm = Panel(table_cm, title=f"[bold]{cm_sel}[/]")
+        panel_cm = Panel(table_cm, title=f"[bold]{cm_sel}[/]", border_style=cm_color)
         console.print(panel_cm)
 
     # Panel de red neuronal
     nn_dict = settings["model_NN"].get(nn_sel, {})
     if isinstance(nn_dict, dict):
         table_nn = _group_params(nn_dict)
-        panel_nn = Panel(table_nn, title=f"[bold]{nn_sel}[/]", border_style="magenta")
+        panel_nn = Panel(table_nn, title=f"[bold]{nn_sel}[/]", border_style=nn_color)
         console.print(panel_nn)
 
     console.rule("[bold green]")
