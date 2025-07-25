@@ -278,7 +278,7 @@ def modphase_extended(mod, phase, sigmas=1):
     else:
         stats['peaks'] = None
 
-    mod_phase = np.array([mod,phase])
+    mod_phase = np.array([mod,phase]).squeeze()
     
     return mod_phase, stats
 
