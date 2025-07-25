@@ -418,7 +418,7 @@ def save_results(vstate, setup, x_ED = None, modphase=None, modphase_ED=None, wr
 
     if modphase_ED is not None:
         modphase_ED_path = write_folder + file_ED + "_modphase_xED.txt"
-        np.savetxt(modphase_ED_path, modphase)
+        np.savetxt(modphase_ED_path, modphase_ED)
         setup['_artifacts']['modphase']['xED'] = modphase_ED_path
 
     #Write metadata in main setup artifact

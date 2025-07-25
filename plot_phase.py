@@ -60,16 +60,21 @@ if explore_mode:                    # If True checks sucessive files and assign 
         filename += f"_{i}.txt"
 
 
-ED_file=None
-if 'x_ED' in artifact['_artifacts']['modphase']:
-    ED_file = artifact['_artifacts']['modphase']['xED']
-    mod_ED, phase_ED = np.loadtxt(ED_file)
-    stats_ED = artifact['results']['modphase']['xED']
-
 # Get modulus and phase
 vs_file = artifact['_artifacts']['modphase']['vstate']
 mod_vs, phase_vs = np.loadtxt(vs_file)
 stats_vs = artifact['results']['modphase']['vstate']
+
+ED_file=None
+if 'xED' in artifact['_artifacts']['modphase']:
+    ED_file = artifact['_artifacts']['modphase']['xED']
+    mod_ED, phase_ED = np.loadtxt(ED_file)
+    stats_ED = artifact['results']['modphase']['xED']
+
+if mod_vs.shape[-1] != 2**N:
+    vstate_label = f"Approximated ({artifact['sampler']['n_samples']} samples)"
+else:
+    vstate_label = "Exact"
 
 # Plot
 # If ED exists
@@ -105,8 +110,8 @@ if ED_file is not None:
     ax[3].set_ylabel(r"$Phase \;histogram$")
     ax[3].hist(phase_ED, bins=1000, range=(-np.pi, np.pi), density=True, alpha=0.7, label=f"ED  ({stats_ED['type']})")
     ax[3].hist(phase_vs, bins=1000, range=(-np.pi, np.pi), color='r', density=True, alpha=0.7, label=f"vstate ({stats_vs['type']})")
-    ax[3].text(0.8, 0.7, r"$\varphi_{ED}=%.2f \pm %.2f$" + '\n' + r"$\varphi_{vs}=%.2f \pm %.2f$"%(stats_ED['mean'], stats_ED['std'], stats_vs['mean'],stats_vs['std']), 
-               transform=ax[3].transAxes, bbox=dict(facecolor="white", alpha=0.4, fontsize=10))
+    ax[3].text(0.8, 0.7, r"$\varphi_{ED}=%.2f \pm %.2f$"%(stats_ED['phase']['mean'], stats_ED['phase']['std']) + '\n' + r"$\varphi_{vs}=%.2f \pm %.2f$"%(stats_vs['phase']['mean'],stats_vs['phase']['std']), 
+               transform=ax[3].transAxes, fontsize=10,bbox=dict(facecolor="white", alpha=0.4))
 
     transform = mtransforms.blended_transform_factory(ax[3].transData, ax[3].transAxes)
     if stats_ED['peaks'] is not None:
