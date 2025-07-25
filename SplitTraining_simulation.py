@@ -130,7 +130,7 @@ for i, size in enumerate(sizes):
             print(f"Energy ED: {E_ED}")
 
         for sweeps in [0, 20, 50]:
-            stairs['sweeps'] = sweeps if stairs['sweeps'] != 0 else 0
+            stairs['sweeps'] = sweeps #if stairs['sweeps'] != 0 else 0
             schedule["stairs_schedule"]["sweeps"] = stairs['sweeps']
             print(f"\nRunning with {stairs['sweeps']} sweeps...")
             write_folder = write_folder_size + f"sweeps_{sweeps}/"

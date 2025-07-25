@@ -107,7 +107,7 @@ from rich.panel import Panel
 from rich.text import Text
 from rich.table import Table
 
-def display_simulation_settings(settings, n_cols=3):
+def display_simulation_settings(settings, n_cols=5):
     console=Console()
     cm_sel = settings["CM"]["selection"]
     nn_sel = settings["model_NN"]["selection"]
@@ -121,7 +121,7 @@ def display_simulation_settings(settings, n_cols=3):
 
     def _group_params(params_dict):
         # Filtra claves no relevantes
-        items = [(k, v) for k, v in params_dict.items() if not isinstance(v, list) and not k.endswith("_list")]
+        items = [(k, v) for k, v in params_dict.items() if not k.endswith("_list")]
         grouped = [items[i:i + n_cols] for i in range(0, len(items), n_cols)]
 
         table = Table(show_header=False, box=None, pad_edge=False)
