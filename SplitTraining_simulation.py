@@ -129,7 +129,7 @@ for i, size in enumerate(sizes):
             E_ED = float(E_ED.squeeze(-1))
             print(f"Energy ED: {E_ED}")
 
-        for sweeps in [50]:
+        for sweeps in [0, 20, 50]:
             stairs['sweeps'] = sweeps if stairs['sweeps'] != 0 else 0
             schedule["stairs_schedule"]["sweeps"] = stairs['sweeps']
             print(f"\nRunning with {stairs['sweeps']} sweeps...")
