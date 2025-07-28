@@ -54,7 +54,7 @@ phi_list = config['CM'][cm_model_name]['phi_list']
 kwargs_lattice = config['kwargs_lattice']
 
 epochs = config['lr_schedule']['epochs']                          # Simulation settings
-schedule=config['lr_schedule']
+schedule = config['lr_schedule']
 stairs = config['lr_schedule'][config['lr_schedule']['name']]
 n_samples = config['n_samples']
 exact_diag = config['exact_diagonalization']

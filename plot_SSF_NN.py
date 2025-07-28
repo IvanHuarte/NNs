@@ -84,7 +84,6 @@ if not os.path.isfile(ssf_path):
     exit(1, f"File {ssf_path} not found")
 
 # Verify there is no previous simulations, to earn time
-
 if explore_mode:                    # If True checks sucessive files and assign a new one
     i=1
     file_temp = file + f"_{i}.jpeg"
