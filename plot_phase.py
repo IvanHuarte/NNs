@@ -79,6 +79,8 @@ else:
 # Plot
 # If ED exists
 if ED_file is not None:
+
+    markersize={'[]'}
         
     _,ax= plt.subplots(4,1, figsize=[15,10])
 
@@ -95,7 +97,7 @@ if ED_file is not None:
     ax[1].set_yticklabels([r"$-\pi$",r"$-\pi/2$",r"$0$",r"$\pi/2$",r"$\pi$"])
     ax[1].set_ylabel(r"$Phase \;vstate$")
     ax[1].set_ylim(-np.pi-0.1, np.pi+0.1)
-    ax[1].plot(phase_vs, alpha=0.25, ls='', marker='o', ms=0.9, color='r', label='vstate')
+    ax[1].plot(phase_vs, alpha=0.15, ls='', marker='o', ms=0.1, color='r', label='vstate')
     ax[1].legend(loc='upper right')
 
     ax[2].set_xlabel(r"$C_i$")
@@ -103,7 +105,7 @@ if ED_file is not None:
     ax[2].set_ylim(-np.pi-0.1, np.pi+0.1)
     ax[2].set_yticks([-np.pi,-np.pi/2,0,np.pi/2,np.pi])
     ax[2].set_yticklabels([r"$-\pi$",r"$-\pi/2$",r"$0$",r"$\pi/2$",r"$\pi$"])
-    ax[2].plot(phase_ED, alpha=0.25, ls='', marker='o', ms=0.9, label='ED')
+    ax[2].plot(phase_ED, alpha=0.15, ls='', marker='o', ms=0.1, label='ED')
     ax[2].legend(loc='upper right')
 
     ax[3].set_xlabel(r"$Phase\;(radians)$")
