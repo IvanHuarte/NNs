@@ -74,6 +74,38 @@ class BestIterKeeper:
                     file.write(flax.serialization.to_bytes(driver.state))
 
         return self.vscore > self.baseline
+
+class EnergyPlotter():
+    def __init__(self, H):
+        self.H = H
+        self.energies = []
+        # Configuro Matplotlib en modo interactivo
+        plt.ion()
+        self.fig, self.ax = plt.subplots()
+        self.line, = self.ax.plot([], [], '-o', label="Energía")
+        self.ax.set_xlabel("Iteración")
+        self.ax.set_ylabel("Energía")
+        self.ax.set_title("Descenso de la energía en VMC")
+        self.ax.legend()
+
+    def __call__(self, step, log_data, driver):
+        # Calcula la energía en este step
+        vstate = driver.state
+        E = float(np.real(vstate.expect(self.H).mean))
+        self.energies.append(E)
+
+        # Actualiza la curva
+        self.line.set_data(np.arange(len(self.energies)), self.energies)
+        self.ax.relim()
+        self.ax.autoscale_view()
+
+        # Dibuja y hace una pausa breve para que se renderice
+        self.fig.canvas.draw()
+        self.fig.canvas.flush_events()
+        plt.pause(0.01)
+
+        # Siempre devolvemos True para continuar el entrenamiento
+        return True
     
 def get_write_folder_from_model(config):
 
