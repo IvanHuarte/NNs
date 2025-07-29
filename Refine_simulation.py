@@ -47,6 +47,7 @@ path_artifact= args.artifact_path
 with open(path_artifact,'r') as f:
     artifact = json.load(f)
 
+##### FILENAMES STUFF ######
 # Get filenames in base
 kwargs={
     'size':artifact['lattice']['size']
@@ -56,7 +57,6 @@ kwargs={
 sim_label, _, json_label, title_label_callback = get_filenames_from_settings('Oxalate', artifact["model_NN"]["name"], **kwargs)
 
 # Refinement filenames
-
 write_folder = os.path.dirname(path_artifact) + "/Refinements/"
 if not os.path.exists(write_folder):
     os.makedirs(write_folder)
@@ -70,7 +70,70 @@ if os.path.isfile(write_folder + json_label + ".json"):
 
     sim_label+=f"_{i}"
     json_label+=f"_{i}"
+############################
+
+# Load refinement configuration
+
+with open("refinement.json",'r') as f:
+    config = json.load(f)
+
+epochs = config['lr_schedule']['epochs']  
+sweeps=config['lr_schedule']['sweeps']                        # Simulation settings
+schedule = config['lr_schedule']
+n_samples = artifact['sampler']['n_samples']
+exact_diag = config['exact_diagonalization']
+dump_simulation = config['dump_sim_callback']
 
 
 # Load vstate....
 vstate=load_vstate(artifact)
+
+# Rebuild hamiltonian
+size = artifact['lattice']['size']
+N = int(np.prod(size))
+strength = artifact['coupling_model']['strength']
+theta = artifact['coupling_model']['theta']
+phi = artifact['coupling_model']['phi']
+oxa=OxalateJKGamma(
+    size, 
+    [strength, theta, phi],
+    **{
+        'bc': artifact['lattice']['bc'],
+        'order': artifact['lattice']['order']
+    }
+)
+H = Runner(oxa.cm).build_hamiltonian()
+
+# Get exact diag energy, in the case.
+E_ED = None
+if artifact['results']['E_ED'] is not None:
+    E_ED = artifact['results']['E_ED']
+
+# Create log and keeper
+log = (
+    nk.logging.RuntimeLog()
+)
+keeper = BestIterKeeper(H, N, 1e-8)
+
+# Learning Rate Schedule
+transformations = {
+    'train': optax.sgd(0.1),
+    'freeze': optax.set_to_zero()
+}
+if schedule['sweeps'] !=0:
+    ds_schedule = jnp.linspace(1e-2, 1e-4, sweeps)
+    lr_schedule = jnp.logspace(
+        start=jnp.log10(schedule['lr0']),
+        stop=jnp.log10(schedule['lr_min']), 
+        num=sweeps
+    )
+
+else:
+    ds_schedule = optax.linear_schedule(1e-2, 1e-4, epochs)
+    SR = nk.optimizer.SR(diag_shift=ds_schedule)
+    lr_schedule=lr_schedule = scheduler_initializer("warmup_exponential_decay", config['lr_schedule'])
+    optimizer = nk.optimizer.Sgd(learning_rate=lr_schedule)
+
+
+
+

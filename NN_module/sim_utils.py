@@ -388,7 +388,7 @@ def save_results(vstate, setup, x_ED = None, modphase=None, modphase_ED=None, wr
 
     size = setup['lattice']['size']
     
-    # Save the variational state
+    # Save the variational state parameters
     file = f"{sim_label}"
     file_ED =  f"{ED_label}"
 
@@ -399,6 +399,12 @@ def save_results(vstate, setup, x_ED = None, modphase=None, modphase_ED=None, wr
     
     setup['_artifacts']['vstate'] = path_vstate
 
+    # Save the vstate sampler state
+    path_sampler = write_folder + file + "_vstate_sampler_state.msgpack"
+    with open(path_sampler, "wb") as f:
+        f.write(to_bytes(vstate.sampler_state))
+    setup['_artifacts']['sampler_state'] = path_sampler
+
     # Save exact diagonalization eigenstate 
     if x_ED is not None:
         path_ED = write_folder + file_ED + ".txt"
@@ -407,7 +413,8 @@ def save_results(vstate, setup, x_ED = None, modphase=None, modphase_ED=None, wr
         setup['_artifacts']['x_ED'] = path_ED
 
     # Save modulus and phase from vstate and/or xED
-    setup['_artifacts']['modphase']={}
+    if not 'modphase' in setup['_artifacts']:
+        setup['_artifacts']['modphase']={}
     if modphase is not None:
         modphase_path = write_folder + file + "_modphase_vstate.txt"
         np.savetxt(modphase_path, modphase)
