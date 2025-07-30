@@ -52,7 +52,7 @@ class ConvBlock(nn.Module):
     @nn.compact
     def __call__(self, x: jnp.ndarray) -> jnp.ndarray:
         # Convolución sin padding adicional
-        # x = nn.Conv(features=self.features, kernel_size=self.kernel_size, padding="VALID")(x)
+        #x = nn.Conv(features=self.features, kernel_size=self.kernel_size, padding="VALID")(x)
         x = TriangularMaskedConv(features=self.features)(x)
         
         x = nn.LayerNorm(dtype=REAL_DTYPE)(x)

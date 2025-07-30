@@ -113,7 +113,11 @@ log = (
     nk.logging.RuntimeLog()
 )
 keeper = BestIterKeeper(H, N, 1e-8)
-plotter = EnergyPlotter(H)
+plotter = EnergyPlotter(H, N, artifact['results']['E_best'],
+                        artifact['results']['E_ED'], 
+                        artifact['results']['vscore'],
+                        artifact['results']['error'])
+plotter.E_ED = E_ED
 
 # Learning Rate Schedule
 transformations = {
@@ -129,7 +133,6 @@ print(f"Epochs: {epochs}  Sweeps: {sweeps}")
             
 if sweeps !=0:    # Alternated training between modulus and phase
     schedule_name = 'stairs_schedule'
-    schedule = schedule[schedule_name]
     ds_schedule = jnp.linspace(1e-2, 1e-4, sweeps)
     lr_schedule = jnp.logspace(
         start=jnp.log10(schedule['lr0']),
@@ -170,11 +173,11 @@ if sweeps !=0:    # Alternated training between modulus and phase
 else:   # Training modulus and phase at the same time
 
     schedule_name = schedule['name']
-    schedule = schedule[schedule_name]
     ds_schedule = optax.linear_schedule(1e-2, 1e-4, epochs)
     SR = nk.optimizer.SR(diag_shift=ds_schedule)
     lr_schedule = scheduler_initializer(schedule_name, schedule)
-    optimizer = nk.optimizer.Sgd(learning_rate=lr_schedule)
+    #optimizer = nk.optimizer.Sgd(learning_rate=lr_schedule)
+    optimizer = masked_optimizer(vstate.parameters, transformations, mode = mask)
 
     gs = nk.driver.VMC(
         H,

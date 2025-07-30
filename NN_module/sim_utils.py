@@ -76,35 +76,73 @@ class BestIterKeeper:
         return self.vscore > self.baseline
 
 class EnergyPlotter():
-    def __init__(self, H):
+    def __init__(self, H, N, E_prev=None, E_ED=None, vs_prev=None, error_prev=None):
         self.H = H
+        self.N = N
         self.energies = []
+        self.vscores = []
+        self.errors= []
+        self.E_ED=E_ED
+
         # Configuro Matplotlib en modo interactivo
         plt.ion()
-        self.fig, self.ax = plt.subplots()
-        self.line, = self.ax.plot([], [], '-o', label="Energía")
-        self.ax.set_xlabel("Iteración")
-        self.ax.set_ylabel("Energía")
-        self.ax.set_title("Descenso de la energía en VMC")
-        self.ax.legend()
+        self.fig, (self.ax1, self.ax2,self.ax3) = plt.subplots(3,1, figsize=[18,13])
+
+        self.energy, = self.ax1.plot([], [], '-o', color='blue', label="Energía")
+        self.vscore, = self.ax2.plot([], [], '-o', color='purple', label="Vscore")
+        
+        if E_prev is not None:
+            self.ax1.axhline(E_prev, color="tab:orange", linestyle="--", alpha=0.8, label="Energía inicial")
+        if E_ED is not None:
+            self.ax1.axhline(E_ED, color="tab:green", linestyle="-", label="E_ED (Exact diag.)")
+        if vs_prev is not None:
+            self.ax2.axhline(vs_prev, color="tab:purple", linestyle="--", label="Vscore inicial")
+        if error_prev is not None:
+            self.error, = self.ax3.plot([], [], '-o', color='red', label="Error")
+            self.ax3.axhline(error_prev, color="tab:red", linestyle="--", alpha=0.8, label="Error inicial")
+
+        self.ax1.set_ylabel("Energía")
+        self.ax1.set_title("Refinement callback")
+        self.ax1.legend(fontsize=8)
+
+        self.ax2.set_ylabel("Vscore")
+        self.ax2.set_yscale('log')
+        self.ax2.legend(fontsize=8)
+
+        self.ax3.set_xlabel("Iteración")
+        self.ax3.set_ylabel("Error")
+        self.ax3.set_yscale('log')
+        self.ax3.legend(fontsize=8)
 
     def __call__(self, step, log_data, driver):
-        # Calcula la energía en este step
+        # Calcula la energía y vstate en este step
         vstate = driver.state
         E = float(np.real(vstate.expect(self.H).mean))
         self.energies.append(E)
+        #Vscore
+        var = np.real(getattr(log_data[driver._loss_name], "variance"))
+        mean = np.real(getattr(log_data[driver._loss_name], "mean"))
+        self.vscores.append(self.N * var / mean**2) 
+        # Error
+        self.errors.append(float(np.abs(E-self.E_ED)/np.abs(self.E_ED)))
+
 
         # Actualiza la curva
-        self.line.set_data(np.arange(len(self.energies)), self.energies)
-        self.ax.relim()
-        self.ax.autoscale_view()
+        self.energy.set_data(np.arange(len(self.energies)), self.energies)
+        self.vscore.set_data(np.arange(len(self.vscores)), self.vscores)
+        self.error.set_data(np.arange(len(self.errors)), self.errors)
 
+        self.ax1.relim()
+        self.ax1.autoscale_view()
+        self.ax2.relim()
+        self.ax2.autoscale_view()
+        self.ax3.relim()
+        self.ax3.autoscale_view()
         # Dibuja y hace una pausa breve para que se renderice
         self.fig.canvas.draw()
         self.fig.canvas.flush_events()
         plt.pause(0.01)
 
-        # Siempre devolvemos True para continuar el entrenamiento
         return True
     
 def get_write_folder_from_model(config):
