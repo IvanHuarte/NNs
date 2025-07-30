@@ -81,11 +81,14 @@ epochs = config['lr_schedule']['epochs']
 sweeps=config['lr_schedule']['sweeps']                        # Simulation settings
 schedule = config['lr_schedule']
 n_samples = artifact['sampler']['n_samples']
-#dump_simulation = config['dump_sim_callback']
+#dump_callback = config['dump_sim_callback']
 
 
 # Load vstate....
+print(f"Loading vstate and burning 10000 samples")
 vstate=load_vstate(artifact)
+vstate.reset()
+vstate.sample(chain_length=10000)
 
 # Rebuild hamiltonian
 size = artifact['lattice']['size']
@@ -107,6 +110,7 @@ H = Runner(oxa.cm).build_hamiltonian()
 E_ED = None
 if artifact['results']['E_ED'] is not None:
     E_ED = artifact['results']['E_ED']
+
 
 # Create log and keeper
 log = (
@@ -130,7 +134,7 @@ time_in = time.time()
 
 
 print(f"Epochs: {epochs}  Sweeps: {sweeps}")
-            
+   
 if sweeps !=0:    # Alternated training between modulus and phase
     schedule_name = 'stairs_schedule'
     ds_schedule = jnp.linspace(1e-2, 1e-4, sweeps)
@@ -173,12 +177,16 @@ if sweeps !=0:    # Alternated training between modulus and phase
 else:   # Training modulus and phase at the same time
 
     schedule_name = schedule['name']
-    ds_schedule = optax.linear_schedule(1e-2, 1e-4, epochs)
+    ds_schedule = optax.linear_schedule(1e-5, 1e-6, epochs)
     SR = nk.optimizer.SR(diag_shift=ds_schedule)
     lr_schedule = scheduler_initializer(schedule_name, schedule)
-    #optimizer = nk.optimizer.Sgd(learning_rate=lr_schedule)
-    optimizer = masked_optimizer(vstate.parameters, transformations, mode = mask)
-
+    transformations = {
+        'train': optax.set_to_zero(),
+        'freeze': optax.set_to_zero()
+    }
+    optimizer = optax.sgd(learning_rate=lr_schedule)
+    #optimizer = masked_optimizer(vstate.parameters, transformations, mode = 'both')
+ 
     gs = nk.driver.VMC(
         H,
         optimizer,
@@ -195,6 +203,70 @@ if resp not in ("y", "s", "si", "yes"):
     sys.exit(0)
 print("Saving....")
 
+time_out = time.time()
+time_exe= time_out - time_in
 
+if E_ED is not None:
+    keeper.E_ED = E_ED
+    log.E_ED = E_ED
+
+## Save results
+_kwargs = artifact['model_NN']['name']
+_kwargs['size']=size ; _kwargs['strength']=strength 
+_kwargs['theta']=theta ; _kwargs['phi']=phi
+
+sim_label, ED_label, json_label, title_label_callback = get_filenames_from_settings(config['CM']['selection'], config['model_NN']['selection'], **_kwargs )
+
+if dump_callback:
+    # For plotting architecture
+    architecture=architecture_label(artifact['model_NN']['name'], artifact['model_NN']['setup'])
+    dump_setup ={
+        'size': size, 'opt_name': "Sgd",
+        'learning_rate': "Scheduled",
+        'write_folder': write_folder,
+        'time_exe': time_exe, 
+        'architecture': architecture,
+        'sim_label': sim_label,
+        'title_label_callback': title_label_callback
+    }
+    
+    callback_artifacts = dump_callback(log, dump_setup)
+
+else:
+    callback_artifacts = None
+    
+
+# Extract some results
+vstate = keeper.best_state
+E_best = float(keeper.best_energy)
+vscore = float(keeper.vscore)
+error=float(np.abs(E_best-E_ED)/np.abs(E_ED))
+
+mp_array_vs, stats_vs = modphase(vstate)
+print(f"vstate phase: {stats_vs['phase']['mean']} \u00b1 {stats_vs['phase']['std']}  ({stats_vs['type']})")
+
+# Save the results
+artifact['sampler']['rng'] = vstate.sampler_state.rng.tolist()
+artifact['lr_schedule']['name']=schedule_name
+artifact['lr_schedule']['setup']=schedule[schedule_name]
+
+artifact['results']['E_best'] = E_best
+artifact['results']['error']=error
+artifact['results']['time_exe']=time_exe
+artifact['results']['modphase']['vstate'] = stats_vs
+
+artifact['_artifacts']['callback'] = callback_artifacts
+
+save_results(
+    vstate, 
+    artifact, 
+    x_ED = None,
+    modphase=mp_array_vs,
+    modphase_ED= None,
+    write_folder = write_folder,
+    sim_label = sim_label,
+    ED_label=None,
+    json_label=json_label
+)
 
 

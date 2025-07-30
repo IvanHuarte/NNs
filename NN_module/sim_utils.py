@@ -125,12 +125,12 @@ class EnergyPlotter():
         self.vscores.append(self.N * var / mean**2) 
         # Error
         self.errors.append(float(np.abs(E-self.E_ED)/np.abs(self.E_ED)))
-
-
+        
         # Actualiza la curva
         self.energy.set_data(np.arange(len(self.energies)), self.energies)
         self.vscore.set_data(np.arange(len(self.vscores)), self.vscores)
         self.error.set_data(np.arange(len(self.errors)), self.errors)
+        #self.ax1.text(1.05, 0.5, f"lr: {float(log_data["Optimizer/learning_rate"])}", transform=self.ax1.transAxes)
 
         self.ax1.relim()
         self.ax1.autoscale_view()
@@ -621,17 +621,17 @@ def load_vstate(setup, tree_data=False):
 
     #Dummy init to have the vs_params structure
     rng = jax.random.PRNGKey(0)
-    dummy_params = model.init(rng, jnp.ones((1, N), dtype=jnp.complex64))
+    dummy_params = model.init(rng, jnp.ones((1, N)))
     
     # Initialize sampler
     sampler_name = setup['sampler']['name']
     if 'rules' in setup['sampler']:
         rule = rule_dict[setup['sampler']['rules']]
-        sampler = sampler_dict[sampler_name](hi, rule=rule, dtype=jnp.complex64)
+        sampler = sampler_dict[sampler_name](hi, rule=rule)
 
     else:
-        sampler = sampler_dict[sampler_name](hi, dtype = jnp.complex64)
-
+        sampler = sampler_dict[sampler_name](hi)
+    
     # Load parameters and initialize vstate
     restored_rng = jnp.array(setup['sampler']['rng'], dtype=jnp.uint32)
     n_samples = setup['sampler']['n_samples']
@@ -644,7 +644,6 @@ def load_vstate(setup, tree_data=False):
         with open(setup['_artifacts']['vstate'], "rb") as f:
             data = msgpack.unpack(f, raw=False)
         print_tree_keys(data)
-
 
     vs_path = setup['results']['vstate']
     with open(vs_path, "rb") as f:

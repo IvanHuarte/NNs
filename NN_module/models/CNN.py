@@ -52,8 +52,8 @@ class ConvBlock(nn.Module):
     @nn.compact
     def __call__(self, x: jnp.ndarray) -> jnp.ndarray:
         # Convolución sin padding adicional
-        #x = nn.Conv(features=self.features, kernel_size=self.kernel_size, padding="VALID")(x)
-        x = TriangularMaskedConv(features=self.features)(x)
+        x = nn.Conv(features=self.features, kernel_size=self.kernel_size, padding="VALID")(x)
+        #x = TriangularMaskedConv(features=self.features)(x)
         
         x = nn.LayerNorm(dtype=REAL_DTYPE)(x)
         x = self.activation(x)
@@ -103,10 +103,13 @@ class CNN(nn.Module):
         x = x.reshape((x.shape[0], -1)) 
         #print(f"Shape after convolutional blocks: {x.shape}")
         
-        #dim=x.shape[-1]
-        x = MultiLayerPerceptron(
-            layer_widths=(64,32)
-        )(x)
+        # x = MultiLayerPerceptron(
+        #     layer_widths=(64,32)
+        # )(x)
+        dim=x.shape[-1]
+        for _ in range(self.n_ffn_layers):
+            norm=nn.LayerNorm(dtype=REAL_DTYPE)
+            x = norm(nn.Dense(dim, dtype=REAL_DTYPE)(x))
     
         x = nn.Dense(1, dtype=REAL_DTYPE)(x)  # Output layer
 

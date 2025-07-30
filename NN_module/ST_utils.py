@@ -55,6 +55,9 @@ def mask_modulus(path, leaf):
 def mask_phase(path, leaf):
     return 'freeze' if path[0] in ('BatchedMultiLayerPerceptron_0', 'CNN_0') else 'train'
 
+def mask_both(path, leaf):
+    return 'freeze'
+
 def masked_optimizer(params, transform_map, mode=None):
     """Genera una máscara universal para `params` basada en el modo.
     
@@ -70,6 +73,8 @@ def masked_optimizer(params, transform_map, mode=None):
         trans_tree = flax.traverse_util.path_aware_map(mask_modulus, params)
     elif mode == 'phase':
         trans_tree = flax.traverse_util.path_aware_map(mask_phase, params)
+    elif mode == 'both':
+        trans_tree = flax.traverse_util.path_aware_map(mask_both, params)
     elif mode is None:
         return transform_map['train']
     else:
