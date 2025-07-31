@@ -85,10 +85,12 @@ n_samples = artifact['sampler']['n_samples']
 
 
 # Load vstate....
-print(f"Loading vstate and burning 10000 samples")
+
+print(f"Loading vstate and burning 1000 samples")
 vstate=load_vstate(artifact)
-vstate.reset()
-vstate.sample(chain_length=10000)
+for i in range(1000):
+    print(f"Recalentando samples: {i}")
+    vstate.sample()
 
 # Rebuild hamiltonian
 size = artifact['lattice']['size']
@@ -211,7 +213,7 @@ if E_ED is not None:
     log.E_ED = E_ED
 
 ## Save results
-_kwargs = artifact['model_NN']['name']
+_kwargs = artifact['model_NN'][artifact['model_NN']['name']]
 _kwargs['size']=size ; _kwargs['strength']=strength 
 _kwargs['theta']=theta ; _kwargs['phi']=phi
 
