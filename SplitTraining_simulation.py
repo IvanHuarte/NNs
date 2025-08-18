@@ -26,13 +26,15 @@ sys.path.append(str(Path(__file__).resolve().parent.parent / "Transformers/trans
 from VA_project.model.model import OxalateJKGamma
 from VA_project.engine.runners import Runner
 from NN_module.sim_utils import (
-    save_results, dump_callback, init_model, architecture_label,
-    get_filenames_from_settings, get_write_folder_from_model,
-    display_simulation_settings
+    save_results, dump_callback, init_model
+)
+from NN_module.label_utils import (
+    get_filenames_from_settings, architecture_label,
+    get_write_folder_from_model, display_simulation_settings
 )
 from NN_module.NN_utils import (
-    activation_dict, scheduler_initializer, 
-    phase_stats_ED, phase_stats_vstate,
+    scheduler_initializer, 
+     phase_stats_vstate,
     modphase
 )
 from NN_module.ST_utils import compare_params, masked_optimizer
@@ -68,20 +70,13 @@ rule2 = InvertMagnetization()
 pinvert = 0.25
 pflip = 1 - pinvert
 
-### Training schedule ###
-lr_schedule = jnp.logspace(
-    start=jnp.log10(stairs['lr0']),
-    stop=jnp.log10(stairs['lr_min']), 
-    num=stairs['sweeps']
-)
-
 transformations = {
     'train': optax.sgd(0.1),
     'freeze': optax.set_to_zero()
 }
 
-#lr_schedule=scheduler_initializer(schedule['name'], schedule)
-ds_schedule = jnp.linspace(1e-1, 1e-4, stairs['sweeps'])
+# #lr_schedule=scheduler_initializer(schedule['name'], schedule)
+# ds_schedule = jnp.linspace(1e-1, 1e-4, sweeps)
 
 E_ED = None
 x_ED = None
@@ -129,20 +124,27 @@ for i, size in enumerate(sizes):
             E_ED = float(E_ED.squeeze(-1))
             print(f"Energy ED: {E_ED}")
 
-        for sweeps in [0, 20, 50]:
-            stairs['sweeps'] = sweeps #if stairs['sweeps'] != 0 else 0
-            schedule["stairs_schedule"]["sweeps"] = stairs['sweeps']
-            print(f"\nRunning with {stairs['sweeps']} sweeps...")
+        for sweeps in schedule['sweeps']:
+            
+            print(f"\nRunning with {sweeps} sweeps...")
             write_folder = write_folder_size + f"sweeps_{sweeps}/"
-            if stairs['sweeps'] !=0:
-                ds_schedule = jnp.linspace(1e-2, 1e-4, stairs['sweeps'])
+            if sweeps !=0:
+                schedule_name = 'stairs_schedule'
+                schedule_selection = config['lr_schedule'][schedule_name]
+
+                schedule_selection['sweeps'] = sweeps
+
+                ds_schedule = jnp.linspace(1e-2, 1e-4, sweeps)
                 lr_schedule = jnp.logspace(
-                    start=jnp.log10(stairs['lr0']),
-                    stop=jnp.log10(stairs['lr_min']), 
-                    num=stairs['sweeps']
+                    start=jnp.log10(schedule_selection['lr0']),
+                    stop=jnp.log10(schedule_selection['lr_min']), 
+                    num=sweeps
                 )
 
             else:
+                schedule_name = config['lr_schedule']['name']
+                schedule_selection = config['lr_schedule'][schedule_name]
+
                 ds_schedule = optax.linear_schedule(1e-2, 1e-4, epochs)
                 SR = nk.optimizer.SR(diag_shift=ds_schedule)
                 lr_schedule=lr_schedule = scheduler_initializer("warmup_exponential_decay", config['lr_schedule'])
@@ -165,16 +167,16 @@ for i, size in enumerate(sizes):
                 n_discard_per_chain=0, chunk_size=None
             )
 
-            print(f"Epochs: {epochs}  Sweeps: {stairs['sweeps']}")
+            print(f"Epochs: {epochs}  Sweeps: {sweeps}")
             
-            if stairs['sweeps'] !=0:    # Alternated training between modulus and phase
+            if sweeps !=0:    # Alternated training between modulus and phase
 
-                epochs_per_run = epochs//(2*stairs['sweeps'])
+                epochs_per_run = epochs//(2*sweeps)
                 print(f"Epochs per run: {epochs_per_run}")
 
-                for i in range(stairs['sweeps']):
+                for i in range(sweeps):
 
-                    print(f"\nSweep {i+1} of {stairs['sweeps']}......   lr: {lr_schedule[i]:.4f}  ds: {ds_schedule[i]:.4f}\n")
+                    print(f"\nSweep {i+1} of {sweeps}......   lr: {lr_schedule[i]:.4f}  ds: {ds_schedule[i]:.4f}\n")
                     transformations['train'] = optax.sgd(learning_rate=lr_schedule[i])
                     SR = nk.optimizer.SR(diag_shift=ds_schedule[i])
 
@@ -250,7 +252,6 @@ for i, size in enumerate(sizes):
 
             else:
                 callback_artifacts = None
-                
 
             # Extract some results
             vstate = keeper.best_state

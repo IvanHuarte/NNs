@@ -3,8 +3,15 @@ import jax
 import jax.typing as jt
 import jax.numpy as jnp
 from typing import Callable, Tuple
+from netket.nn import log_cosh
+from .ViT_2D import MultiLayerPerceptron
 
 REAL_DTYPE = jnp.asarray(1.0).dtype
+
+def get_triangular_mask(
+    kernel_size: Tuple[int, int]
+    ) -> jnp.ndarray:
+    pass
 
 class TriangularMaskedConv(nn.Module):
     """
@@ -55,8 +62,9 @@ class DepthPointwiseConv(nn.Module):
             feature_group_count=Ch_in,    
             strides=self.strides,         
             padding='SAME',                   # 'CIRCULAR' para BC periódicas
+            dtype=REAL_DTYPE,
             use_bias=False
-        )
+        )(x)
         # Normalizacion
         x = nn.LayerNorm()(x)
 
@@ -66,64 +74,171 @@ class DepthPointwiseConv(nn.Module):
             kernel_size=(1, 1),           
             strides=(1, 1),                
             padding='SAME',                 # 'CIRCULAR' para BC periódicas
+            dtype=REAL_DTYPE,
             use_bias=False
         )(x)
 
         return x
     
-class CvTBlock(nn.Module):
+class ConvProjectionBlock(nn.Module):
 
     channels: int
+    n_heads: int = 1
     kernel: Tuple = (3,3)
-    strides_qkv: Tuple[Tuple, Tuple, Tuple] = ((1,1),(1,1),(1,1))
-
-    def __call__(self, x: jt.ArrayLike) -> jt.ArrayLike:
-
-        # Convolutional projection
-        # x (B,H,W,Ch)
-        B, H, W, Ch_in = x.shape
-        res1 = x
-        x = nn.LayerNorm()(x)
-        Q = DepthPointwiseConv(self.channels, kernel=self.kernel, strides=self.strides_qkv[0])(x).reshape(B, -1, self.channels)
-        K = DepthPointwiseConv(self.channels, kernel=self.kernel, strides=self.strides_qkv[1])(x).reshape(B, -1, self.channels)
-        V = DepthPointwiseConv(self.channels, kernel=self.kernel, strides=self.strides_qkv[2])(x).reshape(B, -1, self.channels)
-        
-
-        # Self-attention block
-        attn_scores = jnp.matmul(Q,jnp.swapaxes(K,-2,-1)) / jnp.sqrt(self.channels)
-        attn_weights = nn.softmax(attn_scores, axis=-1)
-        attn_scores = jnp.matmul(attn_weights, V)
-        attn_out = attn_out.reshape(B, H, W, self.channels)
-
-        x = res1 + attn_out  # Residual
-
-        # MLP
-        res2 = x
-        x = nn.LayerNorm()(x)
-        x = nn.Dense(int(self.dim * self.mlp_alpha))(x)
-        x = nn.gelu(x)
-        x = nn.Dense(self.dim)(x)   
-
-        return res2 + x
-
-
-    
-class StageBlock(nn.Module):
-    """
-    x = (B, H, W, Ch), where:
-        B: Batch size
-        H: Height 
-        W: Width
-        Ch: Number of channels 
-    """
-    lattice_size = Tuple
+    strides_qkv: Tuple[Tuple, Tuple, Tuple] = ((1,1),(2,2),(2,2))
+    n_mlp_layers: int = 1
 
     @nn.compact
     def __call__(self, x: jt.ArrayLike) -> jt.ArrayLike:
+        print(f"Begging ConvProjectionBlock")
+        print(f"Input shape: {x.shape}")
+        # Convolutional projection
+        # x (B,H,W,Ch_in)
+        B, H, W, _ = x.shape
+        assert self.channels % self.n_heads == 0, "Channels must be divisible by the number of heads"
+        head_dim = self.channels // self.n_heads
+
+
+        Q = DepthPointwiseConv(self.channels, kernel=self.kernel, strides=self.strides_qkv[0])(x)
+        K = DepthPointwiseConv(self.channels, kernel=self.kernel, strides=self.strides_qkv[1])(x)
+        V = DepthPointwiseConv(self.channels, kernel=self.kernel, strides=self.strides_qkv[2])(x)
+        
+        _, Hq, Wq, _ = Q.shape  # If strides_qkv[0] != (1,1) then Hq and Wq different to H and W
+        _, Hk, Wk, _ = K.shape
+        Nq = Hq * Wq
+        Nk = Hk * Wk
+
+        # Reshape and transpose for multi-head attention
+        Q = Q.reshape((B, Nq, self.n_heads, head_dim)).transpose((0, 2, 1, 3)) # Q = (B, heads, Nq, head_dim)
+        K = K.reshape((B, Nk, self.n_heads, head_dim)).transpose((0, 2, 1, 3)) # K = (B, heads, Nk, head_dim)
+        V = V.reshape((B, Nk, self.n_heads, head_dim)).transpose((0, 2, 1, 3)) # V = (B, heads, Nk, head_dim)
+
+        # Self-attention block
+        QKt = jnp.matmul(Q,jnp.swapaxes(K,-2,-1)) / jnp.sqrt(head_dim) # QKt = (B, heads, Nq, Nk)
+        atten = nn.softmax(QKt, axis=-1)
+        
+        # (B, heads, Nq, head_dim) --> (B, Nq, heads, head_dim) --> (B, Hq, Wq, channels)
+        attention = jnp.matmul(atten, V).transpose((0, 2, 1, 3)).reshape((B, Hq, Wq, self.channels))
+
+        if x.shape != attention.shape:
+            x = nn.Conv(self.channels, kernel_size=(1,1), strides=self.strides_qkv[0], padding='SAME', dtype=REAL_DTYPE, name='residual_proj')(x)
+
+        x = nn.LayerNorm(dtype=REAL_DTYPE)(x + attention)
+        print(f"After attention: {x.shape}")
+        # MLP
+        x_ffn = x.reshape((B, Nq, self.channels))  # Reshape to (B, Hq*Wq, channels)
+        x_ffn = MultiLayerPerceptron(
+            layer_widths=tuple([x_ffn.shape[-1]]*self.n_mlp_layers),
+        )(x_ffn)
+        x_ffn = x_ffn.reshape((B, Hq, Wq, self.channels))
+        x_ffn = nn.LayerNorm(dtype=REAL_DTYPE)(x_ffn)
+        print(f"After MLP: {x_ffn.shape}")
+        return x + x_ffn 
+    
+class StageBlock(nn.Module):
+    """
+    Implementation of a stage block for CvT.
+    It consists of a convolutional token embedding followed by multiple 
+    convolutional projection blocks. x = (B, H, W, Ch)
+    Inputs:
+        n_blocks: Number of convolutional projection blocks in the stage.
+        CTemb_channels: Number of channels in the convolutional token embedding.
+        proj_channels_setup: Tuple of tuples, where each inner tuple contains the
+    """
+    n_CP_blocks: int             # Number of convolutional projection blocks in the stage    
+    CTemb_channels: int           # Number of channels in the convolutional token embedding
+    CP_channels: int             # Number of channels for each convolutional projection block
+    n_heads: int                  # Number of heads for each block
+    kernel: Tuple = (3, 3)          # Kernel size for the convolutional operations (must be 3x3)
+    
+    @nn.compact
+    def __call__(self, x: jt.ArrayLike) -> jt.ArrayLike:
+        print(f"Begging Stage")
+        print(f"Input shape: {x.shape}")
+        mask=None
+        #if self.kernel[0] > 3:
 
         # Convolutional token embedding
-        x = TriangularMaskedConv(self.CTemb_channels) 
+        # x = nn.Conv(
+        #     features=self.CTemb_channels, 
+        #     kernel_size=self.kernel, 
+        #     strides=(1, 1), 
+        #     padding='CIRCULAR',
+        #     mask=get_triangular_mask(self.kernel),
+        #     dtype=REAL_DTYPE
+        # )(x)
+        x = TriangularMaskedConv(self.CTemb_channels)(x)
+        x = nn.LayerNorm(dtype=REAL_DTYPE)(x)
+        print(f"After Conv embedding: {x.shape}")
+        # Convolutional projection blocks
+        for _ in range(self.n_CP_blocks):
+            x = ConvProjectionBlock(
+                channels=self.CP_channels,
+                n_heads=self.n_heads,
+                kernel=self.kernel,
+                )(x)
 
-        for _ in range(self.n_blocks):
-            x = CvTBlock(dim=self.out_dim, n_heads=self.n_heads)(x)
+        return log_cosh(x)
 
+class CvT(nn.Module):
+    """
+    Convolutional Vision Transformer (CvT) implementation.
+    It consists of multiple stages, each containing a convolutional token embedding
+    followed by a series of convolutional projection blocks.
+    Inputs:
+        n_stages: Number of stages in the CvT model.
+        n_blocks: Number of convolutional projection blocks in each stage.
+        CTemb_channels: Number of channels in the convolutional token embedding in
+                        each stage.
+        proj_channels_setup: Tuple of tuples, where each inner tuple contains the
+                             number of channels for each convolutional projection block
+                             in the stage.
+        kernel: Kernel size for the convolutional operations.
+    Outputs:
+        x: Output tensor. If `two_heads` is True, it returns a complex output with modulus and phase.
+           Otherwise, it returns a real-valued output.
+    """
+    lattice_size : Tuple[int, int]  
+    
+    n_CP_blocks_list: Tuple[int, ...]            # Number of convolutional projection blocks in each stage
+    CTemb_channels_list: Tuple[int, ...]          # Number of channels in the convolutional token embedding.
+    CP_channels_list: Tuple[int, ...]              # Number of channels for each convolutional projection block in each stage.
+    attn_heads_list: Tuple[int, ...]               # Number of heads for each convolutional projection block in each stage.
+    kernel: Tuple = (3, 3)                        # Kernel size for the convolutional operations (must be 3x3)        
+    final_architecture: Tuple = (5,)
+    two_heads: bool = False                        # If True, the output will be a complex number with modulus and phase
+
+    @nn.compact
+    def __call__(self, x: jt.ArrayLike) -> jt.ArrayLike:
+        print(f"Begging CvT")
+        print(f"Input shape: {x.shape}")
+        
+        n_stages = len(self.n_CP_blocks_list)
+        x = x.reshape((-1, *self.lattice_size, 1))
+
+        B = x.shape[0]
+        for i in range(n_stages):
+            x = StageBlock(
+                n_CP_blocks=self.n_CP_blocks_list[i],
+                CTemb_channels=self.CTemb_channels_list[i],
+                CP_channels=self.CP_channels_list[i],
+                n_heads=self.attn_heads_list[i],
+                kernel=self.kernel
+            )(x)
+        print(f"After all stages: {x.shape}")
+        # Final MLP layer
+        x = x.reshape((B, -1))  
+
+        if self.two_heads:
+            log_modulus = nn.Dense(1)(
+                MultiLayerPerceptron(self.final_architecture)(x)
+                )
+            phase = nn.Dense(1)(
+                MultiLayerPerceptron(self.final_architecture)(x)
+                )
+            return (log_modulus + 1j * phase).astype(jnp.complex128).squeeze()
+        else:
+            x = MultiLayerPerceptron(self.final_architecture)(x)
+            return nn.Dense(1)(x)  
+        
+    

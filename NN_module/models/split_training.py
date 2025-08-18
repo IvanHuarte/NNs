@@ -7,6 +7,7 @@ import jax.numpy as jnp
 from .MLP import BatchedMultiLayerPerceptron
 from .ViT_2D import BatchedSpinViT
 from .CNN import CNN
+from .CvT import CvT
 
 DTYPE = jnp.float64
 
@@ -34,7 +35,7 @@ class SplitTraining_ViT_CNN(nn.Module):
     block_channels: tuple = (32)  # Features for each convolutional block
     kernel_size: tuple  = (3,3)   # Size of the convolutional filter
     n_ffn_layers_cnn: int = 1  # Number of fully connected layers after convolutional blocks
-    activation: Callable = nn.tanh  # Activation function
+    activation: Callable = nn.swish  # Activation function
 
     @nn.compact
     def __call__(
@@ -59,7 +60,7 @@ class SplitTraining_ViT_CNN(nn.Module):
                 lattice_size=self.lattice_size,
                 block_channels=self.block_channels,
                 kernel_size=self.kernel_size,
-                n_ffn_layers=self.n_ffn_layers,
+                n_ffn_layers=self.n_ffn_layers_cnn,
                 activation=self.activation
             )(batch_x)
     
@@ -125,4 +126,52 @@ class SplitTraining_ViT_MLP(nn.Module):
             )(batch_x)
 
         
+        return log_module + 1j * phase
+
+
+class SplitTraining_CvT_CNN(nn.Module):
+
+    """
+    Flax module to train module and phase separately
+    """
+
+    lattice_size: Tuple[int, int]
+
+    "Module settings CvT"
+    n_stages: int
+    n_CP_blocks: Tuple[Tuple[int, ...], ...]            # Number of convolutional projection blocks in each stage. 1 tuple per stage
+    CTemb_channels_list: Tuple[int]                     # Number of channels in the convolutional token embedding. 1 int per stage
+    proj_channels_setup: Tuple[Tuple[int], ...]         # Number of channels for each convolutional projection block in the stage. 1 tuple per stage
+    kernel: Tuple = (3, 3)                              # Kernel size for the convolutional operations (must be 3x3)        
+    final_architecture: Tuple = (5,)
+
+    "Phase settings CNN"
+    block_channels: tuple = (32)                        # Features for each convolutional block
+    kernel_size: tuple  = (3,3)                         # Size of the convolutional filter
+    n_ffn_layers_cnn: int = 1                           # Number of fully connected layers after convolutional blocks
+    activation: Callable = nn.swish                     # Activation function
+
+    @nn.compact
+    def __call__(
+        self, 
+        x: jnp.ndarray) -> jnp.ndarray:
+
+        log_module = CvT(
+                lattice_size=self.lattice_size,
+                n_stages=self.n_stages,
+                n_blocks=self.n_CP_blocks,
+                CTemb_channels=self.CTemb_channels_list,
+                proj_channels_setup=self.proj_channels_setup,
+                kernel=self.kernel,
+                final_architecture=self.final_architecture
+            )(x)
+            
+        phase = CNN(
+                lattice_size=self.lattice_size,
+                block_channels=self.block_channels,
+                kernel_size=self.kernel_size,
+                n_ffn_layers=self.n_ffn_layers_cnn,
+                activation=self.activation
+            )(x)
+    
         return log_module + 1j * phase
