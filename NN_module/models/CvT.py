@@ -2,16 +2,29 @@ import flax.linen as nn
 import jax
 import jax.typing as jt
 import jax.numpy as jnp
-from typing import Callable, Tuple
+from typing import Callable, Tuple, Any
 from netket.nn import log_cosh
 from .ViT_2D import MultiLayerPerceptron
 
 REAL_DTYPE = jnp.asarray(1.0).dtype
 
-def get_triangular_mask(
-    kernel_size: Tuple[int, int]
+def get_mask(
+    flag: bool = False
     ) -> jnp.ndarray:
-    pass
+
+    if flag:
+        mask= jnp.array([
+            [0, 1, 1],
+            [1, 1, 1],
+            [1, 1, 0],
+        ])  
+    else:
+        mask = jnp.array([
+            [0, 1, 1],
+            [1, 1, 1],
+            [0, 1, 0],
+        ])
+    return mask
 
 class TriangularMaskedConv(nn.Module):
     """
@@ -120,9 +133,6 @@ class ConvProjectionBlock(nn.Module):
         # (B, heads, Nq, head_dim) --> (B, Nq, heads, head_dim) --> (B, Hq, Wq, channels)
         attention = jnp.matmul(atten, V).transpose((0, 2, 1, 3)).reshape((B, Hq, Wq, self.channels))
 
-        if x.shape != attention.shape:
-            x = nn.Conv(self.channels, kernel_size=(1,1), strides=self.strides_qkv[0], padding='SAME', dtype=REAL_DTYPE, name='residual_proj')(x)
-
         x = nn.LayerNorm(dtype=REAL_DTYPE)(x + attention)
         print(f"After attention: {x.shape}")
         # MLP
@@ -150,24 +160,25 @@ class StageBlock(nn.Module):
     CP_channels: int             # Number of channels for each convolutional projection block
     n_heads: int                  # Number of heads for each block
     kernel: Tuple = (3, 3)          # Kernel size for the convolutional operations (must be 3x3)
+    CTE_triangular: bool = False
     
     @nn.compact
     def __call__(self, x: jt.ArrayLike) -> jt.ArrayLike:
-        print(f"Begging Stage")
+        print(f"Beginning Stage")
         print(f"Input shape: {x.shape}")
-        mask=None
-        #if self.kernel[0] > 3:
 
         # Convolutional token embedding
-        # x = nn.Conv(
-        #     features=self.CTemb_channels, 
-        #     kernel_size=self.kernel, 
-        #     strides=(1, 1), 
-        #     padding='CIRCULAR',
-        #     mask=get_triangular_mask(self.kernel),
-        #     dtype=REAL_DTYPE
-        # )(x)
-        x = TriangularMaskedConv(self.CTemb_channels)(x)
+        x = nn.Conv(
+            features=self.CTemb_channels, 
+            kernel_size=self.kernel, 
+            strides=(2, 2), 
+            padding='CIRCULAR',
+            mask=get_mask(flag=self.CTE_triangular),
+            dtype=REAL_DTYPE
+        )(x)
+
+        # x = TriangularMaskedConv(self.CTemb_channels)(x)
+
         x = nn.LayerNorm(dtype=REAL_DTYPE)(x)
         print(f"After Conv embedding: {x.shape}")
         # Convolutional projection blocks
@@ -218,12 +229,16 @@ class CvT(nn.Module):
 
         B = x.shape[0]
         for i in range(n_stages):
+            if i == 0: CTE_triangular = True
+            else: CTE_triangular = False
+
             x = StageBlock(
                 n_CP_blocks=self.n_CP_blocks_list[i],
                 CTemb_channels=self.CTemb_channels_list[i],
                 CP_channels=self.CP_channels_list[i],
                 n_heads=self.attn_heads_list[i],
-                kernel=self.kernel
+                kernel=self.kernel,
+                CTE_triangular=CTE_triangular
             )(x)
         print(f"After all stages: {x.shape}")
         # Final MLP layer
