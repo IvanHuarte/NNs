@@ -167,13 +167,14 @@ class StageBlock(nn.Module):
         print(f"Beginning Stage")
         print(f"Input shape: {x.shape}")
 
+        mask = get_mask(flag=self.CTE_triangular)
         # Convolutional token embedding
         x = nn.Conv(
             features=self.CTemb_channels, 
             kernel_size=self.kernel, 
             strides=(2, 2), 
             padding='CIRCULAR',
-            mask=get_mask(flag=self.CTE_triangular),
+            mask=jnp.broadcast_to(mask[:,:,None,None], (*mask.shape, x.shape[-1], self.CTemb_channels)),
             dtype=REAL_DTYPE
         )(x)
 
@@ -241,15 +242,15 @@ class CvT(nn.Module):
                 CTE_triangular=CTE_triangular
             )(x)
         print(f"After all stages: {x.shape}")
+        
         # Final MLP layer
-        x = x.reshape((B, -1))  
-
+        x = x.reshape((B, -1))
         if self.two_heads:
             log_modulus = nn.Dense(1)(
-                MultiLayerPerceptron(self.final_architecture)(x)
+                MultiLayerPerceptron((x.shape[-1],*self.final_architecture))(x)
                 )
             phase = nn.Dense(1)(
-                MultiLayerPerceptron(self.final_architecture)(x)
+                MultiLayerPerceptron((x.shape[-1],*self.final_architecture))(x)
                 )
             return (log_modulus + 1j * phase).astype(jnp.complex128).squeeze()
         else:

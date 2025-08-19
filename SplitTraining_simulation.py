@@ -57,11 +57,12 @@ kwargs_lattice = config['kwargs_lattice']
 
 epochs = config['lr_schedule']['epochs']                          # Simulation settings
 schedule = config['lr_schedule']
-stairs = config['lr_schedule'][config['lr_schedule']['name']]
-n_samples = config['n_samples']
 exact_diag = config['exact_diagonalization']
 dump_simulation = config['dump_sim_callback']
-    
+
+sampler_setup = config['sampler']
+n_samples = sampler_setup['n_samples_per_chain'] * sampler_setup['n_chains_per_rank'] * sampler_setup['n_ranks']
+
 write = get_write_folder_from_model(config)
 
 ### MC sampling rules ###
@@ -70,13 +71,6 @@ rule2 = InvertMagnetization()
 pinvert = 0.25
 pflip = 1 - pinvert
 
-transformations = {
-    'train': optax.sgd(0.1),
-    'freeze': optax.set_to_zero()
-}
-
-# #lr_schedule=scheduler_initializer(schedule['name'], schedule)
-# ds_schedule = jnp.linspace(1e-1, 1e-4, sweeps)
 
 E_ED = None
 x_ED = None
@@ -100,7 +94,8 @@ for i, size in enumerate(sizes):
 
     ## Reset sampler 
     sampler = nk.sampler.MetropolisSampler(
-    hi, nk.sampler.rules.MultipleRules([rule1, rule2], [pflip, pinvert])
+    hi, nk.sampler.rules.MultipleRules([rule1, rule2], [pflip, pinvert]),
+    n_chains_per_rank=sampler_setup['n_chains_per_rank'], chunk_size=sampler_setup['chunk_sampler'],
     )
 
     for j, (theta, phi) in enumerate(zip(theta_list, phi_list)):
@@ -164,7 +159,7 @@ for i, size in enumerate(sizes):
             # Initialize vstate with parameters
             vstate = nk.vqs.MCState(
                 sampler, model=model, n_samples=n_samples,
-                n_discard_per_chain=0, chunk_size=None
+                n_discard_per_chain=0, chunk_size=sampler_setup['chunk_vstate']
             )
 
             print(f"Epochs: {epochs}  Sweeps: {sweeps}")
@@ -173,6 +168,11 @@ for i, size in enumerate(sizes):
 
                 epochs_per_run = epochs//(2*sweeps)
                 print(f"Epochs per run: {epochs_per_run}")
+
+                transformations = {
+                    'train': optax.sgd(0.1),
+                    'freeze': optax.set_to_zero()
+                }
 
                 for i in range(sweeps):
 
@@ -193,7 +193,7 @@ for i, size in enumerate(sizes):
                             model=model,
                             n_samples=n_samples,
                             n_discard_per_chain=0,
-                            chunk_size=None,
+                            chunk_size=sampler_setup['chunk_vstate'],
                             variables=variables
                         )
     
@@ -301,7 +301,8 @@ for i, size in enumerate(sizes):
                     'name': "MetropolisSampler",
                     'n_samples': n_samples, 
                     'rng': vstate.sampler_state.rng.tolist(), 
-                    'rules': 'LocalRule/InvertMagnetization'
+                    'rules': 'LocalRule/InvertMagnetization',
+                    "setup": sampler_setup
 
                 },
                 'optimizer': "Sgd",
