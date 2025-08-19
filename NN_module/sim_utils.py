@@ -20,7 +20,8 @@ from NN_module.models.ViT_2D import BatchedSpinViT
 from NN_module.models.CNN import CNN
 from NN_module.models.CvT import CvT
 from NN_module.models.split_training import (
-    SplitTraining_ViT_MLP, SplitTraining_ViT_CNN, SplitTraining_CvT_CNN
+    SplitTraining_ViT_MLP, SplitTraining_ViT_CNN, 
+    SplitTraining_CvT_CNN, SplitTraining_CvT_CvT
 )
 from NN_module.NN_utils import (
     activation_dict, sampler_dict, rule_dict
@@ -434,7 +435,26 @@ def init_model(name, model_setup):
             kernel_size_cnn=tuple(model_setup['kernel_size_cnn']),
             n_ffn_layers_cnn=model_setup['n_ffn_layers_cnn']
         )
-        
+    elif name == 'SplitTraining_CvT_CvT':
+        return SplitTraining_CvT_CvT(
+
+            lattice_size=tuple(model_setup['lattice_size']),
+
+            n_CP_blocks_list_1= tuple(model_setup['n_CP_blocks_1']),
+            CTemb_channels_list_1=tuple(model_setup['CTemb_channels_1']),
+            CP_channels_list_1=tuple(model_setup['CP_channels_1']),
+            attn_heads_list_1=tuple(model_setup['attn_heads_1']),
+            kernel_1=tuple(model_setup['kernel_1']),
+            final_architecture_1=ast.literal_eval(model_setup['final_architecture_1']),
+
+            n_CP_blocks_list_2= tuple(model_setup['n_CP_blocks_2']),
+            CTemb_channels_list_2=tuple(model_setup['CTemb_channels_2']),
+            CP_channels_list_2=tuple(model_setup['CP_channels_2']),
+            attn_heads_list_2=tuple(model_setup['attn_heads_2']),
+            kernel_2=tuple(model_setup['kernel_2']),
+            final_architecture_2=ast.literal_eval(model_setup['final_architecture_2']),
+        )
+
 def print_tree_keys(obj, indent=0):
     prefix = '  ' * indent
     if isinstance(obj, dict):

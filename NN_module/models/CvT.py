@@ -6,7 +6,7 @@ from typing import Callable, Tuple, Any
 from netket.nn import log_cosh
 from .ViT_2D import MultiLayerPerceptron
 
-REAL_DTYPE = jnp.asarray(1.0).dtype
+REAL_DTYPE = jnp.float64
 
 def get_mask(
     flag: bool = False
@@ -20,7 +20,7 @@ def get_mask(
         ])  
     else:
         mask = jnp.array([
-            [0, 1, 1],
+            [0, 1, 0],
             [1, 1, 1],
             [0, 1, 0],
         ])
@@ -103,8 +103,8 @@ class ConvProjectionBlock(nn.Module):
 
     @nn.compact
     def __call__(self, x: jt.ArrayLike) -> jt.ArrayLike:
-        print(f"Begging ConvProjectionBlock")
-        print(f"Input shape: {x.shape}")
+        # print(f"Begging ConvProjectionBlock")
+        # print(f"Input shape: {x.shape}")
         # Convolutional projection
         # x (B,H,W,Ch_in)
         B, H, W, _ = x.shape
@@ -134,7 +134,7 @@ class ConvProjectionBlock(nn.Module):
         attention = jnp.matmul(atten, V).transpose((0, 2, 1, 3)).reshape((B, Hq, Wq, self.channels))
 
         x = nn.LayerNorm(dtype=REAL_DTYPE)(x + attention)
-        print(f"After attention: {x.shape}")
+        # print(f"After attention: {x.shape}")
         # MLP
         x_ffn = x.reshape((B, Nq, self.channels))  # Reshape to (B, Hq*Wq, channels)
         x_ffn = MultiLayerPerceptron(
@@ -142,7 +142,7 @@ class ConvProjectionBlock(nn.Module):
         )(x_ffn)
         x_ffn = x_ffn.reshape((B, Hq, Wq, self.channels))
         x_ffn = nn.LayerNorm(dtype=REAL_DTYPE)(x_ffn)
-        print(f"After MLP: {x_ffn.shape}")
+        # print(f"After MLP: {x_ffn.shape}")
         return x + x_ffn 
     
 class StageBlock(nn.Module):
@@ -164,8 +164,8 @@ class StageBlock(nn.Module):
     
     @nn.compact
     def __call__(self, x: jt.ArrayLike) -> jt.ArrayLike:
-        print(f"Beginning Stage")
-        print(f"Input shape: {x.shape}")
+        # print(f"Beginning Stage")
+        # print(f"Input shape: {x.shape}")
 
         mask = get_mask(flag=self.CTE_triangular)
         # Convolutional token embedding
@@ -181,7 +181,7 @@ class StageBlock(nn.Module):
         # x = TriangularMaskedConv(self.CTemb_channels)(x)
 
         x = nn.LayerNorm(dtype=REAL_DTYPE)(x)
-        print(f"After Conv embedding: {x.shape}")
+        # print(f"After Conv embedding: {x.shape}")
         # Convolutional projection blocks
         for _ in range(self.n_CP_blocks):
             x = ConvProjectionBlock(
@@ -222,8 +222,8 @@ class CvT(nn.Module):
 
     @nn.compact
     def __call__(self, x: jt.ArrayLike) -> jt.ArrayLike:
-        print(f"Begging CvT")
-        print(f"Input shape: {x.shape}")
+        # print(f"Begging CvT")
+        # print(f"Input shape: {x.shape}")
         
         n_stages = len(self.n_CP_blocks_list)
         x = x.reshape((-1, *self.lattice_size, 1))
@@ -241,20 +241,20 @@ class CvT(nn.Module):
                 kernel=self.kernel,
                 CTE_triangular=CTE_triangular
             )(x)
-        print(f"After all stages: {x.shape}")
+        #print(f"After all stages: {x.shape}")
         
         # Final MLP layer
         x = x.reshape((B, -1))
         if self.two_heads:
             log_modulus = nn.Dense(1)(
-                MultiLayerPerceptron((x.shape[-1],*self.final_architecture))(x)
+                MultiLayerPerceptron(self.final_architecture)(x)
                 )
             phase = nn.Dense(1)(
-                MultiLayerPerceptron((x.shape[-1],*self.final_architecture))(x)
+                MultiLayerPerceptron(self.final_architecture)(x)
                 )
             return (log_modulus + 1j * phase).astype(jnp.complex128).squeeze()
         else:
             x = MultiLayerPerceptron(self.final_architecture)(x)
-            return nn.Dense(1)(x)  
+            return nn.Dense(1)(x).squeeze()
         
     

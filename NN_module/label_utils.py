@@ -91,19 +91,15 @@ def architecture_label(name, model_setup):
             setup+=f" {set_act[i]} |" if '0' not in set_act[i] else ''
         setup+="|"
         architecture = setup
-        return architecture
-
+        
     elif name == 'ViT':
         architecture = f"|| b: {model_setup['token_size']}  D_emb: {model_setup['embedding_d']}  heads: {model_setup['n_heads']} ||\n"
         architecture += f"|| n_blocks: {model_setup['n_blocks']}   ffn_layers: {model_setup['n_ffn_layers']} ||\n"
-        return architecture
-    
+         
     elif name == 'CvT':
-        architecture = f"|| b: {model_setup['lattice_size']}  D_emb: {model_setup['CTemb_channels']}  heads: {model_setup['attn_heads']} ||\n"
-        architecture += f"|| n_blocks: {model_setup['n_CP_blocks']}   CP_channels: {model_setup['CP_channels']} ||\n"
-        architecture += f"|| kernel: {model_setup['kernel']}   final_architecture: {model_setup['final_architecture']} ||\n"
-        return architecture
-    
+        architecture = f"|| n_CTE_ch: {model_setup['CTemb_channels']}  n_CPB: {model_setup['n_CP_blocks']}   CP_ch: {model_setup['CP_channels']} ||\n"
+        architecture += f"|| heads: {model_setup['attn_heads']}  kernel: {model_setup['kernel']}   final_arch: {model_setup['final_architecture']} ||\n"
+         
     elif name == 'SplitTraining_ViT_MLP':
         architecture = f"ViT \n"
         architecture += f"|| b: {model_setup['token_size']}  D_emb: {model_setup['embedding_d']}  heads: {model_setup['n_heads']} ||\n"
@@ -117,15 +113,14 @@ def architecture_label(name, model_setup):
             setup+=f" {set_act[i]} |" if '0' not in set_act[i] else ''
         setup+="|"
         architecture += setup
-        return architecture
-    
+         
     elif name == 'SplitTraining_ViT_CNN':
         architecture = f"ViT \n"
         architecture += f"|| b: {model_setup['token_size']}  D_emb: {model_setup['embedding_d']}  heads: {model_setup['n_heads']} ||\n"
         architecture += f"|| n_blocks: {model_setup['n_blocks']}   ffn_layers: {model_setup['n_ffn_layers']} ||\n"
         architecture += f"CNN\n"
         architecture += f"|| block_channels: {model_setup['block_channels']}    kernel:{model_setup['kernel_size']}    n_ffn_lay:{model_setup['n_ffn_layers_cnn']} ||"
-        return architecture
+         
     elif name == 'SplitTraining_CvT_CNN':
         architecture = f"CvT \n"
         architecture += f"|| b: {model_setup['lattice_size']}  D_emb: {model_setup['CTemb_channels']}  heads: {model_setup['attn_heads']} ||\n"
@@ -133,7 +128,16 @@ def architecture_label(name, model_setup):
         architecture += f"|| kernel: {model_setup['kernel']}   final_architecture: {model_setup['final_architecture']} ||\n"
         architecture += f"CNN\n"
         architecture += f"|| block_channels: {model_setup['block_channels_cnn']}    kernel:{model_setup['kernel_size_cnn']}    n_ffn_lay:{model_setup['n_ffn_layers_cnn']} ||"
-        return architecture
+    
+    elif name == 'SplitTraining_CvT_CvT':
+        architecture = f"CvT 1\n"
+        architecture += f"|| n_CTE_ch: {model_setup['CTemb_channels_1']}  n_CPB: {model_setup['n_CP_blocks_1']}   CP_ch: {model_setup['CP_channels_1']} ||\n"
+        architecture += f"|| heads: {model_setup['attn_heads_1']}  kernel: {model_setup['kernel_1']}   final_arch: {model_setup['final_architecture_1']} ||\n"
+        architecture += f"CvT 2\n"
+        architecture += f"|| n_CTE_ch: {model_setup['CTemb_channels_2']}  n_CPB: {model_setup['n_CP_blocks_2']}   CP_ch: {model_setup['CP_channels_2']} ||\n"
+        architecture += f"|| heads: {model_setup['attn_heads_2']}  kernel: {model_setup['kernel_2']}   final_arch: {model_setup['final_architecture_2']} ||\n"
+         
+    return architecture
     
 def get_filenames_from_settings(cm_name, nn_name, **kwargs):
     
@@ -187,6 +191,7 @@ def get_filenames_from_settings(cm_name, nn_name, **kwargs):
             emb_ch_label += f"{CTemb_channels[i]}_"
             cp_ch_label += f"{CP_channels[i]}_"
             heads_label += f"{attn_heads[i]}_"        
+        for i in range(len(final_architecture)):
             arch_label += f"{final_architecture[i]}_"
         kernel_label += f"{kernel[0]}x{kernel[1]}_"
         nnparams = f"_blocks_{blocks_label}emb_ch_{emb_ch_label}cp_ch_{cp_ch_label}heads_{heads_label}kernel_{kernel_label}finarch_{arch_label}"
@@ -234,7 +239,40 @@ def get_filenames_from_settings(cm_name, nn_name, **kwargs):
             cha_label += f"{ch}_"
         nnparams = f"CvT_blocks_{blocks_label}emb_ch_{emb_ch_label}cp_ch_{cp_ch_label}heads_{heads_label}kernel_{kernel_label}finarch_{arch_label}"
         nnparams += f"_CNN_channels_{cha_label_cnn}kernel_{kernel_size_cnn[0]}x{kernel_size_cnn[0]}_n_ffn_lay_{n_ffn_layers_cnn}"
+    
+    elif nn_name == 'SplitTraining_CvT_CvT':
+        # CvT 1 params
+        n_CP_blocks_1 = kwargs['n_CP_blocks_1'] ;  CTemb_channels_1 = kwargs['CTemb_channels_1'] 
+        CP_channels_1 = kwargs['CP_channels_1'] ; attn_heads_1 = kwargs['attn_heads_1']
+        kernel_1 = kwargs['kernel_1'] ; final_architecture_1 = kwargs['final_architecture_1'] 
 
+        kernel_label_1 = blocks_label_1 = emb_ch_label_1 = cp_ch_label_1 = heads_label_1 = arch_label_1 = ''
+        for i in range(len(n_CP_blocks_1)):
+            blocks_label_1 += f"{n_CP_blocks_1[i]}_"
+            emb_ch_label_1 += f"{CTemb_channels_1[i]}_"
+            cp_ch_label_1 += f"{CP_channels_1[i]}_"
+            heads_label_1 += f"{attn_heads_1[i]}_" 
+        for i in range(len(final_architecture_1)):       
+            arch_label_1 += f"{final_architecture_1[i]}_"
+        kernel_label_1 += f"{kernel_1[0]}x{kernel_1[0]}_" 
+
+        # CvT 2 params
+        n_CP_blocks_2 = kwargs['n_CP_blocks_2'] ;  CTemb_channels_2 = kwargs['CTemb_channels_2'] 
+        CP_channels_2 = kwargs['CP_channels_2'] ; attn_heads_2 = kwargs['attn_heads_2']
+        kernel_2 = kwargs['kernel_2'] ; final_architecture_2 = kwargs['final_architecture_2'] 
+
+        kernel_label_2 = blocks_label_2 = emb_ch_label_2 = cp_ch_label_2 = heads_label_2 = arch_label_2 = ''
+        for i in range(len(n_CP_blocks)):
+            blocks_label_2 += f"{n_CP_blocks_2[i]}_" 
+            emb_ch_label_2 += f"{CTemb_channels_2[i]}_" 
+            cp_ch_label_2 += f"{CP_channels_2[i]}_" 
+            heads_label_2 += f"{attn_heads_2[i]}_"        
+        for i in range(len(final_architecture_2)):
+            arch_label_2 += f"{final_architecture_2[i]}_" 
+        kernel_label_2 += f"{kernel_2[0]}x{kernel_2[0]}_" 
+
+        nnparams= f"CvT1_blocks_{blocks_label_1}emb_ch_{emb_ch_label_1}cp_ch_{cp_ch_label_1}heads_{heads_label_1}kernel_{kernel_label_1}finarch_{arch_label_1}"
+        nnparams += f"_CvT2_blocks_{blocks_label_2}emb_ch_{emb_ch_label_2}cp_ch_{cp_ch_label_2}heads_{heads_label_2}kernel_{kernel_label_2}finarch_{arch_label_2}"
 
     sim_label = model_label + f"_simulation_{size[0]}x{size[1]}"+ cparams + nnparams
     ED_label = model_label + f"_xED_{size[0]}x{size[1]}"+cparams
