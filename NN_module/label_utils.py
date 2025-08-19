@@ -236,7 +236,7 @@ def get_filenames_from_settings(cm_name, nn_name, **kwargs):
         block_channels_cnn = kwargs['block_channels_cnn'] ; kernel_size_cnn = kwargs['kernel_size_cnn'] ; n_ffn_layers_cnn = kwargs['n_ffn_layers_cnn']     # CNN
         cha_label_cnn=''
         for ch in block_channels_cnn:
-            cha_label += f"{ch}_"
+            cha_label_cnn += f"{ch}_"
         nnparams = f"CvT_blocks_{blocks_label}emb_ch_{emb_ch_label}cp_ch_{cp_ch_label}heads_{heads_label}kernel_{kernel_label}finarch_{arch_label}"
         nnparams += f"_CNN_channels_{cha_label_cnn}kernel_{kernel_size_cnn[0]}x{kernel_size_cnn[0]}_n_ffn_lay_{n_ffn_layers_cnn}"
     
@@ -262,7 +262,7 @@ def get_filenames_from_settings(cm_name, nn_name, **kwargs):
         kernel_2 = kwargs['kernel_2'] ; final_architecture_2 = kwargs['final_architecture_2'] 
 
         kernel_label_2 = blocks_label_2 = emb_ch_label_2 = cp_ch_label_2 = heads_label_2 = arch_label_2 = ''
-        for i in range(len(n_CP_blocks)):
+        for i in range(len(n_CP_blocks_2)):
             blocks_label_2 += f"{n_CP_blocks_2[i]}_" 
             emb_ch_label_2 += f"{CTemb_channels_2[i]}_" 
             cp_ch_label_2 += f"{CP_channels_2[i]}_" 
