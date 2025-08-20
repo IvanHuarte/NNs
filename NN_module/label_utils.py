@@ -1,3 +1,5 @@
+import ast
+
 from rich.console import Console
 from rich.panel import Panel
 from rich.text import Text
@@ -184,7 +186,7 @@ def get_filenames_from_settings(cm_name, nn_name, **kwargs):
     elif nn_name == 'CvT':
         n_CP_blocks = kwargs['n_CP_blocks'] ;  CTemb_channels = kwargs['CTemb_channels'] 
         CP_channels = kwargs['CP_channels'] ; attn_heads = kwargs['attn_heads']
-        kernel = kwargs['kernel'] ; final_architecture = kwargs['final_architecture'] 
+        kernel = kwargs['kernel'] ; final_architecture = ast.literal_eval(kwargs['final_architecture'] )
         kernel_label = blocks_label = emb_ch_label = cp_ch_label = heads_label = arch_label = ''
         for i in range(len(n_CP_blocks)):
             blocks_label += f"{n_CP_blocks[i]}_"
@@ -222,14 +224,15 @@ def get_filenames_from_settings(cm_name, nn_name, **kwargs):
         # CvT params
         n_CP_blocks = kwargs['n_CP_blocks'] ;  CTemb_channels = kwargs['CTemb_channels'] 
         CP_channels = kwargs['CP_channels'] ; attn_heads = kwargs['attn_heads']
-        kernel = kwargs['kernel'] ; final_architecture = kwargs['final_architecture'] 
+        kernel = kwargs['kernel'] ; final_architecture = ast.literal_eval(kwargs['final_architecture'] )
 
         kernel_label = blocks_label = emb_ch_label = cp_ch_label = heads_label = arch_label = ''
         for i in range(len(n_CP_blocks)):
             blocks_label += f"{n_CP_blocks[i]}_"
             emb_ch_label += f"{CTemb_channels[i]}_"
             cp_ch_label += f"{CP_channels[i]}_"
-            heads_label += f"{attn_heads[i]}_"        
+            heads_label += f"{attn_heads[i]}_" 
+        for i in range(len(final_architecture)):       
             arch_label += f"{final_architecture[i]}_"
         kernel_label += f"{kernel[0]}x{kernel[1]}_"
         # CNN params
@@ -244,7 +247,7 @@ def get_filenames_from_settings(cm_name, nn_name, **kwargs):
         # CvT 1 params
         n_CP_blocks_1 = kwargs['n_CP_blocks_1'] ;  CTemb_channels_1 = kwargs['CTemb_channels_1'] 
         CP_channels_1 = kwargs['CP_channels_1'] ; attn_heads_1 = kwargs['attn_heads_1']
-        kernel_1 = kwargs['kernel_1'] ; final_architecture_1 = kwargs['final_architecture_1'] 
+        kernel_1 = kwargs['kernel_1'] ; final_architecture_1 = ast.literal_eval(kwargs['final_architecture_1'] )
 
         kernel_label_1 = blocks_label_1 = emb_ch_label_1 = cp_ch_label_1 = heads_label_1 = arch_label_1 = ''
         for i in range(len(n_CP_blocks_1)):
@@ -259,7 +262,7 @@ def get_filenames_from_settings(cm_name, nn_name, **kwargs):
         # CvT 2 params
         n_CP_blocks_2 = kwargs['n_CP_blocks_2'] ;  CTemb_channels_2 = kwargs['CTemb_channels_2'] 
         CP_channels_2 = kwargs['CP_channels_2'] ; attn_heads_2 = kwargs['attn_heads_2']
-        kernel_2 = kwargs['kernel_2'] ; final_architecture_2 = kwargs['final_architecture_2'] 
+        kernel_2 = kwargs['kernel_2'] ; final_architecture_2 = ast.literal_eval(kwargs['final_architecture_2'] ) 
 
         kernel_label_2 = blocks_label_2 = emb_ch_label_2 = cp_ch_label_2 = heads_label_2 = arch_label_2 = ''
         for i in range(len(n_CP_blocks_2)):

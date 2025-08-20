@@ -38,7 +38,7 @@ class DepthPointwiseConv(nn.Module):
     def __call__(self, x: jt.ArrayLike) -> jt.ArrayLike:
 
         mask = get_mask()
-        
+        #print(f"Mask shape: {mask.shape}, x shape: {x.shape}")
         #Depth-wise convolution
         Ch_in = x.shape[-1]
         x = nn.Conv(
@@ -47,7 +47,7 @@ class DepthPointwiseConv(nn.Module):
             feature_group_count=Ch_in,    
             strides=self.strides,         
             padding='CIRCULAR',                   # 'CIRCULAR' para BC periódicas
-            mask=jnp.broadcast_to(mask[:,:,None,None], (*mask.shape, Ch_in, Ch_in)),
+            mask=jnp.broadcast_to(mask[:,:,None,None], (*mask.shape, 1, Ch_in)),
             dtype=REAL_DTYPE,
             use_bias=False
         )(x)
