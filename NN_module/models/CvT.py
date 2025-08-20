@@ -26,36 +26,6 @@ def get_mask(
         ])
     return mask
 
-class TriangularMaskedConv(nn.Module):
-    """
-    It expects an already padded input
-    """
-    channels: int  
-    kernel: Tuple = (3,3)
-    strides: Tuple = (1,1)
-
-    @nn.compact
-    def __call__(self, x: jt.ArrayLike) -> jt.ArrayLike:
-        x = x.astype(REAL_DTYPE)
-        kernel_shape = (*self.kernel, x.shape[-1], self.channels)
-        kernel = self.param("kernel", nn.initializers.lecun_normal(), kernel_shape, dtype=REAL_DTYPE)
-        mask = jnp.array([
-            [0, 1, 1],
-            [1, 1, 1],
-            [1, 1, 0],
-        ])  # Máscara para triangular
-
-        mask = mask[:, :, None, None]  # para broadcast en canales
-        masked_kernel = kernel * mask
-
-        return jax.lax.conv_general_dilated(
-            x,
-            masked_kernel,
-            window_strides=self.strides,
-            padding="VALID",
-            dimension_numbers=("NHWC", "HWIO", "NHWC"),
-        )
-    
 class DepthPointwiseConv(nn.Module):
     """
     Depthwise pointwise convolution
@@ -66,6 +36,8 @@ class DepthPointwiseConv(nn.Module):
 
     @nn.compact
     def __call__(self, x: jt.ArrayLike) -> jt.ArrayLike:
+
+        mask = get_mask()
         
         #Depth-wise convolution
         Ch_in = x.shape[-1]
@@ -74,7 +46,8 @@ class DepthPointwiseConv(nn.Module):
             kernel_size=self.kernel,      
             feature_group_count=Ch_in,    
             strides=self.strides,         
-            padding='SAME',                   # 'CIRCULAR' para BC periódicas
+            padding='CIRCULAR',                   # 'CIRCULAR' para BC periódicas
+            mask=jnp.broadcast_to(mask[:,:,None,None], (*mask.shape, Ch_in, Ch_in)),
             dtype=REAL_DTYPE,
             use_bias=False
         )(x)
@@ -110,7 +83,6 @@ class ConvProjectionBlock(nn.Module):
         B, H, W, _ = x.shape
         assert self.channels % self.n_heads == 0, "Channels must be divisible by the number of heads"
         head_dim = self.channels // self.n_heads
-
 
         Q = DepthPointwiseConv(self.channels, kernel=self.kernel, strides=self.strides_qkv[0])(x)
         K = DepthPointwiseConv(self.channels, kernel=self.kernel, strides=self.strides_qkv[1])(x)
