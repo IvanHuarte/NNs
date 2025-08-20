@@ -9,17 +9,17 @@ from .ViT_2D import MultiLayerPerceptron
 REAL_DTYPE = jnp.float64
 
 def get_mask(
-    flag: bool = False
+    flag: bool = False          # Por defacto, se usa la máscara de patches adyacentes
     ) -> jnp.ndarray:
 
     if flag:
-        mask= jnp.array([
+        mask= jnp.array([      # Mascara para red triangular
             [0, 1, 1],
             [1, 1, 1],
             [1, 1, 0],
         ])  
     else:
-        mask = jnp.array([
+        mask = jnp.array([      # Mascara para patches adyacentes
             [0, 1, 0],
             [1, 1, 1],
             [0, 1, 0],
@@ -38,8 +38,8 @@ class DepthPointwiseConv(nn.Module):
     def __call__(self, x: jt.ArrayLike) -> jt.ArrayLike:
 
         mask = get_mask()
-        #print(f"Mask shape: {mask.shape}, x shape: {x.shape}")
-        #Depth-wise convolution
+
+        #Depth-wise convolution (Aplica mascara adyacente a cada canal)
         Ch_in = x.shape[-1]
         x = nn.Conv(
             features=Ch_in,               
@@ -80,7 +80,7 @@ class ConvProjectionBlock(nn.Module):
         # print(f"Input shape: {x.shape}")
         # Convolutional projection
         # x (B,H,W,Ch_in)
-        B, H, W, _ = x.shape
+        B = x.shape[0]
         assert self.channels % self.n_heads == 0, "Channels must be divisible by the number of heads"
         head_dim = self.channels // self.n_heads
 
@@ -101,12 +101,11 @@ class ConvProjectionBlock(nn.Module):
         # Self-attention block
         QKt = jnp.matmul(Q,jnp.swapaxes(K,-2,-1)) / jnp.sqrt(head_dim) # QKt = (B, heads, Nq, Nk)
         atten = nn.softmax(QKt, axis=-1)
-        
         # (B, heads, Nq, head_dim) --> (B, Nq, heads, head_dim) --> (B, Hq, Wq, channels)
         attention = jnp.matmul(atten, V).transpose((0, 2, 1, 3)).reshape((B, Hq, Wq, self.channels))
 
         x = nn.LayerNorm(dtype=REAL_DTYPE)(x + attention)
-        # print(f"After attention: {x.shape}")
+
         # MLP
         x_ffn = x.reshape((B, Nq, self.channels))  # Reshape to (B, Hq*Wq, channels)
         x_ffn = MultiLayerPerceptron(
@@ -202,7 +201,7 @@ class CvT(nn.Module):
 
         B = x.shape[0]
         for i in range(n_stages):
-            if i == 0: CTE_triangular = True
+            if i == 0: CTE_triangular = True    #Aplica mascara triangular en el primer stage solo en el CTEmb
             else: CTE_triangular = False
 
             x = StageBlock(
@@ -213,7 +212,6 @@ class CvT(nn.Module):
                 kernel=self.kernel,
                 CTE_triangular=CTE_triangular
             )(x)
-        #print(f"After all stages: {x.shape}")
         
         # Final MLP layer
         x = x.reshape((B, -1))
