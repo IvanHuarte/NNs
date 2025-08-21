@@ -142,7 +142,7 @@ def architecture_label(name, model_setup):
     return architecture
     
 def get_filenames_from_settings(cm_name, nn_name, **kwargs):
-    
+
     model_label = cm_name + '_' + nn_name
     size=kwargs['size']
 
@@ -167,6 +167,12 @@ def get_filenames_from_settings(cm_name, nn_name, **kwargs):
             flat_couplings += f + '_'
             coupling_values += f"{v}" + '_'
             call_params += f"{f}:{v}  "
+
+    elif cm_name == 'LRChain':
+        J = kwargs['J'] ; alpha = kwargs['alpha'] ; fields = kwargs['fields']
+        cparams = f"_J_{J}_alpha_{alpha}_XZ_{fields[0]}_{fields[1]}"
+        call_params = r"$J = %.2f$  $\alpha = %.1f$  $XZ = (%.1f, %.1f)$" % (J, alpha, fields[0], fields[1])
+
 
     if nn_name == 'MLP':
         alphas = kwargs['hidden_alpha'] ; activation = kwargs['activation'] 

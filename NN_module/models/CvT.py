@@ -38,6 +38,7 @@ class DepthPointwiseConv(nn.Module):
     def __call__(self, x: jt.ArrayLike) -> jt.ArrayLike:
 
         mask = get_mask()
+        if self.kernel[1] == 1:   mask = mask[1][:, None]
 
         #Depth-wise convolution (Aplica mascara adyacente a cada canal)
         Ch_in = x.shape[-1]
@@ -139,6 +140,8 @@ class StageBlock(nn.Module):
         # print(f"Input shape: {x.shape}")
 
         mask = get_mask(flag=self.CTE_triangular)
+        if self.kernel[1] == 1:   mask = mask[1][:, None]
+
         # Convolutional token embedding
         x = nn.Conv(
             features=self.CTemb_channels, 
@@ -149,7 +152,6 @@ class StageBlock(nn.Module):
             dtype=REAL_DTYPE
         )(x)
 
-        # x = TriangularMaskedConv(self.CTemb_channels)(x)
 
         x = nn.LayerNorm(dtype=REAL_DTYPE)(x)
         # print(f"After Conv embedding: {x.shape}")
@@ -227,4 +229,4 @@ class CvT(nn.Module):
             x = MultiLayerPerceptron(self.final_architecture)(x)
             return nn.Dense(1)(x).squeeze()
         
-    
+        

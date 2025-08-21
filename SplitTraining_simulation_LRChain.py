@@ -1,4 +1,7 @@
 #!/home/ihuarte/miniconda3/envs/conda_env/bin/python
+import warnings
+warnings.filterwarnings("ignore")
+
 import numpy as np
 import jax
 import jax.numpy as jnp
@@ -23,7 +26,7 @@ sys.path.append(str(Path(__file__).resolve().parent.parent / "ATMOS_VA/VA_projec
 sys.path.append(str(Path(__file__).resolve().parent.parent / "Transformers/transformer_LR_WF_public"))
 
 # Importar módulos necesarios
-from VA_project.model.model import OxalateJKGamma
+from VA_project.model.model import LRChain
 from VA_project.engine.runners import Runner
 from NN_module.sim_utils import (
     save_results, dump_callback, init_model
@@ -50,9 +53,9 @@ nn_model_setup = config["model_NN"][nn_model_name]
 model_label= cm_model_name+'_'+nn_model_name
 
 sizes = config['sizes']
-strength = config['CM'][cm_model_name]['strength']                # Lattice and coupling model
-theta_list = config['CM'][cm_model_name]['theta_list']
-phi_list = config['CM'][cm_model_name]['phi_list']
+J_list = config['CM'][cm_model_name]['J_list']                # Lattice and coupling model
+alpha_list = config['CM'][cm_model_name]['alpha_list']
+fields = config['CM'][cm_model_name]['fields']
 kwargs_lattice = config['kwargs_lattice']
 
 epochs = config['lr_schedule']['epochs']                          # Simulation settings
@@ -98,25 +101,27 @@ for i, size in enumerate(sizes):
     hi, nk.sampler.rules.MultipleRules([rule1, rule2], [pflip, pinvert]),
     n_chains_per_rank=sampler_setup['n_chains_per_rank'], chunk_size=sampler_setup['chunk_sampler'],
     )
+    alpha=alpha_list[0]
+    for j, J in enumerate(J_list):
 
-    for j, (theta, phi) in enumerate(zip(theta_list, phi_list)):
-
-        config['CM'][cm_model_name]['theta']=theta
-        config['CM'][cm_model_name]['phi']=phi
+        config['CM'][cm_model_name]['J']=J
+        config['CM'][cm_model_name]['alpha']=alpha
         config['size']=size
         display_simulation_settings(config)
         
         ## Update Hamiltonian
-        oxa=OxalateJKGamma(
-            size, 
-            [strength, theta, phi],
+        lrc=LRChain(
+            size[0], 
+            J,
+            alpha,
+            fields,
             **kwargs_lattice
         )
-        H = Runner(oxa.cm).build_hamiltonian()
+        H = Runner(lrc.cm).build_hamiltonian()
 
         if exact_diag:
             print("Running exact diagonalization...")
-            E_ED, x_ED = Runner(oxa.cm).exact_energy_lanczos(eigenstates=True)
+            E_ED, x_ED = Runner(lrc.cm).exact_energy_lanczos(eigenstates=True)
             E_ED = float(E_ED.squeeze(-1))
             print(f"Energy ED: {E_ED}")
 
@@ -231,8 +236,8 @@ for i, size in enumerate(sizes):
 
             ## Save results
             _kwargs = config['model_NN'][nn_model_name]
-            _kwargs['size']=size ; _kwargs['strength']=strength 
-            _kwargs['theta']=theta ; _kwargs['phi']=phi
+            _kwargs['size']=size ; _kwargs['J']=J 
+            _kwargs['alpha']=alpha ; _kwargs['fields']=fields
             
             sim_label, ED_label, json_label, title_label_callback = get_filenames_from_settings(config['CM']['selection'], config['model_NN']['selection'], **_kwargs )
 
@@ -278,29 +283,29 @@ for i, size in enumerate(sizes):
             print(f"vstate phase: {stats_vs['phase']['mean']} \u00b1 {stats_vs['phase']['std']}  ({stats_vs['type']})")
 
             # Renyi entropy, magnetization and its fluctuation
-            S_renyi = vstate.expect(renyi)
-            M = vstate.expect(magnet).real
-            Ms = vstate.expect(mags).real
+            S_renyi = float(vstate.expect(renyi).mean)
+            M = float(vstate.expect(magnet).mean.real)
+            Ms = float(vstate.expect(mags).mean.real)
 
-            print(f"Renyi entropy: {S_renyi.mean}")
-            print(f"Magnetization: {M.mean}")
-            print(f"Magnetization fluctuation: {Ms.mean}")
-            ## Save the results
+            print(f"Renyi entropy: {S_renyi} ")
+            print(f"Magnetization: {M}")
+            print(f"Magnetization fluctuation: {Ms}")
+            # Save the results
 
             dump_setup ={
                 'model_label': model_label,
 
                 'lattice':{
-                    'name': 'Triangular',
+                    'name': 'Chain',
                     'size': size, 
                     'bc': kwargs_lattice['bc'],
                     'order': kwargs_lattice['order']
                 },
 
                 'coupling_model': {
-                    'strength': strength,
-                    'theta': theta,
-                    'phi': phi, 
+                    'J': J, 
+                    'alpha': alpha, 
+                    'fields': fields
                 },
 
                 'model_NN': {
