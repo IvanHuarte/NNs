@@ -103,6 +103,7 @@ for i, size in enumerate(sizes):
     )
     alpha=alpha_list[0]
     for j, J in enumerate(J_list):
+        
 
         config['CM'][cm_model_name]['J']=J
         config['CM'][cm_model_name]['alpha']=alpha
