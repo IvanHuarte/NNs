@@ -18,16 +18,20 @@ def get_write_folder_from_model(config):
         conditions = [model_setup['symm_2D_module'], model_setup['symm_2D_phase'], 
                       model_setup['symm_Z2_module'], model_setup['symm_Z2_phase']]
         labels = ["_2DM","_2DP","_Z2M","_Z2P"]
-  
 
     elif  name == "SplitTraining_ViT_CNN":
         conditions = [model_setup['symm_2D_module'], model_setup['symm_Z2_module']]
         labels = ["_2DM","_Z2M"]
 
+    elif  name == "CvT":
+        conditions = [model_setup['symm_Z2']]
+        labels = ["_Z2"]
+
     symm=''
     for cond, label in zip(conditions,labels):
         if cond:
             symm+=label
+            if label == '_Z2':  symm += "t" if model_setup['trivial_Z2'] else "nt"
             if label == '_Z2M':  symm += "t" if model_setup['trivial_Z2_module'] else "nt"
             if label == '_Z2P':  symm += "t" if model_setup['trivial_Z2_phase'] else "nt"
         
@@ -101,7 +105,8 @@ def architecture_label(name, model_setup):
     elif name == 'CvT':
         architecture = f"|| n_CTE_ch: {model_setup['CTemb_channels']}  n_CPB: {model_setup['n_CP_blocks']}   CP_ch: {model_setup['CP_channels']} ||\n"
         architecture += f"|| heads: {model_setup['attn_heads']}  kernel: {model_setup['kernel']}   final_arch: {model_setup['final_architecture']} ||\n"
-         
+        architecture += f"|| symm_Z2: {model_setup['symm_Z2']}  trivial: {model_setup['trivial_Z2']} ||\n"
+
     elif name == 'SplitTraining_ViT_MLP':
         architecture = f"ViT \n"
         architecture += f"|| b: {model_setup['token_size']}  D_emb: {model_setup['embedding_d']}  heads: {model_setup['n_heads']} ||\n"

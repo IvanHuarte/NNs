@@ -165,7 +165,7 @@ class StageBlock(nn.Module):
 
         return log_cosh(x)
 
-class CvT(nn.Module):
+class CvTWorker(nn.Module):
     """
     Convolutional Vision Transformer (CvT) implementation.
     It consists of multiple stages, each containing a convolutional token embedding
@@ -229,4 +229,85 @@ class CvT(nn.Module):
             x = MultiLayerPerceptron(self.final_architecture)(x)
             return nn.Dense(1)(x).squeeze()
         
-        
+class CvT_Z2(nn.Module):
+
+    lattice_size : Tuple[int, int]  
+    
+    n_CP_blocks_list: Tuple[int, ...]            # Number of convolutional projection blocks in each stage
+    CTemb_channels_list: Tuple[int, ...]          # Number of channels in the convolutional token embedding.
+    CP_channels_list: Tuple[int, ...]              # Number of channels for each convolutional projection block in each stage.
+    attn_heads_list: Tuple[int, ...]               # Number of heads for each convolutional projection block in each stage.
+    kernel: Tuple = (3, 3)                        # Kernel size for the convolutional operations (must be 3x3)        
+    final_architecture: Tuple = (5,)
+    two_heads: bool = False                        # If True, the output will be a complex number with modulus and phase
+    trivial_Z2: bool = True                           # If True, the wavefunction is even under global Z2 transformation
+
+    @nn.compact
+    def __call__(self, x: jt.ArrayLike) -> jt.ArrayLike:
+
+        worker = CvTWorker(
+            lattice_size=self.lattice_size,
+            n_CP_blocks_list=self.n_CP_blocks_list,
+            CTemb_channels_list=self.CTemb_channels_list,
+            CP_channels_list=self.CP_channels_list,
+            attn_heads_list=self.attn_heads_list,
+            kernel=self.kernel,
+            final_architecture=self.final_architecture,
+            two_heads=self.two_heads
+        )
+        output_x = jnp.atleast_1d(worker(x))
+        output_inv_x = jnp.atleast_1d(worker(-x))
+
+        # Ahora sí podemos concatenar
+        z2_stack = jnp.stack([output_x, output_inv_x], axis=0)
+
+        if self.trivial_Z2:
+            return jax.nn.logsumexp(z2_stack, axis=0, keepdims=False)
+        else:
+            b = jnp.asarray([1., -1.])[:, None]  # shape (2,1)
+            return jax.nn.logsumexp(z2_stack, b=b, axis=0, keepdims=False)
+
+class CvT(nn.Module):
+
+    lattice_size : Tuple[int, int]  
+    
+    n_CP_blocks_list: Tuple[int, ...]            # Number of convolutional projection blocks in each stage
+    CTemb_channels_list: Tuple[int, ...]          # Number of channels in the convolutional token embedding.
+    CP_channels_list: Tuple[int, ...]              # Number of channels for each convolutional projection block in each stage.
+    attn_heads_list: Tuple[int, ...]               # Number of heads for each convolutional projection block in each stage.
+    kernel: Tuple = (3, 3)                        # Kernel size for the convolutional operations (must be 3x3)        
+    final_architecture: Tuple = (5,)
+    two_heads: bool = False                        # If True, the output will be a complex number with modulus and phase
+
+    symm_Z2: bool = False                           # If True, the wavefunction is even under global Z2 transformation
+    trivial_Z2: bool = True                          
+
+    @nn.compact
+    def __call__(self, x: jt.ArrayLike) -> jt.ArrayLike:
+
+        if self.symm_Z2:
+            worker = CvT_Z2(
+                lattice_size=self.lattice_size,
+                n_CP_blocks_list=self.n_CP_blocks_list,
+                CTemb_channels_list=self.CTemb_channels_list,
+                CP_channels_list=self.CP_channels_list,
+                attn_heads_list=self.attn_heads_list,
+                kernel=self.kernel,
+                final_architecture=self.final_architecture,
+                two_heads=self.two_heads,
+                trivial_Z2=self.trivial_Z2
+            )
+        else:
+            worker = CvTWorker(
+                lattice_size=self.lattice_size,
+                n_CP_blocks_list=self.n_CP_blocks_list,
+                CTemb_channels_list=self.CTemb_channels_list,
+                CP_channels_list=self.CP_channels_list,
+                attn_heads_list=self.attn_heads_list,
+                kernel=self.kernel,
+                final_architecture=self.final_architecture,
+                two_heads=self.two_heads
+            )
+
+        output_x = worker(x)
+        return output_x

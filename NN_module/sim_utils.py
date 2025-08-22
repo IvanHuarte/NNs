@@ -169,7 +169,7 @@ def dump_callback(logger, settings, write = False):
     # Extract some results
     E_hist = np.array(logger['Energy']['Mean']).real
     dev_E_hist = np.array(logger['Energy']['Sigma']).real
-    E_best = min(logger['Energy']['Mean'])
+    E_best = min(logger['Energy']['Mean']).real
 
     if hasattr(logger, 'E_ED'):
         E_gr = np.array(logger.E_ED).real
@@ -371,7 +371,9 @@ def init_model(name, model_setup):
             attn_heads_list=tuple(model_setup['attn_heads']),
             kernel=tuple(model_setup['kernel']),
             final_architecture=ast.literal_eval(model_setup['final_architecture']),
-            two_heads= model_setup['two_heads']
+            two_heads= model_setup['two_heads'],
+            symm_Z2= model_setup['symm_Z2'],
+            trivial_Z2= model_setup['trivial_Z2']
         )
 
     elif name == 'SplitTraining_ViT_MLP':
