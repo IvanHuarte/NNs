@@ -2,11 +2,13 @@ import pytest
 import jax
 import jax.numpy as jnp
 from time import time
-from ...NN_module.models.CvT2 import (
+import sys
+import os
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../")))
+from NN_module.models.CvT2 import (
     DepthPointwiseConv, ConvProjectionBlock, StageBlock
 )
-
-from ._trasl_equiv_check import (
+from pytests.test_equivariance._trasl_equiv_check import (
     equivariance_traslation_all_test, equivariance_traslation_test
 )
 
@@ -17,25 +19,42 @@ lattice_size = (4, 4)
 C_in = 4
 C_out = 8
 
+atol=1e-7
+verbosity=0
+
 def test_DepthPointwiseConv():
     model=DepthPointwiseConv(
-        channels=C_out,
-        n_heads=4
-    )
-    x0_shape = (1, lattice_size[0], lattice_size[1], C_in)
-    x0 = jax.random.choice(key, jnp.array([-1, 1]), shape=x0_shape)
-    params = model.init(key, x0)
-    return equivariance_test(x0, lattice_size, params, model)
-
-def test_ConvProjectionBlock():
-
-    model=ConvProjectionBlock(
         channels=C_out
     )
     x0_shape = (1, lattice_size[0], lattice_size[1], C_in)
     x0 = jax.random.choice(key, jnp.array([-1, 1]), shape=x0_shape)
     params = model.init(key, x0)
-    return equivariance_test(x0, lattice_size, params, model)
+    return equivariance_test(
+        x0, 
+        lattice_size,
+        params, 
+        model, 
+        atol= atol,
+        v = verbosity
+    )
+
+def test_ConvProjectionBlock():
+
+    model=ConvProjectionBlock(
+        channels=C_in,
+        n_heads=4
+    )
+    x0_shape = (1, lattice_size[0], lattice_size[1], C_in)
+    x0 = jax.random.choice(key, jnp.array([-1, 1]), shape=x0_shape)
+    params = model.init(key, x0)
+    return equivariance_test(
+        x0, 
+        lattice_size,
+        params, 
+        model, 
+        atol= atol,
+        v = verbosity
+    )
 
 def test_StageBlock():
 
@@ -49,7 +68,14 @@ def test_StageBlock():
     x0_shape = (1, lattice_size[0], lattice_size[1], C_in)
     x0 = jax.random.choice(key, jnp.array([-1, 1]), shape=x0_shape)
     params = model.init(key, x0)
-    return equivariance_test(x0, lattice_size, params, model)
+    return equivariance_test(
+        x0, 
+        lattice_size,
+        params, 
+        model, 
+        atol= atol,
+        v = verbosity
+    )
 
 
 

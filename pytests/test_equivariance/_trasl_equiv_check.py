@@ -118,8 +118,9 @@ def equivariance_traslation_all_test(x0, lattice_size, params, model, atol=1e-5,
             check.append(jnp.allclose(y_check, y_roll, atol=atol))
             
         if not any(check):
-            print(f"Equivarianza fallida para shift={shift}")
             success = False
+            if v>0:
+                print(f"Equivarianza fallida para shift={shift}")
         else:
             if v>0:
                 print(f"Equivarianza existente para shift={shift}")

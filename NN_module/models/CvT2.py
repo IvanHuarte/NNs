@@ -26,6 +26,19 @@ def get_mask(
         ])
     return mask
 
+def disjoint_avg_pool(
+    x: jt.ArrayLike ,
+    strides: Tuple = (2, 2) 
+)-> jt.ArrayLike:
+    
+    B, H, W, C = x.shape
+    Hd, Wd = H // strides[0], W // strides[1], 
+
+    x = x.reshape((B, Wd, strides[1], Hd, strides[0], C),
+                order='C').transpose((0, 1, 3, 2, 4, 5)).reshape(B, Hd*Wd, *strides, C).mean(axis=1)
+    
+    return x
+
 class DepthPointwiseConv(nn.Module):
     """
     Depthwise pointwise convolution
@@ -46,14 +59,17 @@ class DepthPointwiseConv(nn.Module):
             features=Ch_in,               
             kernel_size=self.kernel,      
             feature_group_count=Ch_in,    
-            strides=self.strides,         
+            strides=(1,1),         
             padding='CIRCULAR',                   # 'CIRCULAR' para BC periódicas
-            #mask=jnp.broadcast_to(mask[:,:,None,None], (*mask.shape, 1, Ch_in)),
+            mask=jnp.broadcast_to(mask[:,:,None,None], (*mask.shape, 1, Ch_in)),
             dtype=REAL_DTYPE,
             use_bias=False
         )(x)
         # Normalizacion
         x = nn.LayerNorm()(x)
+
+        if self.strides != (1,1):
+            x = disjoint_avg_pool(x, self.strides)
 
         # Point-wise convolution
         x = nn.Conv(
@@ -130,6 +146,7 @@ class StageBlock(nn.Module):
     CTemb_channels: int           # Number of channels in the convolutional token embedding
     CP_channels: int             # Number of channels for each convolutional projection block
     n_heads: int                  # Number of heads for each block
+    strides: Tuple = (2, 2)       
     kernel: Tuple = (3, 3)          # Kernel size for the convolutional operations (must be 3x3)
     CTE_triangular: bool = False
     
@@ -155,7 +172,7 @@ class StageBlock(nn.Module):
             dtype=REAL_DTYPE,
             use_bias=False
         )(x)
-        x = nn.avg_pool(x, window_shape=(2,2), strides=(2,2))  
+        x = disjoint_avg_pool(x, self.strides)  # Downsampling
 
         x = nn.LayerNorm(dtype=REAL_DTYPE,)(x)
         # print(f"After Conv embedding: {x.shape}")
