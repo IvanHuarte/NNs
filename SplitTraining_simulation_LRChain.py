@@ -99,7 +99,8 @@ for i, size in enumerate(sizes):
     n_chains_per_rank=sampler_setup['n_chains_per_rank'], chunk_size=sampler_setup['chunk_sampler'],
     )
 
-    for j, (J, alpha) in enumerate(zip(J_list, alpha_list)):
+    alpha = alpha_list[0]
+    for J in J_list:
 
         config['CM'][cm_model_name]['J']=J
         config['CM'][cm_model_name]['alpha']=alpha
