@@ -15,6 +15,8 @@ def get_mask() -> jnp.ndarray:
             [1, 1, 0],
         ])  
 
+def seq
+
 class DepthPointwiseConv(nn.Module):
     """
     Depthwise pointwise convolution
@@ -206,6 +208,8 @@ class CvTWorker(nn.Module):
                 kernel=self.kernel,
                 CTE_triangular=CTE_triangular
             )(x)
+        
+        x = seq_reduction_pooling(x)
         
         # Final MLP layer
         x = x.reshape((B, -1))
