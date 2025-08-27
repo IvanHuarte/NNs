@@ -28,12 +28,14 @@ def get_mask(
 
 def disjoint_avg_pool(
     x: jt.ArrayLike ,
-    strides: Tuple = (2, 2) 
+    strides: Tuple 
 )-> jt.ArrayLike:
     
     B, H, W, C = x.shape
     Hd, Wd = H // strides[0], W // strides[1], 
-
+    # print(f"(B, H, W, C) = {x.shape}")
+    # print(f"strides: {strides}")
+    # print(f"Hd, Wd = {Hd}, {Wd}")
     x = x.reshape((B, Wd, strides[1], Hd, strides[0], C),
                 order='C').transpose((0, 1, 3, 2, 4, 5)).reshape(B, Hd*Wd, *strides, C).mean(axis=1)
     
@@ -49,19 +51,20 @@ class DepthPointwiseConv(nn.Module):
 
     @nn.compact
     def __call__(self, x: jt.ArrayLike) -> jt.ArrayLike:
+        Ch_in = x.shape[-1] 
 
         mask = get_mask()
-        if self.kernel[1] == 1:   mask = mask[1][:, None]
+        mask = jnp.broadcast_to(mask[:,:,None,None], (*mask.shape, 1, Ch_in))
+        if self.kernel[1] == 1:   mask = None
 
         #Depth-wise convolution (Aplica mascara adyacente a cada canal)
-        Ch_in = x.shape[-1] 
         x = nn.Conv(
             features=Ch_in,               
             kernel_size=self.kernel,      
             feature_group_count=Ch_in,    
             strides=(1,1),         
             padding='CIRCULAR',                   # 'CIRCULAR' para BC periódicas
-            mask=jnp.broadcast_to(mask[:,:,None,None], (*mask.shape, 1, Ch_in)),
+            mask=mask,
             dtype=REAL_DTYPE,
             use_bias=False
         )(x)
@@ -88,7 +91,7 @@ class ConvProjectionBlock(nn.Module):
     channels: int
     n_heads: int = 1
     kernel: Tuple = (3,3)
-    strides_qkv: Tuple[Tuple, Tuple, Tuple] = ((1,1),(2,2),(2,2))
+    strides_qkv: Tuple[Tuple, Tuple, Tuple] = ((1,1),(2,1),(2,1))
     n_mlp_layers: int = 1
 
     @nn.compact
@@ -96,6 +99,8 @@ class ConvProjectionBlock(nn.Module):
 
         # Convolutional projection
         # x (B,H,W,Ch_in)
+        # print(f"Beggining CTB")
+        # print(f"xin: {x.shape}")
         B = x.shape[0]
         assert self.channels % self.n_heads == 0, "Channels must be divisible by the number of heads"
         head_dim = self.channels // self.n_heads
@@ -152,8 +157,8 @@ class StageBlock(nn.Module):
     
     @nn.compact
     def __call__(self, x: jt.ArrayLike) -> jt.ArrayLike:
-        # print(f"Beginning Stage")
-        #print(f"Input shape: {x.shape}")
+        # print(f"\nBeginning Stage")
+        # print(f"Input shape: {x.shape}")
 
         mask = get_mask(flag=self.CTE_triangular)
         mask = jnp.broadcast_to(
@@ -185,7 +190,7 @@ class StageBlock(nn.Module):
                 kernel=self.kernel,
                 )(x)
 
-        #print(f"Output.shape: {x.shape}")
+        # print(f"Stage output.shape: {x.shape}")
         return log_cosh(x)
 
 class CvTWorker(nn.Module):
@@ -208,11 +213,12 @@ class CvTWorker(nn.Module):
     """
     lattice_size : Tuple[int, int]  
     
-    n_CP_blocks_list: Tuple[int, ...]            # Number of convolutional projection blocks in each stage
-    CTemb_channels_list: Tuple[int, ...]          # Number of channels in the convolutional token embedding.
-    CP_channels_list: Tuple[int, ...]              # Number of channels for each convolutional projection block in each stage.
-    attn_heads_list: Tuple[int, ...]               # Number of heads for each convolutional projection block in each stage.
-    kernel: Tuple = (3, 3)                        # Kernel size for the convolutional operations (must be 3x3)        
+    n_CP_blocks_list: Tuple[int, ...]            # Number of CPB in each stage
+    CTemb_channels_list: Tuple[int, ...]          # Number of channels in CTE.
+    CP_channels_list: Tuple[int, ...]              # Number of channels for each CPB in each stage.
+    attn_heads_list: Tuple[int, ...]               # Number of heads for each CPB in each stage.
+    strides_list: Tuple[Tuple[int,int], ...]        # Stride value for each stage. Applied in CTE
+    kernel: Tuple = (3, 3)                        # Kernel size for the convolutional operations (must be 3x3 or 3x1 for 1D)        
     final_architecture: Tuple = (5,)
     two_heads: bool = False                        # If True, the output will be a complex number with modulus and phase
 
@@ -234,6 +240,7 @@ class CvTWorker(nn.Module):
                 CTemb_channels=self.CTemb_channels_list[i],
                 CP_channels=self.CP_channels_list[i],
                 n_heads=self.attn_heads_list[i],
+                strides=self.strides_list[i],
                 kernel=self.kernel,
                 CTE_triangular=CTE_triangular
             )(x)
@@ -260,6 +267,7 @@ class CvT_Z2(nn.Module):
     CTemb_channels_list: Tuple[int, ...]          # Number of channels in the convolutional token embedding.
     CP_channels_list: Tuple[int, ...]              # Number of channels for each convolutional projection block in each stage.
     attn_heads_list: Tuple[int, ...]               # Number of heads for each convolutional projection block in each stage.
+    strides_list: Tuple[Tuple[int,int], ...]
     kernel: Tuple = (3, 3)                        # Kernel size for the convolutional operations (must be 3x3)        
     final_architecture: Tuple = (5,)
     two_heads: bool = False                        # If True, the output will be a complex number with modulus and phase
@@ -274,6 +282,7 @@ class CvT_Z2(nn.Module):
             CTemb_channels_list=self.CTemb_channels_list,
             CP_channels_list=self.CP_channels_list,
             attn_heads_list=self.attn_heads_list,
+            strides_list=self.strides_list,
             kernel=self.kernel,
             final_architecture=self.final_architecture,
             two_heads=self.two_heads
@@ -281,16 +290,15 @@ class CvT_Z2(nn.Module):
         output_x = jnp.atleast_1d(worker(x))
         output_inv_x = jnp.atleast_1d(worker(-x))
 
-        # Ahora sí podemos concatenar
         z2_stack = jnp.stack([output_x, output_inv_x], axis=0)
 
         if self.trivial_Z2:
             return jax.nn.logsumexp(z2_stack, axis=0, keepdims=False)
         else:
-            b = jnp.asarray([1., -1.])[:, None]  # shape (2,1)
+            b = jnp.asarray([1., -1.])[:, None]  
             return jax.nn.logsumexp(z2_stack, b=b, axis=0, keepdims=False)
 
-class CvT(nn.Module):
+class CvT2(nn.Module):
 
     lattice_size : Tuple[int, int]  
     
@@ -298,6 +306,7 @@ class CvT(nn.Module):
     CTemb_channels_list: Tuple[int, ...]          # Number of channels in the convolutional token embedding.
     CP_channels_list: Tuple[int, ...]              # Number of channels for each convolutional projection block in each stage.
     attn_heads_list: Tuple[int, ...]               # Number of heads for each convolutional projection block in each stage.
+    strides_list: Tuple[Tuple[int,int], ...]
     kernel: Tuple = (3, 3)                        # Kernel size for the convolutional operations (must be 3x3)        
     final_architecture: Tuple = (5,)
     two_heads: bool = False                        # If True, the output will be a complex number with modulus and phase
@@ -315,6 +324,7 @@ class CvT(nn.Module):
                 CTemb_channels_list=self.CTemb_channels_list,
                 CP_channels_list=self.CP_channels_list,
                 attn_heads_list=self.attn_heads_list,
+                strides_list=self.strides_list,
                 kernel=self.kernel,
                 final_architecture=self.final_architecture,
                 two_heads=self.two_heads,
@@ -327,6 +337,7 @@ class CvT(nn.Module):
                 CTemb_channels_list=self.CTemb_channels_list,
                 CP_channels_list=self.CP_channels_list,
                 attn_heads_list=self.attn_heads_list,
+                strides_list=self.strides_list,
                 kernel=self.kernel,
                 final_architecture=self.final_architecture,
                 two_heads=self.two_heads

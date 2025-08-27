@@ -23,7 +23,7 @@ def get_write_folder_from_model(config):
         conditions = [model_setup['symm_2D_module'], model_setup['symm_Z2_module']]
         labels = ["_2DM","_Z2M"]
 
-    elif  name == "CvT":
+    elif  name in ["CvT","CvT2"]:
         conditions = [model_setup['symm_Z2']]
         labels = ["_Z2"]
 
@@ -102,10 +102,15 @@ def architecture_label(name, model_setup):
         architecture = f"|| b: {model_setup['token_size']}  D_emb: {model_setup['embedding_d']}  heads: {model_setup['n_heads']} ||\n"
         architecture += f"|| n_blocks: {model_setup['n_blocks']}   ffn_layers: {model_setup['n_ffn_layers']} ||\n"
          
-    elif name == 'CvT':
+    elif  name=="CvT":
         architecture = f"|| n_CTE_ch: {model_setup['CTemb_channels']}  n_CPB: {model_setup['n_CP_blocks']}   CP_ch: {model_setup['CP_channels']} ||\n"
         architecture += f"|| heads: {model_setup['attn_heads']}  kernel: {model_setup['kernel']}   final_arch: {model_setup['final_architecture']} ||\n"
         architecture += f"|| symm_Z2: {model_setup['symm_Z2']}  trivial: {model_setup['trivial_Z2']} ||\n"
+
+    elif  name=="CvT2":
+        architecture = f"|| n_CTE_ch: {model_setup['CTemb_channels']}  n_CPB: {model_setup['n_CP_blocks']}   CP_ch: {model_setup['CP_channels']} ||\n"
+        architecture += f"|| heads: {model_setup['attn_heads']}  strides:{model_setup['strides']}  kernel: {model_setup['kernel']}   ||\n"
+        architecture += f"|| final_arch: {model_setup['final_architecture']}  symm_Z2: {model_setup['symm_Z2']}  trivial: {model_setup['trivial_Z2']} ||\n"
 
     elif name == 'SplitTraining_ViT_MLP':
         architecture = f"ViT \n"
@@ -208,6 +213,23 @@ def get_filenames_from_settings(cm_name, nn_name, **kwargs):
             arch_label += f"{final_architecture[i]}_"
         kernel_label += f"{kernel[0]}x{kernel[1]}_"
         nnparams = f"_blocks_{blocks_label}emb_ch_{emb_ch_label}cp_ch_{cp_ch_label}heads_{heads_label}kernel_{kernel_label}finarch_{arch_label}"
+    
+    elif nn_name == 'CvT2':
+        n_CP_blocks = kwargs['n_CP_blocks'] ;  CTemb_channels = kwargs['CTemb_channels'] 
+        CP_channels = kwargs['CP_channels'] ; attn_heads = kwargs['attn_heads'] ; strides = kwargs['strides']
+        kernel = kwargs['kernel'] ; final_architecture = ast.literal_eval(kwargs['final_architecture'] )
+        kernel_label = blocks_label = emb_ch_label = cp_ch_label = heads_label = strides_label = arch_label = ''
+        for i in range(len(n_CP_blocks)):
+            blocks_label += f"{n_CP_blocks[i]}_"
+            emb_ch_label += f"{CTemb_channels[i]}_"
+            cp_ch_label += f"{CP_channels[i]}_"
+            heads_label += f"{attn_heads[i]}_"        
+        for i in range(len(final_architecture)):
+            arch_label += f"{final_architecture[i]}_"
+        for i in range(len(strides)):
+            strides_label += f"{strides[i][0]}x{strides[i][1]}_"
+        kernel_label += f"{kernel[0]}x{kernel[1]}_"
+        nnparams = f"_blocks_{blocks_label}emb_ch_{emb_ch_label}cp_ch_{cp_ch_label}heads_{heads_label}strides_{strides_label}kernel_{kernel_label}finarch_{arch_label}"
 
     elif nn_name == 'SplitTraining_ViT_MLP':
         token_size = kwargs['token_size'] ; embedding_d = kwargs['embedding_d'] ; n_heads = kwargs['n_heads']   # ViT
@@ -291,6 +313,6 @@ def get_filenames_from_settings(cm_name, nn_name, **kwargs):
     sim_label = model_label + f"_simulation_{size[0]}x{size[1]}"+ cparams + nnparams
     ED_label = model_label + f"_xED_{size[0]}x{size[1]}"+cparams
     json_label = model_label+f"_results_{size[0]}x{size[1]}"+ cparams + nnparams
-    title_label_callback = f"Callback "+model_label+" " + call_params + f"  ({size[0]}x{size[1]})"
+    title_label_callback = f"Callback " + model_label + " " + call_params + f"  ({size[0]}x{size[1]})"
 
     return sim_label, ED_label, json_label, title_label_callback
