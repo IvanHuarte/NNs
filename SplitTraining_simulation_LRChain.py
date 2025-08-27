@@ -284,7 +284,7 @@ for i, size in enumerate(sizes):
             print(f"Fidelity: {fidelity:.3e}")
 
             # Renyi entropy, magnetization and its fluctuation
-            S_renyi = vstate.expect(renyi)
+            S_renyi = float(vstate.expect(renyi).mean)
             M = float(vstate.expect(magnet).mean.real)
             Ms = float(vstate.expect(mags).mean.real)
             print(f"Renyi entropy: {S_renyi}")
