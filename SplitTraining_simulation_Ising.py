@@ -30,8 +30,7 @@ from NN_module.sim_utils import (
     save_results, dump_callback
 )
 from NN_module.NN_utils import (
-    activation_dict, scheduler_initializer, 
-    phase_stats_ED, phase_stats_vstate
+    activation_dict, modphase, phase_stats_vstate
 )
 from NN_module.ST_utils import compare_params, masked_optimizer
 
@@ -370,21 +369,35 @@ for i, size in enumerate(sizes):
                     E_best = float(keeper.best_energy)
                     vscore = float(keeper.vscore)
 
-                    phase={}
+                    modphase_results={}
                     if exact_diag:
                         error=float(np.abs(E_best-E_ED)/np.abs(E_ED))
-                        mean_ED, std_ED, psi_ED = phase_stats_ED(x_ED)
-                        phase['xED']={'mean':mean_ED, 'std':std_ED, 'psi': psi_ED}
-                        print(f"xED phase: {mean_ED} \u00b1 {std_ED}  ({psi_ED})")
+                        mp_array_ED, stats_ED = modphase(x_ED)
+                        modphase_results['xED']= stats_ED
+                        print(f"xED phase: {stats_ED['phase']['mean']} \u00b1 {stats_ED['phase']['std']}  ({stats_ED['type']})")
 
                     else:
                         E_ED = None
                         x_ED = None
                         error = None
 
-                    mean, std, psi  = phase_stats_vstate(vstate)
-                    phase['vstate']={'mean':mean, 'std':std, 'psi': psi}
-                    print(f"VS phase: {mean} \u00b1 {std}  ({psi})\n \n")  
+                    mp_array_vs, stats_vs = modphase(vstate)
+                    modphase_results['vstate']= stats_vs
+                    print(f"vstate phase: {stats_vs['phase']['mean']} \u00b1 {stats_vs['phase']['std']}  ({stats_vs['type']})")
+
+
+                    # Fidelity
+                    fidelity = float(jnp.abs(jnp.vdot(vstate.to_array(), x_ED.squeeze())))
+                    print(f"Fidelity: {fidelity:.3e}")
+
+                    # Renyi entropy, magnetization and its fluctuation
+                    S_renyi = vstate.expect(renyi)
+                    M = float(vstate.expect(magnet).mean.real)
+                    Ms = float(vstate.expect(mags).mean.real)
+
+                    print(f"Renyi entropy: {S_renyi}")
+                    print(f"Magnetization: {M}")
+                    print(f"Magnetization fluctuation: {Ms}")
 
                     # Save the results
 
@@ -444,6 +457,11 @@ for i, size in enumerate(sizes):
                             'error': error,
                             'vscore': vscore,
                             'time_exe': time_exe, 
+                            'modphase': modphase_results,
+                            "fidelity": fidelity,
+                            'S_renyi': S_renyi,
+                            'M': M,
+                            'Ms': Ms
                         },
                         '_artifacts': {
                             'callback': callback_artifacts

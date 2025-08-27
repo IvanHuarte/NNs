@@ -279,10 +279,17 @@ for i, size in enumerate(sizes):
             modphase_results['vstate']= stats_vs
             print(f"vstate phase: {stats_vs['phase']['mean']} \u00b1 {stats_vs['phase']['std']}  ({stats_vs['type']})")
 
+            # Fidelity
+            fidelity = float(jnp.abs(jnp.vdot(vstate.to_array(), x_ED.squeeze())))
+            print(f"Fidelity: {fidelity:.3e}")
+
             # Renyi entropy, magnetization and its fluctuation
-            S_renyi = vstate.expectation(renyi)
-            M = vstate.expectation(magnet)
-            Ms = vstate.expectation(mags)
+            S_renyi = vstate.expect(renyi)
+            M = float(vstate.expect(magnet).mean.real)
+            Ms = float(vstate.expect(mags).mean.real)
+            print(f"Renyi entropy: {S_renyi}")
+            print(f"Magnetization: {M}")
+            print(f"Magnetization fluctuation: {Ms}")
 
             ## Save the results
 
@@ -328,6 +335,7 @@ for i, size in enumerate(sizes):
                     'vscore': vscore,
                     'time_exe': time_exe,
                     'modphase': modphase_results,
+                    "fidelity": fidelity,
                     'S_renyi': S_renyi,
                     'M': M,
                     'Ms': Ms
