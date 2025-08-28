@@ -1,3 +1,4 @@
+
 import flax.linen as nn
 import jax
 import jax.typing as jt
@@ -15,7 +16,8 @@ def get_mask() -> jnp.ndarray:
             [1, 1, 0],
         ])  
 
-def seq
+def all2one_pool(x):
+    return nn.avg_pool(x, window_shape = (x.shape[1],x.shape[2]), strides=(1,1))
 
 class DepthPointwiseConv(nn.Module):
     """
@@ -30,7 +32,7 @@ class DepthPointwiseConv(nn.Module):
 
         Ch_in = x.shape[-1]
 
-        mask = get_mask(flag=True)
+        mask = get_mask()
         mask = jnp.broadcast_to(mask[:,:,None,None], (*mask.shape, 1, Ch_in))
         if self.kernel[1] == 1: mask = None
 
@@ -159,6 +161,7 @@ class StageBlock(nn.Module):
 
         return log_cosh(x)
 
+
 class CvTWorker(nn.Module):
     """
     Convolutional Vision Transformer (CvT) implementation.
@@ -197,19 +200,16 @@ class CvTWorker(nn.Module):
 
         B = x.shape[0]
         for i in range(n_stages):
-            if i == 0: CTE_triangular = True    #Aplica mascara triangular en el primer stage solo en el CTEmb
-            else: CTE_triangular = False
 
             x = StageBlock(
                 n_CP_blocks=self.n_CP_blocks_list[i],
                 CTemb_channels=self.CTemb_channels_list[i],
                 CP_channels=self.CP_channels_list[i],
                 n_heads=self.attn_heads_list[i],
-                kernel=self.kernel,
-                CTE_triangular=CTE_triangular
+                kernel=self.kernel
             )(x)
-        
-        x = seq_reduction_pooling(x)
+
+        x = x.reshape(B, -1, x.shape[-1]).mean(axis=1)
         
         # Final MLP layer
         x = x.reshape((B, -1))
@@ -263,7 +263,7 @@ class CvT_Z2(nn.Module):
             b = jnp.asarray([1., -1.])[:, None]  # shape (2,1)
             return jax.nn.logsumexp(z2_stack, b=b, axis=0, keepdims=False)
 
-class CvT(nn.Module):
+class CvT3(nn.Module):
 
     lattice_size : Tuple[int, int]  
     

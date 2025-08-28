@@ -23,7 +23,7 @@ def get_write_folder_from_model(config):
         conditions = [model_setup['symm_2D_module'], model_setup['symm_Z2_module']]
         labels = ["_2DM","_Z2M"]
 
-    elif  name in ["CvT","CvT2"]:
+    elif  name in ["CvT","CvT2","CvT3"]:
         conditions = [model_setup['symm_Z2']]
         labels = ["_Z2"]
 
@@ -111,6 +111,11 @@ def architecture_label(name, model_setup):
         architecture = f"|| n_CTE_ch: {model_setup['CTemb_channels']}  n_CPB: {model_setup['n_CP_blocks']}   CP_ch: {model_setup['CP_channels']} ||\n"
         architecture += f"|| heads: {model_setup['attn_heads']}  strides:{model_setup['strides']}  kernel: {model_setup['kernel']}   ||\n"
         architecture += f"|| final_arch: {model_setup['final_architecture']}  symm_Z2: {model_setup['symm_Z2']}  trivial: {model_setup['trivial_Z2']} ||\n"
+    
+    elif  name=="CvT3":
+        architecture = f"|| n_CTE_ch: {model_setup['CTemb_channels']}  n_CPB: {model_setup['n_CP_blocks']}   CP_ch: {model_setup['CP_channels']} ||\n"
+        architecture += f"|| heads: {model_setup['attn_heads']}  kernel: {model_setup['kernel']}   final_arch: {model_setup['final_architecture']} ||\n"
+        architecture += f"|| symm_Z2: {model_setup['symm_Z2']}  trivial: {model_setup['trivial_Z2']} ||\n"
 
     elif name == 'SplitTraining_ViT_MLP':
         architecture = f"ViT \n"
@@ -199,7 +204,7 @@ def get_filenames_from_settings(cm_name, nn_name, **kwargs):
         n_blocks = kwargs['n_blocks'] ; n_ffn_layers = kwargs['n_ffn_layers']
         nnparams = f"_b_{token_size[0]}x{token_size[1]}_Demb_{embedding_d}_heads_{n_heads}_blocks_{n_blocks}_ffn_lay_{n_ffn_layers}"
     
-    elif nn_name == 'CvT':
+    elif nn_name in ['CvT', 'CvT3']:
         n_CP_blocks = kwargs['n_CP_blocks'] ;  CTemb_channels = kwargs['CTemb_channels'] 
         CP_channels = kwargs['CP_channels'] ; attn_heads = kwargs['attn_heads']
         kernel = kwargs['kernel'] ; final_architecture = ast.literal_eval(kwargs['final_architecture'] )

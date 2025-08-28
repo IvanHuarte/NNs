@@ -108,18 +108,19 @@ for i, size in enumerate(sizes):
         display_simulation_settings(config)
         
         ## Update Hamiltonian
-        lrc=LRChain(
+        lrc=LRChain(            # We divide J and X field by the size to match Sebas's hamiltonian except by a constant factor
             size[0], 
-            J,
+            J/size[0],
             alpha,
-            fields,
+            [fields[0]/size[0],fields[1]/size[0]],
             **kwargs_lattice
         )
-        H = Runner(lrc.cm).build_hamiltonian()
+        eng=Runner(lrc.cm, S_operators=False)
+        H = eng.build_hamiltonian()
 
         if exact_diag:
             print("Running exact diagonalization...")
-            E_ED, x_ED = Runner(lrc.cm).exact_energy_lanczos(eigenstates=True)
+            E_ED, x_ED = eng.exact_energy_lanczos(eigenstates=True)
             E_ED = float(E_ED.squeeze(-1))
             print(f"Energy ED: {E_ED}")
 
@@ -263,6 +264,7 @@ for i, size in enumerate(sizes):
             vstate = keeper.best_state
             E_best = float(keeper.best_energy)
             vscore = float(keeper.vscore)
+            sys.exit(0)
 
             modphase_results={}
             if exact_diag:
@@ -286,8 +288,10 @@ for i, size in enumerate(sizes):
 
             # Renyi entropy, magnetization and its fluctuation
             S_renyi = float(vstate.expect(renyi).mean)
-            M = float(vstate.expect(magnet).mean.real)
-            Ms = float(vstate.expect(mags).mean.real)
+            M_stats = vstate.expect(magnet)
+            M, M_var = float(M_stats.mean.real), float(M_stats.variance.real)
+            Ms = M_var + M**2
+            
             print(f"Renyi entropy: {S_renyi}")
             print(f"Magnetization: {M}")
             print(f"Magnetization fluctuation: {Ms}")

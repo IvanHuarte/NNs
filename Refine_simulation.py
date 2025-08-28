@@ -85,7 +85,6 @@ n_samples = artifact['sampler']['n_samples']
 
 
 # Load vstate....
-
 print(f"Loading vstate and burning 1000 samples")
 vstate=load_vstate(artifact)
 for i in range(1000):
@@ -107,6 +106,14 @@ oxa=OxalateJKGamma(
     }
 )
 H = Runner(oxa.cm).build_hamiltonian()
+
+hi = vstate.hilbert
+renyi = nkx.observable.Renyi2EntanglementEntropy(
+    hi, np.arange(0, N / 2 + 1, dtype=int)
+)
+mags = sum([(-1) ** i * sigmaz(hi, i) / N for i in range(N)])
+magnet = sum([sigmaz(hi, i) / N for i in range(N)])
+
 
 # Get exact diag energy, in the case.
 E_ED = None
@@ -244,8 +251,32 @@ E_best = float(keeper.best_energy)
 vscore = float(keeper.vscore)
 error=float(np.abs(E_best-E_ED)/np.abs(E_ED))
 
+modphase_results={}
+if E_ED is not None:
+    error=float(np.abs(E_best-E_ED)/np.abs(E_ED))
+
+else:
+    E_ED = None
+    x_ED = None
+    error = None
+
 mp_array_vs, stats_vs = modphase(vstate)
+modphase_results['vstate']= stats_vs
 print(f"vstate phase: {stats_vs['phase']['mean']} \u00b1 {stats_vs['phase']['std']}  ({stats_vs['type']})")
+
+# Fidelity
+fidelity = float(jnp.abs(jnp.vdot(vstate.to_array(), x_ED.squeeze())))
+print(f"Fidelity: {fidelity:.3e}")
+
+# Renyi entropy, magnetization and its fluctuation
+S_renyi = float(vstate.expect(renyi).mean)
+M_stats = vstate.expect(magnet)
+M, M_var = float(M_stats.mean.real), float(M_stats.variance.real)
+Ms = M_var + M**2
+
+print(f"Renyi entropy: {S_renyi}")
+print(f"Magnetization: {M}")
+print(f"Magnetization fluctuation: {Ms}")
 
 # Save the results
 artifact['sampler']['rng'] = vstate.sampler_state.rng.tolist()
@@ -256,6 +287,10 @@ artifact['results']['E_best'] = E_best
 artifact['results']['error']=error
 artifact['results']['time_exe']=time_exe
 artifact['results']['modphase']['vstate'] = stats_vs
+artifact['results']['fidelity'] = fidelity
+artifact['results']['S_renyi'] = S_renyi
+artifact['results']['M'] = M
+artifact['results']['Ms'] = Ms
 
 artifact['_artifacts']['callback'] = callback_artifacts
 

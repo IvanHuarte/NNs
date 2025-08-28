@@ -20,6 +20,7 @@ from NN_module.models.ViT_2D import BatchedSpinViT
 from NN_module.models.CNN import CNN
 from NN_module.models.CvT import CvT
 from NN_module.models.CvT2 import CvT2
+from NN_module.models.CvT3 import CvT3
 from NN_module.models.split_training import (
     SplitTraining_ViT_MLP, SplitTraining_ViT_CNN, 
     SplitTraining_CvT_CNN, SplitTraining_CvT_CvT
@@ -384,6 +385,20 @@ def init_model(name, model_setup):
             CP_channels_list=tuple(model_setup['CP_channels']),
             attn_heads_list=tuple(model_setup['attn_heads']),
             strides_list=tuple([tuple(st) for st in model_setup['strides']]),
+            kernel=tuple(model_setup['kernel']),
+            final_architecture=ast.literal_eval(model_setup['final_architecture']),
+            two_heads= model_setup['two_heads'],
+            symm_Z2= model_setup['symm_Z2'],
+            trivial_Z2= model_setup['trivial_Z2']
+        )
+    
+    elif name == 'CvT3':
+        return CvT3(
+            lattice_size=tuple(model_setup['lattice_size']),
+            n_CP_blocks_list= tuple(model_setup['n_CP_blocks']),
+            CTemb_channels_list=tuple(model_setup['CTemb_channels']),
+            CP_channels_list=tuple(model_setup['CP_channels']),
+            attn_heads_list=tuple(model_setup['attn_heads']),
             kernel=tuple(model_setup['kernel']),
             final_architecture=ast.literal_eval(model_setup['final_architecture']),
             two_heads= model_setup['two_heads'],

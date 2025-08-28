@@ -283,8 +283,9 @@ for i, size in enumerate(sizes):
 
             # Renyi entropy, magnetization and its fluctuation
             S_renyi = float(vstate.expect(renyi).mean)
-            M = float(vstate.expect(magnet).mean.real)
-            Ms = float(vstate.expect(mags).mean.real)
+            M_stats = vstate.expect(magnet)
+            M, M_var = float(M_stats.mean.real), float(M_stats.variance.real)
+            Ms = M_var + M**2
 
             print(f"Renyi entropy: {S_renyi}")
             print(f"Magnetization: {M}")
