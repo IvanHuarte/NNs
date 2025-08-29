@@ -99,285 +99,285 @@ for i, size in enumerate(sizes):
     n_chains_per_rank=sampler_setup['n_chains_per_rank'], chunk_size=sampler_setup['chunk_sampler'],
     )
 
-    alpha = alpha_list[0]
-    for J in J_list:
+    for alpha in alpha_list:
+    
+        for J in J_list:
 
-        config['CM'][cm_model_name]['J']=J
-        config['CM'][cm_model_name]['alpha']=alpha
-        config['size']=size
-        display_simulation_settings(config)
-        
-        ## Update Hamiltonian
-        lrc=LRChain(            # We divide J and X field by the size to match Sebas's hamiltonian except by a constant factor
-            size[0], 
-            J/size[0],
-            alpha,
-            [fields[0]/size[0],fields[1]/size[0]],
-            **kwargs_lattice
-        )
-        eng=Runner(lrc.cm, S_operators=False)
-        H = eng.build_hamiltonian()
-
-        if exact_diag:
-            print("Running exact diagonalization...")
-            E_ED, x_ED = eng.exact_energy_lanczos(eigenstates=True)
-            E_ED = float(E_ED.squeeze(-1))
-            print(f"Energy ED: {E_ED}")
-
-        for sweeps in schedule['sweeps']:
+            config['CM'][cm_model_name]['J']=J
+            config['CM'][cm_model_name]['alpha']=alpha
+            config['size']=size
+            display_simulation_settings(config)
             
-            print(f"\nRunning with {sweeps} sweeps...")
-            write_folder = write_folder_size + f"sweeps_{sweeps}/"
-            if sweeps !=0:
-                schedule_name = 'stairs_schedule'
-                schedule_selection = config['lr_schedule'][schedule_name]
+            ## Update Hamiltonian
+            lrc=LRChain(            # We divide J and X field by the size to match Sebas's hamiltonian except by a constant factor
+                size[0], 
+                J/size[0],
+                alpha,
+                [fields[0]/size[0],fields[1]/size[0]],
+                **kwargs_lattice
+            )
+            eng=Runner(lrc.cm, S_operators=False)
+            H = eng.build_hamiltonian()
 
-                schedule_selection['sweeps'] = sweeps
+            if exact_diag:
+                print("Running exact diagonalization...")
+                E_ED, x_ED = eng.exact_energy_lanczos(eigenstates=True)
+                E_ED = float(E_ED.squeeze(-1))
+                print(f"Energy ED: {E_ED}")
 
-                ds_schedule = jnp.linspace(1e-2, 1e-4, sweeps)
-                lr_schedule = jnp.logspace(
-                    start=jnp.log10(schedule_selection['lr0']),
-                    stop=jnp.log10(schedule_selection['lr_min']), 
-                    num=sweeps
+            for sweeps in schedule['sweeps']:
+                
+                print(f"\nRunning with {sweeps} sweeps...")
+                write_folder = write_folder_size + f"sweeps_{sweeps}/"
+                if sweeps !=0:
+                    schedule_name = 'stairs_schedule'
+                    schedule_selection = config['lr_schedule'][schedule_name]
+
+                    schedule_selection['sweeps'] = sweeps
+
+                    ds_schedule = jnp.linspace(1e-2, 1e-4, sweeps)
+                    lr_schedule = jnp.logspace(
+                        start=jnp.log10(schedule_selection['lr0']),
+                        stop=jnp.log10(schedule_selection['lr_min']), 
+                        num=sweeps
+                    )
+
+                else:
+                    schedule_name = config['lr_schedule']['name']
+                    schedule_selection = config['lr_schedule'][schedule_name]
+
+                    ds_schedule = optax.linear_schedule(1e-2, 1e-4, epochs)
+                    SR = nk.optimizer.SR(diag_shift=ds_schedule)
+                    lr_schedule=lr_schedule = scheduler_initializer("warmup_exponential_decay", config['lr_schedule'])
+                    optimizer = nk.optimizer.Sgd(learning_rate=lr_schedule)
+                
+                callback_artifacts = {}
+                time_in = time.time()
+
+                model = init_model(nn_model_name, nn_model_setup)
+
+                log = (
+                    nk.logging.RuntimeLog()
+                )  # If instead of this logging you insert a string, it will be used as output prefix for a JSON file where the evolution of the energy at each epoch will be stored.
+                keeper = BestIterKeeper(H, N, 1e-8)
+                # keeper.filename = 'Somewhere' #It allows you to store the parameters of the model for the state with lowest energy found.
+
+                # Initialize vstate with parameters
+                vstate = nk.vqs.MCState(
+                    sampler, model=model, n_samples=n_samples,
+                    n_discard_per_chain=0, chunk_size=sampler_setup['chunk_vstate']
                 )
 
-            else:
-                schedule_name = config['lr_schedule']['name']
-                schedule_selection = config['lr_schedule'][schedule_name]
-
-                ds_schedule = optax.linear_schedule(1e-2, 1e-4, epochs)
-                SR = nk.optimizer.SR(diag_shift=ds_schedule)
-                lr_schedule=lr_schedule = scheduler_initializer("warmup_exponential_decay", config['lr_schedule'])
-                optimizer = nk.optimizer.Sgd(learning_rate=lr_schedule)
-            
-            callback_artifacts = {}
-            time_in = time.time()
-
-            model = init_model(nn_model_name, nn_model_setup)
-
-            log = (
-                nk.logging.RuntimeLog()
-            )  # If instead of this logging you insert a string, it will be used as output prefix for a JSON file where the evolution of the energy at each epoch will be stored.
-            keeper = BestIterKeeper(H, N, 1e-8)
-            # keeper.filename = 'Somewhere' #It allows you to store the parameters of the model for the state with lowest energy found.
-
-            # Initialize vstate with parameters
-            vstate = nk.vqs.MCState(
-                sampler, model=model, n_samples=n_samples,
-                n_discard_per_chain=0, chunk_size=sampler_setup['chunk_vstate']
-            )
-
-            print(f"Epochs: {epochs}  Sweeps: {sweeps}")
-            
-            if sweeps !=0:    # Alternated training between modulus and phase
-
-                epochs_per_run = epochs//(2*sweeps)
-                print(f"Epochs per run: {epochs_per_run}")
-
-                transformations = {
-                    'train': optax.sgd(0.1),
-                    'freeze': optax.set_to_zero()
-                }
-
-                for i in range(sweeps):
-
-                    print(f"\nSweep {i+1} of {sweeps}......   lr: {lr_schedule[i]:.4f}  ds: {ds_schedule[i]:.4f}\n")
-                    transformations['train'] = optax.sgd(learning_rate=lr_schedule[i])
-                    SR = nk.optimizer.SR(diag_shift=ds_schedule[i])
-
-                    for mask in ['modulus', 'phase']:
-                        mode = [m for m in ['phase', 'modulus'] if m != mask][0]
-                        
-                        variables = vstate.variables
-                        sampler = vstate.sampler
-                        optimizer = masked_optimizer(vstate.parameters, transformations, mode = mask)
-                        
-                        vstate = nk.vqs.MCState(
-                            sampler,
-                            sampler_seed=vstate.sampler_state.rng,
-                            model=model,
-                            n_samples=n_samples,
-                            n_discard_per_chain=0,
-                            chunk_size=sampler_setup['chunk_vstate'],
-                            variables=variables
-                        )
-    
-                        gs = nk.driver.VMC(
-                            H,
-                            optimizer,
-                            variational_state=vstate,
-                            preconditioner=SR
-                        )
-                        # print(jax.tree_util.tree_structure(vstate.parameters))
-                        # print(vstate.variables['params'].keys(  ))
-
-
-                        print(f"\nTraining {mode} for {epochs_per_run} epochs...")
-                        gs.run(n_iter=epochs_per_run, out=log, callback=[keeper.update], show_progress=True)
-                        mean, std, psi  = phase_stats_vstate(vstate)
-                        print(f"VS phase: {mean} \u00b1 {std}  ({psi})")
-
-
-            else:       # Training modulus and phase at the same time
-                gs = nk.driver.VMC(
-                    H,
-                    optimizer,
-                    variational_state=vstate,
-                    preconditioner=SR
-                ).run(n_iter=epochs, out=log, callback=[keeper.update], show_progress=True)
-
-            time_out = time.time()
-            time_exe= time_out - time_in
-            
-            if exact_diag:
-                keeper.E_ED = E_ED
-                log.E_ED = E_ED
-
-            ## Save results
-            _kwargs = config['model_NN'][nn_model_name]
-            _kwargs['size']=size ; _kwargs['J']=J 
-            _kwargs['alpha']=alpha ; _kwargs['fields']=fields
-            
-            sim_label, ED_label, json_label, title_label_callback = get_filenames_from_settings(config['CM']['selection'], config['model_NN']['selection'], **_kwargs )
-
-            if dump_simulation:
-                # For plotting architecture
-                architecture=architecture_label(nn_model_name, nn_model_setup)
-                dump_setup ={
-                    'size': size, 'opt_name': "Sgd",
-                    'learning_rate': "Scheduled",
-                    'write_folder': write_folder,
-                    'time_exe': time_exe, 
-                    'architecture': architecture,
-                    'sim_label': sim_label,
-                    'title_label_callback': title_label_callback
-                }
+                print(f"Epochs: {epochs}  Sweeps: {sweeps}")
                 
-                callback_artifacts = dump_callback(log, dump_setup)
+                if sweeps !=0:    # Alternated training between modulus and phase
 
-            else:
-                callback_artifacts = None
+                    epochs_per_run = epochs//(2*sweeps)
+                    print(f"Epochs per run: {epochs_per_run}")
 
-            ## Calculate some observables
-            # Modulus and phase
+                    transformations = {
+                        'train': optax.sgd(0.1),
+                        'freeze': optax.set_to_zero()
+                    }
 
-            vstate = keeper.best_state
-            E_best = float(keeper.best_energy)
-            vscore = float(keeper.vscore)
-            sys.exit(0)
+                    for i in range(sweeps):
 
-            modphase_results={}
-            if exact_diag:
-                error=float(np.abs(E_best-E_ED)/np.abs(E_ED))
-                mp_array_ED, stats_ED = modphase(x_ED)
-                modphase_results['xED']= stats_ED
-                print(f"xED phase: {stats_ED['phase']['mean']} \u00b1 {stats_ED['phase']['std']}  ({stats_ED['type']})")
+                        print(f"\nSweep {i+1} of {sweeps}......   lr: {lr_schedule[i]:.4f}  ds: {ds_schedule[i]:.4f}\n")
+                        transformations['train'] = optax.sgd(learning_rate=lr_schedule[i])
+                        SR = nk.optimizer.SR(diag_shift=ds_schedule[i])
 
-            else:
-                E_ED = None
-                x_ED = None
-                error = None
-
-            mp_array_vs, stats_vs = modphase(vstate)
-            modphase_results['vstate']= stats_vs
-            print(f"vstate phase: {stats_vs['phase']['mean']} \u00b1 {stats_vs['phase']['std']}  ({stats_vs['type']})")
-
-            # Fidelity
-            fidelity = float(jnp.abs(jnp.vdot(vstate.to_array(), x_ED.squeeze())))
-            print(f"Fidelity: {fidelity:.3e}")
-
-            # Renyi entropy, magnetization and its fluctuation
-            S_renyi = float(vstate.expect(renyi).mean)
-            M_stats = vstate.expect(magnet)
-            M, M_var = float(M_stats.mean.real), float(M_stats.variance.real)
-            Ms = M_var + M**2
-            
-            print(f"Renyi entropy: {S_renyi}")
-            print(f"Magnetization: {M}")
-            print(f"Magnetization fluctuation: {Ms}")
-
-            ## Save the results
-
-            dump_setup ={
-                'model_label': model_label,
-
-                'lattice':{
-                    'name': 'Chain',
-                    'size': size, 
-                    'bc': kwargs_lattice['bc'],
-                    'order': kwargs_lattice['order']
-                },
-
-                'coupling_model': {
-                    'J': J, 
-                    'alpha': alpha, 
-                    'fields': fields
-                },
-
-                'model_NN': {
-                    "name": nn_model_name,
-                    "setup":nn_model_setup,
-                },
-
-                'sampler': {
-                    'name': "MetropolisSampler",
-                    'n_samples': n_samples, 
-                    'rng': vstate.sampler_state.rng.tolist(), 
-                    'rules': 'LocalRule/InvertMagnetization',
-                    "setup": sampler_setup
-
-                },
-                'optimizer': "Sgd",
-                "lr_schedule":{
-                    "name": schedule["name"],
-                    "setup": schedule[schedule["name"]]
-                },
-
-                'results':{
-                    'E_best': E_best,
-                    'E_ED': E_ED,
-                    'error': error,
-                    'vscore': vscore,
-                    'time_exe': time_exe,
-                    'modphase': modphase_results,
-                    "fidelity": fidelity,
-                    'S_renyi': S_renyi,
-                    'M': M,
-                    'Ms': Ms
-
-                },
-                '_artifacts': {
-                    'callback': callback_artifacts
-                }
-            }
-
-            save_results(
-                vstate, 
-                dump_setup, 
-                x_ED = x_ED,
-                modphase=mp_array_vs,
-                modphase_ED= mp_array_ED,
-                write_folder = write_folder,
-                sim_label = sim_label,
-                ED_label=ED_label,
-                json_label=json_label
-            )
-
-            # import time
-            # import subprocess
-            # time.sleep(2)
-
-            # artifact_path = write_folder + json_label + ".json"
-            # script_path = "/home/ihuarte/Escritorio/Ivan/NNs/plot_phase.py"
-
-            # subprocess.run(["python", script_path, "-a", artifact_path])
-
-
-
-
-
-
-
-
+                        for mask in ['modulus', 'phase']:
+                            mode = [m for m in ['phase', 'modulus'] if m != mask][0]
+                            
+                            variables = vstate.variables
+                            sampler = vstate.sampler
+                            optimizer = masked_optimizer(vstate.parameters, transformations, mode = mask)
+                            
+                            vstate = nk.vqs.MCState(
+                                sampler,
+                                sampler_seed=vstate.sampler_state.rng,
+                                model=model,
+                                n_samples=n_samples,
+                                n_discard_per_chain=0,
+                                chunk_size=sampler_setup['chunk_vstate'],
+                                variables=variables
+                            )
         
+                            gs = nk.driver.VMC(
+                                H,
+                                optimizer,
+                                variational_state=vstate,
+                                preconditioner=SR
+                            )
+                            # print(jax.tree_util.tree_structure(vstate.parameters))
+                            # print(vstate.variables['params'].keys(  ))
+
+
+                            print(f"\nTraining {mode} for {epochs_per_run} epochs...")
+                            gs.run(n_iter=epochs_per_run, out=log, callback=[keeper.update], show_progress=True)
+                            mean, std, psi  = phase_stats_vstate(vstate)
+                            print(f"VS phase: {mean} \u00b1 {std}  ({psi})")
+
+
+                else:       # Training modulus and phase at the same time
+                    gs = nk.driver.VMC(
+                        H,
+                        optimizer,
+                        variational_state=vstate,
+                        preconditioner=SR
+                    ).run(n_iter=epochs, out=log, callback=[keeper.update], show_progress=True)
+
+                time_out = time.time()
+                time_exe= time_out - time_in
+                
+                if exact_diag:
+                    keeper.E_ED = E_ED
+                    log.E_ED = E_ED
+
+                ## Save results
+                _kwargs = config['model_NN'][nn_model_name]
+                _kwargs['size']=size ; _kwargs['J']=J 
+                _kwargs['alpha']=alpha ; _kwargs['fields']=fields
+                
+                sim_label, ED_label, json_label, title_label_callback = get_filenames_from_settings(config['CM']['selection'], config['model_NN']['selection'], **_kwargs )
+
+                if dump_simulation:
+                    # For plotting architecture
+                    architecture=architecture_label(nn_model_name, nn_model_setup)
+                    dump_setup ={
+                        'size': size, 'opt_name': "Sgd",
+                        'learning_rate': "Scheduled",
+                        'write_folder': write_folder,
+                        'time_exe': time_exe, 
+                        'architecture': architecture,
+                        'sim_label': sim_label,
+                        'title_label_callback': title_label_callback
+                    }
+                    
+                    callback_artifacts = dump_callback(log, dump_setup)
+
+                else:
+                    callback_artifacts = None
+
+                ## Calculate some observables
+                # Modulus and phase
+
+                vstate = keeper.best_state
+                E_best = float(keeper.best_energy)
+                vscore = float(keeper.vscore)
+
+                modphase_results={}
+                if exact_diag:
+                    error=float(np.abs(E_best-E_ED)/np.abs(E_ED))
+                    mp_array_ED, stats_ED = modphase(x_ED)
+                    modphase_results['xED']= stats_ED
+                    print(f"xED phase: {stats_ED['phase']['mean']} \u00b1 {stats_ED['phase']['std']}  ({stats_ED['type']})")
+
+                else:
+                    E_ED = None
+                    x_ED = None
+                    error = None
+
+                mp_array_vs, stats_vs = modphase(vstate)
+                modphase_results['vstate']= stats_vs
+                print(f"vstate phase: {stats_vs['phase']['mean']} \u00b1 {stats_vs['phase']['std']}  ({stats_vs['type']})")
+
+                # Fidelity
+                fidelity = float(jnp.abs(jnp.vdot(vstate.to_array(), x_ED.squeeze())))
+                print(f"Fidelity: {fidelity:.3e}")
+
+                # Renyi entropy, magnetization and its fluctuation
+                S_renyi = float(vstate.expect(renyi).mean)
+                M_stats = vstate.expect(magnet)
+                M, M_var = float(M_stats.mean.real), float(M_stats.variance.real)
+                Ms = M_var + M**2
+                
+                print(f"Renyi entropy: {S_renyi}")
+                print(f"Magnetization: {M}")
+                print(f"Magnetization fluctuation: {Ms}")
+
+                ## Save the results
+
+                dump_setup ={
+                    'model_label': model_label,
+
+                    'lattice':{
+                        'name': 'Chain',
+                        'size': size, 
+                        'bc': kwargs_lattice['bc'],
+                        'order': kwargs_lattice['order']
+                    },
+
+                    'coupling_model': {
+                        'J': J, 
+                        'alpha': alpha, 
+                        'fields': fields
+                    },
+
+                    'model_NN': {
+                        "name": nn_model_name,
+                        "setup":nn_model_setup,
+                    },
+
+                    'sampler': {
+                        'name': "MetropolisSampler",
+                        'n_samples': n_samples, 
+                        'rng': vstate.sampler_state.rng.tolist(), 
+                        'rules': 'LocalRule/InvertMagnetization',
+                        "setup": sampler_setup
+
+                    },
+                    'optimizer': "Sgd",
+                    "lr_schedule":{
+                        "name": schedule["name"],
+                        "setup": schedule[schedule["name"]]
+                    },
+
+                    'results':{
+                        'E_best': E_best,
+                        'E_ED': E_ED,
+                        'error': error,
+                        'vscore': vscore,
+                        'time_exe': time_exe,
+                        'modphase': modphase_results,
+                        "fidelity": fidelity,
+                        'S_renyi': S_renyi,
+                        'M': M,
+                        'Ms': Ms
+
+                    },
+                    '_artifacts': {
+                        'callback': callback_artifacts
+                    }
+                }
+
+                save_results(
+                    vstate, 
+                    dump_setup, 
+                    x_ED = x_ED,
+                    modphase=mp_array_vs,
+                    modphase_ED= mp_array_ED,
+                    write_folder = write_folder,
+                    sim_label = sim_label,
+                    ED_label=ED_label,
+                    json_label=json_label
+                )
+
+                # import time
+                # import subprocess
+                # time.sleep(2)
+
+                # artifact_path = write_folder + json_label + ".json"
+                # script_path = "/home/ihuarte/Escritorio/Ivan/NNs/plot_phase.py"
+
+                # subprocess.run(["python", script_path, "-a", artifact_path])
+
+
+
+
+
+
+
+
+            
 
