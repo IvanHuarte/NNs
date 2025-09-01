@@ -82,14 +82,14 @@ for sweep, sweep_dict in tree_files.items():
                 results[8].append(art['results']['fidelity'])
                 results[9].append(art['results']['time_exe'])
 
-            alpha = art['coupling_model']['alpha']
+            alpha_num = art['coupling_model']['alpha']
 
             results = np.array(results)
             idx = np.argsort(results[0])
             res = results[:,idx]
 
             # Plot 1: E_best/E_ED, error, vscore
-            ax1[0].set_title(r"$%s$"%(model_name) + r"        $\alpha=%.2f$ "%(alpha), fontsize=fontsize_title)
+            ax3[0].set_title(r"$%s \qquad \alpha=%.2f$ "%(model_name, alpha_num), fontsize=fontsize_title)
             ax1[0].set_ylabel(r"$Energy$", fontsize=fontsize_labels)
             ax1[0].plot(res[0], res[1], color='blue', alpha=0.8, marker='o', ms=3, lw=1.5, label=r"$E\;(%s)$"%(size))
             ax1[0].plot(res[0], res[2], color='lime',ls='--', marker='o', ms=3, lw=1.5, alpha=0.8, label=r"$E_{ED}\; (%s)$"%(size))
@@ -114,7 +114,7 @@ for sweep, sweep_dict in tree_files.items():
             ax1[2].legend(fontsize=fontsize_legend)
 
             # Plot 2: Renyi-entropy,  Magnetization and fluctuation
-            ax2[0].set_title(r"$%s$"%(model_name) + r"        $\alpha=%.2f$ "%(alpha), fontsize=fontsize_title)
+            ax3[0].set_title(r"$%s \qquad  \alpha=%.2f$ "%(model_name, alpha_num), fontsize=fontsize_title)
             ax2[0].set_ylabel(r"$S_{renyi}$", fontsize=fontsize_labels)
             ax2[0].plot(res[0], res[5], color='green', alpha=0.8, marker='o', ms=3, lw=1.5, label=r"$%s$"%(size))
             ax2[0].grid()
@@ -135,7 +135,7 @@ for sweep, sweep_dict in tree_files.items():
 
             # Plot 3: Fidelity and Time Execution
             ax3[0].set_ylim(0.5, 1.05)
-            ax3[0].set_title(r"$%s$"%(model_name) + r"        $\alpha=%.2f$ "%(alpha), fontsize=fontsize_title*2/3)
+            ax3[0].set_title(r"$%s \qquad \alpha=%.2f$ "%(model_name, alpha_num), fontsize=fontsize_title*2/3)
             ax3[0].set_ylabel(r"$Fidelity$", fontsize=fontsize_labels*2/3)
             ax3[0].plot(res[0], res[8], color='darkorange', alpha=0.8, marker='o', ms=3, lw=1.5, label=r"$%s$"%(size))
             ax3[0].grid()
@@ -150,9 +150,9 @@ for sweep, sweep_dict in tree_files.items():
         fig2.tight_layout()
         fig3.tight_layout()
 
-        fig1.savefig(parent_folder + f"ResultsOfSweep_alpha_{alpha}_Energy_Error_Vscore" + ".jpeg", dpi=600, bbox_inches="tight")
-        fig2.savefig(parent_folder + f"ResultsOfSweep_alpha_{alpha}_Renyi_Mz_Ms" + ".jpeg", dpi=600, bbox_inches="tight")
-        fig3.savefig(parent_folder + f"ResultsOfSweep_alpha_{alpha}_Fidelity_Timexe" + ".jpeg", dpi=600, bbox_inches="tight")
+        fig1.savefig(parent_folder + f"ResultsOfSweep_alpha_{alpha_num}_Energy_Error_Vscore" + ".jpeg", dpi=600, bbox_inches="tight")
+        fig2.savefig(parent_folder + f"ResultsOfSweep_alpha_{alpha_num}_Renyi_Mz_Ms" + ".jpeg", dpi=600, bbox_inches="tight")
+        fig3.savefig(parent_folder + f"ResultsOfSweep_alpha_{alpha_num}_Fidelity_Timexe" + ".jpeg", dpi=600, bbox_inches="tight")
 
         plt.close(fig1)
         plt.close(fig2)

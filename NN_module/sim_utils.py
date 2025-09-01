@@ -521,7 +521,6 @@ def load_vstate(setup, tree_data=False):
         sampler = sampler_dict[sampler_name](hi)
     
     # Load parameters and initialize vstate
-    restored_rng = jnp.array(setup['sampler']['rng'], dtype=jnp.uint32)
     n_samples = setup['sampler']['n_samples']
 
     vs = nk.vqs.MCState(sampler, model, n_samples = n_samples, seed = 0)
@@ -529,15 +528,26 @@ def load_vstate(setup, tree_data=False):
 
     if tree_data:      # For debugging
         import msgpack
+        print(f"Parameters structure")
         with open(setup['_artifacts']['vstate'], "rb") as f:
             data = msgpack.unpack(f, raw=False)
         print_tree_keys(data)
 
+        print(f"Sampler state structure")
+        with open(setup['_artifacts']['sampler_state'], "rb") as f:
+            data = msgpack.unpack(f, raw=False)
+        print_tree_keys(data)
+
+
+    # Load params
     vs_path = setup['results']['vstate']
     with open(vs_path, "rb") as f:
         loaded_params = from_bytes(dummy_params, f.read())
         vs.parameters = loaded_params
 
-    vs.sampler_state = sampler.init_state(model, {"params":vs.parameters}, restored_rng)
+    sampler_path = setup['_artifacts']['sampler_state']
+    #Load sample_state
+    with open(sampler_path, "rb") as f:
+        vs.sampler_state = from_bytes(vs.sampler_state,f.read())
 
     return vs
