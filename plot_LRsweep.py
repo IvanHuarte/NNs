@@ -41,8 +41,6 @@ tree_files = dict((k ,{}) for k in sweep_cases)
 for sweep in sweep_cases:
     sizes = glob.glob(parent_folder + f"**/{sweep}")
     for size in sizes:
-        # pos = size.find("Size_")
-        # size_name = size[pos +len("Size_"):pos +len("Size_") + 3]
         size_name = re.search(r"Size_([0-9]+x[0-9]+)",size).group(1)
         json_objects = glob.glob(size +'/*.json')
         alphas = set([re.search(r"alpha_([\d\.]+)", file).group(0) for file in json_objects])
@@ -64,7 +62,7 @@ for sweep, sweep_dict in tree_files.items():
 
         for size, files in alpha_dict.items():
             
-            results =[[] for _ in range(10)] # For [J, E_best, E_ED, error, vscore, S_renyi, M, Ms, fidelity, timexe]
+            results =[[] for _ in range(15)] # For [J, E_best, E_ED, error, vscore, S_renyi, M, Ms, fidelity, timexe]
 
             for file in files:
                 # Load artifacts and simulation params
@@ -77,38 +75,57 @@ for sweep, sweep_dict in tree_files.items():
                 results[3].append(art['results']['error'])
                 results[4].append(art['results']['vscore'])
                 results[5].append(art['results']['S_renyi'])
-                results[6].append(art['results']['M'])
-                results[7].append(art['results']['Ms'])
-                results[8].append(art['results']['fidelity'])
-                results[9].append(art['results']['time_exe'])
+
+                results[6].append(art['results']['m'])
+                results[7].append(art['results']['ms'])
+                results[8].append(art['results']['m2'])
+                results[9].append(art['results']['ms2'])
+
+                results[10].append(art['results']['m_ED'])
+                results[11].append(art['results']['ms_ED'])
+                results[12].append(art['results']['m2_ED'])
+                results[13].append(art['results']['ms2_ED'])
+
+                results[14].append(art['results']['fidelity'])
+                results[15].append(art['results']['time_exe'])
 
             alpha_num = art['coupling_model']['alpha']
 
             results = np.array(results)
             idx = np.argsort(results[0])
-            res = results[:,idx]
+            results = results[:,idx]
+
+            (J, E_best, E_ED, error,
+             vscore, S_renyi, m, ms,
+             m2, ms2, m_ED, ms_ED,
+             m2_ED, ms2_ED, fidelity, timexe) = results
+
+            m_phase = np.where(J<0,m2,ms2)
+            m_phase_ED = np.where(J<0, m_ED, ms_ED) 
+            m2_phase = np.where(J<0,m2,ms2)
+            m2_phase_ED = np.where(J<0, m2_ED, ms2_ED)
 
             # Plot 1: E_best/E_ED, error, vscore
             ax3[0].set_title(r"$%s \qquad \alpha=%.2f$ "%(model_name, alpha_num), fontsize=fontsize_title)
             ax1[0].set_ylabel(r"$Energy$", fontsize=fontsize_labels)
-            ax1[0].plot(res[0], res[1], color='blue', alpha=0.8, marker='o', ms=3, lw=1.5, label=r"$E\;(%s)$"%(size))
-            ax1[0].plot(res[0], res[2], color='lime',ls='--', marker='o', ms=3, lw=1.5, alpha=0.8, label=r"$E_{ED}\; (%s)$"%(size))
+            ax1[0].plot(J, E_best, color='blue', alpha=0.8, marker='o', ms=3, lw=1.5, label=r"$E\;(%s)$"%(size))
+            ax1[0].plot(J, E_ED, color='lime',ls='--', marker='o', ms=3, lw=1.5, alpha=0.8, label=r"$E_{ED}\; (%s)$"%(size))
             ax1[0].grid()
             ax1[0].legend(fontsize=fontsize_legend)
 
-            y_min=min(res[3]/2)
+            y_min=min(error/2)
             ax1[1].set_ylim(y_min,1)
             ax1[1].set_ylabel(r"$rel.\;\;Error$",fontsize=fontsize_labels)
-            ax1[1].plot(res[0], res[3], color='red', alpha=0.8, marker='o', ms=3, lw=1.5,  label=r"$%s$"%(size))
+            ax1[1].plot(J, error, color='red', alpha=0.8, marker='o', ms=3, lw=1.5,  label=r"$%s$"%(size))
             ax1[1].set_yscale('log')
             ax1[1].grid()
             ax1[1].legend(fontsize=fontsize_legend)
             
-            y_min=min(res[4]/2)
+            y_min=min(vscore/2)
             ax1[2].set_ylim(y_min,1)
             ax1[2].set_ylabel(r"$Vscore$", fontsize=fontsize_labels)
             ax1[2].set_xlabel(r"$J$", fontsize=fontsize_labels)
-            ax1[2].plot(res[0], res[4], color='purple',marker='o', ms=3 , lw=1.5, alpha=0.8,   label=r"$%s$"%(size))
+            ax1[2].plot(J, vscore, color='purple',marker='o', ms=3 , lw=1.5, alpha=0.8,   label=r"$%s$"%(size))
             ax1[2].set_yscale('log')
             ax1[2].grid()
             ax1[2].legend(fontsize=fontsize_legend)
@@ -116,20 +133,22 @@ for sweep, sweep_dict in tree_files.items():
             # Plot 2: Renyi-entropy,  Magnetization and fluctuation
             ax3[0].set_title(r"$%s \qquad  \alpha=%.2f$ "%(model_name, alpha_num), fontsize=fontsize_title)
             ax2[0].set_ylabel(r"$S_{renyi}$", fontsize=fontsize_labels)
-            ax2[0].plot(res[0], res[5], color='green', alpha=0.8, marker='o', ms=3, lw=1.5, label=r"$%s$"%(size))
+            ax2[0].plot(J, S_renyi, color='green', alpha=0.8, marker='o', ms=3, lw=1.5, label=r"$%s$"%(size))
             ax2[0].grid()
             ax2[0].legend(fontsize=fontsize_legend)
 
             ax2[1].set_ylim(-1,1)
             ax2[1].set_ylabel(r"$Magnetization\;\;(M_z)$",fontsize=fontsize_labels)
-            ax2[1].plot(res[0], res[6], color='red', alpha=0.8, marker='o', ms=3, lw=1.5,  label=r"$%s$"%(size))
+            ax2[1].plot(J, m_phase, color='red', alpha=0.8, marker='o', ms=3, lw=1.5,  label=r"$%s$"%(size))
+            ax2[1].plot(J, m_phase_ED, color='lime', ls='--', alpha=0.8, lw=1.5,  label=r"$%s\;(ED)$"%(size))
             ax2[1].grid()
             ax2[1].legend(fontsize=fontsize_legend)
 
             ax2[2].set_ylim(0,1)
             ax2[2].set_ylabel(r"$Fluctuations\;\;(M_s)$", fontsize=fontsize_labels)
             ax2[2].set_xlabel(r"$J$", fontsize=fontsize_labels)
-            ax2[2].plot(res[0], res[7], color='purple',marker='o', ms=3 , lw=1.5, alpha=0.8,   label=r"$%s$"%(size))
+            ax2[2].plot(J, m2_phase, color='purple',marker='o', ms=3 , lw=1.5, alpha=0.8,   label=r"$%s$"%(size))
+            ax2[2].plot(J, m2_phase_ED, color='lime', ls='--', lw=1.5, alpha=0.8,   label=r"$%s\;(ED)$"%(size))
             ax2[2].grid()
             ax2[2].legend(fontsize=fontsize_legend)
 
@@ -137,15 +156,16 @@ for sweep, sweep_dict in tree_files.items():
             ax3[0].set_ylim(0.5, 1.05)
             ax3[0].set_title(r"$%s \qquad \alpha=%.2f$ "%(model_name, alpha_num), fontsize=fontsize_title*2/3)
             ax3[0].set_ylabel(r"$Fidelity$", fontsize=fontsize_labels*2/3)
-            ax3[0].plot(res[0], res[8], color='darkorange', alpha=0.8, marker='o', ms=3, lw=1.5, label=r"$%s$"%(size))
+            ax3[0].plot(J, fidelity, color='darkorange', alpha=0.8, marker='o', ms=3, lw=1.5, label=r"$%s$"%(size))
             ax3[0].grid()
             ax3[0].legend(fontsize=fontsize_legend*2/3)
 
             ax3[1].set_ylabel(r"$TimeExe\;('')$",fontsize=fontsize_labels*2/3)
             ax3[1].set_xlabel(r"$J$", fontsize=fontsize_labels*2/3)
-            ax3[1].plot(res[0], res[9], color='olivedrab', alpha=0.8, marker='o', ms=3, lw=1.5,  label=r"$%s$"%(size))
+            ax3[1].plot(J, timexe, color='olivedrab', alpha=0.8, marker='o', ms=3, lw=1.5,  label=r"$%s$"%(size))
             ax3[1].grid()
             ax3[1].legend(fontsize=fontsize_legend*2/3)
+
         fig1.tight_layout()
         fig2.tight_layout()
         fig3.tight_layout()

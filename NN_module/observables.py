@@ -2,7 +2,6 @@ from netket.operator.spin import sigmaz
 import netket.experimental as nkx
 import numpy as np
 
-
 # Vstate calculations
 
 def renyi_vs(vstate):
@@ -53,27 +52,28 @@ def Ms2_vs(vstate):
 
 def calc_all_observables_vs(vstate):
 
+    S_renyi = renyi_vs(vstate)
     m = M_vs(vstate)
     ms = Ms_vs(vstate)
     m2 = M2_vs(vstate)
     ms2 = Ms2_vs(vstate)
 
-    return m, ms, m2, ms2
+    return S_renyi, m, ms, m2, ms2
 
 # Exact Diagonalization calculations
 
 def compute_spin_matrices(N):
-    configs = np.arange(2**N)[:, None]            # todas las configuraciones
+    configs = np.arange(2**N)[:, None]          
     bits = ((configs >> np.arange(N)) & 1)
-    sigma_z = 0.5 - bits                               # valores ±1/2
-    return sigma_z  # shape (2^N, N)
+    sigma_z = 0.5 - bits                              
+    return sigma_z  
 
 def M_ED(state):
-    """<M> magnetización media (uniforme, por sitio)"""
+    """<M> magnetización media"""
     N = int(np.log2(len(state)))
     sigma_z = 2 * compute_spin_matrices(N)
     probs = np.abs(state)**2
-    M_exp = np.sum(probs[:, None] * sigma_z, axis=0).mean()   # promedio sobre sitios
+    M_exp = np.sum(probs[:, None] * sigma_z, axis=0).mean()  
     return M_exp
 
 def M2_ED(state):

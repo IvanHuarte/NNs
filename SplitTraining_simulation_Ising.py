@@ -33,6 +33,7 @@ from NN_module.NN_utils import (
     activation_dict, modphase, phase_stats_vstate
 )
 from NN_module.ST_utils import compare_params, masked_optimizer
+from NN_module.observables import calc_all_observables_vs, calc_all_observables_ED
 
 from transformer_LR_WF.utils import *
 from NN_module.models.split_training import SplitTraining_ViT_MLP, SplitTraining_ViT_CNN
@@ -389,15 +390,21 @@ for i, size in enumerate(sizes):
                     fidelity = float(jnp.abs(jnp.vdot(vstate.to_array(), x_ED.squeeze())))
                     print(f"Fidelity: {fidelity:.3e}")
 
-                    # Renyi entropy, magnetization and its fluctuation
-                    S_renyi = float(vstate.expect(renyi).mean)
-                    M_stats = vstate.expect(magnet)
-                    M, M_var = float(M_stats.mean.real), float(M_stats.variance.real)
-                    Ms = M_var + M**2
+                # Renyi entropy, magnetization and its fluctuation
+                S_renyi, m, ms, m2, ms2 = calc_all_observables_vs(vstate)
+                
+                print(f"\nRenyi entropy: {S_renyi}")
+                print(f"< m >: {m}   < m2 >: {m2}")
+                print(f"< ms >: {ms}  < ms2 >: {ms2}")
 
-                    print(f"Renyi entropy: {S_renyi}")
-                    print(f"Magnetization: {M}")
-                    print(f"Magnetization fluctuation: {Ms}")
+                if exact_diag:
+                    m_ED, ms_ED, m2_ED, ms2_ED = calc_all_observables_ED(x_ED)
+                    print(f"ED < m >: {m}   < m2 >: {m2}")
+                    print(f"ED < ms >: {ms}  < ms2 >: {ms2}\n")
+
+                else:
+                    m_ED, ms_ED, m2_ED, ms2_ED = None
+                    
 
                     # Save the results
 
@@ -451,18 +458,25 @@ for i, size in enumerate(sizes):
                             "setup": schedule[schedule["name"]]
                         },
 
-                        'results':{
-                            'E_best': E_best,
-                            'E_ED': E_ED,
-                            'error': error,
-                            'vscore': vscore,
-                            'time_exe': time_exe, 
-                            'modphase': modphase_results,
-                            "fidelity": fidelity,
-                            'S_renyi': S_renyi,
-                            'M': M,
-                            'Ms': Ms
-                        },
+                    'results':{
+                        'E_best': E_best,
+                        'E_ED': E_ED,
+                        'error': error,
+                        'vscore': vscore,
+                        'time_exe': time_exe,
+                        'modphase': modphase_results,
+                        "fidelity": fidelity,
+                        'S_renyi': S_renyi,
+                        'm': m,
+                        'ms': ms,
+                        'm2':m2,
+                        'ms2':ms2,
+                        'm_ED': m_ED,
+                        'ms_ED': ms_ED,
+                        'm2_ED':m2_ED,
+                        'ms2_ED':ms2_ED,
+
+                    },
                         '_artifacts': {
                             'callback': callback_artifacts
                         }

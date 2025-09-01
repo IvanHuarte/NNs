@@ -32,10 +32,10 @@ for file in files_list:
     with open(file,'r') as f:
         art = json.load(f)
 
-
     vstate=load_vstate(art)
-    m, ms, m2, ms2 = calc_all_observables_vs(x_ED)
+    S_renyi, m, ms, m2, ms2 = calc_all_observables_vs(vstate)
 
+    art['results']['S_renyi']= S_renyi
     art['results']['m'] = m
     art['results']['ms'] = ms
     art['results']['m2'] = m2
