@@ -31,7 +31,6 @@ for file in files_list:
     # Load artifacts and simulation params
     with open(file,'r') as f:
         art = json.load(f)
-    print(f"J: {art['coupling_model']['J']}")
 
 
     vstate=load_vstate(art)
