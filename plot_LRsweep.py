@@ -62,7 +62,8 @@ for sweep, sweep_dict in tree_files.items():
 
         for size, files in alpha_dict.items():
             
-            results =[[] for _ in range(15)] # For [J, E_best, E_ED, error, vscore, S_renyi, M, Ms, fidelity, timexe]
+            results =[[] for _ in range(16)] # For [J, E_best, E_ED, error, vscore, S_renyi, M, Ms, fidelity, timexe]
+
 
             for file in files:
                 # Load artifacts and simulation params
@@ -100,7 +101,7 @@ for sweep, sweep_dict in tree_files.items():
              m2, ms2, m_ED, ms_ED,
              m2_ED, ms2_ED, fidelity, timexe) = results
 
-            m_phase = np.where(J<0,m2,ms2)
+            m_phase = np.where(J<0,m,ms)
             m_phase_ED = np.where(J<0, m_ED, ms_ED) 
             m2_phase = np.where(J<0,m2,ms2)
             m2_phase_ED = np.where(J<0, m2_ED, ms2_ED)
