@@ -58,7 +58,7 @@ def calc_all_observables_vs(vstate):
     m2 = M2_vs(vstate)
     ms2 = Ms2_vs(vstate)
 
-    return S_renyi, m, ms, m2, ms2
+    return float(S_renyi), float(m), float(ms), float(m2), float(ms2)
 
 # Exact Diagonalization calculations
 
@@ -74,7 +74,7 @@ def M_ED(state):
     sigma_z = 2 * compute_spin_matrices(N)
     probs = np.abs(state)**2
     M_exp = np.sum(probs[:, None] * sigma_z, axis=0).mean()  
-    return M_exp
+    return float(M_exp)
 
 def M2_ED(state):
     """<M^2> segundo momento de la magnetización uniforme"""
@@ -85,7 +85,7 @@ def M2_ED(state):
     # correladores S_i S_j
     corr = (probs[:, None, None] * (sigma_z[:, :, None] * sigma_z[:, None, :])).sum(axis=0)
     M2_exp = corr.sum() / (N**2)
-    return M2_exp
+    return float(M2_exp)
 
 def Ms_ED(state):
     """<Ms> magnetización staggered media por sitio"""
@@ -94,7 +94,7 @@ def Ms_ED(state):
     staggered = (-1)**np.arange(N)
     probs = np.abs(state)**2
     Ms_exp = np.sum(probs[:, None] * (sigma_z * staggered), axis=0).mean()
-    return Ms_exp
+    return float(Ms_exp)
 
 def Ms2_ED(state):
     """<Ms^2> segundo momento de la magnetización staggered"""
@@ -106,7 +106,7 @@ def Ms2_ED(state):
     sigma_z_stag = sigma_z * staggered  # shape (2^N, N)
     corr = (probs[:, None, None] * (sigma_z_stag[:, :, None] * sigma_z_stag[:, None, :])).sum(axis=0)
     Ms2_exp = corr.sum() / (N**2)
-    return Ms2_exp
+    return float(Ms2_exp)
 
 def calc_all_observables_ED(state):
 
@@ -126,4 +126,4 @@ def calc_all_observables_ED(state):
     corr = (probs[:, None, None] * (sigma_z_stag[:, :, None] * sigma_z_stag[:, None, :])).sum(axis=0)
     ms2 = corr.sum() / (N**2)
 
-    return m, ms, m2, ms2
+    return float(m), float(ms), float(m2), float(ms2)

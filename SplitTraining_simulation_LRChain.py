@@ -26,7 +26,7 @@ sys.path.append(str(Path(__file__).resolve().parent.parent / "Transformers/trans
 from VA_project.model.model import LRChain
 from VA_project.engine.runners import Runner
 from NN_module.sim_utils import (
-    save_results, dump_callback, init_model
+    save_results, dump_callback, init_model, BestIterKeeper
 )
 from NN_module.label_utils import (
     get_filenames_from_settings, architecture_label,
@@ -39,7 +39,7 @@ from NN_module.NN_utils import (
 )
 from NN_module.ST_utils import compare_params, masked_optimizer
 from NN_module.observables import calc_all_observables_vs, calc_all_observables_ED
-from transformer_LR_WF.utils import *
+from transformer_LR_WF.utils import InvertMagnetization
 
 # Cargamos configuracion de archivo json
 with open("config_split_training.json",'r') as f:
@@ -87,12 +87,6 @@ for i, size in enumerate(sizes):
 
     ###  Reseting Hilbert space object and the observables ###
     hi = nk.hilbert.Spin(s=1 / 2, N=N)
-
-    renyi = nkx.observable.Renyi2EntanglementEntropy(
-        hi, np.arange(0, N / 2 + 1, dtype=int)
-    )
-    mags = sum([(-1) ** (i+j) * sigmaz(hi, i*size[1]+j) / N for i in range(size[0]) for j in range(size[1])])
-    magnet = sum([sigmaz(hi, i*size[1]+j) / N for i in range(size[0]) for j in range(size[1])])
 
     ## Reset sampler 
     sampler = nk.sampler.MetropolisSampler(
@@ -160,7 +154,7 @@ for i, size in enumerate(sizes):
                 log = (
                     nk.logging.RuntimeLog()
                 )  # If instead of this logging you insert a string, it will be used as output prefix for a JSON file where the evolution of the energy at each epoch will be stored.
-                keeper = BestIterKeeper(H, N, 1e-8)
+                keeper = BestIterKeeper(epochs, H, N, mode='best_vscore')
                 # keeper.filename = 'Somewhere' #It allows you to store the parameters of the model for the state with lowest energy found.
 
                 # Initialize vstate with parameters
@@ -252,7 +246,8 @@ for i, size in enumerate(sizes):
                         'time_exe': time_exe, 
                         'architecture': architecture,
                         'sim_label': sim_label,
-                        'title_label_callback': title_label_callback
+                        'title_label_callback': title_label_callback,
+                        'best_step': keeper.best_step
                     }
                     
                     callback_artifacts = dump_callback(log, dump_setup)
@@ -264,8 +259,9 @@ for i, size in enumerate(sizes):
                 # Modulus and phase
 
                 vstate = keeper.best_state
-                E_best = float(keeper.best_energy)
-                vscore = float(keeper.vscore)
+                best_step = keeper.best_step
+                E_best = float(keeper.best_state_energy)
+                vscore = float(keeper.best_state_vscore)
 
                 modphase_results={}
                 if exact_diag:
@@ -295,9 +291,9 @@ for i, size in enumerate(sizes):
                 print(f"< ms >: {ms}  < ms2 >: {ms2}")
 
                 if exact_diag:
-                    m_ED, ms_ED, m2_ED, ms2_ED = calc_all_observables_ED(x_ED)
-                    print(f"ED < m >: {m}   < m2 >: {m2}")
-                    print(f"ED < ms >: {ms}  < ms2 >: {ms2}\n")
+                    m_ED, ms_ED, m2_ED, ms2_ED = calc_all_observables_ED(x_ED.squeeze())
+                    print(f"ED < m >: {m_ED}   < m2 >: {m2_ED}")
+                    print(f"ED < ms >: {ms_ED}  < ms2 >: {ms2_ED}\n")
 
                 else:
                     m_ED, ms_ED, m2_ED, ms2_ED = None
@@ -341,6 +337,7 @@ for i, size in enumerate(sizes):
                     },
 
                     'results':{
+                        'best_step': best_step,
                         'E_best': E_best,
                         'E_ED': E_ED,
                         'error': error,

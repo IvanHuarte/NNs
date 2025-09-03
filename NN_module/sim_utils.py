@@ -44,43 +44,143 @@ class BestIterKeeper:
 
     def __init__(
         self,
+        epochs: int,
         Hamiltonian: npt.ArrayLike,
         N: int,
-        baseline: float,
+        baseline: float = 1e-8,
         filename: Optional[pathlib.Path] = None,
+        mode: str = 'best_energy' 
     ):
         self.Hamiltonian = Hamiltonian
         self.N = N
         self.baseline = baseline
         self.filename = filename
         self.vscore = np.inf
-        self.best_energy = np.inf
+
+        self.best_state_energy = np.inf
+        self.best_state_vscore = np.inf
+        self.best_step = 0
         self.best_state = None
 
-    def update(self, step, log_data, driver):
+        self.step_threshold = epochs//10
+
+        if mode == 'best_energy':
+            self.update = self.best_energy_update
+        elif mode == 'best_vscore':
+            self.update = self.best_vscore_update
+        # elif mode == 'always':
+        #     self.update = self.always_update
+        # elif mode == 'balanced':
+        #     self.update = self.balanced_update
+
+    def best_energy_update(self, step, log_data, driver):
         """Update the stored quantities if necessary.
 
         This function is intended to act as a callback for NetKet. Please refer
         to its API documentation for a detailed explanation.
         """
+        
         vstate = driver.state
-        energystep = np.real(vstate.expect(self.Hamiltonian).mean)
+        energy_step = np.real(vstate.expect(self.Hamiltonian).mean)
         var = np.real(getattr(log_data[driver._loss_name], "variance"))
         mean = np.real(getattr(log_data[driver._loss_name], "mean"))
-        varstep = self.N * var / mean**2
-        #print(f" Variance: {var}, Mean: {mean}, Vscore: {varstep}") 
+        vscore_step = self.N * var / mean**2
 
-        if self.best_energy > energystep:
-            self.best_energy = energystep
+        if step > self.step_threshold:
+            if self.best_state_energy > energy_step:
+                self.best_state = copy.copy(driver.state)
+                self.best_state_energy = energy_step
+                self.best_state_vscore = vscore_step
+                self.best_step = step
+
+                if self.filename != None:
+                    with open(self.filename, "wb") as file:
+                        file.write(flax.serialization.to_bytes(driver.state))
+
+        return self.survive_condition(energy_step, vscore_step)
+
+    def best_vscore_update(self, step, log_data, driver):
+        """Update the stored quantities if necessary.
+
+        This function is intended to act as a callback for NetKet. Please refer
+        to its API documentation for a detailed explanation.
+        """
+  
+        vstate = driver.state
+        energy_step = np.real(vstate.expect(self.Hamiltonian).mean)
+        var = np.real(getattr(log_data[driver._loss_name], "variance"))
+        mean = np.real(getattr(log_data[driver._loss_name], "mean"))
+        vscore_step = self.N * var / mean**2
+
+        if step > self.step_threshold:
+
+            if self.best_state_vscore > vscore_step:
+                self.best_state = copy.copy(driver.state)
+                self.best_state_energy = energy_step
+                self.best_state_vscore = vscore_step
+                self.best_step = step
+
+                if self.filename != None:
+                    with open(self.filename, "wb") as file:
+                        file.write(flax.serialization.to_bytes(driver.state))
+
+        return self.survive_condition(energy_step, vscore_step)
+    
+    def always_update(self, step, log_data, driver):
+
+        vstate = driver.state
+        energy_step = np.real(vstate.expect(self.Hamiltonian).mean)
+        var = np.real(getattr(log_data[driver._loss_name], "variance"))
+        mean = np.real(getattr(log_data[driver._loss_name], "mean"))
+        vscore_step = self.N * var / mean**2
+
+        # Always update
+
+        if step > self.step_threshold:
+
             self.best_state = copy.copy(driver.state)
-            self.best_state.parameters = flax.core.copy(driver.state.parameters)
-            self.vscore = varstep
+            self.best_state_energy = energy_step
+            self.best_state_vscore = vscore_step
+            self.best_step = step
 
             if self.filename != None:
                 with open(self.filename, "wb") as file:
                     file.write(flax.serialization.to_bytes(driver.state))
 
-        return self.vscore > self.baseline
+        return self.survive_condition(energy_step, vscore_step)
+    
+    def balanced_update(self, step, log_data, driver):
+        """Update the stored quantities if necessary.
+
+        This function is intended to act as a callback for NetKet. Please refer
+        to its API documentation for a detailed explanation.
+        """
+        
+        vstate = driver.state
+        energy_step = np.real(vstate.expect(self.Hamiltonian).mean)
+        var = np.real(getattr(log_data[driver._loss_name], "variance"))
+        mean = np.real(getattr(log_data[driver._loss_name], "mean"))
+        vscore_step = self.N * var / mean**2
+
+        if step > self.step_threshold:
+            
+            if self.balanced_condition(energy_step,vscore_step):
+                pass
+
+        return self.survive_condition(energy_step, vscore_step)
+    
+    def survive_condition(self, energy, vscore):
+
+        survive = True
+        if vscore < self.baseline:
+            survive = False
+            self.exit_msg = f"Vscore {vscore} is below baseline {self.baseline}"
+        if energy == float('nan'):
+            survive = False
+            self.exit_msg = f"Energy has diverged. Simulation crashed."
+
+        return survive
+
 
 class EnergyPlotter():
     def __init__(self, H, N, E_prev=None, E_ED=None, vs_prev=None, error_prev=None):
@@ -163,6 +263,7 @@ def dump_callback(logger, settings, write = False):
     learning_rate = settings['learning_rate']
     sim_label = settings['sim_label']
     title_label_callback= settings['title_label_callback']
+    best_step = settings['best_step']
 
     N=int(np.prod(settings['size']))
 
@@ -201,6 +302,7 @@ def dump_callback(logger, settings, write = False):
         ax[0].hlines(E_gr,0,len(E_hist), color='green', label='ED Energy')
                     
     ax[0].plot(E_hist, color='blue', label='E')
+    ax[0].plot(best_step, E_hist[best_step], marker='o', ms=3, color='gold')    
     ax[0].text(0.45, 0.85, architecture_display, transform=ax[0].transAxes, fontsize=12, color='k', ha='center', va='center',
             bbox=dict(boxstyle='round', facecolor='white', alpha=0.7))
     ax[0].text(0.9, 0.75, setup_sim, transform=ax[0].transAxes, fontsize=10, color='k', ha='center', va='center',
@@ -213,6 +315,7 @@ def dump_callback(logger, settings, write = False):
 
 
     ax[v].plot(vscore, color='purple', label='Vscore')
+    ax[v].plot(best_step, vscore[best_step], marker='o', ms=3, color='gold')    
     ax[v].set_yscale('log')
     #ax[v].set_ylim(bottom=vs_min)
     ax[v].legend()
@@ -222,6 +325,7 @@ def dump_callback(logger, settings, write = False):
 
     if hasattr(logger,'E_ED'):
         ax[e].plot(error, color='red', label='E')
+        ax[e].plot(best_step, error[best_step], marker='o', ms=3, color='gold')    
         ax[e].set_yscale('log')
         ax[e].legend()
         ax[e].set_xlabel('Iteration')
