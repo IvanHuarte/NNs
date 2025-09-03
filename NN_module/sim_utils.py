@@ -28,6 +28,81 @@ from NN_module.models.split_training import (
 from NN_module.NN_utils import (
     activation_dict, sampler_dict, rule_dict
 )
+class OnlineNormalizer:
+
+    """Class to normalize energy and vscore"""
+
+    def __init__(self, normalize_mode: str):
+
+        self.energy_history = []
+        self.vscore_history = []
+        self.normalized_E = np.inf
+        self.normalized_V = np.inf
+
+        if normalize_mode == 'Zscore':
+            self.__call__ = self.Zscore
+        elif normalize_mode == 'MinMax':
+            self.__call__ = self.MinMax
+
+
+
+    def update_history(self, energy_step: float, vscore_step: float):
+        self.energy_history.append(energy_step)
+        self.vscore_history.append(vscore_step)
+
+    def Zscore(self, energy_step: float, vscore_step: float):
+        energy_hist = np.array(self.energy_history)
+        vscore_hist = np.array(self.vscore_history)
+
+        mu_e, std_e = float(energy_hist.mean()) , float(energy_hist.std(ddof=1))
+        mu_v, std_v = float(vscore_hist.mean()) , float(vscore_hist.std(ddof=1))
+
+        std_e = max(std_e, 1e-10)
+        std_v = max(std_v, 1e-10)
+
+        normalized_E = (energy_step - mu_e) / std_e
+        normalized_V = (vscore_step - mu_v) / std_v
+
+        return normalized_E, normalized_V
+    
+    def MinMax(self, energy_step: float, vscore_step: float):
+        energy_hist = np.array(self.energy_history)
+        vscore_hist = np.array(self.vscore_history)
+
+        min_e, max_e = float(energy_hist.min()), float(energy_hist.max())
+        min_v, max_v = float(vscore_hist.min()), float(vscore_hist.max())
+
+        normalized_E = (energy_step - min_e) / (max_e - min_e) if max_e > min_e else 0
+        normalized_V = (vscore_step - min_v) / (max_v - min_v) if max_v > min_v else 0
+
+        return normalized_E, normalized_V
+    
+class Selector():
+    def __init__(self, selector_mode: str):
+
+        self.best_e = np.inf
+        self.best_v = np.inf
+
+        if selector_mode == 'linear combination':
+            self.__call__ = self.linear_combination
+        elif selector_mode == 'pareto':
+            self.__call__ = self.pareto
+
+    def linear_combination(self, norm_E, norm_V, alpha = 0.5):
+        return alpha * norm_E + (1 - alpha) * norm_V
+    
+    def pareto(self, norm_E, norm_V):
+        
+        better_E = norm_E < self.best_e
+        better_V = norm_V < self.best_v
+
+        if better_E and better_V:
+            self.best_e = norm_E
+            self.best_v = norm_V
+        
+
+        return self.best_e, self.best_v
+
 class BestIterKeeper:
     """Store the values of a bunch of quantities from the best iteration.
 
@@ -49,7 +124,13 @@ class BestIterKeeper:
         N: int,
         baseline: float = 1e-8,
         filename: Optional[pathlib.Path] = None,
-        mode: str = 'best_energy' 
+        mode: str = 'best_energy',
+        balanced_setup: dict = {
+            'start_stats': 3//10,
+            'stats_window': 1//10,
+            'normalizer': 'Zscore',
+            'selector': 'linear_combination'            
+            }
     ):
         self.Hamiltonian = Hamiltonian
         self.N = N
@@ -61,17 +142,23 @@ class BestIterKeeper:
         self.best_state_vscore = np.inf
         self.best_step = 0
         self.best_state = None
-
         self.step_threshold = epochs//10
+
 
         if mode == 'best_energy':
             self.update = self.best_energy_update
         elif mode == 'best_vscore':
             self.update = self.best_vscore_update
-        # elif mode == 'always':
-        #     self.update = self.always_update
-        # elif mode == 'balanced':
-        #     self.update = self.balanced_update
+        elif mode == 'always':
+            self.update = self.always_update
+
+        elif mode == 'balanced':
+            self.best_score = np.inf
+            self.stats_window = balanced_setup['stats_window']*epochs if balanced_setup['stats_window'] is not None else None
+            self.start_stats = balanced_setup['start_stats']*epochs if balanced_setup['start_stats'] is not None else None
+            self.normalizer = OnlineNormalizer(balanced_setup['normalizer'])
+            self.selector = Selector(balanced_setup['selector'])
+            self.update = self.balanced_update
 
     def best_energy_update(self, step, log_data, driver):
         """Update the stored quantities if necessary.
@@ -162,10 +249,26 @@ class BestIterKeeper:
         mean = np.real(getattr(log_data[driver._loss_name], "mean"))
         vscore_step = self.N * var / mean**2
 
-        if step > self.step_threshold:
-            
-            if self.balanced_condition(energy_step,vscore_step):
-                pass
+        if step > self.start_stats:
+            if step > self.start_stats + self.stats_window:
+                norm_E, norm_V = self.normalizer(energy_step, vscore_step)
+                score = self.selector(norm_E, norm_V)
+
+                if score < self.best_score:
+                    self.best_state = copy.copy(driver.state)
+                    self.best_state_energy = energy_step
+                    self.best_state_vscore = vscore_step
+                    self.best_step = step
+
+                    if self.filename != None:
+                        with open(self.filename, "wb") as file:
+                            file.write(flax.serialization.to_bytes(driver.state))
+
+
+                
+
+
+        self.normalizer.update_history(energy_step, vscore_step)
 
         return self.survive_condition(energy_step, vscore_step)
     

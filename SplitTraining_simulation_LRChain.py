@@ -13,7 +13,7 @@ import os
 #os.environ["XLA_PYTHON_CLIENT_PREALLOCATE"] = "false"
 
 jax.config.update("jax_enable_x64", True)
-jax.config.update("jax_platform_name", "gpu")
+jax.config.update("jax_platform_name", "cpu")
 jax.devices()
 
 # Añadir los directorios necesarios
@@ -228,6 +228,8 @@ for i, size in enumerate(sizes):
                 if exact_diag:
                     keeper.E_ED = E_ED
                     log.E_ED = E_ED
+
+                sys.exit(0)
 
                 ## Save results
                 _kwargs = config['model_NN'][nn_model_name]
