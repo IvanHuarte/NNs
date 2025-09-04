@@ -32,23 +32,30 @@ class OnlineNormalizer:
 
     """Class to normalize energy and vscore"""
 
-    def __init__(self, normalize_mode: str):
+    def __init__(self, normalize_mode: str, window_size: int | None = None):
 
         self.energy_history = []
         self.vscore_history = []
-        self.normalized_E = np.inf
-        self.normalized_V = np.inf
+        self.normalize_mode = normalize_mode
+        self.window_size = window_size
 
-        if normalize_mode == 'Zscore':
-            self.__call__ = self.Zscore
-        elif normalize_mode == 'MinMax':
-            self.__call__ = self.MinMax
+    def __call__(self, energy_step: float, vscore_step: float):
 
-
+        if self.normalize_mode == 'Zscore':
+            return self.Zscore(energy_step, vscore_step)
+        elif self.normalize_mode == 'MinMax':
+            return self.MinMax(energy_step, vscore_step)
+        else:
+            raise ValueError(f"Unknown normalize_mode: {self.normalize_mode}")
 
     def update_history(self, energy_step: float, vscore_step: float):
         self.energy_history.append(energy_step)
         self.vscore_history.append(vscore_step)
+
+        if self.window_size is not None:
+            if len(self.energy_history) > self.window_size:
+                self.energy_history = self.energy_history[-self.window_size:]
+                self.vscore_history = self.vscore_history[-self.window_size:]
 
     def Zscore(self, energy_step: float, vscore_step: float):
         energy_hist = np.array(self.energy_history)
@@ -62,6 +69,12 @@ class OnlineNormalizer:
 
         normalized_E = (energy_step - mu_e) / std_e
         normalized_V = (vscore_step - mu_v) / std_v
+
+        print(f"Normalization block")
+        print(f"\nmu_e = {mu_e:.3f}, std_e = {std_e:.3f}")
+        print(f"Energy step = {energy_step:.3f} -> norm_E = {normalized_E:.3f}")
+        print(f"\nmu_v = {mu_v:.3f}, std_v = {std_v:.3f}")
+        print(f"Vscore step = {vscore_step:.3f} -> norm_V = {normalized_V:.3f}")
 
         return normalized_E, normalized_V
     
@@ -82,11 +95,15 @@ class Selector():
 
         self.best_e = np.inf
         self.best_v = np.inf
+        self.selector_mode = selector_mode
 
-        if selector_mode == 'linear combination':
-            self.__call__ = self.linear_combination
-        elif selector_mode == 'pareto':
-            self.__call__ = self.pareto
+    def __call__(self, norm_E, norm_V):
+        if self.selector_mode == 'linear':
+            return  self.linear_combination(norm_E, norm_V)
+        elif self.selector_mode == 'pareto':
+            return  self.pareto(norm_E, norm_V)
+        else:
+            raise ValueError(f"Unknown selector_mode: {self.selector_mode}")
 
     def linear_combination(self, norm_E, norm_V, alpha = 0.5):
         return alpha * norm_E + (1 - alpha) * norm_V
@@ -126,10 +143,10 @@ class BestIterKeeper:
         filename: Optional[pathlib.Path] = None,
         mode: str = 'best_energy',
         balanced_setup: dict = {
-            'start_stats': 3//10,
-            'stats_window': 1//10,
+            'start_stats': 3/10,
+            'stats_window': 1/10,
             'normalizer': 'Zscore',
-            'selector': 'linear_combination'            
+            'selector': 'linear'            
             }
     ):
         self.Hamiltonian = Hamiltonian
@@ -154,8 +171,8 @@ class BestIterKeeper:
 
         elif mode == 'balanced':
             self.best_score = np.inf
-            self.stats_window = balanced_setup['stats_window']*epochs if balanced_setup['stats_window'] is not None else None
-            self.start_stats = balanced_setup['start_stats']*epochs if balanced_setup['start_stats'] is not None else None
+            self.stats_window = int(balanced_setup['stats_window']*epochs) if balanced_setup['stats_window'] is not None else None
+            self.start_stats = int(balanced_setup['start_stats']*epochs) if balanced_setup['start_stats'] is not None else None
             self.normalizer = OnlineNormalizer(balanced_setup['normalizer'])
             self.selector = Selector(balanced_setup['selector'])
             self.update = self.balanced_update
@@ -249,12 +266,18 @@ class BestIterKeeper:
         mean = np.real(getattr(log_data[driver._loss_name], "mean"))
         vscore_step = self.N * var / mean**2
 
+        print(f"\nStep {step}:")
+        print(f"Energy: {energy_step:.6f}, Vscore: {vscore_step:.6f}")
         if step > self.start_stats:
+            
             if step > self.start_stats + self.stats_window:
                 norm_E, norm_V = self.normalizer(energy_step, vscore_step)
+                print(f"norm_E = {norm_E:.3f}, norm_V = {norm_V:.3f}")
                 score = self.selector(norm_E, norm_V)
+                print(f"Score: {score:.3f}, Best score: {self.best_score:.3f}")
 
                 if score < self.best_score:
+                    print(f"New best score found: {score:.3f} < {self.best_score:.3f}. Updating best state.")
                     self.best_state = copy.copy(driver.state)
                     self.best_state_energy = energy_step
                     self.best_state_vscore = vscore_step
@@ -264,11 +287,8 @@ class BestIterKeeper:
                         with open(self.filename, "wb") as file:
                             file.write(flax.serialization.to_bytes(driver.state))
 
-
-                
-
-
-        self.normalizer.update_history(energy_step, vscore_step)
+            self.normalizer.update_history(energy_step, vscore_step)
+            print(f"Updating historial. Length: {len(self.normalizer.energy_history)}")
 
         return self.survive_condition(energy_step, vscore_step)
     

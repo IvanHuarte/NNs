@@ -13,7 +13,7 @@ import os
 #os.environ["XLA_PYTHON_CLIENT_PREALLOCATE"] = "false"
 
 jax.config.update("jax_enable_x64", True)
-jax.config.update("jax_platform_name", "cpu")
+jax.config.update("jax_platform_name", "gpu")
 jax.devices()
 
 # Añadir los directorios necesarios
@@ -154,7 +154,7 @@ for i, size in enumerate(sizes):
                 log = (
                     nk.logging.RuntimeLog()
                 )  # If instead of this logging you insert a string, it will be used as output prefix for a JSON file where the evolution of the energy at each epoch will be stored.
-                keeper = BestIterKeeper(epochs, H, N, mode='best_vscore')
+                keeper = BestIterKeeper(epochs, H, N, mode='balanced')
                 # keeper.filename = 'Somewhere' #It allows you to store the parameters of the model for the state with lowest energy found.
 
                 # Initialize vstate with parameters
@@ -220,7 +220,7 @@ for i, size in enumerate(sizes):
                         optimizer,
                         variational_state=vstate,
                         preconditioner=SR
-                    ).run(n_iter=epochs, out=log, callback=[keeper.update], show_progress=True)
+                    ).run(n_iter=epochs, out=log, callback=[keeper.update], show_progress=False)
 
                 time_out = time.time()
                 time_exe= time_out - time_in
