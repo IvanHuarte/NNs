@@ -154,7 +154,13 @@ for i, size in enumerate(sizes):
                 log = (
                     nk.logging.RuntimeLog()
                 )  # If instead of this logging you insert a string, it will be used as output prefix for a JSON file where the evolution of the energy at each epoch will be stored.
-                keeper = BestIterKeeper(epochs, H, N, mode='balanced')
+                keeper = BestIterKeeper(
+                    epochs, 
+                    H,
+                    N, 
+                    baseline=1e-8,
+                    mode='best_energy'
+                )
                 # keeper.filename = 'Somewhere' #It allows you to store the parameters of the model for the state with lowest energy found.
 
                 # Initialize vstate with parameters
@@ -220,7 +226,7 @@ for i, size in enumerate(sizes):
                         optimizer,
                         variational_state=vstate,
                         preconditioner=SR
-                    ).run(n_iter=epochs, out=log, callback=[keeper.update], show_progress=False)
+                    ).run(n_iter=epochs, out=log, callback=[keeper.update], show_progress=True)
 
                 time_out = time.time()
                 time_exe= time_out - time_in
@@ -228,8 +234,7 @@ for i, size in enumerate(sizes):
                 if exact_diag:
                     keeper.E_ED = E_ED
                     log.E_ED = E_ED
-
-                sys.exit(0)
+                
 
                 ## Save results
                 _kwargs = config['model_NN'][nn_model_name]
@@ -374,6 +379,8 @@ for i, size in enumerate(sizes):
                     ED_label=ED_label,
                     json_label=json_label
                 )
+
+                
 
                 # import time
                 # import subprocess

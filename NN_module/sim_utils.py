@@ -70,11 +70,11 @@ class OnlineNormalizer:
         normalized_E = (energy_step - mu_e) / std_e
         normalized_V = (vscore_step - mu_v) / std_v
 
-        print(f"Normalization block")
-        print(f"\nmu_e = {mu_e:.3f}, std_e = {std_e:.3f}")
-        print(f"Energy step = {energy_step:.3f} -> norm_E = {normalized_E:.3f}")
-        print(f"\nmu_v = {mu_v:.3f}, std_v = {std_v:.3f}")
-        print(f"Vscore step = {vscore_step:.3f} -> norm_V = {normalized_V:.3f}")
+        # print(f"Normalization block")
+        # print(f"\nmu_e = {mu_e:.6e}, std_e = {std_e:.6e}")
+        # print(f"Energy step = {energy_step:.6e} -> norm_E = {normalized_E:.3e}")
+        # print(f"\nmu_v = {mu_v:.6e}, std_v = {std_v:.6e}")
+        # print(f"Vscore step = {vscore_step:.6e} -> norm_V = {normalized_V:.3e}")
 
         return normalized_E, normalized_V
     
@@ -105,7 +105,7 @@ class Selector():
         else:
             raise ValueError(f"Unknown selector_mode: {self.selector_mode}")
 
-    def linear_combination(self, norm_E, norm_V, alpha = 0.5):
+    def linear_combination(self, norm_E, norm_V, alpha = 0.2):
         return alpha * norm_E + (1 - alpha) * norm_V
     
     def pareto(self, norm_E, norm_V):
@@ -143,7 +143,7 @@ class BestIterKeeper:
         filename: Optional[pathlib.Path] = None,
         mode: str = 'best_energy',
         balanced_setup: dict = {
-            'start_stats': 3/10,
+            'start_stats': 2/10,
             'stats_window': 1/10,
             'normalizer': 'Zscore',
             'selector': 'linear'            
@@ -173,7 +173,7 @@ class BestIterKeeper:
             self.best_score = np.inf
             self.stats_window = int(balanced_setup['stats_window']*epochs) if balanced_setup['stats_window'] is not None else None
             self.start_stats = int(balanced_setup['start_stats']*epochs) if balanced_setup['start_stats'] is not None else None
-            self.normalizer = OnlineNormalizer(balanced_setup['normalizer'])
+            self.normalizer = OnlineNormalizer(balanced_setup['normalizer'], self.stats_window)
             self.selector = Selector(balanced_setup['selector'])
             self.update = self.balanced_update
 
@@ -266,18 +266,19 @@ class BestIterKeeper:
         mean = np.real(getattr(log_data[driver._loss_name], "mean"))
         vscore_step = self.N * var / mean**2
 
-        print(f"\nStep {step}:")
-        print(f"Energy: {energy_step:.6f}, Vscore: {vscore_step:.6f}")
+        # print(f"\nStep {step}:")
+        # print(f"Energy: {energy_step:.6e}, Vscore: {vscore_step:.6e}")
         if step > self.start_stats:
             
             if step > self.start_stats + self.stats_window:
                 norm_E, norm_V = self.normalizer(energy_step, vscore_step)
-                print(f"norm_E = {norm_E:.3f}, norm_V = {norm_V:.3f}")
                 score = self.selector(norm_E, norm_V)
-                print(f"Score: {score:.3f}, Best score: {self.best_score:.3f}")
+                # print(f"norm_E = {norm_E:.6e}, norm_V = {norm_V:.6e}")
+                # print(f"Score: {score:.6f}, Best score: {self.best_score:.6f}")
 
                 if score < self.best_score:
-                    print(f"New best score found: {score:.3f} < {self.best_score:.3f}. Updating best state.")
+                    # print(f"New best score found: {score:.6f} < {self.best_score:.6f}. Updating best state.")
+                    self.best_score = score
                     self.best_state = copy.copy(driver.state)
                     self.best_state_energy = energy_step
                     self.best_state_vscore = vscore_step
@@ -288,7 +289,7 @@ class BestIterKeeper:
                             file.write(flax.serialization.to_bytes(driver.state))
 
             self.normalizer.update_history(energy_step, vscore_step)
-            print(f"Updating historial. Length: {len(self.normalizer.energy_history)}")
+            # print(f"Updating historial. Length: {len(self.normalizer.energy_history)}")
 
         return self.survive_condition(energy_step, vscore_step)
     
@@ -298,9 +299,11 @@ class BestIterKeeper:
         if vscore < self.baseline:
             survive = False
             self.exit_msg = f"Vscore {vscore} is below baseline {self.baseline}"
+            print(self.exit_msg)
         if energy == float('nan'):
             survive = False
             self.exit_msg = f"Energy has diverged. Simulation crashed."
+            print(self.exit_msg)
 
         return survive
 
