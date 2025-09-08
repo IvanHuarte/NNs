@@ -84,8 +84,8 @@ class DepthPointwiseConv(nn.Module):
             kernel_size=self.kernel,      
             feature_group_count=Ch_in,    
             strides=(1,1),         
-            padding='CIRCULAR',                   # 'CIRCULAR' para BC periódicas
-            mask=mask,
+            padding='CIRCULAR',
+            #mask=mask,
             dtype=REAL_DTYPE,
             use_bias=False
         )(x)
@@ -97,7 +97,7 @@ class DepthPointwiseConv(nn.Module):
             features=self.channels,   
             kernel_size=(1, 1),           
             strides=(1, 1),                
-            padding='SAME',                 # 'CIRCULAR' para BC periódicas
+            padding='SAME',                 
             dtype=REAL_DTYPE,
             use_bias=False
         )(x)
@@ -187,7 +187,7 @@ class StageBlock(nn.Module):
             kernel_size=self.kernel,
             strides=(1, 1), 
             padding='CIRCULAR',
-            mask=mask,
+            #mask=mask,
             dtype=REAL_DTYPE
         )(x)
 
@@ -199,12 +199,13 @@ class StageBlock(nn.Module):
                 channels=self.CP_channels,
                 n_heads=self.n_heads,
                 kernel=self.kernel,
-                )(x)
+            )(x)
 
         return log_cosh(x)
 
 
 class CvTWorker(nn.Module):
+
     """
     Convolutional Vision Transformer (CvT) implementation.
     It consists of multiple stages, each containing a convolutional token embedding
@@ -222,6 +223,7 @@ class CvTWorker(nn.Module):
         x: Output tensor. If `two_heads` is True, it returns a complex output with modulus and phase.
            Otherwise, it returns a real-valued output.
     """
+
     lattice_size : Tuple[int, int]  
     
     n_CP_blocks_list: Tuple[int, ...]            # Number of convolutional projection blocks in each stage
