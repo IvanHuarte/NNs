@@ -503,7 +503,7 @@ class SpinViT_2D_Z2(nn.Module):
             
 
 
-class BatchedSpinViT(nn.Module):
+class BatchedSpinViT_2D(nn.Module):
 
     "Batched version of SpinViT, accepting several spin configurations at once."
     

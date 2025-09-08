@@ -23,7 +23,7 @@ def get_write_folder_from_model(config):
         conditions = [model_setup['symm_2D_module'], model_setup['symm_Z2_module']]
         labels = ["_2DM","_Z2M"]
 
-    elif  name in ["CvT","CvT2","CvT3"]:
+    elif  name in ["ViT","CvT","CvT2","CvT3"]:
         conditions = [model_setup['symm_Z2']]
         labels = ["_Z2"]
 
@@ -97,8 +97,8 @@ def architecture_label(name, model_setup):
             setup+=f" {set_act[i]} |" if '0' not in set_act[i] else ''
         setup+="|"
         architecture = setup
-        
-    elif name == 'ViT':
+
+    elif name in ['ViT', 'ViT_2D']:
         architecture = f"|| b: {model_setup['token_size']}  D_emb: {model_setup['embedding_d']}  heads: {model_setup['n_heads']} ||\n"
         architecture += f"|| n_blocks: {model_setup['n_blocks']}   ffn_layers: {model_setup['n_ffn_layers']} ||\n"
          
@@ -200,6 +200,11 @@ def get_filenames_from_settings(cm_name, nn_name, **kwargs):
         nnparams = f"_alphas_{dim_label}_activations_{act_label}"
 
     elif nn_name == 'ViT':
+        token_size = kwargs['token_size'] ; embedding_d = kwargs['embedding_d'] ; n_heads = kwargs['n_heads'] 
+        n_blocks = kwargs['n_blocks'] ; n_ffn_layers = kwargs['n_ffn_layers']
+        nnparams = f"_b_{token_size}_Demb_{embedding_d}_heads_{n_heads}_blocks_{n_blocks}_ffn_lay_{n_ffn_layers}"
+
+    elif nn_name == 'ViT_2D':
         token_size = kwargs['token_size'] ; embedding_d = kwargs['embedding_d'] ; n_heads = kwargs['n_heads'] 
         n_blocks = kwargs['n_blocks'] ; n_ffn_layers = kwargs['n_ffn_layers']
         nnparams = f"_b_{token_size[0]}x{token_size[1]}_Demb_{embedding_d}_heads_{n_heads}_blocks_{n_blocks}_ffn_lay_{n_ffn_layers}"

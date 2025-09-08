@@ -16,7 +16,8 @@ from datetime import date
 from platform import architecture, python_version
 import pathlib
 from NN_module.models.MLP import BatchedMultiLayerPerceptron
-from NN_module.models.ViT_2D import BatchedSpinViT
+from NN_module.models.ViT import BatchedSpinViT
+from NN_module.models.ViT_2D import BatchedSpinViT_2D
 from NN_module.models.CNN import CNN
 from NN_module.models.CvT import CvT
 from NN_module.models.CvT2 import CvT2
@@ -575,13 +576,26 @@ def init_model(name, model_setup):
     
     elif name == 'ViT':
         return BatchedSpinViT(
+            token_size=model_setup['token_size'],
+            embedding_d=model_setup['embedding_d'],
+            n_heads=model_setup['n_heads'],
+            n_blocks=model_setup['n_blocks'],
+            n_ffn_layers=model_setup['n_ffn_layers'],
+            final_architecture=ast.literal_eval(model_setup['final_architecture']),
+            is_complex=model_setup['is_complex'],
+            symm_Z2=model_setup['symm_Z2'],
+            trivial_Z2=model_setup['trivial_Z2']
+        )
+    
+    elif name == 'ViT_2D':
+        return BatchedSpinViT_2D(
             lattice_size=tuple(model_setup['lattice_size']),
             token_size=tuple(model_setup['token_size']),
             embedding_d=model_setup['embedding_d'],
             n_heads=model_setup['n_heads'],
             n_blocks=model_setup['n_blocks'],
             n_ffn_layers=model_setup['n_ffn_layers'],
-            final_architecture=tuple(model_setup['final_architecture']),
+            final_architecture=ast.literal_eval(model_setup['final_architecture']),
             is_complex=model_setup['is_complex'],
             symm_2D = model_setup['symm_2D'],
             symm_Z2 = model_setup['symm_Z2'],

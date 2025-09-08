@@ -1,4 +1,5 @@
 
+from cmath import phase
 import flax.linen as nn
 import jax
 import jax.typing as jt
@@ -18,6 +19,47 @@ def get_mask() -> jnp.ndarray:
 
 def all2one_pool(x):
     return nn.avg_pool(x, window_shape = (x.shape[1],x.shape[2]), strides=(1,1))
+
+class two_heads(nn.Module):
+    """
+    Two heads for complex output
+    """
+    final_architecture: Tuple = (5,)
+
+    @nn.compact
+    def __call__(self, x: jt.ArrayLike) -> jt.ArrayLike:
+
+        x = x.reshape((x.shape[0], -1))
+        log_modulus = nn.Dense(1)(
+            MultiLayerPerceptron(self.final_architecture)(x)
+            )
+        phase = nn.Dense(1)(
+            MultiLayerPerceptron(self.final_architecture)(x)
+            )
+        return (log_modulus + 1j * phase).astype(jnp.complex128).squeeze()
+    
+class two_heads_sincos(nn.Module):
+    """
+    Two heads for complex output wiith prediction for sin and cos of the phase
+    """
+    final_architecture: Tuple = (5,)
+
+    @nn.compact
+    def __call__(self, x: jt.ArrayLike) -> jt.ArrayLike:
+        
+        x = x.reshape((x.shape[0], -1))
+        log_modulus = nn.Dense(1)(
+            MultiLayerPerceptron(self.final_architecture)(x)
+            )
+        sin = nn.Dense(1)(
+            MultiLayerPerceptron(self.final_architecture)(x)
+            )
+        cos = nn.Dense(1)(
+            MultiLayerPerceptron(self.final_architecture)(x)
+            )
+        phase = jnp.arctan2(sin, cos)
+        
+        return (log_modulus + 1j * phase).astype(jnp.complex128).squeeze()
 
 class DepthPointwiseConv(nn.Module):
     """
@@ -189,6 +231,7 @@ class CvTWorker(nn.Module):
     kernel: Tuple = (3, 3)                        # Kernel size for the convolutional operations (must be 3x3)        
     final_architecture: Tuple = (5,)
     two_heads: bool = False                        # If True, the output will be a complex number with modulus and phase
+    two_heads_sincos: bool = False                 # The same but with sin and cos for the phase
 
     @nn.compact
     def __call__(self, x: jt.ArrayLike) -> jt.ArrayLike:
@@ -214,13 +257,9 @@ class CvTWorker(nn.Module):
         # Final MLP layer
         x = x.reshape((B, -1))
         if self.two_heads:
-            log_modulus = nn.Dense(1)(
-                MultiLayerPerceptron(self.final_architecture)(x)
-                )
-            phase = nn.Dense(1)(
-                MultiLayerPerceptron(self.final_architecture)(x)
-                )
-            return (log_modulus + 1j * phase).astype(jnp.complex128).squeeze()
+            return two_heads(self.final_architecture)(x)
+        elif self.two_heads_sincos:
+            return two_heads_sincos(self.final_architecture)(x)
         else:
             x = MultiLayerPerceptron(self.final_architecture)(x)
             return nn.Dense(1)(x).squeeze()

@@ -5,7 +5,7 @@ import jax
 import jax.numpy as jnp
 
 from .MLP import BatchedMultiLayerPerceptron
-from .ViT_2D import BatchedSpinViT
+from .ViT_2D import BatchedSpinViT_2D
 from .CNN import CNN
 from .CvT import CvT
 
@@ -42,7 +42,7 @@ class SplitTraining_ViT_CNN(nn.Module):
         self, 
         batch_x: jnp.ndarray) -> jnp.ndarray:
 
-        log_module = BatchedSpinViT(
+        log_module = BatchedSpinViT_2D(
                 lattice_size=self.lattice_size,
                 token_size=self.token_size,
                 embedding_d=self.embedding_d,
@@ -101,7 +101,7 @@ class SplitTraining_ViT_MLP(nn.Module):
         self, 
         batch_x: jnp.ndarray) -> jnp.ndarray:
 
-        log_module = BatchedSpinViT(
+        log_module = BatchedSpinViT_2D(
                 lattice_size=self.lattice_size,
                 token_size=self.token_size,
                 embedding_d=self.embedding_d,
