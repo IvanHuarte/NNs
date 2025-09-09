@@ -183,7 +183,7 @@ def get_filenames_from_settings(cm_name, nn_name, **kwargs):
             coupling_values += f"{v}" + '_'
             call_params += f"{f}:{v}  "
 
-    elif cm_name == 'LRChain':
+    elif cm_name in ['LRChain', 'LRSquare']:
         J = kwargs['J'] ; alpha = kwargs['alpha'] ; fields = kwargs['fields']
         cparams = f"_J_{J}_alpha_{alpha}_XZ_{fields[0]}_{fields[1]}"
         call_params = r"$J = %.2f$  $\alpha = %.1f$  $XZ = (%.1f, %.1f)$" % (J, alpha, fields[0], fields[1])

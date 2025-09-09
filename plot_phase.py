@@ -38,11 +38,13 @@ if not 'modphase' in artifact['_artifacts']:
     print("ERROR: Artifact has no modulus and phase files")
     sys.exit(1, f"Exiting...")
 
-strength = artifact['coupling_model']['strength']
 size = artifact['lattice']['size']
+strength = artifact['coupling_model']['strength']
 theta = artifact['coupling_model']['theta']
 phi = artifact['coupling_model']['phi']
 N = int(np.array(size).prod())
+
+sim_label 
 
 filename = f"Oxalate_" + artifact["model_NN"]["name"] + f"_SSF_strength_{strength:2f}_theta_{theta:2f}_phi_{phi:2f}"
 

@@ -316,12 +316,11 @@ for i, size in enumerate(sizes):
                     
 
                 ## Save the results
-
                 dump_setup ={
                     'model_label': model_label,
 
                     'lattice':{
-                        'name': 'Chain',
+                        'name': cm_model_name,
                         'size': size, 
                         'bc': kwargs_lattice['bc'],
                         'order': kwargs_lattice['order']
