@@ -23,7 +23,7 @@ sys.path.append(str(Path(__file__).resolve().parent.parent / "ATMOS_VA/VA_projec
 sys.path.append(str(Path(__file__).resolve().parent.parent / "Transformers/transformer_LR_WF_public"))
 
 # Importar módulos necesarios
-from VA_project.model.model import LRChain
+from VA_project.model.model import LRChain, LRSquare
 from VA_project.engine.runners import Runner
 from NN_module.sim_utils import (
     save_results, dump_callback, init_model, BestIterKeeper
@@ -104,14 +104,23 @@ for i, size in enumerate(sizes):
             display_simulation_settings(config)
             
             ## Update Hamiltonian
-            lrc=LRChain(            # We divide J and X field by the size to match Sebas's hamiltonian except by a constant factor
-                size[0], 
-                J/size[0],
-                alpha,
-                [fields[0]/size[0],fields[1]/size[0]],
-                **kwargs_lattice
-            )
-            eng=Runner(lrc.cm, S_operators=False)
+            if cm_model_name == 'LRChain':
+                lrm=LRChain(            # We divide J and X field by the size to match Sebas's hamiltonian except by a constant factor
+                    size[0], 
+                    J/size[0],
+                    alpha,
+                    [fields[0]/size[0],fields[1]/size[0]],
+                    **kwargs_lattice
+                )
+            elif cm_model_name == 'LRSquare':
+                lrm=LRSquare(            # We divide J and X field by the size to match Sebas's hamiltonian except by a constant factor
+                    size, 
+                    J/(size[0]*size[1]),
+                    alpha,
+                    [fields[0]/(size[0]*size[1]),fields[1]/(size[0]*size[1])],
+                    **kwargs_lattice
+                )
+            eng=Runner(lrm.cm, S_operators=False)
             H = eng.build_hamiltonian()
 
             if exact_diag:
