@@ -13,6 +13,7 @@ import sys
 from pathlib import Path
 
 from NN_module.sim_utils import load_vstate
+from NN_module.label_utils import get_filenames_from_settings
 from NN_module.NN_utils import modphase_extended
 from NN_module.correlations import correlations_ED, correlations_vstate
 
@@ -39,17 +40,25 @@ if not 'modphase' in artifact['_artifacts']:
     sys.exit(1, f"Exiting...")
 
 size = artifact['lattice']['size']
-strength = artifact['coupling_model']['strength']
-theta = artifact['coupling_model']['theta']
-phi = artifact['coupling_model']['phi']
 N = int(np.array(size).prod())
 
-sim_label 
+model_label = artifact['model_label']
+model_label = model_label.split("_",1)
+cm_name = model_label[0]
+nn_name = model_label[1]
 
-filename = f"Oxalate_" + artifact["model_NN"]["name"] + f"_SSF_strength_{strength:2f}_theta_{theta:2f}_phi_{phi:2f}"
+kwargs ={
+    'size':size,
+    **artifact['coupling_model'],
+    **artifact['model_NN']['setup']
+}
+
+sim_label, _, _, callback = get_filenames_from_settings(cm_name, nn_name, **kwargs )
+title = callback.replace("Callback","").lstrip().replace(" ","\\quad")
+
+filename = f"Modphase_plot_{sim_label}"
 
 # Verify there is no previous simulations, add an int label otherwise.
-print(f"\n************size: {size} theta: {theta:1f}  phi: {phi:1f} ************\n\n")
 if explore_mode:                    # If True checks sucessive files and assign a new one
     if os.path.isfile(write_folder + filename + ".jpeg"):
         i=1
@@ -86,7 +95,7 @@ if ED_file is not None:
         
     _,ax= plt.subplots(4,1, figsize=[15,10])
 
-    ax[0].set_title(r"$Modulus\;and\;Phase\qquad Oxalate\;size\;%d x %d \qquad a=%.1f\;\;\theta=%.1f \;\; \phi=%.1f$"%(size[0],size[1],strength,theta,phi))
+    ax[0].set_title(r"$Modulus\;and\;Phase\qquad %s$"%(title), fontsize=10)
     ax[0].set_xticks([])
     ax[0].set_ylabel(r"$Modulus$")
     ax[0].set_ylim(-0.01,max(max(mod_ED),max(mod_vs))*9/8)
@@ -133,7 +142,7 @@ else:
 
     _, ax= plt.subplots(3,1, figsize=[13,9])
 
-    ax[0].set_title(r"$Modulus\;and\;Phase\qquad Oxalate\;size\;%d x %d \qquad a=%.1f\;\;\theta=%.1f \;\; \phi=%.1f$"%(size[0],size[1],strength,theta,phi))
+    ax[0].set_title(r"$Modulus\;and\;Phase\qquad %s$"%(title), fontsize=10)
     ax[0].set_xticks([])
     ax[0].set_ylabel(r"$Modulus$")
     ax[0].set_ylim(-0.01,max(max(mod_ED),max(mod_vs))*9/8)

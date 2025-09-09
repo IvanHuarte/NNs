@@ -12,6 +12,7 @@ import json
 from pathlib import Path
 
 fontsize_txt=12
+fontsize_ticks=15
 fontsize_title=20
 fontsize_labels=15
 fontsize_legend=13
@@ -107,8 +108,9 @@ for sweep, sweep_dict in tree_files.items():
             m2_phase_ED = np.where(J<0, m2_ED, ms2_ED)
 
             # Plot 1: E_best/E_ED, error, vscore
-            ax3[0].set_title(r"$%s \qquad \alpha=%.2f$ "%(model_name, alpha_num), fontsize=fontsize_title)
+            ax1[0].set_title(r"$%s \qquad \alpha=%.2f$ "%(model_name, alpha_num), fontsize=fontsize_title)
             ax1[0].set_ylabel(r"$Energy$", fontsize=fontsize_labels)
+            ax1[0].tick_params(axis='both', which='major', labelsize=fontsize_ticks)
             ax1[0].plot(J, E_best, color='blue', alpha=0.8, marker='o', ms=3, lw=1.5, label=r"$E\;(%s)$"%(size))
             ax1[0].plot(J, E_ED, color='lime',ls='--', marker='o', ms=3, lw=1.5, alpha=0.8, label=r"$E_{ED}\; (%s)$"%(size))
             ax1[0].grid()
@@ -117,6 +119,7 @@ for sweep, sweep_dict in tree_files.items():
             y_min=min(error/2)
             ax1[1].set_ylim(y_min,1)
             ax1[1].set_ylabel(r"$rel.\;\;Error$",fontsize=fontsize_labels)
+            ax1[1].tick_params(axis='both', which='major', labelsize=fontsize_ticks)
             ax1[1].plot(J, error, color='red', alpha=0.8, marker='o', ms=3, lw=1.5,  label=r"$%s$"%(size))
             ax1[1].set_yscale('log')
             ax1[1].grid()
@@ -126,20 +129,23 @@ for sweep, sweep_dict in tree_files.items():
             ax1[2].set_ylim(y_min,1)
             ax1[2].set_ylabel(r"$Vscore$", fontsize=fontsize_labels)
             ax1[2].set_xlabel(r"$J$", fontsize=fontsize_labels)
+            ax1[2].tick_params(axis='both', which='major', labelsize=fontsize_ticks)
             ax1[2].plot(J, vscore, color='purple',marker='o', ms=3 , lw=1.5, alpha=0.8,   label=r"$%s$"%(size))
             ax1[2].set_yscale('log')
             ax1[2].grid()
             ax1[2].legend(fontsize=fontsize_legend)
 
             # Plot 2: Renyi-entropy,  Magnetization and fluctuation
-            ax3[0].set_title(r"$%s \qquad  \alpha=%.2f$ "%(model_name, alpha_num), fontsize=fontsize_title)
+            ax2[0].set_title(r"$%s \qquad  \alpha=%.2f$ "%(model_name, alpha_num), fontsize=fontsize_title)
             ax2[0].set_ylabel(r"$S_{renyi}$", fontsize=fontsize_labels)
+            ax2[0].tick_params(axis='both', which='major', labelsize=fontsize_ticks)
             ax2[0].plot(J, S_renyi, color='green', alpha=0.8, marker='o', ms=3, lw=1.5, label=r"$%s$"%(size))
             ax2[0].grid()
             ax2[0].legend(fontsize=fontsize_legend)
 
             ax2[1].set_ylim(-1,1)
             ax2[1].set_ylabel(r"$Magnetization\;\;(M_z)$",fontsize=fontsize_labels)
+            ax2[1].tick_params(axis='both', which='major', labelsize=fontsize_ticks)
             ax2[1].plot(J, m_phase, color='red', alpha=0.8, marker='o', ms=3, lw=1.5,  label=r"$%s$"%(size))
             ax2[1].plot(J, m_phase_ED, color='lime', ls='--', alpha=0.8, lw=1.5,  label=r"$%s\;(ED)$"%(size))
             ax2[1].grid()
@@ -148,6 +154,7 @@ for sweep, sweep_dict in tree_files.items():
             ax2[2].set_ylim(0,1)
             ax2[2].set_ylabel(r"$Fluctuations\;\;(M_s)$", fontsize=fontsize_labels)
             ax2[2].set_xlabel(r"$J$", fontsize=fontsize_labels)
+            ax2[2].tick_params(axis='both', which='major', labelsize=fontsize_ticks)
             ax2[2].plot(J, m2_phase, color='purple',marker='o', ms=3 , lw=1.5, alpha=0.8,   label=r"$%s$"%(size))
             ax2[2].plot(J, m2_phase_ED, color='lime', ls='--', lw=1.5, alpha=0.8,   label=r"$%s\;(ED)$"%(size))
             ax2[2].grid()
@@ -157,12 +164,14 @@ for sweep, sweep_dict in tree_files.items():
             ax3[0].set_ylim(0.5, 1.05)
             ax3[0].set_title(r"$%s \qquad \alpha=%.2f$ "%(model_name, alpha_num), fontsize=fontsize_title*2/3)
             ax3[0].set_ylabel(r"$Fidelity$", fontsize=fontsize_labels*2/3)
+            ax3[0].tick_params(axis='both', which='major', labelsize=fontsize_ticks)
             ax3[0].plot(J, fidelity, color='darkorange', alpha=0.8, marker='o', ms=3, lw=1.5, label=r"$%s$"%(size))
             ax3[0].grid()
             ax3[0].legend(fontsize=fontsize_legend*2/3)
 
             ax3[1].set_ylabel(r"$TimeExe\;('')$",fontsize=fontsize_labels*2/3)
             ax3[1].set_xlabel(r"$J$", fontsize=fontsize_labels*2/3)
+            ax3[1].tick_params(axis='both', which='major', labelsize=fontsize_ticks)
             ax3[1].plot(J, timexe, color='olivedrab', alpha=0.8, marker='o', ms=3, lw=1.5,  label=r"$%s$"%(size))
             ax3[1].grid()
             ax3[1].legend(fontsize=fontsize_legend*2/3)

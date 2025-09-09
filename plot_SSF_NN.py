@@ -10,6 +10,7 @@ import matplotlib.colors as mcolors
 import netket as nk
 import numpy as np
 import jax
+
 jax.config.update("jax_enable_x64", True)
 import json
 import seaborn as sns
@@ -20,38 +21,54 @@ from pathlib import Path
 sys.path.append(str(Path(__file__).resolve().parent.parent / "chebyoxa"))
 
 import chebyoxa.utils as utils
+from NNs.NN_module.label_utils import get_filenames_from_settings
 
 parser = argparse.ArgumentParser()
 parser.add_argument("-a",'--artifact_path', type=str, required=True, help='Path al artefacto principal que recoge los resultados de la simulacion')
-parser.add_argument("-w",'--write_folder', type=str, required=True, help='Path donde guardar los plots de los SSF')
 parser.add_argument("-exp",'--explore_mode', type=bool, help='Modo para discriminar simulaciones con los mismos parametros', default=False)
 parser.add_argument("-err",'--plot_error', type=bool, help='Plotear el error relativo entre el SSF obtenido y el de ED', default=False)
 args=parser.parse_args()
 
 path_artifact= args.artifact_path
-write_folder = args.write_folder
 explore_mode = args.explore_mode
 plot_error = args.plot_error
+
+write_folder = os.path.dirname(path_artifact) + "/"
 
 with open(path_artifact,'r') as f:
     artifact = json.load(f)
 
-strength = artifact['coupling_model']['strength']
 size = artifact['lattice']['size']
-theta = artifact['coupling_model']['theta']
-phi = artifact['coupling_model']['phi']
 
 ssf_path = artifact['_artifacts']['SSF']['OPT']
+if not os.path.isfile(ssf_path):
+    exit(1, f"File {ssf_path} not found")
 if 'ED' in artifact['_artifacts']['SSF'] :
     ssf_ED_path = artifact['_artifacts']['SSF']['ED']
 else:
     ssf_ED_path = None
 
-write_folder_fig = write_folder + f"Oxalate_size_{size[0]}x{size[1]}/"
+write_folder_fig = write_folder + f"SSF_plots/"
+if not os.path.exists(write_folder_fig):
+    os.makedirs(write_folder_fig)
 
-file = f"Structure_Factor_size{size[0]}x{size[1]}_strength_{strength}_theta_{theta}_phi_{phi}_{artifact['model_NN']['name']}"
-file_ED = f"Structure_Factor_size{size[0]}x{size[1]}_strength_{strength}_theta_{theta}_phi_{phi}_ED"
-file_error = f"Structure_Factor_size{size[0]}x{size[1]}_strength_{strength}_theta_{theta}_phi_{phi}_error"
+model_label = artifact['model_label']
+cm_name = model_label.split("_",1)[0]
+nn_name = model_label.split("_",1)[1]
+
+kwargs ={
+    'size':size,
+    **artifact['coupling_model'],
+    **artifact['model_NN']
+}
+
+sim_label, _, _, callback = get_filenames_from_settings(cm_name, nn_name, **kwargs )
+title = callback.replace("Callback","").lstrip().replace(" ","\\quad")
+
+
+file = f"SSF_plot_{sim_label}_OPT"
+file_ED = f"SSF_plot_{sim_label}_ED"
+file_error = f"SSF_plot_{sim_label}_error"
 files = [file]
 
 # Check exact diagonalization mode
@@ -69,19 +86,11 @@ if exact_diag:
     files.append(file_ED)
 
 #Some Sebas's stuff
-A = strength
 N_Q_A = 48 * 3
 N_Q_B = 48 * 3
 
-
-if not os.path.exists(write_folder_fig):
-    os.makedirs(write_folder_fig)
-
 graph = nk.graph.Triangular(size, pbc=True)
 qs_mapping, direct_qs = utils.get_q_mesh(N_Q_A, N_Q_B, graph)
-
-if not os.path.isfile(ssf_path):
-    exit(1, f"File {ssf_path} not found")
 
 # Verify there is no previous simulations, to earn time
 if explore_mode:                    # If True checks sucessive files and assign a new one
@@ -175,7 +184,7 @@ for j, SSF in enumerate(plots_ssf):
     plt.colorbar(im, ax=ax)
     plt.xlabel(r"$k_x/\pi$")
     plt.ylabel(r"$k_y/\pi$")
-    plt.title(r"$a= %.1f$  $\theta = %.1f$  $\phi = %.1f$    "%(strength,theta,phi)+ SSF_label[j]+ f"   {size}", fontsize=8)
+    plt.title(r"$%s\quad%s$"%(title, SSF_label[j]), fontsize=8)
 
     if j == 0:
         

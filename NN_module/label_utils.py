@@ -323,6 +323,6 @@ def get_filenames_from_settings(cm_name, nn_name, **kwargs):
     sim_label = model_label + f"_simulation_{size[0]}x{size[1]}"+ cparams + nnparams
     ED_label = model_label + f"_xED_{size[0]}x{size[1]}"+cparams
     json_label = model_label+f"_results_{size[0]}x{size[1]}"+ cparams + nnparams
-    title_label_callback = f"Callback " + model_label + " " + call_params + f"  ({size[0]}x{size[1]})"
+    title_label_callback = f"Callback  " + model_label + "  " + call_params + f"  ({size[0]}x{size[1]})"
 
     return sim_label, ED_label, json_label, title_label_callback
