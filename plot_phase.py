@@ -98,7 +98,7 @@ if ED_file is not None:
     ax[0].set_title(r"$Modulus\;and\;Phase\qquad %s$"%(title), fontsize=10)
     ax[0].set_xticks([])
     ax[0].set_ylabel(r"$Modulus$")
-    ax[0].set_ylim(-0.01,max(max(mod_ED),max(mod_vs))*9/8)
+    ax[0].set_ylim(-0.00001,max(max(mod_ED),max(mod_vs))*9/8)
     ax[0].plot(mod_vs, alpha=0.6, color='r', label=f"vstate")
     ax[0].plot(mod_ED, alpha=0.6, label= f"ED")
     ax[0].legend()

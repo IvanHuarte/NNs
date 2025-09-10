@@ -64,9 +64,9 @@ def calc_all_observables_vs(vstate):
 
 def compute_spin_matrices(N):
     configs = np.arange(2**N)[:, None]          
-    bits = ((configs >> np.arange(N)) & 1)
-    sigma_z = 0.5 - bits                              
-    return sigma_z  
+    bits = ((configs >> np.arange(N)[::-1]) & 1)
+    Sz = 0.5 - bits                              
+    return Sz  
 
 def M_ED(state):
     """<M> magnetización media"""
