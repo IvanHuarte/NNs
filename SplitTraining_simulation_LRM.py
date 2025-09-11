@@ -222,9 +222,6 @@ for i, size in enumerate(sizes):
                                 variational_state=vstate,
                                 preconditioner=SR
                             )
-                            # print(jax.tree_util.tree_structure(vstate.parameters))
-                            # print(vstate.variables['params'].keys(  ))
-
 
                             print(f"\nTraining {mode} for {epochs_per_run} epochs...")
                             gs.run(n_iter=epochs_per_run, out=log, callback=[keeper.update], show_progress=True)
@@ -246,8 +243,7 @@ for i, size in enumerate(sizes):
                 if exact_diag:
                     keeper.E_ED = E_ED
                     log.E_ED = E_ED
-
-                sys.exit(0)                
+         
 
                 ## Save results
                 _kwargs = config['model_NN'][nn_model_name]
