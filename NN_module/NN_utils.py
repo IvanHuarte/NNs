@@ -300,7 +300,6 @@ def modphase(xvs):
             return modphase_extended(mod,phase)
         
         except (MemoryError, RuntimeError, ValueError) as error:
-            print("Y por aqui")
             samples = x.samples
             flat_samples = samples.reshape(-1, samples.shape[-1])
             logpsi = x.log_value(flat_samples)

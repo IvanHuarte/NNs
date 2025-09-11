@@ -8,6 +8,7 @@ from .MLP import BatchedMultiLayerPerceptron
 from .ViT_2D import BatchedSpinViT_2D
 from .CNN import CNN
 from .CvT import CvT
+from .CvT3 import CvT3
 
 DTYPE = jnp.float64
 
@@ -226,6 +227,69 @@ class SplitTraining_CvT_CvT(nn.Module):
                 attn_heads_list=self.attn_heads_list_2,
                 kernel=self.kernel_2,
                 final_architecture=self.final_architecture_2
+            )(x)
+        
+        return (log_module + 1j * phase).squeeze()
+    
+
+class SplitTraining_CvT3_CvT3(nn.Module):
+
+
+    lattice_size: Tuple[int, int]
+
+    "Module settings CvT3 1"
+    n_CP_blocks_list_1: Tuple[int, ...]            # Number of convolutional projection blocks in each stage
+    CTemb_channels_list_1: Tuple[int, ...]          # Number of channels in the convolutional token embedding.
+    CP_channels_list_1: Tuple[int, ...]              # Number of channels for each convolutional projection block in each stage.
+    attn_heads_list_1: Tuple[int, ...]               # Number of heads for each convolutional projection block in each stage.
+    kernel_1: Tuple                        # Kernel size for the convolutional operations (must be 3x3)        
+    final_architecture_1: Tuple 
+
+    "Module settings CvT3 2"
+    n_CP_blocks_list_2: Tuple[int, ...]            # Number of convolutional projection blocks in each stage
+    CTemb_channels_list_2: Tuple[int, ...]          # Number of channels in the convolutional token embedding.
+    CP_channels_list_2: Tuple[int, ...]              # Number of channels for each convolutional projection block in each stage.
+    attn_heads_list_2: Tuple[int, ...]               # Number of heads for each convolutional projection block in each stage.
+    kernel_2: Tuple = (3, 3)                        # Kernel size for the convolutional operations (must be 3x3)        
+    final_architecture_2: Tuple = (5,)
+    
+
+    symm_Z2_1: bool = False                           # If True, the wavefunction is even under global Z2 transformation
+    trivial_Z2_1: bool = True              
+    symm_Z2_2: bool = False                           # If True, the wavefunction is even under global Z2 transformation
+    trivial_Z2_2: bool = True              
+
+    @nn.compact
+    def __call__(
+        self, 
+        x: jnp.ndarray) -> jnp.ndarray:
+
+        log_module = CvT3(
+                lattice_size=self.lattice_size,
+                n_CP_blocks_list=self.n_CP_blocks_list_1,
+                CTemb_channels_list=self.CTemb_channels_list_1,
+                CP_channels_list=self.CP_channels_list_1,
+                attn_heads_list=self.attn_heads_list_1,
+                kernel=self.kernel_1,
+                final_architecture=self.final_architecture_1,
+                two_heads=False,
+                two_heads_sincos=False,
+                symm_Z2=self.symm_Z2_1,
+                trivial_Z2=self.trivial_Z2_1
+            )(x)
+        
+        phase = CvT3(
+                lattice_size=self.lattice_size,
+                n_CP_blocks_list=self.n_CP_blocks_list_2,
+                CTemb_channels_list=self.CTemb_channels_list_2,
+                CP_channels_list=self.CP_channels_list_2,
+                attn_heads_list=self.attn_heads_list_2,
+                kernel=self.kernel_2,
+                final_architecture=self.final_architecture_2,
+                two_heads=False,
+                two_heads_sincos=False,
+                symm_Z2=self.symm_Z2_2,
+                trivial_Z2=self.trivial_Z2_2
             )(x)
         
         return (log_module + 1j * phase).squeeze()

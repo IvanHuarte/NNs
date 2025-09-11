@@ -24,7 +24,8 @@ from NN_module.models.CvT2 import CvT2
 from NN_module.models.CvT3 import CvT3
 from NN_module.models.split_training import (
     SplitTraining_ViT_MLP, SplitTraining_ViT_CNN, 
-    SplitTraining_CvT_CNN, SplitTraining_CvT_CvT
+    SplitTraining_CvT_CNN, SplitTraining_CvT_CvT,
+    SplitTraining_CvT3_CvT3
 )
 from NN_module.NN_utils import (
     activation_dict, sampler_dict, rule_dict
@@ -646,6 +647,7 @@ def init_model(name, model_setup):
             kernel=tuple(model_setup['kernel']),
             final_architecture=ast.literal_eval(model_setup['final_architecture']),
             two_heads= model_setup['two_heads'],
+            two_heads_sincos= model_setup['two_heads_sincos'],
             symm_Z2= model_setup['symm_Z2'],
             trivial_Z2= model_setup['trivial_Z2']
         )
@@ -729,6 +731,30 @@ def init_model(name, model_setup):
             attn_heads_list_2=tuple(model_setup['attn_heads_2']),
             kernel_2=tuple(model_setup['kernel_2']),
             final_architecture_2=ast.literal_eval(model_setup['final_architecture_2']),
+        )
+    
+    elif name == 'SplitTraining_CvT3_CvT3':
+        return SplitTraining_CvT3_CvT3(
+
+            lattice_size=tuple(model_setup['lattice_size']),
+
+            n_CP_blocks_list_1= tuple(model_setup['n_CP_blocks_1']),
+            CTemb_channels_list_1=tuple(model_setup['CTemb_channels_1']),
+            CP_channels_list_1=tuple(model_setup['CP_channels_1']),
+            attn_heads_list_1=tuple(model_setup['attn_heads_1']),
+            kernel_1=tuple(model_setup['kernel_1']),
+            final_architecture_1=ast.literal_eval(model_setup['final_architecture_1']),
+            symm_Z2_1= model_setup['symm_Z2_1'],
+            trivial_Z2_1= model_setup['trivial_Z2_1'],
+
+            n_CP_blocks_list_2= tuple(model_setup['n_CP_blocks_2']),
+            CTemb_channels_list_2=tuple(model_setup['CTemb_channels_2']),
+            CP_channels_list_2=tuple(model_setup['CP_channels_2']),
+            attn_heads_list_2=tuple(model_setup['attn_heads_2']),
+            kernel_2=tuple(model_setup['kernel_2']),
+            final_architecture_2=ast.literal_eval(model_setup['final_architecture_2']),
+            symm_Z2_2= model_setup['symm_Z2_2'],
+            trivial_Z2_2= model_setup['trivial_Z2_2']
         )
 
 def print_tree_keys(obj, indent=0):

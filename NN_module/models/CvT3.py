@@ -20,6 +20,24 @@ def get_mask() -> jnp.ndarray:
 def all2one_pool(x):
     return nn.avg_pool(x, window_shape = (x.shape[1],x.shape[2]), strides=(1,1))
 
+def four_phases(phase):
+    """
+    Given a phase in radians, return the closest of the four phases: 0, pi/2, pi, 3pi/2
+    """
+    return jnp.where(
+        (phase >= -jnp.pi) & (phase < -jnp.pi/2), -3*jnp.pi/4,
+        jnp.where(
+            (phase >= -jnp.pi/2) & (phase < 0), -jnp.pi/4,
+            jnp.where(
+                (phase >= 0) & (phase < jnp.pi/2), jnp.pi/4,
+                jnp.where(
+                    (phase >= jnp.pi/2) & (phase <= jnp.pi), 3*jnp.pi/4,
+                    phase 
+                )
+            )
+        )
+    )
+
 class two_heads(nn.Module):
     """
     Two heads for complex output
@@ -58,8 +76,35 @@ class two_heads_sincos(nn.Module):
             MultiLayerPerceptron(self.final_architecture)(x)
             )
         phase = jnp.arctan2(sin, cos)
+        # Admitir solo cuatro fases
+        #phase = four_phases(phase)
         
         return (log_modulus + 1j * phase).astype(jnp.complex128).squeeze()
+    
+# class two_heads_sincos(nn.Module):
+#     """
+#     Two heads for complex output wiith prediction for sin and cos of the phase
+#     """
+#     final_architecture: Tuple = (5,)
+
+#     @nn.compact
+#     def __call__(self, x: jt.ArrayLike) -> jt.ArrayLike:
+        
+#         x = x.reshape((x.shape[0], -1))
+#         log_modulus = nn.Dense(1)(
+#             MultiLayerPerceptron(self.final_architecture)(x)
+#             )
+#         y = nn.Dense(1)(
+#             MultiLayerPerceptron(self.final_architecture)(x)
+#             )
+#         x = nn.Dense(1)(
+#             MultiLayerPerceptron(self.final_architecture)(x)
+#             )
+#         norm = jnp.linalg.norm(jnp.array([x,y]), axis=0)
+#         phase = jnp.arctan2(y/norm, x/norm)
+        
+#         return (log_modulus + 1j * phase).astype(jnp.complex128).squeeze()
+
 
 class DepthPointwiseConv(nn.Module):
     """
@@ -270,14 +315,15 @@ class CvT_Z2(nn.Module):
 
     lattice_size : Tuple[int, int]  
     
-    n_CP_blocks_list: Tuple[int, ...]            # Number of convolutional projection blocks in each stage
-    CTemb_channels_list: Tuple[int, ...]          # Number of channels in the convolutional token embedding.
+    n_CP_blocks_list: Tuple[int, ...]              # Number of convolutional projection blocks in each stage
+    CTemb_channels_list: Tuple[int, ...]           # Number of channels in the convolutional token embedding.
     CP_channels_list: Tuple[int, ...]              # Number of channels for each convolutional projection block in each stage.
     attn_heads_list: Tuple[int, ...]               # Number of heads for each convolutional projection block in each stage.
-    kernel: Tuple = (3, 3)                        # Kernel size for the convolutional operations (must be 3x3)        
+    kernel: Tuple = (3, 3)                         # Kernel size for the convolutional operations (must be 3x3)        
     final_architecture: Tuple = (5,)
     two_heads: bool = False                        # If True, the output will be a complex number with modulus and phase
-    trivial_Z2: bool = True                           # If True, the wavefunction is even under global Z2 transformation
+    two_heads_sincos: bool = False                 # The same but with sin and cos for the phase
+    trivial_Z2: bool = True                        # If True, the wavefunction is even under global Z2 transformation
 
     @nn.compact
     def __call__(self, x: jt.ArrayLike) -> jt.ArrayLike:
@@ -290,7 +336,8 @@ class CvT_Z2(nn.Module):
             attn_heads_list=self.attn_heads_list,
             kernel=self.kernel,
             final_architecture=self.final_architecture,
-            two_heads=self.two_heads
+            two_heads=self.two_heads,
+            two_heads_sincos=self.two_heads_sincos
         )
         output_x = jnp.atleast_1d(worker(x))
         output_inv_x = jnp.atleast_1d(worker(-x))
@@ -315,6 +362,7 @@ class CvT3(nn.Module):
     kernel: Tuple = (3, 3)                        # Kernel size for the convolutional operations (must be 3x3)        
     final_architecture: Tuple = (5,)
     two_heads: bool = False                        # If True, the output will be a complex number with modulus and phase
+    two_heads_sincos: bool = False                 # The same but with sin and cos for the phase
 
     symm_Z2: bool = False                           # If True, the wavefunction is even under global Z2 transformation
     trivial_Z2: bool = True                          
@@ -332,6 +380,7 @@ class CvT3(nn.Module):
                 kernel=self.kernel,
                 final_architecture=self.final_architecture,
                 two_heads=self.two_heads,
+                two_heads_sincos=self.two_heads_sincos,
                 trivial_Z2=self.trivial_Z2
             )
         else:
@@ -343,7 +392,8 @@ class CvT3(nn.Module):
                 attn_heads_list=self.attn_heads_list,
                 kernel=self.kernel,
                 final_architecture=self.final_architecture,
-                two_heads=self.two_heads
+                two_heads=self.two_heads,
+                two_heads_sincos=self.two_heads_sincos
             )
 
         output_x = worker(x)

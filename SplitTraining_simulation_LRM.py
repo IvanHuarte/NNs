@@ -54,6 +54,7 @@ sizes = config['sizes']
 J_list = config['CM'][cm_model_name]['J_list']                # Lattice and coupling model
 alpha_list = config['CM'][cm_model_name]['alpha_list']
 fields = config['CM'][cm_model_name]['fields']
+operators = config['CM'][cm_model_name]['ops']
 kwargs_lattice = config['kwargs_lattice']
 
 epochs = config['lr_schedule']['epochs']                          # Simulation settings
@@ -110,6 +111,7 @@ for i, size in enumerate(sizes):
                     J/size[0],
                     alpha,
                     [fields[0]/size[0],fields[1]/size[0]],
+                    ops=operators,
                     **kwargs_lattice
                 )
             elif cm_model_name == 'LRSquare':
@@ -117,7 +119,8 @@ for i, size in enumerate(sizes):
                     size, 
                     J/(size[0]*size[1]),
                     alpha,
-                    [fields[0]/(size[0]*size[1]),fields[1]/(size[0]*size[1])],
+                    [fields[0]/(size[0]*size[1]), fields[1]/(size[0]*size[1])],
+                    ops=operators,
                     **kwargs_lattice
                 )
             eng=Runner(lrm.cm, S_operators=False)
@@ -229,7 +232,7 @@ for i, size in enumerate(sizes):
                             print(f"VS phase: {mean} \u00b1 {std}  ({psi})")
 
 
-                else:       # Training modulus and phase at the same time
+                else:                       # Training modulus and phase at the same time
                     gs = nk.driver.VMC(
                         H,
                         optimizer,
@@ -243,7 +246,8 @@ for i, size in enumerate(sizes):
                 if exact_diag:
                     keeper.E_ED = E_ED
                     log.E_ED = E_ED
-                
+
+                sys.exit(0)                
 
                 ## Save results
                 _kwargs = config['model_NN'][nn_model_name]
@@ -329,7 +333,8 @@ for i, size in enumerate(sizes):
                     'coupling_model': {
                         'J': J, 
                         'alpha': alpha, 
-                        'fields': fields
+                        'fields': fields,
+                        'ops': operators
                     },
 
                     'model_NN': {
@@ -387,24 +392,4 @@ for i, size in enumerate(sizes):
                     ED_label=ED_label,
                     json_label=json_label
                 )
-
                 
-
-                # import time
-                # import subprocess
-                # time.sleep(2)
-
-                # artifact_path = write_folder + json_label + ".json"
-                # script_path = "/home/ihuarte/Escritorio/Ivan/NNs/plot_phase.py"
-
-                # subprocess.run(["python", script_path, "-a", artifact_path])
-
-
-
-
-
-
-
-
-            
-
