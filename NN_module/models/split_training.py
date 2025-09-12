@@ -242,7 +242,7 @@ class SplitTraining_CvT3_CvT3(nn.Module):
     CTemb_channels_list_1: Tuple[int, ...]          # Number of channels in the convolutional token embedding.
     CP_channels_list_1: Tuple[int, ...]              # Number of channels for each convolutional projection block in each stage.
     attn_heads_list_1: Tuple[int, ...]               # Number of heads for each convolutional projection block in each stage.
-    kernel_1: Tuple                        # Kernel size for the convolutional operations (must be 3x3)        
+    kernel_1: Tuple                               # Kernel size for the convolutional operations (must be 3x3)        
     final_architecture_1: Tuple 
 
     "Module settings CvT3 2"
@@ -250,14 +250,17 @@ class SplitTraining_CvT3_CvT3(nn.Module):
     CTemb_channels_list_2: Tuple[int, ...]          # Number of channels in the convolutional token embedding.
     CP_channels_list_2: Tuple[int, ...]              # Number of channels for each convolutional projection block in each stage.
     attn_heads_list_2: Tuple[int, ...]               # Number of heads for each convolutional projection block in each stage.
-    kernel_2: Tuple = (3, 3)                        # Kernel size for the convolutional operations (must be 3x3)        
-    final_architecture_2: Tuple = (5,)
+    kernel_2: Tuple                                # Kernel size for the convolutional operations (must be 3x3)        
+    final_architecture_2: Tuple 
     
 
     symm_Z2_1: bool = False                           # If True, the wavefunction is even under global Z2 transformation
-    trivial_Z2_1: bool = True              
+    trivial_Z2_1: bool = False              
     symm_Z2_2: bool = False                           # If True, the wavefunction is even under global Z2 transformation
-    trivial_Z2_2: bool = True              
+    trivial_Z2_2: bool = False
+
+    phasors: bool = False
+             
 
     @nn.compact
     def __call__(
@@ -289,7 +292,8 @@ class SplitTraining_CvT3_CvT3(nn.Module):
                 two_heads=False,
                 two_heads_sincos=False,
                 symm_Z2=self.symm_Z2_2,
-                trivial_Z2=self.trivial_Z2_2
+                trivial_Z2=self.trivial_Z2_2,
+                phasors=self.phasors
             )(x)
         
         return (log_module + 1j * phase).squeeze()

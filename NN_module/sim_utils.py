@@ -649,7 +649,8 @@ def init_model(name, model_setup):
             two_heads= model_setup['two_heads'],
             two_heads_sincos= model_setup['two_heads_sincos'],
             symm_Z2= model_setup['symm_Z2'],
-            trivial_Z2= model_setup['trivial_Z2']
+            trivial_Z2= model_setup['trivial_Z2'],
+            phasors=model_setup['phasors']
         )
 
     elif name == 'SplitTraining_ViT_MLP':
@@ -754,7 +755,9 @@ def init_model(name, model_setup):
             kernel_2=tuple(model_setup['kernel_2']),
             final_architecture_2=ast.literal_eval(model_setup['final_architecture_2']),
             symm_Z2_2= model_setup['symm_Z2_2'],
-            trivial_Z2_2= model_setup['trivial_Z2_2']
+            trivial_Z2_2= model_setup['trivial_Z2_2'],
+
+            phasors=model_setup['phasors']
         )
 
 def print_tree_keys(obj, indent=0):

@@ -1,10 +1,8 @@
-
-from cmath import phase
 import flax.linen as nn
 import jax
 import jax.typing as jt
 import jax.numpy as jnp
-from typing import Callable, Tuple, Any
+from typing import Tuple
 from netket.nn import log_cosh
 from .ViT_2D import MultiLayerPerceptron
 
@@ -58,7 +56,7 @@ class two_heads(nn.Module):
     
 class two_heads_sincos(nn.Module):
     """
-    Two heads for complex output wiith prediction for sin and cos of the phase
+    Two heads for complex output with prediction for sin and cos of the phase
     """
     final_architecture: Tuple = (5,)
 
@@ -76,35 +74,30 @@ class two_heads_sincos(nn.Module):
             MultiLayerPerceptron(self.final_architecture)(x)
             )
         phase = jnp.arctan2(sin, cos)
-        # Admitir solo cuatro fases
-        #phase = four_phases(phase)
         
         return (log_modulus + 1j * phase).astype(jnp.complex128).squeeze()
     
-# class two_heads_sincos(nn.Module):
-#     """
-#     Two heads for complex output wiith prediction for sin and cos of the phase
-#     """
-#     final_architecture: Tuple = (5,)
+class glu_phasor(nn.Module):
+    """ Transforms input into phasors, do pooling in each channel,
+    applies the GLU activation function and sum over phasors.
 
-#     @nn.compact
-#     def __call__(self, x: jt.ArrayLike) -> jt.ArrayLike:
-        
-#         x = x.reshape((x.shape[0], -1))
-#         log_modulus = nn.Dense(1)(
-#             MultiLayerPerceptron(self.final_architecture)(x)
-#             )
-#         y = nn.Dense(1)(
-#             MultiLayerPerceptron(self.final_architecture)(x)
-#             )
-#         x = nn.Dense(1)(
-#             MultiLayerPerceptron(self.final_architecture)(x)
-#             )
-#         norm = jnp.linalg.norm(jnp.array([x,y]), axis=0)
-#         phase = jnp.arctan2(y/norm, x/norm)
-        
-#         return (log_modulus + 1j * phase).astype(jnp.complex128).squeeze()
+    Args:
+        x: Input array of shape (N_batch, N_spins, N_channels).
+    
+    Returns:
+        A 1D array (N_batches, 1).
+    """
+    @nn.compact
+    def __call__(self, x: jt.ArrayLike) -> jt.ArrayLike:
 
+        # x --> exp(i*x) --> pooling (batch, channels) --> GLU --> sum over phasors
+        x = nn.glu(
+            jnp.exp(1j * x).mean(axis=1)
+            ).sum(axis=-1)  
+    
+        return jnp.angle(x)
+    
+    
 
 class DepthPointwiseConv(nn.Module):
     """
@@ -279,6 +272,7 @@ class CvTWorker(nn.Module):
     final_architecture: Tuple = (5,)
     two_heads: bool = False                        # If True, the output will be a complex number with modulus and phase
     two_heads_sincos: bool = False                 # The same but with sin and cos for the phase
+    phasors: bool = False                          # If True, apply GLU phasor activation before the final MLP
 
     @nn.compact
     def __call__(self, x: jt.ArrayLike) -> jt.ArrayLike:
@@ -299,8 +293,12 @@ class CvTWorker(nn.Module):
                 kernel=self.kernel
             )(x)
 
-        x = x.reshape(B, -1, x.shape[-1]).mean(axis=1)
+        # Phasors and glu activation if true
+        if self.phasors:
+            return glu_phasor()(x)
+
         
+        x = x.reshape(B, -1, x.shape[-1]).mean(axis=1)
         # Final MLP layer
         x = x.reshape((B, -1))
         if self.two_heads:
@@ -323,6 +321,8 @@ class CvT_Z2(nn.Module):
     final_architecture: Tuple = (5,)
     two_heads: bool = False                        # If True, the output will be a complex number with modulus and phase
     two_heads_sincos: bool = False                 # The same but with sin and cos for the phase
+    phasors: bool = False
+
     trivial_Z2: bool = True                        # If True, the wavefunction is even under global Z2 transformation
 
     @nn.compact
@@ -337,7 +337,8 @@ class CvT_Z2(nn.Module):
             kernel=self.kernel,
             final_architecture=self.final_architecture,
             two_heads=self.two_heads,
-            two_heads_sincos=self.two_heads_sincos
+            two_heads_sincos=self.two_heads_sincos,
+            phasors=self.phasors
         )
         output_x = jnp.atleast_1d(worker(x))
         output_inv_x = jnp.atleast_1d(worker(-x))
@@ -363,6 +364,7 @@ class CvT3(nn.Module):
     final_architecture: Tuple = (5,)
     two_heads: bool = False                        # If True, the output will be a complex number with modulus and phase
     two_heads_sincos: bool = False                 # The same but with sin and cos for the phase
+    phasors: bool = False                           
 
     symm_Z2: bool = False                           # If True, the wavefunction is even under global Z2 transformation
     trivial_Z2: bool = True                          
@@ -381,7 +383,8 @@ class CvT3(nn.Module):
                 final_architecture=self.final_architecture,
                 two_heads=self.two_heads,
                 two_heads_sincos=self.two_heads_sincos,
-                trivial_Z2=self.trivial_Z2
+                trivial_Z2=self.trivial_Z2,
+                phasors=self.phasors
             )
         else:
             worker = CvTWorker(
@@ -393,7 +396,8 @@ class CvT3(nn.Module):
                 kernel=self.kernel,
                 final_architecture=self.final_architecture,
                 two_heads=self.two_heads,
-                two_heads_sincos=self.two_heads_sincos
+                two_heads_sincos=self.two_heads_sincos,
+                phasors=self.phasors
             )
 
         output_x = worker(x)

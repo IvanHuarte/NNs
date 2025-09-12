@@ -120,7 +120,8 @@ def architecture_label(name, model_setup):
     elif  name=="CvT3":
         architecture = f"|| n_CTE_ch: {model_setup['CTemb_channels']}  n_CPB: {model_setup['n_CP_blocks']}  CP_ch: {model_setup['CP_channels']} ||\n"
         architecture += f"|| heads: {model_setup['attn_heads']}  kernel: {model_setup['kernel']}  final_arch: {model_setup['final_architecture']} ||\n"
-        architecture += f"|| 2heads: {model_setup['two_heads']}  2heads_SC: {model_setup['two_heads_sincos']}  symm_Z2: {model_setup['symm_Z2']}  trivial: {model_setup['trivial_Z2']} ||\n"
+        architecture += f"|| 2heads: {model_setup['two_heads']}  2heads_SC: {model_setup['two_heads_sincos']}  symm_Z2: {model_setup['symm_Z2']} ||\n"
+        architecture += f"||     trivial: {model_setup['trivial_Z2']}  phasors: :{model_setup['phasors']}    ||\n"
 
     elif name == 'SplitTraining_ViT_MLP':
         architecture = f"ViT \n"
@@ -167,7 +168,7 @@ def architecture_label(name, model_setup):
         architecture += f"CvT3 2\n"
         architecture += f"|| n_CTE_ch: {model_setup['CTemb_channels_2']}  n_CPB: {model_setup['n_CP_blocks_2']}   CP_ch: {model_setup['CP_channels_2']} ||\n"
         architecture += f"|| heads: {model_setup['attn_heads_2']}  kernel: {model_setup['kernel_2']}   final_arch: {model_setup['final_architecture_2']} ||\n"
-        architecture += f"|| Z2: {model_setup['symm_Z2_2']} trivial: {model_setup['trivial_Z2_2']} ||\n"
+        architecture += f"|| Z2: {model_setup['symm_Z2_2']} trivial: {model_setup['trivial_Z2_2']}  phasors:{model_setup['phasors']}||\n"
 
          
     return architecture
