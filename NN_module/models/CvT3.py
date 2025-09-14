@@ -89,11 +89,16 @@ class glu_phasor(nn.Module):
     """
     @nn.compact
     def __call__(self, x: jt.ArrayLike) -> jt.ArrayLike:
-
+        
         # x --> exp(i*x) --> pooling (batch, channels) --> GLU --> sum over phasors
-        x = nn.glu(
+        x = nn.glu(                                                                   # Version 1
             jnp.exp(1j * x).mean(axis=1)
-            ).sum(axis=-1)  
+            ).sum(axis=-1) 
+
+        # x = nn.glu(                                                                     # Version 2
+        #     x.mean(axis=1)
+        # )
+        # x = jnp.exp(1j*x).sum(axis=-1) 
     
         return jnp.angle(x)
     
@@ -295,7 +300,7 @@ class CvTWorker(nn.Module):
 
         # Phasors and glu activation if true
         if self.phasors:
-            return glu_phasor()(x)
+            return glu_phasor()(x.reshape(B, -1, x.shape[-1]))
 
         
         x = x.reshape(B, -1, x.shape[-1]).mean(axis=1)
