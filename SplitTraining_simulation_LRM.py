@@ -162,8 +162,6 @@ for i, size in enumerate(sizes):
                 time_in = time.time()
 
                 model = init_model(nn_model_name, nn_model_setup)
-                init_rngs = {'params': jax.random.PRNGKey(0), 'phase': jax.random.PRNGKey(666)}
-                params = model.init(init_rngs, jnp.ones((N,)))
 
                 log = (
                     nk.logging.RuntimeLog()
@@ -173,13 +171,13 @@ for i, size in enumerate(sizes):
                     H,
                     N, 
                     baseline=1e-8,
-                    mode='best_energy',
+                    mode='best_energy'
                 )
                 # keeper.filename = 'Somewhere' #It allows you to store the parameters of the model for the state with lowest energy found.
 
                 # Initialize vstate with parameters
                 vstate = nk.vqs.MCState(
-                    sampler, model=model, n_samples=n_samples, seed=1234,
+                    sampler, model=model, n_samples=n_samples,
                     n_discard_per_chain=0, chunk_size=sampler_setup['chunk_vstate']
                 )
 
