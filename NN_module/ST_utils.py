@@ -19,10 +19,10 @@ def make_mask(params, predicate):
 
 
 def mask_modulus(path, leaf):
-    return 'freeze' if path[0] == 'BatchedSpinViT_0' else 'train'
+    return 'freeze' if path[0] == 'modulus' else 'train'
 
 def mask_phase(path, leaf):
-    return 'freeze' if path[0] in ('BatchedMultiLayerPerceptron_0', 'CNN_0') else 'train'
+    return 'freeze' if path[0] == 'phase' else 'train'
 
 def mask_both(path, leaf):
     return 'freeze'

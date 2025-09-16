@@ -5,6 +5,7 @@ import jax.numpy as jnp
 from typing import Tuple
 from netket.nn import log_cosh
 from .ViT_2D import MultiLayerPerceptron
+from .Phase import four_phases_gumbel
 
 REAL_DTYPE = jnp.float64
 
@@ -36,10 +37,24 @@ def four_phases(phase):
         )
     )
 
+class four_phases(nn.Module):
+
+    @nn.compact
+    def __call__(self, x: jt.ArrayLike) -> jt.ArrayLike:
+
+        phis = self.param("phis", nn.initializers.normal(), (4,), jnp.float64)  # 4 valores posibles
+        phase_fine = nn.softmax(phis) * (jnp.pi/4)  
+        phase_choices = jnp.array([-0.75, 0.25, 0.25, 0.75]) * jnp.pi
+        global_phase = jnp.sum(phase_fine * phase_choices)
+        return global_phase
+
+
+
 class two_heads(nn.Module):
     """
     Two heads for complex output
     """
+
     final_architecture: Tuple = (5,)
 
     @nn.compact
@@ -52,6 +67,7 @@ class two_heads(nn.Module):
         phase = nn.Dense(1)(
             MultiLayerPerceptron(self.final_architecture)(x)
             )
+        
         return (log_modulus + 1j * phase).astype(jnp.complex128).squeeze()
     
 class two_heads_sincos(nn.Module):
@@ -283,6 +299,7 @@ class CvTWorker(nn.Module):
     def __call__(self, x: jt.ArrayLike) -> jt.ArrayLike:
         # print(f"Begging CvT")
         # print(f"Input shape: {x.shape}")
+        x_in=x.copy()
         
         n_stages = len(self.n_CP_blocks_list)
         x = x.reshape((-1, *self.lattice_size, 1))
@@ -311,9 +328,11 @@ class CvTWorker(nn.Module):
         elif self.two_heads_sincos:
             return two_heads_sincos(self.final_architecture)(x)
         else:
-            x = MultiLayerPerceptron(self.final_architecture)(x)
-            return nn.Dense(1)(x).squeeze()
-        
+            return nn.Dense(1)(
+                MultiLayerPerceptron(self.final_architecture)(x)
+            ).squeeze()
+            
+            
 class CvT_Z2(nn.Module):
 
     lattice_size : Tuple[int, int]  

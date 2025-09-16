@@ -107,7 +107,7 @@ for i, size in enumerate(sizes):
             ## Update Hamiltonian
             if cm_model_name == 'LRChain':
                 lrm=LRChain(            # We divide J and X field by the size to match Sebas's hamiltonian except by a constant factor
-                    size[0], 
+                    size[0]*size[1], 
                     J/size[0],
                     alpha,
                     [fields[0]/size[0],fields[1]/size[0]],
@@ -162,6 +162,8 @@ for i, size in enumerate(sizes):
                 time_in = time.time()
 
                 model = init_model(nn_model_name, nn_model_setup)
+                init_rngs = {'params': jax.random.PRNGKey(0), 'phase': jax.random.PRNGKey(666)}
+                params = model.init(init_rngs, jnp.ones((N,)))
 
                 log = (
                     nk.logging.RuntimeLog()
@@ -171,13 +173,15 @@ for i, size in enumerate(sizes):
                     H,
                     N, 
                     baseline=1e-8,
-                    mode='best_energy'
+                    mode='best_energy',
                 )
+                if sweeps>0:
+                    keeper.step_threshold=-1
                 # keeper.filename = 'Somewhere' #It allows you to store the parameters of the model for the state with lowest energy found.
 
                 # Initialize vstate with parameters
                 vstate = nk.vqs.MCState(
-                    sampler, model=model, n_samples=n_samples,
+                    sampler, model=model, n_samples=n_samples, seed=1234,
                     n_discard_per_chain=0, chunk_size=sampler_setup['chunk_vstate']
                 )
 
@@ -199,7 +203,7 @@ for i, size in enumerate(sizes):
                         transformations['train'] = optax.sgd(learning_rate=lr_schedule[i])
                         SR = nk.optimizer.SR(diag_shift=ds_schedule[i])
 
-                        for mask in ['modulus', 'phase']:
+                        for mask in ['phase', 'modulus']:
                             mode = [m for m in ['phase', 'modulus'] if m != mask][0]
                             
                             variables = vstate.variables
@@ -229,7 +233,7 @@ for i, size in enumerate(sizes):
                             print(f"VS phase: {mean} \u00b1 {std}  ({psi})")
 
 
-                else:                       # Training modulus and phase at the same time
+                else:         # Training modulus and phase at the same time
                     gs = nk.driver.VMC(
                         H,
                         optimizer,
@@ -243,7 +247,6 @@ for i, size in enumerate(sizes):
                 if exact_diag:
                     keeper.E_ED = E_ED
                     log.E_ED = E_ED
-         
 
                 ## Save results
                 _kwargs = config['model_NN'][nn_model_name]
@@ -296,8 +299,12 @@ for i, size in enumerate(sizes):
                 print(f"vstate phase: {stats_vs['phase']['mean']} \u00b1 {stats_vs['phase']['std']}  ({stats_vs['type']})")
 
                 # Fidelity
-                fidelity = float(jnp.abs(jnp.vdot(vstate.to_array(), x_ED.squeeze())))
-                print(f"Fidelity: {fidelity:.3e}")
+                fidelity=None
+                try:
+                    fidelity = float(jnp.abs(jnp.vdot(vstate.to_array(), x_ED.squeeze())))
+                    print(f"Fidelity: {fidelity:.3e}")
+                except (MemoryError, RuntimeError, ValueError):
+                    print(f"Failed fidelity calculation due to memory allocation error")
 
                 # Renyi entropy, magnetization and its fluctuation
                 S_renyi, m, ms, m2, ms2 = calc_all_observables_vs(vstate)

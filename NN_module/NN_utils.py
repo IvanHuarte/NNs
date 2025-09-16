@@ -300,15 +300,15 @@ def modphase(xvs):
             return modphase_extended(mod,phase)
         
         except (MemoryError, RuntimeError, ValueError) as error:
-            samples = x.samples
+            samples = xvs.samples
             flat_samples = samples.reshape(-1, samples.shape[-1])
-            logpsi = x.log_value(flat_samples)
+            logpsi = xvs.log_value(flat_samples)
 
             mod = jnp.exp(jnp.real(logpsi)) 
             phase = jnp.imag(logpsi)
             return modphase_extended(mod, phase)
         
     else:
-        print("ERROR: Unknown input instance for vstate") 
+        print(f"ERROR. Unknown input instance for vstate: {type(xvs)}") 
         sys.exit(1)
 

@@ -9,6 +9,7 @@ from .ViT_2D import BatchedSpinViT_2D
 from .CNN import CNN
 from .CvT import CvT
 from .CvT3 import CvT3
+from .Phase import four_phases_gumbel, phasors_CNN
 
 DTYPE = jnp.float64
 
@@ -44,6 +45,8 @@ class SplitTraining_ViT_CNN(nn.Module):
         batch_x: jnp.ndarray) -> jnp.ndarray:
 
         log_module = BatchedSpinViT_2D(
+                name='modulus',
+                
                 lattice_size=self.lattice_size,
                 token_size=self.token_size,
                 embedding_d=self.embedding_d,
@@ -58,6 +61,8 @@ class SplitTraining_ViT_CNN(nn.Module):
             )(batch_x)
     
         phase = CNN(
+                name='phase',
+                
                 lattice_size=self.lattice_size,
                 block_channels=self.block_channels,
                 kernel_size=self.kernel_size,
@@ -103,6 +108,8 @@ class SplitTraining_ViT_MLP(nn.Module):
         batch_x: jnp.ndarray) -> jnp.ndarray:
 
         log_module = BatchedSpinViT_2D(
+                name='modulus',
+                
                 lattice_size=self.lattice_size,
                 token_size=self.token_size,
                 embedding_d=self.embedding_d,
@@ -117,6 +124,8 @@ class SplitTraining_ViT_MLP(nn.Module):
             )(batch_x)
     
         phase = BatchedMultiLayerPerceptron(
+                name='phase',
+                
                 lattice_size=self.lattice_size,
                 param_dtype=self.param_dtype_phase,
                 hidden_alpha=self.hidden_alpha,
@@ -159,6 +168,8 @@ class SplitTraining_CvT_CNN(nn.Module):
         x: jnp.ndarray) -> jnp.ndarray:
 
         log_module = CvT(
+                name='phase',
+                
                 lattice_size=self.lattice_size,
                 n_CP_blocks_list=self.n_CP_blocks_list,
                 CTemb_channels_list=self.CTemb_channels_list,
@@ -169,6 +180,8 @@ class SplitTraining_CvT_CNN(nn.Module):
             )(x)
             
         phase = CNN(
+                name='modulus',
+                
                 lattice_size=self.lattice_size,
                 block_channels=self.block_channels_cnn,
                 kernel_size=self.kernel_size_cnn,
@@ -210,6 +223,8 @@ class SplitTraining_CvT_CvT(nn.Module):
         x: jnp.ndarray) -> jnp.ndarray:
 
         log_module = CvT(
+                name='modulus',
+
                 lattice_size=self.lattice_size,
                 n_CP_blocks_list=self.n_CP_blocks_list_1,
                 CTemb_channels_list=self.CTemb_channels_list_1,
@@ -220,6 +235,8 @@ class SplitTraining_CvT_CvT(nn.Module):
             )(x)
         
         phase = CvT(
+                name='phase',
+
                 lattice_size=self.lattice_size,
                 n_CP_blocks_list=self.n_CP_blocks_list_2,
                 CTemb_channels_list=self.CTemb_channels_list_2,
@@ -268,6 +285,8 @@ class SplitTraining_CvT3_CvT3(nn.Module):
         x: jnp.ndarray) -> jnp.ndarray:
 
         log_module = CvT3(
+                name="modulus",
+
                 lattice_size=self.lattice_size,
                 n_CP_blocks_list=self.n_CP_blocks_list_1,
                 CTemb_channels_list=self.CTemb_channels_list_1,
@@ -282,6 +301,8 @@ class SplitTraining_CvT3_CvT3(nn.Module):
             )(x)
         
         phase = CvT3(
+                name="phase",
+
                 lattice_size=self.lattice_size,
                 n_CP_blocks_list=self.n_CP_blocks_list_2,
                 CTemb_channels_list=self.CTemb_channels_list_2,
@@ -296,4 +317,56 @@ class SplitTraining_CvT3_CvT3(nn.Module):
                 phasors=self.phasors
             )(x)
         
+        return (log_module + 1j * phase).squeeze()
+    
+
+class SplitTraining_CvT3_Phase(nn.Module):
+
+    """
+    Flax module to train module and phase separately
+    """
+
+    lattice_size: Tuple[int, int]
+
+    "Module settings CvT3"
+    n_CP_blocks_list: Tuple[int, ...]            # Number of convolutional projection blocks in each stage
+    CTemb_channels_list: Tuple[int, ...]          # Number of channels in the convolutional token embedding.
+    CP_channels_list: Tuple[int, ...]              # Number of channels for each convolutional projection block in each stage.
+    attn_heads_list: Tuple[int, ...]               # Number of heads for each convolutional projection block in each stage.
+    kernel: Tuple = (3, 3)                        # Kernel size for the convolutional operations (must be 3x3)        
+    final_architecture: Tuple = (5,)                         
+
+    symm_Z2: bool = False                           # If True, the wavefunction is even under global Z2 transformation
+    trivial_Z2: bool = True   
+
+    @nn.compact
+    def __call__(
+        self, 
+        x: jnp.ndarray) -> jnp.ndarray:
+
+        log_module = CvT3(
+                name = 'modulus',
+
+                lattice_size=self.lattice_size,
+                n_CP_blocks_list=self.n_CP_blocks_list,
+                CTemb_channels_list=self.CTemb_channels_list,
+                CP_channels_list=self.CP_channels_list,
+                attn_heads_list=self.attn_heads_list,
+                kernel=self.kernel,
+                final_architecture=self.final_architecture,
+                two_heads=False,
+                two_heads_sincos=False,
+                symm_Z2=self.symm_Z2,
+                trivial_Z2=self.trivial_Z2
+            )(x)
+            
+        # phase = four_phases_gumbel(
+        #         name = 'phase'
+        #     )(x)
+        phase = phasors_CNN(
+                name = 'phase',
+                
+                lattice_size=self.lattice_size
+            )(x)
+    
         return (log_module + 1j * phase).squeeze()

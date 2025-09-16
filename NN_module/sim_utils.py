@@ -25,7 +25,7 @@ from NN_module.models.CvT3 import CvT3
 from NN_module.models.split_training import (
     SplitTraining_ViT_MLP, SplitTraining_ViT_CNN, 
     SplitTraining_CvT_CNN, SplitTraining_CvT_CvT,
-    SplitTraining_CvT3_CvT3
+    SplitTraining_CvT3_CvT3, SplitTraining_CvT3_Phase
 )
 from NN_module.NN_utils import (
     activation_dict, sampler_dict, rule_dict
@@ -194,7 +194,7 @@ class BestIterKeeper:
 
         if step > self.step_threshold:
             if self.best_state_energy > energy_step:
-                self.best_state = copy.copy(driver.state)
+                self.best_state = copy.copy(vstate)
                 self.best_state_energy = energy_step
                 self.best_state_vscore = vscore_step
                 self.best_step = step
@@ -758,6 +758,20 @@ def init_model(name, model_setup):
             trivial_Z2_2= model_setup['trivial_Z2_2'],
 
             phasors=model_setup['phasors']
+        )
+    
+    elif name == 'SplitTraining_CvT3_Phase':
+        return SplitTraining_CvT3_Phase(
+            lattice_size=tuple(model_setup['lattice_size']),
+
+            n_CP_blocks_list= tuple(model_setup['n_CP_blocks']),
+            CTemb_channels_list=tuple(model_setup['CTemb_channels']),
+            CP_channels_list=tuple(model_setup['CP_channels']),
+            attn_heads_list=tuple(model_setup['attn_heads']),
+            kernel=tuple(model_setup['kernel']),
+            final_architecture=ast.literal_eval(model_setup['final_architecture']),
+            symm_Z2= model_setup['symm_Z2'],
+            trivial_Z2= model_setup['trivial_Z2']
         )
 
 def print_tree_keys(obj, indent=0):
