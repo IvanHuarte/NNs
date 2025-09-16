@@ -175,8 +175,6 @@ for i, size in enumerate(sizes):
                     baseline=1e-8,
                     mode='best_energy',
                 )
-                if sweeps>0:
-                    keeper.step_threshold=-1
                 # keeper.filename = 'Somewhere' #It allows you to store the parameters of the model for the state with lowest energy found.
 
                 # Initialize vstate with parameters
@@ -203,7 +201,7 @@ for i, size in enumerate(sizes):
                         transformations['train'] = optax.sgd(learning_rate=lr_schedule[i])
                         SR = nk.optimizer.SR(diag_shift=ds_schedule[i])
 
-                        for mask in ['phase', 'modulus']:
+                        for mask in [ 'modulus', 'phase']:
                             mode = [m for m in ['phase', 'modulus'] if m != mask][0]
                             
                             variables = vstate.variables
@@ -305,6 +303,7 @@ for i, size in enumerate(sizes):
                     print(f"Fidelity: {fidelity:.3e}")
                 except (MemoryError, RuntimeError, ValueError):
                     print(f"Failed fidelity calculation due to memory allocation error")
+
 
                 # Renyi entropy, magnetization and its fluctuation
                 S_renyi, m, ms, m2, ms2 = calc_all_observables_vs(vstate)

@@ -64,16 +64,14 @@ class phasors_CNN(nn.Module):
         x = x.reshape(-1, self.lattice_size[0]*self.lattice_size[1], x.shape[-1])
 
         # phasors
-        x = nn.glu(                                                                   # Version 1
-        jnp.exp(1j * x).mean(axis=1)
-        ).sum(axis=-1) 
+        # x = nn.glu(                                                                   # Version 1
+        # jnp.exp(1j * x).mean(axis=1)
+        # ).sum(axis=-1) 
 
-        # x = nn.glu(                                                                     # Version 2
-        #     x.mean(axis=1)
-        # )
-        # x = jnp.exp(1j*x).sum(axis=-1) 
-
-        x 
+        x = nn.glu(                                                                     # Version 2
+            x.mean(axis=1)
+        )
+        x = jnp.exp(1j*x).sum(axis=-1) 
 
         return jnp.angle(x)
     

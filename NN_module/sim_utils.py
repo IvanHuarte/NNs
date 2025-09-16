@@ -162,6 +162,7 @@ class BestIterKeeper:
         self.best_step = 0
         self.best_state = None
         self.step_threshold = epochs//10
+        self.step = -1
 
 
         if mode == 'best_energy':
@@ -211,6 +212,7 @@ class BestIterKeeper:
         This function is intended to act as a callback for NetKet. Please refer
         to its API documentation for a detailed explanation.
         """
+        self.step += 1
   
         vstate = driver.state
         energy_step = np.real(vstate.expect(self.Hamiltonian).mean)
@@ -218,13 +220,13 @@ class BestIterKeeper:
         mean = np.real(getattr(log_data[driver._loss_name], "mean"))
         vscore_step = self.N * var / mean**2
 
-        if step > self.step_threshold:
+        if self.step > self.step_threshold:
 
             if self.best_state_vscore > vscore_step:
                 self.best_state = copy.copy(driver.state)
                 self.best_state_energy = energy_step
                 self.best_state_vscore = vscore_step
-                self.best_step = step
+                self.best_step = self.step
 
                 if self.filename != None:
                     with open(self.filename, "wb") as file:
@@ -234,6 +236,8 @@ class BestIterKeeper:
     
     def always_update(self, step, log_data, driver):
 
+        self.step += 1
+
         vstate = driver.state
         energy_step = np.real(vstate.expect(self.Hamiltonian).mean)
         var = np.real(getattr(log_data[driver._loss_name], "variance"))
@@ -242,12 +246,12 @@ class BestIterKeeper:
 
         # Always update
 
-        if step > self.step_threshold:
+        if self.step > self.step_threshold:
 
             self.best_state = copy.copy(driver.state)
             self.best_state_energy = energy_step
             self.best_state_vscore = vscore_step
-            self.best_step = step
+            self.best_step = self.step
 
             if self.filename != None:
                 with open(self.filename, "wb") as file:
@@ -270,9 +274,9 @@ class BestIterKeeper:
 
         # print(f"\nStep {step}:")
         # print(f"Energy: {energy_step:.6e}, Vscore: {vscore_step:.6e}")
-        if step > self.start_stats:
+        if self.step > self.start_stats:
             
-            if step > self.start_stats + self.stats_window:
+            if self.step > self.start_stats + self.stats_window:
                 norm_E, norm_V = self.normalizer(energy_step, vscore_step)
                 score = self.selector(norm_E, norm_V)
                 # print(f"norm_E = {norm_E:.6e}, norm_V = {norm_V:.6e}")
@@ -284,7 +288,7 @@ class BestIterKeeper:
                     self.best_state = copy.copy(driver.state)
                     self.best_state_energy = energy_step
                     self.best_state_vscore = vscore_step
-                    self.best_step = step
+                    self.best_step = self.step
 
                     if self.filename != None:
                         with open(self.filename, "wb") as file:
