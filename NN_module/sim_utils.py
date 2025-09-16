@@ -186,6 +186,8 @@ class BestIterKeeper:
         This function is intended to act as a callback for NetKet. Please refer
         to its API documentation for a detailed explanation.
         """
+        self.step += 1
+
         
         vstate = driver.state
         energy_step = np.real(vstate.expect(self.Hamiltonian).mean)
@@ -193,12 +195,12 @@ class BestIterKeeper:
         mean = np.real(getattr(log_data[driver._loss_name], "mean"))
         vscore_step = self.N * var / mean**2
 
-        if step > self.step_threshold:
+        if self.step > self.step_threshold:
             if self.best_state_energy > energy_step:
                 self.best_state = copy.copy(vstate)
                 self.best_state_energy = energy_step
                 self.best_state_vscore = vscore_step
-                self.best_step = step
+                self.best_step = self.step
 
                 if self.filename != None:
                     with open(self.filename, "wb") as file:
