@@ -341,7 +341,12 @@ class CvTWorker(nn.Module):
 
         # Phasors and glu activation if true
         if self.phasors:
-            return two_heads_phasors(self.final_architecture)(x)
+            return glu_phasor()(  # Salida float (phase)
+                x.reshape(x.shape[0], -1, x.shape[-1])
+            )
+            # return two_heads_phasors(     # Salida complex (mod + phase)
+            #   self.final_architecture
+            # )(x)
 
         x = x.reshape(B, -1, x.shape[-1]).mean(axis=1)
         # Final MLP layer

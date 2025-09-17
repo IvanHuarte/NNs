@@ -16,12 +16,6 @@ class phasors_CNN(nn.Module):
 
     @nn.compact
     def __call__(self, x):
-        # if self.lattice_size[1] == 1:
-        #     x.reshape(-1, self.lattice_size[0], x.shape[-1])
-        #     kernel =(3,1)
-        # else:
-        #     x.reshape(-1,*self.lattice_size, x.shape[-1])
-        #     kernel =(3,3)
 
         kernel = (3, 3) if self.lattice_size[1] != 1 else (3, 1)
         x = x.reshape(-1, *self.lattice_size, 1)
