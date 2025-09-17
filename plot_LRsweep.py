@@ -108,7 +108,9 @@ for sweep, sweep_dict in tree_files.items():
             m2_phase_ED = np.where(J<0, m2_ED, ms2_ED)
 
             # Plot 1: E_best/E_ED, error, vscore
-            ax1[0].set_title(r"$%s \qquad \alpha=%.2f$ "%(model_name, alpha_num), fontsize=fontsize_title)
+            sweep = sweep.split("_")[1]
+
+            ax1[0].set_title(r"$%s \qquad \alpha=%.2f \quad %s \;sweeps$"%(model_name, alpha_num, sweep), fontsize=fontsize_title)
             ax1[0].set_ylabel(r"$Energy$", fontsize=fontsize_labels)
             ax1[0].tick_params(axis='both', which='major', labelsize=fontsize_ticks)
             ax1[0].plot(J, E_best, color='blue', alpha=0.8, marker='o', ms=3, lw=1.5, label=r"$E\;(%s)$"%(size))
@@ -180,9 +182,9 @@ for sweep, sweep_dict in tree_files.items():
         fig2.tight_layout()
         fig3.tight_layout()
 
-        fig1.savefig(parent_folder + f"ResultsOfSweep_alpha_{alpha_num}_Energy_Error_Vscore" + ".jpeg", dpi=600, bbox_inches="tight")
-        fig2.savefig(parent_folder + f"ResultsOfSweep_alpha_{alpha_num}_Renyi_Mz_Ms" + ".jpeg", dpi=600, bbox_inches="tight")
-        fig3.savefig(parent_folder + f"ResultsOfSweep_alpha_{alpha_num}_Fidelity_Timexe" + ".jpeg", dpi=600, bbox_inches="tight")
+        fig1.savefig(parent_folder + f"RunInJ_sweep_{sweep}_alpha_{alpha_num}_Energy_Error_Vscore" + ".jpeg", dpi=600, bbox_inches="tight")
+        fig2.savefig(parent_folder + f"RunInJ_sweep_{sweep}_alpha_{alpha_num}_Renyi_Mz_Ms" + ".jpeg", dpi=600, bbox_inches="tight")
+        fig3.savefig(parent_folder + f"RunInJ_sweep_{sweep}_alpha_{alpha_num}_Fidelity_Timexe" + ".jpeg", dpi=600, bbox_inches="tight")
 
         plt.close(fig1)
         plt.close(fig2)

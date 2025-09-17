@@ -1,4 +1,3 @@
-import pytest
 import jax
 import jax.numpy as jnp
 from time import time
@@ -9,7 +8,7 @@ from NN_module.models.CvT3 import (
     DepthPointwiseConv, ConvProjectionBlock, StageBlock, CvTWorker
 )
 from pytests.test_equivariance._trasl_equiv_check import (
-    equivariance_traslation_all_test, equivariance_traslation_test
+    equivariance_traslation_all_test
 )
 
 equivariance_test = equivariance_traslation_all_test #equivariance_traslation_test
