@@ -9,7 +9,7 @@ from .ViT_2D import BatchedSpinViT_2D
 from .CNN import CNN
 from .CvT import CvT
 from .CvT3 import CvT3
-from .Phase import phasors_CNN
+from .Phase import CNNPhasor
 
 DTYPE = jnp.float64
 
@@ -341,12 +341,13 @@ class SplitTraining_CvT3_CvT3(nn.Module):
         return (log_module + 1j * phase).squeeze()
 
 
-class SplitTraining_CvT3_Phase(nn.Module):
+class SplitTraining_CvT3_CNNPhasor(nn.Module):
     """
     Flax module to train module and phase separately
     """
 
     lattice_size: Tuple[int, int]
+
 
     "Module settings CvT3"
     n_CP_blocks_list: Tuple[
@@ -369,6 +370,9 @@ class SplitTraining_CvT3_Phase(nn.Module):
     )
     trivial_Z2: bool = True
 
+    "Module settings CNNPhasor"
+    cnnph_channels: int = 64
+
     @nn.compact
     def __call__(self, x: jnp.ndarray) -> jnp.ndarray:
 
@@ -387,9 +391,10 @@ class SplitTraining_CvT3_Phase(nn.Module):
             trivial_Z2=self.trivial_Z2,
         )(x)
 
-        # phase = four_phases_gumbel(
-        #         name = 'phase'
-        #     )(x)
-        phase = phasors_CNN(name="phase", lattice_size=self.lattice_size)(x)
+        phase = CNNPhasor(
+            name="phase", 
+            lattice_size=self.lattice_size,
+            channels=self.cnnph_channels
+            )(x)
 
         return (log_module + 1j * phase).squeeze()

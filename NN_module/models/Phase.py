@@ -9,10 +9,10 @@ from .ViT_2D import MultiLayerPerceptron
 
 REAL_DTYPE = jnp.float64
 
-
-class phasors_CNN(nn.Module):
+class CNNPhasor(nn.Module):
 
     lattice_size: Tuple
+    channels: int
 
     @nn.compact
     def __call__(self, x):
@@ -21,7 +21,7 @@ class phasors_CNN(nn.Module):
         x = x.reshape(-1, *self.lattice_size, 1)
 
         x = nn.Conv(
-            features=64,
+            features=self.channels,
             kernel_size=kernel,
             strides=(1, 1),
             padding="CIRCULAR",

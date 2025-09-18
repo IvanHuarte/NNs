@@ -25,7 +25,7 @@ from NN_module.models.CvT3 import CvT3
 from NN_module.models.split_training import (
     SplitTraining_ViT_MLP, SplitTraining_ViT_CNN, 
     SplitTraining_CvT_CNN, SplitTraining_CvT_CvT,
-    SplitTraining_CvT3_CvT3, SplitTraining_CvT3_Phase
+    SplitTraining_CvT3_CvT3, SplitTraining_CvT3_CNNPhasor
 )
 from NN_module.NN_utils import (
     activation_dict, sampler_dict, rule_dict
@@ -766,8 +766,8 @@ def init_model(name, model_setup):
             phasors=model_setup['phasors']
         )
     
-    elif name == 'SplitTraining_CvT3_Phase':
-        return SplitTraining_CvT3_Phase(
+    elif name == "SplitTraining_CvT3_CNNPhasor":
+        return SplitTraining_CvT3_CNNPhasor(
             lattice_size=tuple(model_setup['lattice_size']),
 
             n_CP_blocks_list= tuple(model_setup['n_CP_blocks']),
@@ -777,7 +777,9 @@ def init_model(name, model_setup):
             kernel=tuple(model_setup['kernel']),
             final_architecture=ast.literal_eval(model_setup['final_architecture']),
             symm_Z2= model_setup['symm_Z2'],
-            trivial_Z2= model_setup['trivial_Z2']
+            trivial_Z2= model_setup['trivial_Z2'],
+
+            cnnph_channels=model_setup['cnnph_channels']
         )
 
 def print_tree_keys(obj, indent=0):
