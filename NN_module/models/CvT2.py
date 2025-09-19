@@ -37,7 +37,7 @@ def disjoint_avg_pool(
     # print(f"strides: {strides}")
     # print(f"Hd, Wd = {Hd}, {Wd}")
     x = x.reshape((B, Wd, strides[1], Hd, strides[0], C),
-                order='C').transpose((0, 1, 3, 2, 4, 5)).reshape(B, Hd*Wd, *strides, C).mean(axis=1)
+                order='C').transpose((0, 1, 3, 2, 4, 5)).reshape(B, Hd*Wd, *strides, C)
     
     return x
 

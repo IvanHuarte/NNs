@@ -9,6 +9,7 @@ from .ViT_2D import MultiLayerPerceptron
 
 REAL_DTYPE = jnp.float64
 
+
 class CNNPhasor(nn.Module):
 
     lattice_size: Tuple
