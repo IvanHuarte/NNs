@@ -12,13 +12,13 @@ equivariance_test = APS_equiv_check
 
 key = jax.random.PRNGKey(int(time()))
 
-lattice_size = (4, 4)
-strides = (2, 2)
+lattice_size = (8,8)
+strides = (2,2)
 
-C_in = 1
-C_out = 1
+C_in = 6
+C_out = 6
 
-atol = 1e-10
+atol = 1e-3
 verbosity = 1
 
 

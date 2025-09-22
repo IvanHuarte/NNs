@@ -8,29 +8,41 @@ from .ViT_2D import MultiLayerPerceptron
 
 REAL_DTYPE = jnp.float64
 
+def vmap_P_traslations(x, P_shifts):
+    
+    batched_traslations = lambda x, shift: jnp.roll(x, shift=shift, axis=(0,1))
+
+    return jax.vmap(batched_traslations)(x, P_shifts)
+
+def scan_P_traslations(x, P_shifts):
+
+    def rollit(i, x_batch):
+        x_b_trasl = jnp.roll(x_batch, shift=P_shifts[i], axis=(0,1))
+        return i+1, x_b_trasl
+    
+    _, x_trasl = jax.lax.scan(rollit, init=0, xs=x)
+
+    return x_trasl
 
 def polyphase_components(x, strides):
 
     B, H, W, C = x.shape
-    Hd, Wd = (
-        H // strides[0],
-        W // strides[1],
-    )
-    # print(f"(B, H, W, C) = {x.shape}")
-    # print(f"strides: {strides}")
-    # print(f"Hd, Wd = {Hd}, {Wd}")
-    x = (
-        x.reshape((B, Wd, strides[1], Hd, strides[0], C), order="C")
-        .transpose((0, 1, 3, 2, 4, 5))
-        .reshape(B, Hd * Wd, *strides, C)
-    )
-    return x
+    Hd, Wd = H // strides[0], W // strides[1], 
+    xt = x.reshape(
+        (B ,Hd ,strides[0],Wd,strides[1], C)
+        ).transpose((0,1,3,4,2,5)).reshape(
+            (B, Hd*Wd, *strides, C)
+            ).transpose((0,3,2,1,4))
 
+    shape = xt.shape
+    poly_comp = xt.reshape(shape[0], shape[1]*shape[2], shape[3]*shape[4])
+
+    return poly_comp
 
 def get_maxnorm_indices(x, strides):
     """
     This function returns the traslation indices for a batched input of shape (B, H, W, C).
-    It computes the polyphase components of a grid for each batch and channel, calculates
+    It computes the polyphase components of a grid for each batch and channel, calculates 
     the L2 norm for each component and chooses the indices of the maximum value component.
     It works for both 1D and 2D inputs.
     Input:
@@ -38,37 +50,36 @@ def get_maxnorm_indices(x, strides):
         - strides: (tuple) Strides for the next downsampling convolution.
 
     Returns:
-        - x: Shifts (translations) for all batches and channels which makes the input
+        - x: Shifts (translations) for all batches and channels which makes the input 
              traslationaly equivariant.
 
     """
     _, H, W, _ = x.shape
-    assert (H % strides[0] == 0) & (
-        W % strides[1] == 0
-    ), f"`lattice_size` must be disible by `strides`. But they are {(H,W)} and {strides}"
+    assert (H % strides[0]==0) & (W % strides[1]==0), f"`lattice_size` must be disible by `strides`. But they are {(H,W)} and {strides}"
+    
 
-    poly_comp = polyphase_components(x, strides).transpose((0, 3, 2, 1, 4))
-    norm = (
-        jnp.linalg.norm(poly_comp, axis=-2, keepdims=True)
-        .squeeze(-2)
-        .transpose((0, 3, 1, 2))
-    )
-    norm = norm.reshape(*norm.shape[0:2], norm.shape[2] * norm.shape[3])
-    maxnorm_idx = jnp.argmax(norm, axis=-1)[:, :, None]
-    row_idx, col_idx = jnp.unravel_index(maxnorm_idx, strides)
+    poly_comp = polyphase_components(x, strides)
 
-    return -jnp.array([row_idx, col_idx]).squeeze(-1).transpose((1, 2, 0))
+    norm = jnp.linalg.norm(poly_comp, axis=-1)
+    flat_idx = jnp.argmax(norm, axis=-1, keepdims=False)
+    p, q = jnp.unravel_index(flat_idx, strides) 
+    anchors = jnp.array([-p, -q]).T
 
+    return anchors
+     
 
-def APS_equivariance_adapter(x, strides):
+def APS_equivariance_adapter(x, strides, mode = 'vmap'):
 
-    shifts = get_maxnorm_indices(x, strides)
-    traslations = lambda x, shift: jnp.roll(x, shift=shift, axis=(0, 1))
-    batched_traslations = lambda x, shifts: jax.vmap(traslations)(x, shifts)
+    P_shifts = get_maxnorm_indices(x, strides)
 
-    x = jax.vmap(batched_traslations)(x.transpose((0, 3, 1, 2)), shifts)
+    if mode == 'scan':
+        x = scan_P_traslations(x, P_shifts)
+    elif mode == 'vmap':
+        x = vmap_P_traslations(x, P_shifts)
+    else:
+        raise ValueError(f"No such mode: {mode}")
 
-    return x.transpose((0, 2, 3, 1))
+    return x, P_shifts
 
 
 class Conv_APS(nn.Module):
@@ -86,7 +97,7 @@ class Conv_APS(nn.Module):
     def __call__(self, x: jt.ArrayLike) -> jt.ArrayLike:
 
         if any([s > 1 for s in self.strides]):  # Downsampling APS correction
-            x = APS_equivariance_adapter(x, self.strides)
+            x, P_shifts = APS_equivariance_adapter(x, self.strides)
 
         x = nn.Conv(
             features=self.channels,
@@ -99,4 +110,4 @@ class Conv_APS(nn.Module):
             use_bias=self.use_bias,
         )(x)
 
-        return x
+        return x, P_shifts
