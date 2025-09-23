@@ -232,7 +232,7 @@ for i, size in enumerate(sizes):
 
                         variables = vstate.variables
                         sampler = vstate.sampler
-                        optimizer, mask_tree = masked_optimizer(
+                        optimizer = masked_optimizer(
                             vstate.parameters, transformations, mode=mask
                         )
 
@@ -265,7 +265,7 @@ for i, size in enumerate(sizes):
 
                         # P1 = vstate.parameters
                         # print(compare_params(P0,P1))
-                        #check_zero_grads(vstate, mask_tree)
+                        #check_zero_grads(vstate, mask)
 
 
 
