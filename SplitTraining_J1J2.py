@@ -41,7 +41,7 @@ from NN_module.label_utils import (
 )
 from NN_module.schedules import get_ST_schedule
 from NN_module.NN_utils import scheduler_initializer, phase_stats_vstate, modphase
-from NN_module.ST_utils import compare_params, masked_optimizer
+from NN_module.ST_utils import check_zero_grads, compare_params, masked_optimizer
 from NN_module.observables import calc_all_observables_vs, calc_all_observables_ED
 from transformer_LR_WF.utils import InvertMagnetization
 
@@ -215,6 +215,8 @@ for i, size in enumerate(sizes):
                     SR = nk.optimizer.SR(diag_shift=ds_schedule[i])
 
                     for epochs, mode in zip(segment, seg_modes):
+                        # P0 = vstate.parameters
+
                         if mode == "M":
                             mode = "modulus"
                             mask = "phase"
@@ -230,7 +232,7 @@ for i, size in enumerate(sizes):
 
                         variables = vstate.variables
                         sampler = vstate.sampler
-                        optimizer = masked_optimizer(
+                        optimizer, mask_tree = masked_optimizer(
                             vstate.parameters, transformations, mode=mask
                         )
 
@@ -261,7 +263,11 @@ for i, size in enumerate(sizes):
                         mean, std, psi = phase_stats_vstate(vstate)
                         print(f"VS phase: {mean} \u00b1 {std}  ({psi})")
 
-                        
+                        # P1 = vstate.parameters
+                        # print(compare_params(P0,P1))
+                        #check_zero_grads(vstate, mask_tree)
+
+
 
             else:  # Training modulus and phase at the same time
 

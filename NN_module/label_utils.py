@@ -193,7 +193,7 @@ def architecture_label(name, model_setup):
         architecture += f"|| heads: {model_setup['attn_heads']}  kernel: {model_setup['kernel']}  final_arch: {model_setup['final_architecture']} ||\n"
         architecture += f"CNNPhasor\n"
         architecture += f"|| channels:  {model_setup['cnnph_channels']} ||"
-        architecture += f"||             symm_Z2: {model_setup['symm_Z2_phase']}  trivial: {model_setup['trivial_Z2_phase']}              ||"
+        architecture += f"||             symm_Z2: {model_setup['symm_Z2']}  trivial: {model_setup['trivial_Z2']}              ||"
         
     return architecture
 

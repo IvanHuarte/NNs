@@ -28,6 +28,7 @@ class CNNPhasorWorker(nn.Module):
             padding="CIRCULAR",
             # mask=mask,
             dtype=REAL_DTYPE,
+            
         )(x)
         x = x.reshape(-1, self.lattice_size[0] * self.lattice_size[1], x.shape[-1])
 
