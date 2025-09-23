@@ -37,8 +37,8 @@ def get_write_folder_from_model(config):
         labels = ["_1Z2", "_2Z2"]
 
     elif name in ["SplitTraining_CvT3_CNNPhasor"]:
-        conditions = [model_setup["symm_Z2_modulus"], model_setup["symm_Z2_phase"]]
-        labels = ["_Z2M", "_Z2P"]
+        conditions = [model_setup["symm_Z2"]]
+        labels = ["_Z2"]
 
     symm = ""
     for cond, label in zip(conditions, labels):
@@ -188,13 +188,13 @@ def architecture_label(name, model_setup):
         architecture += f"|| Z2: {model_setup['symm_Z2_2']} trivial: {model_setup['trivial_Z2_2']}  phasors:{model_setup['phasors']}||\n"
 
     elif name == "SplitTraining_CvT3_CNNPhasor":
-        architecture = f"CvT3 1\n"
+        architecture = f"CvT3\n"
         architecture += f"|| n_CTE_ch: {model_setup['CTemb_channels']}  n_CPB: {model_setup['n_CP_blocks']}  CP_ch: {model_setup['CP_channels']} ||\n"
         architecture += f"|| heads: {model_setup['attn_heads']}  kernel: {model_setup['kernel']}  final_arch: {model_setup['final_architecture']} ||\n"
-        architecture += f"||  symm_Z2: {model_setup['symm_Z2_modulus']}  trivial: {model_setup['trivial_Z2_modulus']} ||\n"
         architecture += f"CNNPhasor\n"
-        architecture += f"|| channels:  {model_setup['cnnph_channels']} symm_Z2: {model_setup['symm_Z2_phase']}  trivial: {model_setup['trivial_Z2_phase']} ||"
-
+        architecture += f"|| channels:  {model_setup['cnnph_channels']} ||"
+        architecture += f"||             symm_Z2: {model_setup['symm_Z2_phase']}  trivial: {model_setup['trivial_Z2_phase']}              ||"
+        
     return architecture
 
 
@@ -454,7 +454,7 @@ def get_filenames_from_settings(cm_name, nn_name, **kwargs):
         kernel_label += f"{kernel[0]}x{kernel[1]}_"
 
         nnparams = f"_CvT_blocks_{blocks_label}emb_ch_{emb_ch_label}cp_ch_{cp_ch_label}heads_{heads_label}kernel_{kernel_label}finarch_{arch_label}"
-        nnparams += f"_CCNPhasor_ch_{cnnph_channels}"
+        nnparams += f"_CNNPhasor_ch_{cnnph_channels}"
 
     sim_label = model_label + f"_simulation_{size[0]}x{size[1]}" + cparams + nnparams
     ED_label = model_label + f"_xED_{size[0]}x{size[1]}" + cparams

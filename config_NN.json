@@ -147,12 +147,11 @@
             "attn_heads": [4],
             "kernel": [3, 3],
             "final_architecture": "(128,5,)",
-            "symm_Z2_modulus": true,
-            "trivial_Z2_modulus": true,
 
             "cnnph_channels": 64,
-            "symm_Z2_phase": true,
-            "trivial_Z2_phase": true
+
+            "symm_Z2": true,
+            "trivial_Z2": true
         }
     }
 }

@@ -47,15 +47,15 @@
     "ST_schedule":{
         "lr_name":"stairs_schedule",
         "setup":{
-            "segments":[[50,50]],
+            "segments":[[5,5]],
             "mode":[["P","M"]],
-            "repeat_segment":[4]
+            "repeat_segment":[6]
         },
 
         "lr_schedules":{
 
             "stairs_schedule":{
-                "lr0": 0.01,
+                "lr0": 0.5,
                 "lr_min": 0.00001
             },
 

@@ -27,9 +27,9 @@ from NN_module.models.split_training import (
     SplitTraining_ViT_CNN,
     SplitTraining_CvT_CNN,
     SplitTraining_CvT_CvT,
-    SplitTraining_CvT3_CvT3,
-    SplitTraining_CvT3_CNNPhasor,
+    SplitTraining_CvT3_CvT3
 )
+from NN_module.models.ST_CvT3_CNNPhasor import SplitTraining_CvT3_CNNPhasor
 from NN_module.NN_utils import activation_dict, sampler_dict, rule_dict
 
 
@@ -820,7 +820,7 @@ def init_model(name, model_setup):
             final_architecture_2=ast.literal_eval(model_setup["final_architecture_2"]),
             symm_Z2_2=model_setup["symm_Z2_2"],
             trivial_Z2_2=model_setup["trivial_Z2_2"],
-            phasors=model_setup["phasors"],
+            phasors=model_setup["phasors"]
         )
 
     elif name == "SplitTraining_CvT3_CNNPhasor":
@@ -832,12 +832,11 @@ def init_model(name, model_setup):
             attn_heads_list=tuple(model_setup["attn_heads"]),
             kernel=tuple(model_setup["kernel"]),
             final_architecture=ast.literal_eval(model_setup["final_architecture"]),
-            symm_Z2_modulus=model_setup["symm_Z2_modulus"],
-            trivial_Z2_modulus=model_setup["trivial_Z2_modulus"],
 
             cnnph_channels=model_setup["cnnph_channels"],
-            symm_Z2_phase=model_setup["symm_Z2_phase"],
-            trivial_Z2_phase=model_setup["trivial_Z2_phase"],
+            
+            symm_Z2=model_setup["symm_Z2"],
+            trivial_Z2=model_setup["trivial_Z2"]
         )
 
 

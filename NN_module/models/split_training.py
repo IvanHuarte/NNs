@@ -350,31 +350,19 @@ class SplitTraining_CvT3_CNNPhasor(nn.Module):
 
 
     "Module settings CvT3"
-    n_CP_blocks_list: Tuple[
-        int, ...
-    ]  # Number of convolutional projection blocks in each stage
-    CTemb_channels_list: Tuple[
-        int, ...
-    ]  # Number of channels in the convolutional token embedding.
-    CP_channels_list: Tuple[
-        int, ...
-    ]  # Number of channels for each convolutional projection block in each stage.
-    attn_heads_list: Tuple[
-        int, ...
-    ]  # Number of heads for each convolutional projection block in each stage.
+    n_CP_blocks_list: Tuple[int, ...]  # Number of convolutional projection blocks in each stage
+    CTemb_channels_list: Tuple[int, ...]  # Number of channels in the convolutional token embedding.
+    CP_channels_list: Tuple[int, ...]  # Number of channels for each convolutional projection block in each stage.
+    attn_heads_list: Tuple[int, ...]  # Number of heads for each convolutional projection block in each stage.
     kernel: Tuple = (3, 3)  # Kernel size for the convolutional operations (must be 3x3)
     final_architecture: Tuple = (5,)
 
-    symm_Z2_modulus: bool = (
-        False  # If True, the wavefunction is even under global Z2 transformation
-    )
+    symm_Z2_modulus: bool = False  # If True, the wavefunction is even under global Z2 transformation
     trivial_Z2_modulus: bool = True
 
     "Module settings CNNPhasor"
     cnnph_channels: int = 64
-    symm_Z2_phase: bool = (
-        False  # If True, the wavefunction is even under global Z2 transformation
-    )
+    symm_Z2_phase: bool = False  # If True, the wavefunction is even under global Z2 transformation
     trivial_Z2_phase: bool = True
 
     @nn.compact
@@ -404,3 +392,100 @@ class SplitTraining_CvT3_CNNPhasor(nn.Module):
             )(x)
 
         return (log_modulus + 1j * phase).squeeze()
+
+
+class SplitTraining_CvT3_CNNPhasor_Z2(nn.Module):
+
+    lattice_size: Tuple[int, int]
+
+    "Module settings CvT3"
+    n_CP_blocks_list: Tuple[int, ...]         # Number of convolutional projection blocks in each stage
+    CTemb_channels_list: Tuple[int, ...]     # Number of channels in the convolutional token embedding.
+    CP_channels_list: Tuple[int, ...]    # Number of channels for each convolutional projection block in each stage.
+    attn_heads_list: Tuple[int, ...]         # Number of heads for each convolutional projection block in each stage.
+    kernel: Tuple = (3, 3)               # Kernel size for the convolutional operations (must be 3x3)
+    final_architecture: Tuple = (5,)
+    symm_Z2_modulus: bool = False  # If True, the wavefunction is even under global Z2 transformation
+    trivial_Z2_modulus: bool = True
+
+    "Module settings CNNPhasor"
+    cnnph_channels: int = 64
+    symm_Z2_phase: bool = False  # If True, the wavefunction is even under global Z2 transformation
+    trivial_Z2_phase: bool = True
+
+    @nn.compact
+    def __call__(self, x):
+        
+        worker = SplitTraining_CvT3_CNNPhasorWorker(
+            lattice_size=self.lattice_size,
+            n_CP_blocks_list=self.n_CP_blocks_list,
+            CTemb_channels_list=self.CTemb_channels_list,
+            CP_channels_list=self.CP_channels_list,
+            attn_heads_list=self.attn_heads_list,
+            kernel=self.kernel,
+            final_architecture=self.final_architecture,
+            symm_Z2_modulus=False, #self.symm_Z2_modulus,
+            trivial_Z2_modulus=self.trivial_Z2_modulus,
+
+            cnnph_channels=self.cnnph_channels,
+            symm_Z2_phase=False, #self.symm_Z2_phase,
+            trivial_Z2_phase=self.trivial_Z2_phase,
+            )
+
+        output_x = jnp.atleast_1d(worker(x))
+        output_inv_x = jnp.atleast_1d(worker(-x))
+
+        # Ahora sí podemos concatenar
+        z2_stack = jnp.stack([output_x, output_inv_x], axis=0)
+
+        # if self.trivial_Z2:
+        return jax.nn.logsumexp(z2_stack, axis=0, keepdims=False)
+        # else:
+        #     b = jnp.asarray([1.0, -1.0])[:, None]  # shape (2,1)
+        #     return jax.nn.logsumexp(z2_stack, b=b, axis=0, keepdims=False)
+        
+class SplitTraining_CvT3_CNNPhasor(nn.Module):
+    """
+    Flax module to train module and phase separately
+    """
+
+    lattice_size: Tuple[int, int]
+
+
+    "Module settings CvT3"
+    n_CP_blocks_list: Tuple[int, ...]  # Number of convolutional projection blocks in each stage
+    CTemb_channels_list: Tuple[int, ...]  # Number of channels in the convolutional token embedding.
+    CP_channels_list: Tuple[int, ...]  # Number of channels for each convolutional projection block in each stage.
+    attn_heads_list: Tuple[int, ...]  # Number of heads for each convolutional projection block in each stage.
+    kernel: Tuple = (3, 3)  # Kernel size for the convolutional operations (must be 3x3)
+    final_architecture: Tuple = (5,)
+
+    symm_Z2_modulus: bool = False  # If True, the wavefunction is even under global Z2 transformation
+    trivial_Z2_modulus: bool = True
+
+    "Module settings CNNPhasor"
+    cnnph_channels: int = 64
+    symm_Z2_phase: bool = False  # If True, the wavefunction is even under global Z2 transformation
+
+    trivial_Z2_phase: bool = True
+
+    @nn.compact
+    def __call__(self, x: jnp.ndarray) -> jnp.ndarray:
+
+        worker = SplitTraining_CvT3_CNNPhasor_Z2(
+            lattice_size=self.lattice_size,
+            n_CP_blocks_list=self.n_CP_blocks_list,
+            CTemb_channels_list=self.CTemb_channels_list,
+            CP_channels_list=self.CP_channels_list,
+            attn_heads_list=self.attn_heads_list,
+            kernel=self.kernel,
+            final_architecture=self.final_architecture,
+            symm_Z2_modulus=False, #self.symm_Z2_modulus,
+            trivial_Z2_modulus=self.trivial_Z2_modulus,
+
+            cnnph_channels=self.cnnph_channels,
+            symm_Z2_phase=False, #self.symm_Z2_phase,
+            trivial_Z2_phase=self.trivial_Z2_phase,
+            )
+
+        return worker(x)

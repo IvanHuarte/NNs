@@ -276,6 +276,21 @@ for i, size in enumerate(sizes):
                         mean, std, psi = phase_stats_vstate(vstate)
                         print(f"VS phase: {mean} \u00b1 {std}  ({psi})")
 
+                        # apply_fun = vstate._apply_fun
+                        # def logpsi(params, s):
+                        #     return apply_fun({"params": params}, s)
+
+                        # grad_logpsi = jax.grad(lambda p, s: jnp.real(logpsi(p, s)))
+
+                        # s_batch = vstate.samples.reshape(-1, vstate.hilbert.size)
+
+                        # vals = jax.vmap(lambda s: logpsi(vstate.parameters, s))(s_batch)
+                        # grads = jax.vmap(lambda s: grad_logpsi(vstate.parameters, s))(s_batch)
+                        # print("Valores logψ:", vals[:5])
+                        # print(f"Grads:\n{jax.tree_util.tree_leaves(grads)}")
+                        # print("¿NaN en gradientes?",
+                        #     any([jnp.isnan(g).any() for g in jax.tree_util.tree_leaves(grads)]))
+
             else:  # Training modulus and phase at the same time
                 keeper = BestIterKeeper(epochs, H, N, baseline=1e-8, mode="best_energy")
                 # keeper.filename = 'Somewhere' #It allows you to store the parameters of the model for the state with lowest energy found.
