@@ -1,0 +1,77 @@
+{
+
+   "write_folder_sim":"/home/ihuarte/Escritorio/Ivan/NNs/prueba/",    "sim <---> SSF":"Ruta donde se guardan los productos de simulaciones",
+    
+
+    "exact_diagonalization": true,
+    "dump_sim_callback": true,
+    "explore_mode": true,
+
+
+    "sampler":{
+        "n_ranks": 1,
+        "n_chains_per_rank": 16,
+        "n_samples_per_chain": 64,
+        "chunk_sampler": null,
+        "chunk_vstate": 512
+    },
+
+    "split_training": true,
+
+    "normal_schedule":{
+        "lr_name": "warmup_exponential_decay",
+
+        "setup":{
+            "total_epochs": 2
+
+        },
+
+        "lr_schedules":{
+            "warmup_exponential_decay":{
+                "lr0": 0.001,                 
+                "peak_value": 0.6,
+                "warmup_steps": 100,
+                "decay_rate": 0.986
+            },
+
+            "exp_cos_schedule":{
+                "lr0":0.3,          
+                "decay_exp":1.0,
+                "cosine_cycles": 2,
+                "n":0.1,
+                "lr_min": 0.01
+            }
+        }
+    },
+
+    "ST_schedule":{
+        "lr_name":"stairs_schedule",
+        "setup":{
+            "segments":[[5,5],[5,5],[5]],
+            "mode":[["P","M"], ["P","M"],["P"]],
+            "repeat_segment":[1,1,1]
+        },
+
+        "lr_schedules":{
+
+            "stairs_schedule":{
+                "lr0": 0.8,
+                "lr_min": 0.0001
+            },
+
+            "segment":{
+                "lr":[
+                    0.5, 0.2, 0.08, 0.03,
+                    0.01, 0.005, 0.001, 0.0005,
+                    0.0001, 0.1
+                ]
+            }
+        }
+
+
+        
+
+
+    }
+
+}

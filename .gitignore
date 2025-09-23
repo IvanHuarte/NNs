@@ -16,6 +16,7 @@ env/
 **/Keypoints/
 **/Figures/
 **/First_sim/
+**/Simulations/
 
 **/*.jpeg
 **/*.txt
@@ -26,3 +27,8 @@ env/
 # Jupyter Notebook
 .ipynb_checkpoints
 
+
+#Excepciones
+!config.json
+!config_CM.json
+!config_NN.json
