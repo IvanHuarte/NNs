@@ -29,9 +29,9 @@ class SplitTraining_ViT_CNN(nn.Module):
     n_ffn_layers: int
     final_architecture: Sequence[int]
     is_complex: bool = False
-    symm_2D_module: bool = False
-    symm_Z2_module: bool = False
-    trivial_Z2_module: bool = True
+    symm_2D_modulus: bool = False
+    symm_Z2_modulus: bool = False
+    trivial_Z2_modulus: bool = True
 
     "Phase settings CNN"
     block_channels: tuple = 32  # Features for each convolutional block
@@ -44,7 +44,7 @@ class SplitTraining_ViT_CNN(nn.Module):
     @nn.compact
     def __call__(self, batch_x: jnp.ndarray) -> jnp.ndarray:
 
-        log_module = BatchedSpinViT_2D(
+        log_modulus = BatchedSpinViT_2D(
             name="modulus",
             lattice_size=self.lattice_size,
             token_size=self.token_size,
@@ -54,9 +54,9 @@ class SplitTraining_ViT_CNN(nn.Module):
             n_ffn_layers=self.n_ffn_layers,
             final_architecture=self.final_architecture,
             is_complex=self.is_complex,
-            symm_2D=self.symm_2D_module,
-            symm_Z2=self.symm_Z2_module,
-            trivial_Z2=self.trivial_Z2_module,
+            symm_2D=self.symm_2D_modulus,
+            symm_Z2=self.symm_Z2_modulus,
+            trivial_Z2=self.trivial_Z2_modulus,
         )(batch_x)
 
         phase = CNN(
@@ -68,7 +68,7 @@ class SplitTraining_ViT_CNN(nn.Module):
             activation=self.activation,
         )(batch_x)
 
-        return log_module + 1j * phase
+        return log_modulus + 1j * phase
 
 
 class SplitTraining_ViT_MLP(nn.Module):
@@ -86,9 +86,9 @@ class SplitTraining_ViT_MLP(nn.Module):
     n_ffn_layers: int
     final_architecture: Sequence[int]
     is_complex: bool = False
-    symm_2D_module: bool = False
-    symm_Z2_module: bool = False
-    trivial_Z2_module: bool = True
+    symm_2D_modulus: bool = False
+    symm_Z2_modulus: bool = False
+    trivial_Z2_modulus: bool = True
 
     "Phase settings MLP"
     param_dtype_phase: Any = DTYPE
@@ -102,7 +102,7 @@ class SplitTraining_ViT_MLP(nn.Module):
     @nn.compact
     def __call__(self, batch_x: jnp.ndarray) -> jnp.ndarray:
 
-        log_module = BatchedSpinViT_2D(
+        log_modulus = BatchedSpinViT_2D(
             name="modulus",
             lattice_size=self.lattice_size,
             token_size=self.token_size,
@@ -112,9 +112,9 @@ class SplitTraining_ViT_MLP(nn.Module):
             n_ffn_layers=self.n_ffn_layers,
             final_architecture=self.final_architecture,
             is_complex=self.is_complex,
-            symm_2D=self.symm_2D_module,
-            symm_Z2=self.symm_Z2_module,
-            trivial_Z2=self.trivial_Z2_module,
+            symm_2D=self.symm_2D_modulus,
+            symm_Z2=self.symm_Z2_modulus,
+            trivial_Z2=self.trivial_Z2_modulus,
         )(batch_x)
 
         phase = BatchedMultiLayerPerceptron(
@@ -128,7 +128,7 @@ class SplitTraining_ViT_MLP(nn.Module):
             trivial_Z2=self.trivial_Z2_phase,
         )(batch_x)
 
-        return log_module + 1j * phase
+        return log_modulus + 1j * phase
 
 
 class SplitTraining_CvT_CNN(nn.Module):
@@ -166,7 +166,7 @@ class SplitTraining_CvT_CNN(nn.Module):
     @nn.compact
     def __call__(self, x: jnp.ndarray) -> jnp.ndarray:
 
-        log_module = CvT(
+        log_modulus = CvT(
             name="phase",
             lattice_size=self.lattice_size,
             n_CP_blocks_list=self.n_CP_blocks_list,
@@ -185,9 +185,9 @@ class SplitTraining_CvT_CNN(nn.Module):
             n_ffn_layers=self.n_ffn_layers_cnn,
             activation=self.activation,
         )(x)
-        # print(f"Shape after CvT and CNN: {log_module.shape}, {phase.shape}")
+        # print(f"Shape after CvT and CNN: {log_modulus.shape}, {phase.shape}")
 
-        return (log_module + 1j * phase).squeeze()
+        return (log_modulus + 1j * phase).squeeze()
 
 
 class SplitTraining_CvT_CvT(nn.Module):
@@ -232,7 +232,7 @@ class SplitTraining_CvT_CvT(nn.Module):
     @nn.compact
     def __call__(self, x: jnp.ndarray) -> jnp.ndarray:
 
-        log_module = CvT(
+        log_modulus = CvT(
             name="modulus",
             lattice_size=self.lattice_size,
             n_CP_blocks_list=self.n_CP_blocks_list_1,
@@ -254,7 +254,7 @@ class SplitTraining_CvT_CvT(nn.Module):
             final_architecture=self.final_architecture_2,
         )(x)
 
-        return (log_module + 1j * phase).squeeze()
+        return (log_modulus + 1j * phase).squeeze()
 
 
 class SplitTraining_CvT3_CvT3(nn.Module):
@@ -307,7 +307,7 @@ class SplitTraining_CvT3_CvT3(nn.Module):
     @nn.compact
     def __call__(self, x: jnp.ndarray) -> jnp.ndarray:
 
-        log_module = CvT3(
+        log_modulus = CvT3(
             name="modulus",
             lattice_size=self.lattice_size,
             n_CP_blocks_list=self.n_CP_blocks_list_1,
@@ -338,7 +338,7 @@ class SplitTraining_CvT3_CvT3(nn.Module):
             phasors=self.phasors,
         )(x)
 
-        return (log_module + 1j * phase).squeeze()
+        return (log_modulus + 1j * phase).squeeze()
 
 
 class SplitTraining_CvT3_CNNPhasor(nn.Module):
@@ -365,18 +365,22 @@ class SplitTraining_CvT3_CNNPhasor(nn.Module):
     kernel: Tuple = (3, 3)  # Kernel size for the convolutional operations (must be 3x3)
     final_architecture: Tuple = (5,)
 
-    symm_Z2: bool = (
+    symm_Z2_modulus: bool = (
         False  # If True, the wavefunction is even under global Z2 transformation
     )
-    trivial_Z2: bool = True
+    trivial_Z2_modulus: bool = True
 
     "Module settings CNNPhasor"
     cnnph_channels: int = 64
+    symm_Z2_phase: bool = (
+        False  # If True, the wavefunction is even under global Z2 transformation
+    )
+    trivial_Z2_phase: bool = True
 
     @nn.compact
     def __call__(self, x: jnp.ndarray) -> jnp.ndarray:
 
-        log_module = CvT3(
+        log_modulus = CvT3(
             name="modulus",
             lattice_size=self.lattice_size,
             n_CP_blocks_list=self.n_CP_blocks_list,
@@ -387,14 +391,16 @@ class SplitTraining_CvT3_CNNPhasor(nn.Module):
             final_architecture=self.final_architecture,
             two_heads=False,
             two_heads_sincos=False,
-            symm_Z2=self.symm_Z2,
-            trivial_Z2=self.trivial_Z2,
+            symm_Z2=self.symm_Z2_modulus,
+            trivial_Z2=self.trivial_Z2_modulus,
         )(x)
 
         phase = CNNPhasor(
             name="phase", 
             lattice_size=self.lattice_size,
-            channels=self.cnnph_channels
+            channels=self.cnnph_channels,
+            symm_Z2=self.symm_Z2_phase,
+            trivial_Z2=self.trivial_Z2_phase,
             )(x)
 
-        return (log_module + 1j * phase).squeeze()
+        return (log_modulus + 1j * phase).squeeze()

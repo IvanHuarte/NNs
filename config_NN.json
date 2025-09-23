@@ -70,9 +70,9 @@
             "n_ffn_layers": 2,
             "is_complex": false,
             "final_architecture": "(5,)",
-            "symm_2D_module": false,
-            "symm_Z2_module": false,
-            "trivial_Z2_module": true,
+            "symm_2D_modulus": false,
+            "symm_Z2_modulus": false,
+            "trivial_Z2_modulus": true,
             
             "hidden_alpha": [2, 2, 2],
             "activation": ["selu", "selu", "selu"],
@@ -89,9 +89,9 @@
             "n_ffn_layers": 2,
             "is_complex": false,
             "final_architecture": "(5,)",
-            "symm_2D_module": false,
-            "symm_Z2_module": false,
-            "trivial_Z2_module": true,
+            "symm_2D_modulus": false,
+            "symm_Z2_modulus": false,
+            "trivial_Z2_modulus": true,
             "block_channels": [32],
             "kernel_size": [3, 1],
             "n_ffn_layers_cnn": 1
@@ -138,18 +138,21 @@
             "final_architecture_2": "(128,5,)",
             "symm_Z2_2": true,
             "trivial_Z2_2": true,
-            "phasors": true
+            "phasors": false
         },
         "SplitTraining_CvT3_CNNPhasor": {
             "n_CP_blocks": [2],
-            "CTemb_channels": [32],
-            "CP_channels": [32],
+            "CTemb_channels": [64],
+            "CP_channels": [64],
             "attn_heads": [4],
             "kernel": [3, 3],
             "final_architecture": "(128,5,)",
-            "symm_Z2": true,
-            "trivial_Z2": true,
-            "cnnph_channels": 32
+            "symm_Z2_modulus": true,
+            "trivial_Z2_modulus": true,
+
+            "cnnph_channels": 64,
+            "symm_Z2_phase": true,
+            "trivial_Z2_phase": true
         }
     }
 }

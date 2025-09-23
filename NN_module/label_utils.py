@@ -17,23 +17,28 @@ def get_write_folder_from_model(config):
     if name == "SplitTraining_ViT_MLP":
 
         conditions = [
-            model_setup["symm_2D_module"],
+            model_setup["symm_2D_modulus"],
             model_setup["symm_2D_phase"],
-            model_setup["symm_Z2_module"],
+            model_setup["symm_Z2_modulus"],
             model_setup["symm_Z2_phase"],
         ]
         labels = ["_2DM", "_2DP", "_Z2M", "_Z2P"]
 
     elif name == "SplitTraining_ViT_CNN":
-        conditions = [model_setup["symm_2D_module"], model_setup["symm_Z2_module"]]
+        conditions = [model_setup["symm_2D_modulus"], model_setup["symm_Z2_modulus"]]
         labels = ["_2DM", "_Z2M"]
 
     elif name in ["ViT", "CvT", "CvT2", "CvT3"]:
         conditions = [model_setup["symm_Z2"]]
         labels = ["_Z2"]
+
     elif name in ["SplitTraining_CvT3_CvT3"]:
         conditions = [model_setup["symm_Z2_1"], model_setup["symm_Z2_2"]]
         labels = ["_1Z2", "_2Z2"]
+
+    elif name in ["SplitTraining_CvT3_CNNPhasor"]:
+        conditions = [model_setup["symm_Z2_modulus"], model_setup["symm_Z2_phase"]]
+        labels = ["_Z2M", "_Z2P"]
 
     symm = ""
     for cond, label in zip(conditions, labels):
@@ -42,7 +47,7 @@ def get_write_folder_from_model(config):
             if label == "_Z2":
                 symm += "t" if model_setup["trivial_Z2"] else "nt"
             if label == "_Z2M":
-                symm += "t" if model_setup["trivial_Z2_module"] else "nt"
+                symm += "t" if model_setup["trivial_Z2_modulus"] else "nt"
             if label == "_Z2P":
                 symm += "t" if model_setup["trivial_Z2_phase"] else "nt"
             if label == "_1Z2":
@@ -186,9 +191,9 @@ def architecture_label(name, model_setup):
         architecture = f"CvT3 1\n"
         architecture += f"|| n_CTE_ch: {model_setup['CTemb_channels']}  n_CPB: {model_setup['n_CP_blocks']}  CP_ch: {model_setup['CP_channels']} ||\n"
         architecture += f"|| heads: {model_setup['attn_heads']}  kernel: {model_setup['kernel']}  final_arch: {model_setup['final_architecture']} ||\n"
-        architecture += f"||  symm_Z2: {model_setup['symm_Z2']}  trivial: {model_setup['trivial_Z2']} ||\n"
+        architecture += f"||  symm_Z2: {model_setup['symm_Z2_modulus']}  trivial: {model_setup['trivial_Z2_modulus']} ||\n"
         architecture += f"CNNPhasor\n"
-        architecture += f"|| channels:  {model_setup['cnnph_channels']}||"
+        architecture += f"|| channels:  {model_setup['cnnph_channels']} symm_Z2: {model_setup['symm_Z2_phase']}  trivial: {model_setup['trivial_Z2_phase']} ||"
 
     return architecture
 
@@ -232,12 +237,25 @@ def get_filenames_from_settings(cm_name, nn_name, **kwargs):
         alpha = kwargs["alpha"]
         fields = kwargs["fields"]
         cparams = f"_J_{J}_alpha_{alpha}_XZ_{fields[0]}_{fields[1]}"
-        call_params = r"$J = %.2f$  $\alpha = %.1f$  $XZ = (%.1f, %.1f)$" % (
+        call_params = r"$J=%.2f$  $\alpha=%.1f$  $XZ=(%.1f,%.1f)$" % (
             J,
             alpha,
             fields[0],
             fields[1],
         )
+    
+    elif cm_name == "J1J2Square":
+        J1 = kwargs["J1"]
+        J2 = kwargs["J2"]
+        fields = kwargs["fields"]
+        cparams = f"_J1J2_{J1}_{J2}_XYZ_{fields[0]}_{fields[1]}_{fields[2]}"
+        call_params = r"$J1=%.2f$  $J2=%.2f$  $XYZ=(%.1f,%1.f,%.1f)$" % (
+            J1,
+            J2,
+            fields[0],
+            fields[1],
+            fields[2],
+        )   
 
     if nn_name == "MLP":
         alphas = kwargs["hidden_alpha"]

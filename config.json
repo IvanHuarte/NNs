@@ -22,16 +22,16 @@
         "lr_name": "warmup_exponential_decay",
 
         "setup":{
-            "total_epochs": 2
+            "total_epochs": 300
 
         },
 
         "lr_schedules":{
             "warmup_exponential_decay":{
                 "lr0": 0.001,                 
-                "peak_value": 0.6,
-                "warmup_steps": 100,
-                "decay_rate": 0.986
+                "peak_value": 0.01,
+                "warmup_steps": 50,
+                "decay_rate": 0.995
             },
 
             "exp_cos_schedule":{
@@ -47,23 +47,22 @@
     "ST_schedule":{
         "lr_name":"stairs_schedule",
         "setup":{
-            "segments":[[5,5],[5,5],[5]],
-            "mode":[["P","M"], ["P","M"],["P"]],
-            "repeat_segment":[1,1,1]
+            "segments":[[50,50]],
+            "mode":[["P","M"]],
+            "repeat_segment":[4]
         },
 
         "lr_schedules":{
 
             "stairs_schedule":{
-                "lr0": 0.8,
-                "lr_min": 0.0001
+                "lr0": 0.01,
+                "lr_min": 0.00001
             },
 
             "segment":{
                 "lr":[
-                    0.5, 0.2, 0.08, 0.03,
-                    0.01, 0.005, 0.001, 0.0005,
-                    0.0001, 0.1
+                    0.005, 0.01, 0.005,
+                    0.001, 0.0005, 0.0001
                 ]
             }
         }
