@@ -8,7 +8,7 @@
 
 
     "CM": {
-            "selection": "LRSquare",
+            "selection": "J1J2Square",
 
             "Oxalate":{
                 "strength": 0.2,
