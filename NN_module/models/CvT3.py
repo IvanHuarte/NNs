@@ -39,11 +39,8 @@ class glu_phasor(nn.Module):
 
         # phasors
 
-        # x = nn.glu(                               # Version 1
-        # jnp.exp(1j * x).mean(axis=1)
-        # ).sum(axis=-1)
+        x = nn.glu(x.mean(axis=1))
 
-        x = nn.glu(x.mean(axis=1))  # Version 2
         x = jnp.exp(1j * x).sum(axis=-1)
 
         return jnp.angle(x)
@@ -344,7 +341,7 @@ class CvTWorker(nn.Module):
             return glu_phasor()(  # Salida float (phase)
                 x.reshape(x.shape[0], -1, x.shape[-1])
             )
-            # return two_heads_phasors(     # Salida complex (mod + phase)
+            # return two_heads_phasors(            # Salida complex (mod + phase)
             #   self.final_architecture
             # )(x)
 

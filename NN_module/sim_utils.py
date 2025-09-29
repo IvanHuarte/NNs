@@ -26,10 +26,10 @@ from NN_module.models.split_training import (
     SplitTraining_ViT_MLP,
     SplitTraining_ViT_CNN,
     SplitTraining_CvT_CNN,
-    SplitTraining_CvT_CvT,
-    SplitTraining_CvT3_CvT3
 )
-from NN_module.models.ST_CvT3_CNNPhasor import SplitTraining_CvT3_CNNPhasor
+from NN_module.models.ST_modules.CvT3_CNNPh import CvT3_CNNPh
+from NN_module.models.ST_modules.CvT3_EDPPh import CvT3_EDPPh
+from NN_module.models.ST_modules.CvT3_CvT3 import CvT3_CvT3
 from NN_module.NN_utils import activation_dict, sampler_dict, rule_dict
 
 
@@ -801,8 +801,8 @@ def init_model(name, model_setup):
             final_architecture_2=ast.literal_eval(model_setup["final_architecture_2"]),
         )
 
-    elif name == "SplitTraining_CvT3_CvT3":
-        return SplitTraining_CvT3_CvT3(
+    elif name == "CvT3_CvT3":
+        return CvT3_CvT3(
             lattice_size=tuple(model_setup["lattice_size"]),
             n_CP_blocks_list_1=tuple(model_setup["n_CP_blocks_1"]),
             CTemb_channels_list_1=tuple(model_setup["CTemb_channels_1"]),
@@ -810,21 +810,19 @@ def init_model(name, model_setup):
             attn_heads_list_1=tuple(model_setup["attn_heads_1"]),
             kernel_1=tuple(model_setup["kernel_1"]),
             final_architecture_1=ast.literal_eval(model_setup["final_architecture_1"]),
-            symm_Z2_1=model_setup["symm_Z2_1"],
-            trivial_Z2_1=model_setup["trivial_Z2_1"],
             n_CP_blocks_list_2=tuple(model_setup["n_CP_blocks_2"]),
             CTemb_channels_list_2=tuple(model_setup["CTemb_channels_2"]),
             CP_channels_list_2=tuple(model_setup["CP_channels_2"]),
             attn_heads_list_2=tuple(model_setup["attn_heads_2"]),
             kernel_2=tuple(model_setup["kernel_2"]),
             final_architecture_2=ast.literal_eval(model_setup["final_architecture_2"]),
-            symm_Z2_2=model_setup["symm_Z2_2"],
-            trivial_Z2_2=model_setup["trivial_Z2_2"],
-            phasors=model_setup["phasors"]
+            phasors=model_setup["phasors"],
+            symm_Z2=model_setup["symm_Z2"],
+            trivial_Z2=model_setup["trivial_Z2"],
         )
 
-    elif name == "SplitTraining_CvT3_CNNPhasor":
-        return SplitTraining_CvT3_CNNPhasor(
+    elif name == "CvT3_CNNPh":
+        return CvT3_CNNPh(
             lattice_size=tuple(model_setup["lattice_size"]),
             n_CP_blocks_list=tuple(model_setup["n_CP_blocks"]),
             CTemb_channels_list=tuple(model_setup["CTemb_channels"]),
@@ -832,11 +830,22 @@ def init_model(name, model_setup):
             attn_heads_list=tuple(model_setup["attn_heads"]),
             kernel=tuple(model_setup["kernel"]),
             final_architecture=ast.literal_eval(model_setup["final_architecture"]),
-
             cnnph_channels=model_setup["cnnph_channels"],
-            
             symm_Z2=model_setup["symm_Z2"],
-            trivial_Z2=model_setup["trivial_Z2"]
+            trivial_Z2=model_setup["trivial_Z2"],
+        )
+    elif name == "CvT3_EDPPh":
+        return CvT3_EDPPh(
+            lattice_size=tuple(model_setup["lattice_size"]),
+            n_CP_blocks_list=tuple(model_setup["n_CP_blocks"]),
+            CTemb_channels_list=tuple(model_setup["CTemb_channels"]),
+            CP_channels_list=tuple(model_setup["CP_channels"]),
+            attn_heads_list=tuple(model_setup["attn_heads"]),
+            kernel=tuple(model_setup["kernel"]),
+            final_architecture=ast.literal_eval(model_setup["final_architecture"]),
+            edpph_channels=model_setup["edpph_channels"],
+            symm_Z2=model_setup["symm_Z2"],
+            trivial_Z2=model_setup["trivial_Z2"],
         )
 
 

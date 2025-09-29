@@ -275,7 +275,6 @@ for i, size in enumerate(sizes):
                         )
                         mean, std, psi = phase_stats_vstate(vstate)
                         print(f"VS phase: {mean} \u00b1 {std}  ({psi})")
-                        
 
             else:  # Training modulus and phase at the same time
                 keeper = BestIterKeeper(epochs, H, N, baseline=1e-8, mode="best_energy")

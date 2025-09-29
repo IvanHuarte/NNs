@@ -1,6 +1,6 @@
 {
 
-   "write_folder_sim":"/home/ihuarte/Escritorio/Ivan/NNs/prueba/",    "sim <---> SSF":"Ruta donde se guardan los productos de simulaciones",
+   "write_folder_sim":"/home/ihuarte/Escritorio/Ivan/NNs/prueba/J1J2_Keypoint_4098samples/",    "sim <---> SSF":"Ruta donde se guardan los productos de simulaciones",
     
 
     "exact_diagonalization": true,
@@ -10,10 +10,10 @@
 
     "sampler":{
         "n_ranks": 1,
-        "n_chains_per_rank": 16,
+        "n_chains_per_rank": 64,
         "n_samples_per_chain": 64,
         "chunk_sampler": null,
-        "chunk_vstate": 512
+        "chunk_vstate": 1024
     },
 
     "split_training": true,
@@ -47,16 +47,16 @@
     "ST_schedule":{
         "lr_name":"stairs_schedule",
         "setup":{
-            "segments":[[100],[50,50]],
-            "mode":[["P"],["P","M"]],
-            "repeat_segment":[1,9]
+            "segments":[[50,50]],
+            "mode":[["M","P"]],
+            "repeat_segment":[10]
         },
 
         "lr_schedules":{
 
             "stairs_schedule":{
-                "lr0": 0.05,
-                "lr_min": 0.00001
+                "lr0": 0.02,
+                "lr_min": 0.0001
             },
 
             "segment":{

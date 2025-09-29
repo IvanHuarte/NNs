@@ -130,7 +130,7 @@ for i, size in enumerate(sizes):
             display_simulation_settings({**config_cm, **config_nn})
 
             ## Update Hamiltonian
-            
+
             j1j2 = J1J2Square(size, J1, J2, fields, **kwargs_lattice)
 
             eng = Runner(j1j2.cm, S_operators=False)
@@ -211,18 +211,21 @@ for i, size in enumerate(sizes):
                     print(
                         f"\nSegment {i+1} of {total_segments}......   lr: {lr:.4f}  ds: {ds_schedule[i]:.4f}\n"
                     )
-                    transformations["train"] = optax.sgd(learning_rate=lr)
                     SR = nk.optimizer.SR(diag_shift=ds_schedule[i])
 
                     for epochs, mode in zip(segment, seg_modes):
+
                         # P0 = vstate.parameters
 
                         if mode == "M":
                             mode = "modulus"
                             mask = "phase"
+                            transformations["train"] = optax.sgd(learning_rate=lr)
+
                         elif mode == "P":
                             mode = "phase"
                             mask = "modulus"
+                            transformations["train"] = optax.sgd(learning_rate=10 * lr)
 
                         else:
                             raise ValueError(
@@ -265,14 +268,14 @@ for i, size in enumerate(sizes):
 
                         # P1 = vstate.parameters
                         # print(compare_params(P0,P1))
-                        #check_zero_grads(vstate, mask)
-
-
+                        # check_zero_grads(vstate, mask)
 
             else:  # Training modulus and phase at the same time
 
-                total_epochs = training_setup["total_epochs"] 
-                keeper = BestIterKeeper(total_epochs, H, N, baseline=1e-8, mode="best_energy")
+                total_epochs = training_setup["total_epochs"]
+                keeper = BestIterKeeper(
+                    total_epochs, H, N, baseline=1e-8, mode="best_energy"
+                )
                 # keeper.filename = 'Somewhere' #It allows you to store the parameters of the model for the state with lowest energy found.
                 lr_schedule_setup["total_epochs"] = total_epochs
 

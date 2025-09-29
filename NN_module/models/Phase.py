@@ -3,14 +3,13 @@ import jax
 import jax.typing as jt
 import jax.numpy as jnp
 import flax
-from typing import Tuple
-from netket.nn import log_cosh
-from .ViT_2D import MultiLayerPerceptron
+from typing import Tuple, Callable
+from NN_module.models.CvT3 import DepthPointwiseConv
 
 REAL_DTYPE = jnp.float64
 
 
-class CNNPhasorWorker(nn.Module):
+class CNNPh(nn.Module):
 
     lattice_size: Tuple
     channels: int
@@ -28,70 +27,50 @@ class CNNPhasorWorker(nn.Module):
             padding="CIRCULAR",
             # mask=mask,
             dtype=REAL_DTYPE,
-            
+            kernel_init=jax.nn.initializers.lecun_normal(),
         )(x)
         x = x.reshape(-1, self.lattice_size[0] * self.lattice_size[1], x.shape[-1])
-
-        # phasors
-
-        # x = nn.glu(                            # Version 1
-        # jnp.exp(1j * x).mean(axis=1)
-        # ).sum(axis=-1)
 
         x = nn.glu(x.mean(axis=1))  # Version 2
         x = jnp.exp(1j * x).sum(axis=-1)
 
         return jnp.angle(x)
 
-class CNNPhasor_Z2(nn.Module):
+
+class EDPPh(nn.Module):
+    """
+    Embedded Depthwise-Pointwise convolution wit sum over Phasors
+    x_inputs must be of shape (B,N,1)
+
+    """
 
     lattice_size: Tuple
     channels: int
-    trivial_Z2: bool = True
+    activation: Callable = nn.swish
 
     @nn.compact
-    def __call__(self, x):
-        
-        worker = CNNPhasorWorker(
-                lattice_size=self.lattice_size,
-                channels=self.channels
-            )
+    def __call__(self, x: jt.ArrayLike) -> jt.ArrayLike:
+        assert len(x.shape) == 2, f"x.shape: {x.shape}"
 
-        output_x = jnp.atleast_1d(worker(x))
-        output_inv_x = jnp.atleast_1d(worker(-x))
+        N = self.lattice_size[0] * self.lattice_size[1]
+        kernel = (3, 3) if self.lattice_size[1] != 1 else (3, 1)
 
-        # Ahora sí podemos concatenar
-        z2_stack = jnp.stack([output_x, output_inv_x], axis=0)
+        # Embedding
+        x = nn.Embed(
+            N,
+            self.channels,
+        )(x)
+        x = x.reshape(-1, *self.lattice_size, self.channels)
 
-        if self.trivial_Z2:
-            return jax.nn.logsumexp(z2_stack, axis=0, keepdims=False)
-        else:
-            b = jnp.asarray([1.0, -1.0])[:, None]  # shape (2,1)
-            return jax.nn.logsumexp(z2_stack, b=b, axis=0, keepdims=False)
+        # Depthwise-Normalization-Pointwise
+        x = DepthPointwiseConv(self.channels, kernel=kernel)(x)
 
+        x = self.activation(x)
+        x = x.reshape(-1, N, x.shape[-1])
+        x = nn.Dense(self.channels)(x)
 
-
-class CNNPhasor(nn.Module):
-
-    lattice_size: Tuple
-    channels: int
-    symm_Z2: bool = False
-    trivial_Z2: bool = True
-
-    @nn.compact
-    def __call__(self, x):
-
-        if self.symm_Z2:
-            x = CNNPhasor_Z2(
-                lattice_size=self.lattice_size,
-                channels=self.channels,
-                trivial_Z2=self.trivial_Z2
-            )(x)
-
-        else:
-            x = CNNPhasorWorker(
-                lattice_size=self.lattice_size,
-                channels=self.channels
-            )(x)
+        x = nn.glu(x.mean(axis=1))  # Version JCM
+        x = jnp.exp(1j * x).sum(axis=-1)
+        x = jnp.angle(x)
 
         return x
