@@ -11,7 +11,8 @@ import argparse
 import time
 import ast
 import os
-#os.environ["XLA_PYTHON_CLIENT_PREALLOCATE"] = "false"
+
+# os.environ["XLA_PYTHON_CLIENT_PREALLOCATE"] = "false"
 
 jax.config.update("jax_enable_x64", True)
 jax.config.update("jax_platform_name", "gpu")
@@ -20,41 +21,60 @@ jax.devices()
 # Añadir los directorios necesarios
 import sys
 from pathlib import Path
+
 sys.path.append(str(Path(__file__).resolve().parent.parent / "ATMOS_VA/VA_project/src"))
-sys.path.append(str(Path(__file__).resolve().parent.parent / "Transformers/transformer_LR_WF_public"))
+sys.path.append(
+    str(
+        Path(__file__).resolve().parent.parent / "Transformers/transformer_LR_WF_public"
+    )
+)
 
 # Importar módulos necesarios
 from VA_project.model.model import OxalateJKGamma
 from VA_project.engine.runners import Runner
 from NN_module.sim_utils import (
-    save_results, dump_callback, init_model, architecture_label,
-    get_filenames_from_settings, load_vstate, BestIterKeeper,
-    EnergyPlotter
+    save_results,
+    dump_callback,
+    init_model,
+    architecture_label,
+    get_filenames_from_settings,
+    load_vstate,
+    BestIterKeeper,
+    EnergyPlotter,
 )
 from NN_module.NN_utils import (
-    activation_dict, scheduler_initializer, 
-    phase_stats_ED, phase_stats_vstate,
-    modphase
+    activation_dict,
+    scheduler_initializer,
+    phase_stats_ED,
+    phase_stats_vstate,
+    modphase,
 )
 from NN_module.ST_utils import compare_params, masked_optimizer
 
-
 parser = argparse.ArgumentParser()
-parser.add_argument("-a",'--artifact_path', type=str, required=True, help='Path al artefacto principal que recoge los resultados de la simulacion')
-args=parser.parse_args()
-path_artifact= args.artifact_path
+parser.add_argument(
+    "-a",
+    "--artifact_path",
+    type=str,
+    required=True,
+    help="Path al artefacto principal que recoge los resultados de la simulacion",
+)
+args = parser.parse_args()
+path_artifact = args.artifact_path
 
-with open(path_artifact,'r') as f:
+with open(path_artifact, "r") as f:
     artifact = json.load(f)
 
 ##### FILENAMES STUFF ######
 # Get filenames in base
-kwargs={
-    'size':artifact['lattice']['size'],
-    **artifact['coupling_model'],
-    **artifact['model_NN']['setup']
-} 
-sim_label, _, json_label, title_label_callback = get_filenames_from_settings('Oxalate', artifact["model_NN"]["name"], **kwargs)
+kwargs = {
+    "size": artifact["lattice"]["size"],
+    **artifact["coupling_model"],
+    **artifact["model_NN"]["setup"],
+}
+sim_label, _, json_label, title_label_callback = get_filenames_from_settings(
+    "Oxalate", artifact["model_NN"]["name"], **kwargs
+)
 
 # Refinement filenames
 write_folder = os.path.dirname(path_artifact) + "/Refinements/"
@@ -62,149 +82,139 @@ if not os.path.exists(write_folder):
     os.makedirs(write_folder)
 
 if os.path.isfile(write_folder + json_label + ".json"):
-    i=1
+    i = 1
     file_temp = json_label + f"_{i}.json"
-    while(os.path.isfile(write_folder + file_temp)):
-        i+=1
+    while os.path.isfile(write_folder + file_temp):
+        i += 1
         file_temp = json_label + f"_{i}.json"
 
-    sim_label+=f"_{i}"
-    json_label+=f"_{i}"
+    sim_label += f"_{i}"
+    json_label += f"_{i}"
 ############################
 
 # Load refinement configuration
 
-with open("refinement.json",'r') as f:
+with open("refinement.json", "r") as f:
     config = json.load(f)
 
-epochs = config['lr_schedule']['epochs']  
-sweeps=config['lr_schedule']['sweeps']                        # Simulation settings
-schedule = config['lr_schedule']
-n_samples = artifact['sampler']['n_samples']
-#dump_callback = config['dump_sim_callback']
+epochs = config["lr_schedule"]["epochs"]
+sweeps = config["lr_schedule"]["sweeps"]  # Simulation settings
+schedule = config["lr_schedule"]
+n_samples = artifact["sampler"]["n_samples"]
+# dump_callback = config['dump_sim_callback']
 
 
 # Load vstate....
 print(f"Loading vstate and burning 1000 samples")
-vstate=load_vstate(artifact)
+vstate = load_vstate(artifact)
 for i in range(1000):
     print(f"Recalentando samples: {i}")
     vstate.sample()
 
 # Rebuild hamiltonian
-size = artifact['lattice']['size']
+size = artifact["lattice"]["size"]
 N = int(np.prod(size))
-strength = artifact['coupling_model']['strength']
-theta = artifact['coupling_model']['theta']
-phi = artifact['coupling_model']['phi']
-oxa=OxalateJKGamma(
-    size, 
+strength = artifact["coupling_model"]["strength"]
+theta = artifact["coupling_model"]["theta"]
+phi = artifact["coupling_model"]["phi"]
+oxa = OxalateJKGamma(
+    size,
     [strength, theta, phi],
-    **{
-        'bc': artifact['lattice']['bc'],
-        'order': artifact['lattice']['order']
-    }
+    **{"bc": artifact["lattice"]["bc"], "order": artifact["lattice"]["order"]},
 )
 H = Runner(oxa.cm).build_hamiltonian()
 
 hi = vstate.hilbert
-renyi = nkx.observable.Renyi2EntanglementEntropy(
-    hi, np.arange(0, N / 2 + 1, dtype=int)
-)
+renyi = nkx.observable.Renyi2EntanglementEntropy(hi, np.arange(0, N / 2 + 1, dtype=int))
 mags = sum([(-1) ** i * sigmaz(hi, i) / N for i in range(N)])
 magnet = sum([sigmaz(hi, i) / N for i in range(N)])
 
 
 # Get exact diag energy, in the case.
 E_ED = None
-if artifact['results']['E_ED'] is not None:
-    E_ED = artifact['results']['E_ED']
+if artifact["results"]["E_ED"] is not None:
+    E_ED = artifact["results"]["E_ED"]
 
 
 # Create log and keeper
-log = (
-    nk.logging.RuntimeLog()
-)
+log = nk.logging.RuntimeLog()
 keeper = BestIterKeeper(H, N, 1e-8)
-plotter = EnergyPlotter(H, N, artifact['results']['E_best'],
-                        artifact['results']['E_ED'], 
-                        artifact['results']['vscore'],
-                        artifact['results']['error'])
+plotter = EnergyPlotter(
+    H,
+    N,
+    artifact["results"]["E_best"],
+    artifact["results"]["E_ED"],
+    artifact["results"]["vscore"],
+    artifact["results"]["error"],
+)
 plotter.E_ED = E_ED
 
 # Learning Rate Schedule
-transformations = {
-    'train': optax.sgd(0.1),
-    'freeze': optax.set_to_zero()
-}
+transformations = {"train": optax.sgd(0.1), "freeze": optax.set_to_zero()}
 
 callback_artifacts = {}
 time_in = time.time()
 
 
 print(f"Epochs: {epochs}  Sweeps: {sweeps}")
-   
-if sweeps !=0:    # Alternated training between modulus and phase
-    schedule_name = 'stairs_schedule'
+
+if sweeps != 0:  # Alternated training between modulus and phase
+    schedule_name = "stairs_schedule"
     ds_schedule = jnp.linspace(1e-2, 1e-4, sweeps)
     lr_schedule = jnp.logspace(
-        start=jnp.log10(schedule['lr0']),
-        stop=jnp.log10(schedule['lr_min']), 
-        num=sweeps
+        start=jnp.log10(schedule["lr0"]), stop=jnp.log10(schedule["lr_min"]), num=sweeps
     )
-    epochs_per_run = epochs//(2*sweeps)
+    epochs_per_run = epochs // (2 * sweeps)
     print(f"Epochs per run: {epochs_per_run}")
 
     for i in range(sweeps):
 
-        print(f"\nSweep {i+1} of {sweeps}......   lr: {lr_schedule[i]:.4f}  ds: {ds_schedule[i]:.4f}\n")
-        transformations['train'] = optax.sgd(learning_rate=lr_schedule[i])
+        print(
+            f"\nSweep {i+1} of {sweeps}......   lr: {lr_schedule[i]:.4f}  ds: {ds_schedule[i]:.4f}\n"
+        )
+        transformations["train"] = optax.sgd(learning_rate=lr_schedule[i])
         SR = nk.optimizer.SR(diag_shift=ds_schedule[i])
 
-        for mask in ['modulus', 'phase']:
-            mode = [m for m in ['phase', 'modulus'] if m != mask][0]
-            
+        for mask in ["modulus", "phase"]:
+            mode = [m for m in ["phase", "modulus"] if m != mask][0]
+
             variables = vstate.variables
             sampler = vstate.sampler
-            optimizer = masked_optimizer(vstate.parameters, transformations, mode = mask)
+            optimizer = masked_optimizer(vstate.parameters, transformations, mode=mask)
 
             gs = nk.driver.VMC(
-                H,
-                optimizer,
-                variational_state=vstate,
-                preconditioner=SR
+                H, optimizer, variational_state=vstate, preconditioner=SR
             )
             # print(jax.tree_util.tree_structure(vstate.parameters))
             # print(vstate.variables['params'].keys(  ))
 
             print(f"\nTraining {mode} for {epochs_per_run} epochs...")
-            gs.run(n_iter=epochs_per_run, out=log, callback=[keeper.update, plotter], show_progress=True)
-            mean, std, psi  = phase_stats_vstate(vstate)
+            gs.run(
+                n_iter=epochs_per_run,
+                out=log,
+                callback=[keeper.update, plotter],
+                show_progress=True,
+            )
+            mean, std, psi = phase_stats_vstate(vstate)
             print(f"VS phase: {mean} \u00b1 {std}  ({psi})")
 
 
-else:   # Training modulus and phase at the same time
+else:  # Training modulus and phase at the same time
 
-    schedule_name = schedule['name']
+    schedule_name = schedule["name"]
     ds_schedule = optax.linear_schedule(1e-5, 1e-6, epochs)
     SR = nk.optimizer.SR(diag_shift=ds_schedule)
     lr_schedule = scheduler_initializer(schedule_name, schedule)
-    transformations = {
-        'train': optax.set_to_zero(),
-        'freeze': optax.set_to_zero()
-    }
+    transformations = {"train": optax.set_to_zero(), "freeze": optax.set_to_zero()}
     optimizer = optax.sgd(learning_rate=lr_schedule)
-    #optimizer = masked_optimizer(vstate.parameters, transformations, mode = 'both')
- 
-    gs = nk.driver.VMC(
-        H,
-        optimizer,
-        variational_state=vstate,
-        preconditioner=SR
-    ).run(n_iter=epochs, out=log, callback=[keeper.update, plotter], show_progress=True)
+    # optimizer = masked_optimizer(vstate.parameters, transformations, mode = 'both')
+
+    gs = nk.driver.VMC(H, optimizer, variational_state=vstate, preconditioner=SR).run(
+        n_iter=epochs, out=log, callback=[keeper.update, plotter], show_progress=True
+    )
 
 time_out = time.time()
-time_exe= time_out - time_in
+time_exe = time_out - time_in
 
 resp = input("Do you want to save simulation? [y/N]: ").strip().lower()
 if resp not in ("y", "s", "si", "yes"):
@@ -213,47 +223,54 @@ if resp not in ("y", "s", "si", "yes"):
 print("Saving....")
 
 time_out = time.time()
-time_exe= time_out - time_in
+time_exe = time_out - time_in
 
 if E_ED is not None:
     keeper.E_ED = E_ED
     log.E_ED = E_ED
 
 ## Save results
-_kwargs = artifact['model_NN'][artifact['model_NN']['name']]
-_kwargs['size']=size ; _kwargs['strength']=strength 
-_kwargs['theta']=theta ; _kwargs['phi']=phi
+_kwargs = artifact["model_NN"][artifact["model_NN"]["name"]]
+_kwargs["size"] = size
+_kwargs["strength"] = strength
+_kwargs["theta"] = theta
+_kwargs["phi"] = phi
 
-sim_label, ED_label, json_label, title_label_callback = get_filenames_from_settings(config['CM']['selection'], config['model_NN']['selection'], **_kwargs )
+sim_label, ED_label, json_label, title_label_callback = get_filenames_from_settings(
+    config["CM"]["selection"], config["model_NN"]["selection"], **_kwargs
+)
 
 if dump_callback:
     # For plotting architecture
-    architecture=architecture_label(artifact['model_NN']['name'], artifact['model_NN']['setup'])
-    dump_setup ={
-        'size': size, 'opt_name': "Sgd",
-        'learning_rate': "Scheduled",
-        'write_folder': write_folder,
-        'time_exe': time_exe, 
-        'architecture': architecture,
-        'sim_label': sim_label,
-        'title_label_callback': title_label_callback
+    architecture = architecture_label(
+        artifact["model_NN"]["name"], artifact["model_NN"]["setup"]
+    )
+    dump_setup = {
+        "size": size,
+        "opt_name": "Sgd",
+        "learning_rate": "Scheduled",
+        "write_folder": write_folder,
+        "time_exe": time_exe,
+        "architecture": architecture,
+        "sim_label": sim_label,
+        "title_label_callback": title_label_callback,
     }
-    
+
     callback_artifacts = dump_callback(log, dump_setup)
 
 else:
     callback_artifacts = None
-    
+
 
 # Extract some results
 vstate = keeper.best_state
 E_best = float(keeper.best_energy)
 vscore = float(keeper.vscore)
-error=float(np.abs(E_best-E_ED)/np.abs(E_ED))
+error = float(np.abs(E_best - E_ED) / np.abs(E_ED))
 
-modphase_results={}
+modphase_results = {}
 if E_ED is not None:
-    error=float(np.abs(E_best-E_ED)/np.abs(E_ED))
+    error = float(np.abs(E_best - E_ED) / np.abs(E_ED))
 
 else:
     E_ED = None
@@ -261,8 +278,10 @@ else:
     error = None
 
 mp_array_vs, stats_vs = modphase(vstate)
-modphase_results['vstate']= stats_vs
-print(f"vstate phase: {stats_vs['phase']['mean']} \u00b1 {stats_vs['phase']['std']}  ({stats_vs['type']})")
+modphase_results["vstate"] = stats_vs
+print(
+    f"vstate phase: {stats_vs['phase']['mean']} \u00b1 {stats_vs['phase']['std']}  ({stats_vs['type']})"
+)
 
 # Fidelity
 fidelity = float(jnp.abs(jnp.vdot(vstate.to_array(), x_ED.squeeze())))
@@ -279,31 +298,29 @@ print(f"Magnetization: {M}")
 print(f"Magnetization fluctuation: {Ms}")
 
 # Save the results
-artifact['sampler']['rng'] = vstate.sampler_state.rng.tolist()
-artifact['lr_schedule']['name']=schedule_name
-artifact['lr_schedule']['setup']=schedule[schedule_name]
+artifact["sampler"]["rng"] = vstate.sampler_state.rng.tolist()
+artifact["lr_schedule"]["name"] = schedule_name
+artifact["lr_schedule"]["setup"] = schedule[schedule_name]
 
-artifact['results']['E_best'] = E_best
-artifact['results']['error']=error
-artifact['results']['time_exe']=time_exe
-artifact['results']['modphase']['vstate'] = stats_vs
-artifact['results']['fidelity'] = fidelity
-artifact['results']['S_renyi'] = S_renyi
-artifact['results']['M'] = M
-artifact['results']['Ms'] = Ms
+artifact["results"]["E_best"] = E_best
+artifact["results"]["error"] = error
+artifact["results"]["time_exe"] = time_exe
+artifact["results"]["modphase"]["vstate"] = stats_vs
+artifact["results"]["fidelity"] = fidelity
+artifact["results"]["S_renyi"] = S_renyi
+artifact["results"]["M"] = M
+artifact["results"]["Ms"] = Ms
 
-artifact['_artifacts']['callback'] = callback_artifacts
+artifact["_artifacts"]["callback"] = callback_artifacts
 
 save_results(
-    vstate, 
-    artifact, 
-    x_ED = None,
+    vstate,
+    artifact,
+    x_ED=None,
     modphase=mp_array_vs,
-    modphase_ED= None,
-    write_folder = write_folder,
-    sim_label = sim_label,
+    modphase_ED=None,
+    write_folder=write_folder,
+    sim_label=sim_label,
     ED_label=None,
-    json_label=json_label
+    json_label=json_label,
 )
-
-

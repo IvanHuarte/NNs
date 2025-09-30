@@ -8,6 +8,7 @@ from netket.operator.spin import sigmaz
 import optax
 import json
 import time
+import argparse
 import ast
 import os
 
@@ -27,7 +28,6 @@ sys.path.append(
         Path(__file__).resolve().parent.parent / "Transformers/transformer_LR_WF_public"
     )
 )
-
 # Importar módulos necesarios
 from VA_project.model.model import J1J2Square
 from VA_project.engine.runners import Runner
@@ -45,14 +45,29 @@ from NN_module.ST_utils import check_zero_grads, compare_params, masked_optimize
 from NN_module.observables import calc_all_observables_vs, calc_all_observables_ED
 from transformer_LR_WF.utils import InvertMagnetization
 
-# Cargamos configuraciones de archivos json
-with open("/home/ihuarte/Escritorio/Ivan/NNs/config.json", "r") as f:
-    config = json.load(f)
-with open("/home/ihuarte/Escritorio/Ivan/NNs/config_CM.json", "r") as f:
-    config_cm = json.load(f)
-with open("/home/ihuarte/Escritorio/Ivan/NNs/config_NN.json", "r") as f:
-    config_nn = json.load(f)
+parser = argparse.ArgumentParser()
+parser.add_argument(
+    "-c",
+    "--config",
+    action="append",
+    required=False,
+    default=[
+        "/home/ihuarte/Escritorio/Ivan/NNs/config.json",
+        "/home/ihuarte/Escritorio/Ivan/NNs/config_CM.json",
+        "/home/ihuarte/Escritorio/Ivan/NNs/config_NN.json",
+    ],
+    help="Parse configuration files in order. Simulation/CM/NN",
+)
+configurations = parser.parse_args().config
 
+print(f"Configurations: {configurations}")
+# Cargamos configuraciones de archivos json
+with open(configurations[0], "r") as f:
+    config = json.load(f)
+with open(configurations[1], "r") as f:
+    config_cm = json.load(f)
+with open(configurations[2], "r") as f:
+    config_nn = json.load(f)
 
 cm_model_name = config_cm["CM"]["selection"]
 nn_model_name = config_nn["model_NN"]["selection"]

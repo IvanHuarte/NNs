@@ -163,14 +163,14 @@
         },
 
         "CvT3_EDPPh": {
-            "n_CP_blocks": [2, 2],
-            "CTemb_channels": [64, 64],
-            "CP_channels": [64, 64],
-            "attn_heads": [4, 4],
+            "n_CP_blocks": [2],
+            "CTemb_channels": [32],
+            "CP_channels": [32],
+            "attn_heads": [4],
             "kernel": [3, 3],
             "final_architecture": "(128,5,)",
 
-            "edpph_channels": 128,
+            "edpph_channels": 64,
 
             "symm_Z2": true,
             "trivial_Z2": true

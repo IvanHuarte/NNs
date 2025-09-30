@@ -1,0 +1,29 @@
+Configurations: ['/home/ihuarte/Escritorio/Ivan/NNs/config.json', '/home/ihuarte/Escritorio/Ivan/NNs/config_CM.json', '/home/ihuarte/Escritorio/Ivan/NNs/config_NN.json', '/home/ihuarte/Escritorio/Ivan/NNs/pile/30.09.25_11.26.56/config.json', '/home/ihuarte/Escritorio/Ivan/NNs/pile/30.09.25_11.26.56/config_CM.json', '/home/ihuarte/Escritorio/Ivan/NNs/pile/30.09.25_11.26.56/config_NN.json']
+Total samples: 4096
+────────────── 🧲 CM: J1J2Square   🧠 NN_architecture: CvT3_EDPPh ──────────────
+🧱 Size: 4x4
+
+╭───────────────────────────────── J1J2Square ─────────────────────────────────╮
+│ J1= 1.0  J2= 2.0  fields= [0.0, 0.0, 0.0]                                    │
+╰──────────────────────────────────────────────────────────────────────────────╯
+╭───────────────────────────────── CvT3_EDPPh ─────────────────────────────────╮
+│ n_CP_blocks=    CTemb_channe…  CP_channels=   attn_heads=     kernel= [3, 3] │
+│ [2]             [32]           [32]           [4]                            │
+│ final_archite…  edpph_channe…  symm_Z2= True  trivial_Z2=     lattice_size=  │
+│ (128,5,)        64                            True            [4, 4]         │
+╰──────────────────────────────────────────────────────────────────────────────╯
+───────────────────────────────────────  ───────────────────────────────────────
+Running exact diagonalization...
+Energy ED: -96.49331418800195
+ED in modphase
+xED phase: -0.12751693601771374 ± 1.7842057568924266  (complex)
+vstate in modphase
+vstate phase: 0.0 ± 0.0  (real)
+Fidelity: 3.624e-03
+
+Renyi entropy: 0.06484616706816904
+< m >: -0.0016479492187499996   < m2 >: 0.0478363037109375
+< ms >: 0.0014038085937500017  < ms2 >: 0.0485382080078125
+ED < m >: 3.7413445280222446e-18   < m2 >: 9.652651941638446e-16
+ED < ms >: 1.4497477112025703e-16  < ms2 >: 0.2487930846376913
+
