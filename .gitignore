@@ -17,12 +17,14 @@ env/
 **/Figures/
 **/First_sim/
 **/Simulations/
+**/pile/
 
 **/*.jpeg
 **/*.txt
 **/*.png
 **/*.json
 **/*.msgpack
+**/*.log
 
 # Jupyter Notebook
 .ipynb_checkpoints
