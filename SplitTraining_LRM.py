@@ -230,6 +230,9 @@ for i, size in enumerate(sizes):
                     SR = nk.optimizer.SR(diag_shift=ds_schedule[i])
 
                     for epochs, mode in zip(segment, seg_modes):
+                        P0 = vstate.parameters
+                        vs_0 = vstate
+
                         if mode == "M":
                             mode = "modulus"
                             mask = "phase"
@@ -245,7 +248,7 @@ for i, size in enumerate(sizes):
 
                         variables = vstate.variables
                         sampler = vstate.sampler
-                        optimizer = masked_optimizer(
+                        optimizer, _ = masked_optimizer(
                             vstate.parameters, transformations, mode=mask
                         )
 
@@ -275,6 +278,11 @@ for i, size in enumerate(sizes):
                         )
                         mean, std, psi = phase_stats_vstate(vstate)
                         print(f"VS phase: {mean} \u00b1 {std}  ({psi})")
+                        P1 = vstate.parameters
+                        compare_params(P0, P1)
+                        # check_zero_grads(vstate, mask)
+
+                        vs_1 = vstate
 
             else:  # Training modulus and phase at the same time
                 keeper = BestIterKeeper(epochs, H, N, baseline=1e-8, mode="best_energy")
@@ -455,3 +463,5 @@ for i, size in enumerate(sizes):
                 ED_label=ED_label,
                 json_label=json_label,
             )
+
+            sys.exit(0)

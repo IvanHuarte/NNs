@@ -25,6 +25,7 @@ from ..NN_utils import traslations_2D
 
 REAL_DTYPE = jnp.asarray(1.0).dtype
 
+
 class MultiLayerPerceptron(nn.Module):
     """
     Flax module for a Multi-layer perceptron architecture with normalization.
@@ -67,41 +68,35 @@ class MultiLayerPerceptron(nn.Module):
 
 class AffinityPosWeight(nn.Module):
     "Flax module that multiplies by a circulant matrix."
-    
+
     token_lattice_size: Tuple[int, int]
 
     @nn.compact
     def __call__(self, x: jt.ArrayLike) -> jt.ArrayLike:
-        #print(x.shape)
-        
+        # print(x.shape)
+
         # print(f"Input shape: {x.shape}")
         # print(f"Weight row shape: {weight_row.shape}")
 
         # Traslation 2D
         if self.token_lattice_size is not None:
             weight_row = self.param(
-            "alpha_delta",
-            nn.initializers.truncated_normal(
-                stddev=jnp.sqrt(1.0 / x.shape[-2])
-            ),
-            (x.shape[-2],),
-            REAL_DTYPE,
+                "alpha_delta",
+                nn.initializers.truncated_normal(stddev=jnp.sqrt(1.0 / x.shape[-2])),
+                (x.shape[-2],),
+                REAL_DTYPE,
             )
             weight = traslations_2D(
-                x=weight_row,
-                size=self.token_lattice_size,
-                memory=False
+                x=weight_row, size=self.token_lattice_size, memory=False
             )
         else:
-            weight=self.param(
+            weight = self.param(
                 "alpha_delta_nosymm",
-                nn.initializers.truncated_normal(
-                    stddev=jnp.sqrt(1.0 / x.shape[-2])
-                ),
-                (x.shape[-2],x.shape[-2]),
+                nn.initializers.truncated_normal(stddev=jnp.sqrt(1.0 / x.shape[-2])),
+                (x.shape[-2], x.shape[-2]),
                 REAL_DTYPE,
-                )
-            #weight = jnp.tile(weight_row, (x.shape[-2], 1))
+            )
+            # weight = jnp.tile(weight_row, (x.shape[-2], 1))
 
         # print(f"Weight shape: {weight.shape}")
         # print(f"Output shape: {(weight @ x).shape}")
@@ -115,14 +110,13 @@ class PositionalHead(nn.Module):
     Args:
         head_size: The dimension of each of the heads.
     """
+
     token_lattice_size: Tuple[int, int]
     head_size: int
 
     @nn.compact
     def __call__(self, x: jt.ArrayLike) -> jt.ArrayLike:
-        value = nn.Dense(
-            self.head_size, use_bias=False, param_dtype=REAL_DTYPE
-        )
+        value = nn.Dense(self.head_size, use_bias=False, param_dtype=REAL_DTYPE)
         aff = AffinityPosWeight(self.token_lattice_size)
 
         return aff(value(x))
@@ -138,13 +132,17 @@ class MultiHeadPositionalAttention(nn.Module):
         n_heads: The number of heads present in the multi-head attention block.
         head_size: The dimension of each one of the heads.
     """
+
     token_lattice_size: Tuple[int, int]
     n_heads: int
     head_size: int
 
     @nn.compact
     def __call__(self, x: jt.ArrayLike) -> jt.ArrayLike:
-        heads = [PositionalHead(self.token_lattice_size, self.head_size) for _ in range(self.n_heads)]
+        heads = [
+            PositionalHead(self.token_lattice_size, self.head_size)
+            for _ in range(self.n_heads)
+        ]
         return jnp.concatenate([h(x) for h in heads], axis=-1)
 
 
@@ -169,22 +167,22 @@ class CoreBlock(nn.Module):
     @nn.compact
     def __call__(self, x) -> jt.ArrayLike:
         embedding_d = x.shape[-1]
-        #print(f"Input shape: {x.shape}")
+        # print(f"Input shape: {x.shape}")
         if embedding_d % self.n_heads != 0:
-            raise ValueError(
-                "The number of heads must divide the embedding dimensions"
-            )
+            raise ValueError("The number of heads must divide the embedding dimensions")
         head_size = embedding_d // self.n_heads
-        sa = MultiHeadPositionalAttention(self.token_lattice_size, self.n_heads, head_size)
+        sa = MultiHeadPositionalAttention(
+            self.token_lattice_size, self.n_heads, head_size
+        )
         x += sa(nn.LayerNorm(param_dtype=REAL_DTYPE)(x))
-        #print(f"After attention: {x.shape}")
+        # print(f"After attention: {x.shape}")
         ffn = MultiLayerPerceptron(
             [
                 embedding_d,
             ]
             * self.n_ffn_layers
         )
-        #print(f"After MLP: {ffn(x).shape}\n\n")
+        # print(f"After MLP: {ffn(x).shape}\n\n")
         # No LayerNorm here because it is already included in the perceptron.
         return nk.nn.log_cosh(ffn(x) + x)
 
@@ -217,7 +215,7 @@ class RealSpinViT(nn.Module):
 
     @nn.compact
     def __call__(self, x):
-        
+
         embedding = nn.Dense(self.embedding_d, param_dtype=REAL_DTYPE)
 
         # print(f"RSV_Input shape: {x.shape}")
@@ -265,6 +263,7 @@ class SpinViTWorker(nn.Module):
             and one for the imaginary part of the wavefunction. Otherwise, no
             imaginary part is computed.
     """
+
     token_lattice_size: Tuple[int, int]
     embedding_d: int
     n_heads: int
@@ -297,7 +296,7 @@ class SpinViTWorker(nn.Module):
             return real_part + 1.0j * imag_part
 
         return real_part
-    
+
 
 class SpinViT(nn.Module):
     """Flax module wrapping `SpinViTWorker` and enforcing Z2 and 2D-traslational invariance.
@@ -308,6 +307,7 @@ class SpinViT(nn.Module):
     See the documentation of `SpinViTWorker` for information about the
     parameters.
     """
+
     lattice_size: Tuple[int, int]
     token_size: Tuple[int, int]
     embedding_d: int
@@ -318,32 +318,43 @@ class SpinViT(nn.Module):
     is_complex: bool
     trivial: bool = True
 
-
     @nn.compact
     def __call__(self, x):
-        #print(f"x input: {x.shape}")
+        # print(f"x input: {x.shape}")
         token_dim = self.token_size[0] * self.token_size[1]
         token_lattice_size = (
             self.lattice_size[0] // self.token_size[0],
-            self.lattice_size[1] // self.token_size[1]
+            self.lattice_size[1] // self.token_size[1],
         )
         worker = SpinViTWorker(
-                None,
-                self.embedding_d,
-                self.n_heads,
-                self.n_blocks,
-                self.n_ffn_layers,
-                self.final_architecture,
-                self.is_complex,
-            )
-        
+            None,
+            self.embedding_d,
+            self.n_heads,
+            self.n_blocks,
+            self.n_ffn_layers,
+            self.final_architecture,
+            self.is_complex,
+        )
+
         # Tokenizacion 2D
-        x = x.reshape((token_lattice_size[1],self.token_size[1],token_lattice_size[0],self.token_size[0]),
-                  order='C').transpose((0, 2, 1, 3)).reshape(-1,token_dim).squeeze()
-        #print(f"x reshape: {x.shape}")
+        x = (
+            x.reshape(
+                (
+                    token_lattice_size[1],
+                    self.token_size[1],
+                    token_lattice_size[0],
+                    self.token_size[0],
+                ),
+                order="C",
+            )
+            .transpose((0, 2, 1, 3))
+            .reshape(-1, token_dim)
+            .squeeze()
+        )
+        # print(f"x reshape: {x.shape}")
 
         return worker(x)
-        
+
 
 class SpinViT_Z2(nn.Module):
     """Flax module wrapping `SpinViTWorker` and enforcing Z2 and 2D-traslational invariance.
@@ -354,6 +365,7 @@ class SpinViT_Z2(nn.Module):
     See the documentation of `SpinViTWorker` for information about the
     parameters.
     """
+
     lattice_size: Tuple[int, int]
     token_size: Tuple[int, int]
     embedding_d: int
@@ -364,35 +376,48 @@ class SpinViT_Z2(nn.Module):
     is_complex: bool
     trivial: bool = True
 
-
     @nn.compact
     def __call__(self, x):
-        #token_dim = self.token_size[0] * self.token_size[1]
+        # token_dim = self.token_size[0] * self.token_size[1]
         token_lattice_size = (
             self.lattice_size[0] // self.token_size[0],
-            self.lattice_size[1] // self.token_size[1]
+            self.lattice_size[1] // self.token_size[1],
         )
         worker = SpinViTWorker(
-                None,
-                self.embedding_d,
-                self.n_heads,
-                self.n_blocks,
-                self.n_ffn_layers,
-                self.final_architecture,
-                self.is_complex,
+            None,
+            self.embedding_d,
+            self.n_heads,
+            self.n_blocks,
+            self.n_ffn_layers,
+            self.final_architecture,
+            self.is_complex,
+        )
+
+        x = (
+            x.reshape(
+                (
+                    token_lattice_size[1],
+                    self.token_size[1],
+                    token_lattice_size[0],
+                    self.token_size[0],
+                ),
+                order="C",
             )
-        
-        x=x.reshape((token_lattice_size[1],self.token_size[1],token_lattice_size[0],self.token_size[0]),
-                  order='C').transpose((0, 2, 1, 3)).reshape(-1,self.token_size[0]*self.token_size[1]).squeeze()
-        
+            .transpose((0, 2, 1, 3))
+            .reshape(-1, self.token_size[0] * self.token_size[1])
+            .squeeze()
+        )
+
         output_x = worker(x)
-        output_inv_x = worker(-1.0*x)
+        output_inv_x = worker(-1.0 * x)
 
         if self.trivial:
-            return jax.nn.logsumexp(jnp.array([output_x, output_inv_x]), axis = 0)
+            return jax.nn.logsumexp(jnp.array([output_x, output_inv_x]), axis=0)
         else:
-            return jax.nn.logsumexp(jnp.array([output_x, output_inv_x]), b=jnp.asarray([1., -1.]), axis = 0)         
-            
+            return jax.nn.logsumexp(
+                jnp.array([output_x, output_inv_x]), b=jnp.asarray([1.0, -1.0]), axis=0
+            )
+
 
 class SpinViT_2D(nn.Module):
     """Flax module wrapping `SpinViTWorker` and enforcing 2D-translation invariance.
@@ -403,6 +428,7 @@ class SpinViT_2D(nn.Module):
     See the documentation of `SpinViTWorker` for information about the
     parameters.
     """
+
     lattice_size: Tuple[int, int]
     token_size: Tuple[int, int]
     embedding_d: int
@@ -414,11 +440,11 @@ class SpinViT_2D(nn.Module):
 
     @nn.compact
     def __call__(self, x):
-        #print(f"Input shape: {x.shape}")
+        # print(f"Input shape: {x.shape}")
         token_dim = self.token_size[0] * self.token_size[1]
         token_lattice_size = (
             self.lattice_size[0] // self.token_size[0],
-            self.lattice_size[1] // self.token_size[1]
+            self.lattice_size[1] // self.token_size[1],
         )
         worker = SpinViTWorker(
             token_lattice_size,
@@ -429,25 +455,21 @@ class SpinViT_2D(nn.Module):
             self.final_architecture,
             self.is_complex,
         )
-        #print(self.token_size, type(self.token_size))
+        # print(self.token_size, type(self.token_size))
 
         # 2D traslation
         traslational_x = traslations_2D(  # shape = (token_dim, n_tokens, token_dim)
-            x,
-            size=self.lattice_size,
-            token_size=self.token_size,
-            memory=False
+            x, size=self.lattice_size, token_size=self.token_size, memory=False
         )
         # print(f"Translational x shape: {traslational_x.shape}")
         # return jax.vmap(worker, in_axes=0)(traslational_x).mean(axis=0)
 
         return jax.vmap(worker, in_axes=0)(traslational_x).mean(axis=0)
 
-        #return jax.nn.logsumexp(output, axis=0)
+        # return jax.nn.logsumexp(output, axis=0)
 
 
 class SpinViT_2D_Z2(nn.Module):
-
     """
     Flax module wrapping `SpinViTWorker` and enforcing Z2 invariance.
 
@@ -468,45 +490,41 @@ class SpinViT_2D_Z2(nn.Module):
     is_complex: bool
     trivial: bool = True
 
-
     @nn.compact
     def __call__(self, x):
         token_lattice_size = (
             self.lattice_size[0] // self.token_size[0],
-            self.lattice_size[1] // self.token_size[1]
+            self.lattice_size[1] // self.token_size[1],
         )
         worker = SpinViTWorker(
-                token_lattice_size,
-                self.embedding_d,
-                self.n_heads,
-                self.n_blocks,
-                self.n_ffn_layers,
-                self.final_architecture,
-                self.is_complex,
-            )
-        
+            token_lattice_size,
+            self.embedding_d,
+            self.n_heads,
+            self.n_blocks,
+            self.n_ffn_layers,
+            self.final_architecture,
+            self.is_complex,
+        )
+
         # 2D traslation
         traslational_x = traslations_2D(  # shape = (token_dim, n_tokens, token_dim)
-            x,
-            size=self.lattice_size,
-            token_size=self.token_size,
-            memory=False
+            x, size=self.lattice_size, token_size=self.token_size, memory=False
         )
-        
+
         output_x = jax.vmap(worker, in_axes=0)(traslational_x).mean(axis=0)
-        output_inv_x = jax.vmap(worker, in_axes=0)(-1.0*traslational_x).mean(axis=0)
+        output_inv_x = jax.vmap(worker, in_axes=0)(-1.0 * traslational_x).mean(axis=0)
 
         if self.trivial:
-            return jax.nn.logsumexp(jnp.array([output_x,output_inv_x]), axis=0)
+            return jax.nn.logsumexp(jnp.array([output_x, output_inv_x]), axis=0)
         else:
-            return jax.nn.logsumexp(jnp.array([output_x,output_inv_x]), b=jnp.array([1.,-1]), axis=0)
-            
+            return jax.nn.logsumexp(
+                jnp.array([output_x, output_inv_x]), b=jnp.array([1.0, -1]), axis=0
+            )
 
 
 class BatchedSpinViT_2D(nn.Module):
-
     "Batched version of SpinViT, accepting several spin configurations at once."
-    
+
     lattice_size: Tuple[int, int]
     token_size: Tuple[int, int]
     embedding_d: int
@@ -514,7 +532,7 @@ class BatchedSpinViT_2D(nn.Module):
     n_blocks: int
     n_ffn_layers: int
     final_architecture: Sequence[int]
-    is_complex: bool
+    is_complex: bool = False
     symm_2D: bool = False
     symm_Z2: bool = False
     trivial_Z2: bool = True
@@ -522,7 +540,7 @@ class BatchedSpinViT_2D(nn.Module):
     @nn.compact
     def __call__(self, batched_x):
         if self.symm_Z2 and self.symm_2D:
-            #print(f"SpinViT_2D_Z2")
+            # print(f"SpinViT_2D_Z2")
             worker = SpinViT_2D_Z2(
                 self.lattice_size,
                 self.token_size,
@@ -532,10 +550,10 @@ class BatchedSpinViT_2D(nn.Module):
                 self.n_ffn_layers,
                 self.final_architecture,
                 self.is_complex,
-                trivial=self.trivial_Z2
+                trivial=self.trivial_Z2,
             )
         elif self.symm_2D and not self.symm_Z2:
-            #print(f"SpinViT_2D")
+            # print(f"SpinViT_2D")
             worker = SpinViT_2D(
                 self.lattice_size,
                 self.token_size,
@@ -544,10 +562,10 @@ class BatchedSpinViT_2D(nn.Module):
                 self.n_blocks,
                 self.n_ffn_layers,
                 self.final_architecture,
-                self.is_complex
+                self.is_complex,
             )
         elif not self.symm_2D and self.symm_Z2:
-            #print(f"SpinViT_Z2")
+            # print(f"SpinViT_Z2")
             worker = SpinViT_Z2(
                 self.lattice_size,
                 self.token_size,
@@ -557,10 +575,10 @@ class BatchedSpinViT_2D(nn.Module):
                 self.n_ffn_layers,
                 self.final_architecture,
                 self.is_complex,
-                self.trivial_Z2
+                self.trivial_Z2,
             )
         else:
-            #print(f"SpinViT")
+            # print(f"SpinViT")
             worker = SpinViT(
                 self.lattice_size,
                 self.token_size,

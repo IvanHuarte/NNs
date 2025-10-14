@@ -148,7 +148,7 @@ for i, size in enumerate(sizes):
 
             j1j2 = J1J2Square(size, J1, J2, fields, **kwargs_lattice)
 
-            eng = Runner(j1j2.cm, S_operators=False)
+            eng = Runner(j1j2.cm)
             H = eng.build_hamiltonian()
 
             if exact_diag:
@@ -203,7 +203,7 @@ for i, size in enumerate(sizes):
                         "total_segments": total_segments,
                     },
                 )
-                ds_schedule = jnp.linspace(1e-2, 1e-4, total_epochs)
+                ds_schedule = jnp.linspace(1e-2, 1e-4, total_segments)
 
                 transformations = {
                     "train": optax.sgd(0.1),
@@ -216,8 +216,8 @@ for i, size in enumerate(sizes):
                 # keeper.filename = 'Somewhere' #It allows you to store the parameters of the model for the state with lowest energy found.
 
                 print(f"\nEpochs:      {total_epochs}")
-                print(f"Segments:    {segments}")
-                print(f"Modes:       {modes}")
+                print(f"Segments:      {segments}")
+                print(f"Modes:         {modes}")
 
                 for i, (segment, seg_modes, lr) in enumerate(
                     zip(segments, modes, lr_schedule)
@@ -230,7 +230,7 @@ for i, size in enumerate(sizes):
 
                     for epochs, mode in zip(segment, seg_modes):
 
-                        # P0 = vstate.parameters
+                        P0 = vstate.parameters
 
                         if mode == "M":
                             mode = "modulus"
@@ -240,7 +240,12 @@ for i, size in enumerate(sizes):
                         elif mode == "P":
                             mode = "phase"
                             mask = "modulus"
-                            transformations["train"] = optax.sgd(learning_rate=10 * lr)
+                            transformations["train"] = optax.sgd(learning_rate=lr)
+
+                        elif mode == "B":
+                            mode = "both"
+                            mask = None
+                            transformations["train"] = optax.sgd(learning_rate=lr)
 
                         else:
                             raise ValueError(
@@ -250,7 +255,7 @@ for i, size in enumerate(sizes):
 
                         variables = vstate.variables
                         sampler = vstate.sampler
-                        optimizer = masked_optimizer(
+                        optimizer, _ = masked_optimizer(
                             vstate.parameters, transformations, mode=mask
                         )
 
@@ -281,8 +286,8 @@ for i, size in enumerate(sizes):
                         mean, std, psi = phase_stats_vstate(vstate)
                         print(f"VS phase: {mean} \u00b1 {std}  ({psi})")
 
-                        # P1 = vstate.parameters
-                        # print(compare_params(P0,P1))
+                        P1 = vstate.parameters
+                        print(compare_params(P0, P1))
                         # check_zero_grads(vstate, mask)
 
             else:  # Training modulus and phase at the same time

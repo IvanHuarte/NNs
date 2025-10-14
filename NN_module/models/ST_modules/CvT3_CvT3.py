@@ -139,12 +139,12 @@ class CvT3_CvT3_Z2(nn.Module):
         z2_stack = jnp.stack([output_x, output_inv_x], axis=0)
 
         if self.trivial_Z2:
-            res, sgn = jax.nn.logsumexp(z2_stack, axis=0, return_sign=True)
-            return res  # + 1j * jnp.angle(sgn)
+            res = jax.nn.logsumexp(z2_stack, axis=0)
+            return res
         else:
-            z2_stack_anti = z2_stack * jnp.array([1.0, -1.0])[:, None]
-            res, sgn = jax.nn.logsumexp(z2_stack_anti, axis=0, return_sign=True)
-            return res  # + 1j * jnp.angle(sgn)
+            b = jnp.array([1.0, -1.0])[:, None]
+            res = jax.nn.logsumexp(z2_stack, b=b, axis=0)
+            return res
 
 
 class CvT3_CvT3(nn.Module):

@@ -1,7 +1,7 @@
 {
     "model_NN": {
 
-        "selection": "CvT3_EDPPh",
+        "selection": "ViT2D_CNN",
         
         "ViT": {
             "token_size": 2,
@@ -87,7 +87,7 @@
             "trivial_Z2_phase": true
         },
 
-        "SplitTraining_ViT_CNN": {
+        "ViT2D_CNN": {
             "token_size": [2, 1],
             "embedding_d": 32,
             "n_heads": 4,
@@ -95,12 +95,13 @@
             "n_ffn_layers": 2,
             "is_complex": false,
             "final_architecture": "(5,)",
-            "symm_2D_modulus": false,
-            "symm_Z2_modulus": false,
-            "trivial_Z2_modulus": true,
+
             "block_channels": [32],
-            "kernel_size": [3, 1],
-            "n_ffn_layers_cnn": 1
+            "kernel_size": [3, 3],
+            "n_ffn_layers_cnn": 1,
+            "symm_2D": true,
+            "symm_Z2": true,
+            "trivial_Z2": true
         },
 
         "SplitTraining_CvT_CNN": {
@@ -108,7 +109,7 @@
             "CTemb_channels": [32],
             "CP_channels": [32],
             "attn_heads": [4],
-            "kernel": [3, 1],
+            "kernel": [3, 3],
             "final_architecture": "(5,)",
             "block_channels_cnn": [32],
             "kernel_size_cnn": [3, 3],
@@ -129,17 +130,17 @@
             "final_architecture_2": "(5,)"
         },
         "CvT3_CvT3": {
-            "n_CP_blocks_1": [2],
-            "CTemb_channels_1": [64],
-            "CP_channels_1": [64],
-            "attn_heads_1": [4],
-            "kernel_1": [3, 1],
+            "n_CP_blocks_1": [2,2],
+            "CTemb_channels_1": [64,64],
+            "CP_channels_1": [64,64],
+            "attn_heads_1": [2, 2],
+            "kernel_1": [3, 3],
             "final_architecture_1": "(128,5,)",
 
-            "n_CP_blocks_2": [1],
-            "CTemb_channels_2": [64],
-            "CP_channels_2": [64],
-            "attn_heads_2": [4],
+            "n_CP_blocks_2": [2, 2],
+            "CTemb_channels_2": [64, 64],
+            "CP_channels_2": [64, 64],
+            "attn_heads_2": [2, 2],
             "kernel_2": [3, 3],
             "final_architecture_2": "(128,5,)",
             "phasors": true,
@@ -163,16 +164,16 @@
         },
 
         "CvT3_EDPPh": {
-            "n_CP_blocks": [2, 2],
-            "CTemb_channels": [64, 64],
-            "CP_channels": [64, 64],
-            "attn_heads": [4, 4],
+            "n_CP_blocks": [2],
+            "CTemb_channels": [32],
+            "CP_channels": [32],
+            "attn_heads": [4],
             "kernel": [3, 3],
-            "final_architecture": "(128,5,)",
+            "final_architecture": "(64,5,)",
 
-            "edpph_channels": 128,
+            "edpph_channels": 64,
 
-            "symm_Z2": true,
+            "symm_Z2": false,
             "trivial_Z2": true
         }
     }

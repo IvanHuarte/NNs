@@ -24,9 +24,9 @@ def get_write_folder_from_model(config):
         ]
         labels = ["_2DM", "_2DP", "_Z2M", "_Z2P"]
 
-    elif name == "SplitTraining_ViT_CNN":
-        conditions = [model_setup["symm_2D_modulus"], model_setup["symm_Z2_modulus"]]
-        labels = ["_2DM", "_Z2M"]
+    elif name == "ViT2D_CNN":
+        conditions = [model_setup["symm_2D"], model_setup["symm_Z2"]]
+        labels = ["_2D", "_Z2"]
 
     elif name in ["ViT", "CvT", "CvT2", "CvT3"]:
         conditions = [model_setup["symm_Z2"]]
@@ -154,8 +154,9 @@ def architecture_label(name, model_setup):
         setup += "|"
         architecture += setup
 
-    elif name == "SplitTraining_ViT_CNN":
-        architecture = f"ViT \n"
+    elif name == "ViT2D_CNN":
+        architecture = f" 2D: {model_setup['symm_2D']} || 2D: {model_setup['symm_Z2']} || trivial: {model_setup['trivial_Z2']} \n"
+        architecture += f"ViT 2D \n"
         architecture += f"|| b: {model_setup['token_size']}  D_emb: {model_setup['embedding_d']}  heads: {model_setup['n_heads']} ||\n"
         architecture += f"|| n_blocks: {model_setup['n_blocks']}   ffn_layers: {model_setup['n_ffn_layers']} ||\n"
         architecture += f"CNN\n"
@@ -352,7 +353,7 @@ def get_filenames_from_settings(cm_name, nn_name, **kwargs):
 
         nnparams = f"_ViT_b_{token_size[0]}x{token_size[1]}_Demb_{embedding_d}_heads_{n_heads}_blocks_{n_blocks}_ffn_lay_{n_ffn_layers}__MLP_alphas_{dim_label}_activations_{act_label}"
 
-    elif nn_name == "SplitTraining_ViT_CNN":
+    elif nn_name == "ViT2D_CNN":
         token_size = kwargs["token_size"]
         embedding_d = kwargs["embedding_d"]
         n_heads = kwargs["n_heads"]  # ViT
@@ -364,7 +365,8 @@ def get_filenames_from_settings(cm_name, nn_name, **kwargs):
         cha_label = ""
         for ch in block_channels:
             cha_label += f"{ch}_"
-        nnparams = f"_channels_{cha_label}kernel_{kernel_size[0]}x{kernel_size[1]}_n_ffn_lay_{n_ffn_layers_cnn}"
+        nnparams = f"_ViT_b_{token_size[0]}x{token_size[1]}_Demb_{embedding_d}_heads_{n_heads}_blocks_{n_blocks}_ffn_lay_{n_ffn_layers}_"
+        nnparams = f"_CNN_channels_{cha_label}kernel_{kernel_size[0]}x{kernel_size[1]}_n_ffn_lay_{n_ffn_layers_cnn}"
 
     elif nn_name == "SplitTraining_CvT_CNN":
         # CvT params

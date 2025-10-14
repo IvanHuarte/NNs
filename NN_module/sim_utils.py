@@ -30,6 +30,7 @@ from NN_module.models.split_training import (
 from NN_module.models.ST_modules.CvT3_CNNPh import CvT3_CNNPh
 from NN_module.models.ST_modules.CvT3_EDPPh import CvT3_EDPPh
 from NN_module.models.ST_modules.CvT3_CvT3 import CvT3_CvT3
+from NN_module.models.ST_modules.ViT2D_CNN import ViT2D_CNN
 from NN_module.NN_utils import activation_dict, sampler_dict, rule_dict
 
 
@@ -754,8 +755,8 @@ def init_model(name, model_setup):
             symm_Z2_phase=model_setup["symm_Z2_phase"],
             trivial_Z2_phase=model_setup["trivial_Z2_phase"],
         )
-    elif name == "SplitTraining_ViT_CNN":
-        return SplitTraining_ViT_CNN(
+    elif name == "ViT2D_CNN":
+        return ViT2D_CNN(
             lattice_size=tuple(model_setup["lattice_size"]),
             token_size=tuple(model_setup["token_size"]),
             embedding_d=model_setup["embedding_d"],
@@ -764,12 +765,12 @@ def init_model(name, model_setup):
             n_ffn_layers=model_setup["n_ffn_layers"],
             final_architecture=ast.literal_eval(model_setup["final_architecture"]),
             is_complex=model_setup["is_complex"],
-            symm_2D_modulus=model_setup["symm_2D_modulus"],
-            symm_Z2_modulus=model_setup["symm_Z2_modulus"],
-            trivial_Z2_modulus=model_setup["trivial_Z2_modulus"],
             block_channels=tuple(model_setup["block_channels"]),
             kernel_size=tuple(model_setup["kernel_size"]),
             n_ffn_layers_cnn=model_setup["n_ffn_layers_cnn"],
+            symm_2D=model_setup["symm_2D"],
+            symm_Z2=model_setup["symm_Z2"],
+            trivial_Z2=model_setup["trivial_Z2"],
         )
     elif name == "SplitTraining_CvT_CNN":
         return SplitTraining_CvT_CNN(

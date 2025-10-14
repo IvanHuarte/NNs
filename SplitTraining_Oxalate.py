@@ -8,6 +8,7 @@ from netket.operator.spin import sigmaz
 import optax
 import json
 import time
+import argparse
 import ast
 import os
 
@@ -46,12 +47,28 @@ from NN_module.observables import calc_all_observables_vs, calc_all_observables_
 from transformer_LR_WF.utils import InvertMagnetization
 
 
+parser = argparse.ArgumentParser()
+parser.add_argument(
+    "-c",
+    "--config",
+    action="append",
+    required=False,
+    default=[
+        "/home/ihuarte/Escritorio/Ivan/NNs/config.json",
+        "/home/ihuarte/Escritorio/Ivan/NNs/config_CM.json",
+        "/home/ihuarte/Escritorio/Ivan/NNs/config_NN.json",
+    ],
+    help="Parse configuration files in order. Simulation/CM/NN",
+)
+configurations = parser.parse_args().config
+
+print(f"Configurations: {configurations}")
 # Cargamos configuraciones de archivos json
-with open("/home/ihuarte/Escritorio/Ivan/NNs/config.json", "r") as f:
+with open(configurations[0], "r") as f:
     config = json.load(f)
-with open("/home/ihuarte/Escritorio/Ivan/NNs/config_CM.json", "r") as f:
+with open(configurations[1], "r") as f:
     config_cm = json.load(f)
-with open("/home/ihuarte/Escritorio/Ivan/NNs/config_NN.json", "r") as f:
+with open(configurations[2], "r") as f:
     config_nn = json.load(f)
 
 cm_model_name = config_cm["CM"]["selection"]
@@ -206,16 +223,18 @@ for i, size in enumerate(sizes):
                     print(
                         f"\nSegment {i+1} of {total_segments}......   lr: {lr:.4f}  ds: {ds_schedule[i]:.4f}\n"
                     )
-                    transformations["train"] = optax.sgd(learning_rate=lr)
                     SR = nk.optimizer.SR(diag_shift=ds_schedule[i])
 
                     for epochs, mode in zip(segment, seg_modes):
                         if mode == "M":
                             mode = "modulus"
                             mask = "phase"
+                            transformations["train"] = optax.sgd(learning_rate=lr)
+
                         elif mode == "P":
                             mode = "phase"
                             mask = "modulus"
+                            transformations["train"] = optax.sgd(learning_rate=lr)
 
                         else:
                             raise ValueError(
@@ -225,7 +244,7 @@ for i, size in enumerate(sizes):
 
                         variables = vstate.variables
                         sampler = vstate.sampler
-                        optimizer = masked_optimizer(
+                        optimizer, _ = masked_optimizer(
                             vstate.parameters, transformations, mode=mask
                         )
 
@@ -257,10 +276,13 @@ for i, size in enumerate(sizes):
                         print(f"VS phase: {mean} \u00b1 {std}  ({psi})")
 
             else:  # Training modulus and phase at the same time
-                keeper = BestIterKeeper(epochs, H, N, baseline=1e-8, mode="best_energy")
-                # keeper.filename = 'Somewhere' #It allows you to store the parameters of the model for the state with lowest energy found.
 
-                training_setup["total_epochs"] = total_epochs
+                total_epochs = training_setup["total_epochs"]
+                keeper = BestIterKeeper(
+                    total_epochs, H, N, baseline=1e-8, mode="best_energy"
+                )
+                # keeper.filename = 'Somewhere' #It allows you to store the parameters of the model for the state with lowest energy found.
+                lr_schedule_setup["total_epochs"] = total_epochs
 
                 ds_schedule = optax.linear_schedule(1e-2, 1e-4, total_epochs)
                 SR = nk.optimizer.SR(diag_shift=ds_schedule)
@@ -271,7 +293,7 @@ for i, size in enumerate(sizes):
                 gs = nk.driver.VMC(
                     H, optimizer, variational_state=vstate, preconditioner=SR
                 ).run(
-                    n_iter=epochs,
+                    n_iter=total_epochs,
                     out=log,
                     callback=[keeper.update],
                     show_progress=True,
@@ -435,11 +457,3 @@ for i, size in enumerate(sizes):
                 json_label=json_label,
             )
 
-            # import time
-            # import subprocess
-            # time.sleep(2)
-
-            # artifact_path = write_folder + json_label + ".json"
-            # script_path = "/home/ihuarte/Escritorio/Ivan/NNs/plot_phase.py"
-
-            # subprocess.run(["python", script_path, "-a", artifact_path])
