@@ -203,7 +203,7 @@ for i, size in enumerate(sizes):
                         "total_segments": total_segments,
                     },
                 )
-                ds_schedule = jnp.linspace(1e-2, 1e-4, total_epochs)
+                ds_schedule = jnp.linspace(1e-2, 1e-4, total_segments)
 
                 transformations = {
                     "train": optax.sgd(0.1),
@@ -211,7 +211,7 @@ for i, size in enumerate(sizes):
                 }
 
                 keeper = BestIterKeeper(
-                    total_epochs, H, N, baseline=1e-8, mode="best_energy"
+                    total_epochs, H, N, baseline=1e-8, mode="best_vscore"
                 )
                 # keeper.filename = 'Somewhere' #It allows you to store the parameters of the model for the state with lowest energy found.
 
@@ -223,22 +223,29 @@ for i, size in enumerate(sizes):
                     zip(segments, modes, lr_schedule)
                 ):
 
+                    SR = nk.optimizer.SR(diag_shift=ds_schedule[i])
                     print(
                         f"\nSegment {i+1} of {total_segments}......   lr: {lr:.4f}  ds: {ds_schedule[i]:.4f}\n"
                     )
-                    transformations["train"] = optax.sgd(learning_rate=lr)
-                    SR = nk.optimizer.SR(diag_shift=ds_schedule[i])
 
                     for epochs, mode in zip(segment, seg_modes):
-                        P0 = vstate.parameters
-                        vs_0 = vstate
+                        # P0 = vstate.parameters
+                        # vs_0 = vstate
 
                         if mode == "M":
                             mode = "modulus"
                             mask = "phase"
+                            transformations["train"] = optax.sgd(learning_rate=lr)
+
                         elif mode == "P":
                             mode = "phase"
                             mask = "modulus"
+                            transformations["train"] = optax.sgd(learning_rate=lr)
+
+                        elif mode == "B":
+                            mode = "both"
+                            mask = None
+                            transformations["train"] = optax.sgd(learning_rate=lr)
 
                         else:
                             raise ValueError(
@@ -278,11 +285,10 @@ for i, size in enumerate(sizes):
                         )
                         mean, std, psi = phase_stats_vstate(vstate)
                         print(f"VS phase: {mean} \u00b1 {std}  ({psi})")
-                        P1 = vstate.parameters
-                        compare_params(P0, P1)
+                        # P1 = vstate.parameters
+                        # compare_params(P0, P1)
                         # check_zero_grads(vstate, mask)
-
-                        vs_1 = vstate
+                        # vs_1 = vstate
 
             else:  # Training modulus and phase at the same time
                 keeper = BestIterKeeper(epochs, H, N, baseline=1e-8, mode="best_energy")
@@ -463,5 +469,3 @@ for i, size in enumerate(sizes):
                 ED_label=ED_label,
                 json_label=json_label,
             )
-
-            sys.exit(0)

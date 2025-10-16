@@ -466,8 +466,6 @@ class SpinViT_2D(nn.Module):
 
         return jax.vmap(worker, in_axes=0)(traslational_x).mean(axis=0)
 
-        # return jax.nn.logsumexp(output, axis=0)
-
 
 class SpinViT_2D_Z2(nn.Module):
     """

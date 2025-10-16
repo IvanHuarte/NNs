@@ -30,6 +30,10 @@ def mask_both(path, leaf):
     return "freeze"
 
 
+def no_mask(path, leaf):
+    return "train"
+
+
 def masked_optimizer(params, transform_map, mode=None):
     """Genera una máscara universal para `params` basada en el modo.
 
@@ -48,7 +52,7 @@ def masked_optimizer(params, transform_map, mode=None):
     elif mode == "both":
         trans_tree = flax.traverse_util.path_aware_map(mask_both, params)
     elif mode is None:
-        return transform_map["train"]
+        trans_tree = flax.traverse_util.path_aware_map(no_mask, params)
     else:
         raise ValueError(
             f"Unknown mode: {mode}. Must be 'modulus', 'phase' or None (for both)."

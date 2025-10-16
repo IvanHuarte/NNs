@@ -35,12 +35,19 @@ class ViT2D_CNN_Worker(nn.Module):
 
     @nn.compact
     def __call__(self, batch_x: jnp.ndarray) -> jnp.ndarray:
-        # print(f"Input shape to ViT2D_CNN_Worker: {batch_x.shape}")
 
         token_lattice_size = (
             self.lattice_size[0] // self.token_size[0],
             self.lattice_size[1] // self.token_size[1],
         )
+        batch_x = batch_x.reshape(
+            (
+                token_lattice_size[0] * token_lattice_size[1],
+                self.token_size[0] * self.token_size[1],
+            )
+        )
+
+        # print(f"Input shape to ViT2D_CNN_Worker: {batch_x.shape}")
 
         log_modulus = RealSpinViT(
             name="modulus",
@@ -63,6 +70,7 @@ class ViT2D_CNN_Worker(nn.Module):
             n_ffn_layers=self.n_ffn_layers_cnn,
             activation=self.activation,
         )(batch_x)
+        # jax.debug.print("CNN phase output shape: {}", phase)
 
         return log_modulus + 1j * phase
 

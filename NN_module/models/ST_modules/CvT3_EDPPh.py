@@ -98,15 +98,16 @@ class CvT3_EDPPh_Z2(nn.Module):
         output_x = jnp.atleast_1d(worker(x))
         output_inv_x = jnp.atleast_1d(worker(-x))
 
+        # Ahora sí podemos concatenar
         z2_stack = jnp.stack([output_x, output_inv_x], axis=0)
 
         if self.trivial_Z2:
-            res, sgn = jax.nn.logsumexp(z2_stack, axis=0, return_sign=True)
-            return res  # + 1j * jnp.angle(sgn)
+            res = jax.nn.logsumexp(z2_stack, axis=0)
+            return res
         else:
             b = jnp.array([1.0, -1.0])[:, None]
-            res, sgn = jax.nn.logsumexp(z2_stack, b=b, axis=0, return_sign=True)
-            return res  # + 1j * jnp.angle(sgn)
+            res = jax.nn.logsumexp(z2_stack, b=b, axis=0)
+            return res
 
 
 class CvT3_EDPPh(nn.Module):

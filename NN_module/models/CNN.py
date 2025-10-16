@@ -112,11 +112,6 @@ class CNN(nn.Module):
         # print(f"Shape after convolutional blocks: {x.shape}")
 
         x = MultiLayerPerceptron(layer_widths=(64, 32))(x)
-        # dim=x.shape[-1]
-        # for _ in range(self.n_ffn_layers):
-        #     norm=nn.LayerNorm(dtype=REAL_DTYPE)
-        #     x = norm(nn.Dense(dim, dtype=REAL_DTYPE)(x))
-
         x = nn.Dense(1, dtype=REAL_DTYPE)(x)  # Output layer
 
         return x.squeeze()

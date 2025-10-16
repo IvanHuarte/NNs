@@ -13,7 +13,6 @@ import ast
 import os
 
 # os.environ["XLA_PYTHON_CLIENT_PREALLOCATE"] = "false"
-
 jax.config.update("jax_enable_x64", True)
 jax.config.update("jax_platform_name", "gpu")
 jax.devices()
@@ -203,7 +202,7 @@ for i, size in enumerate(sizes):
                         "total_segments": total_segments,
                     },
                 )
-                ds_schedule = jnp.linspace(1e-2, 1e-4, total_segments)
+                ds_schedule = jnp.linspace(1e-1, 1e-4, total_segments)
 
                 transformations = {
                     "train": optax.sgd(0.1),

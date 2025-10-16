@@ -73,4 +73,6 @@ class EDPPh(nn.Module):
         x = jnp.exp(1j * x).sum(axis=-1)
         x = jnp.angle(x)
 
+        # jax.debug.print("EDPPh output shape: {}", x)
+
         return x

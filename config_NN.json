@@ -1,7 +1,7 @@
 {
     "model_NN": {
 
-        "selection": "ViT2D_CNN",
+        "selection": "CvT3_CvT3",
         
         "ViT": {
             "token_size": 2,
@@ -82,7 +82,7 @@
             "hidden_alpha": [2, 2, 2],
             "activation": ["selu", "selu", "selu"],
             "output_dim": 1,
-            "symm_2D_phase": false,
+            "symm_2D_phase": true,
             "symm_Z2_phase": false,
             "trivial_Z2_phase": true
         },
@@ -130,20 +130,20 @@
             "final_architecture_2": "(5,)"
         },
         "CvT3_CvT3": {
-            "n_CP_blocks_1": [2,2],
-            "CTemb_channels_1": [64,64],
-            "CP_channels_1": [64,64],
-            "attn_heads_1": [2, 2],
+            "n_CP_blocks_1": [2],
+            "CTemb_channels_1": [64],
+            "CP_channels_1": [64],
+            "attn_heads_1": [2],
             "kernel_1": [3, 3],
             "final_architecture_1": "(128,5,)",
 
-            "n_CP_blocks_2": [2, 2],
-            "CTemb_channels_2": [64, 64],
-            "CP_channels_2": [64, 64],
-            "attn_heads_2": [2, 2],
+            "n_CP_blocks_2": [2],
+            "CTemb_channels_2": [64],
+            "CP_channels_2": [64],
+            "attn_heads_2": [2],
             "kernel_2": [3, 3],
             "final_architecture_2": "(128,5,)",
-            "phasors": true,
+            "phasors": false,
 
             "symm_Z2": true,
             "trivial_Z2": true
@@ -165,15 +165,15 @@
 
         "CvT3_EDPPh": {
             "n_CP_blocks": [2],
-            "CTemb_channels": [32],
-            "CP_channels": [32],
+            "CTemb_channels": [64],
+            "CP_channels": [64],
             "attn_heads": [4],
             "kernel": [3, 3],
-            "final_architecture": "(64,5,)",
+            "final_architecture": "(128,5,)",
 
-            "edpph_channels": 64,
+            "edpph_channels": 128,
 
-            "symm_Z2": false,
+            "symm_Z2": true,
             "trivial_Z2": true
         }
     }

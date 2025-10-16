@@ -1,6 +1,6 @@
 {
 
-   "write_folder_sim":"/home/ihuarte/Escritorio/Ivan/NNs/Simulations/Oxalate/",    "sim <---> SSF":"Ruta donde se guardan los productos de simulaciones",
+   "write_folder_sim":"/home/ihuarte/Escritorio/Ivan/NNs/pruebas/",    "sim <---> SSF":"Ruta donde se guardan los productos de simulaciones",
     
 
     "exact_diagonalization": true,
@@ -47,16 +47,16 @@
     "ST_schedule":{
         "lr_name":"stairs_schedule",
         "setup":{
-            "segments":[[100,100],[500]],
-            "mode":[["P", "M","P", "M"],["P"]],
-            "repeat_segment":[5,1]
+            "segments":[[20,20],[100],[100]],
+            "mode":[["P", "M"], ["B"], ["P"]],
+            "repeat_segment":[5,1,1]
         },
 
         "lr_schedules":{
 
             "stairs_schedule":{
                 "lr0": 0.1,
-                "lr_min": 0.0001
+                "lr_min": 0.00001
             },
 
             "segment":{
