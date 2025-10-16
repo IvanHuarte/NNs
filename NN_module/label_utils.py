@@ -36,7 +36,7 @@ def get_write_folder_from_model(config):
         conditions = [model_setup["symm_Z2_1"], model_setup["symm_Z2_2"]]
         labels = ["_1Z2", "_2Z2"]
 
-    elif name in ["CvT3_CNNPh", "CvT3_EDPPh", "CvT3_CvT3"]:
+    elif name in ["CvT3_CNNPh", "CvT3_EDPPh", "CvT3_CvT3", "CvT3_CNNClsf"]:
         conditions = [model_setup["symm_Z2"]]
         labels = ["_Z2"]
 
@@ -155,7 +155,7 @@ def architecture_label(name, model_setup):
         architecture += setup
 
     elif name == "ViT2D_CNN":
-        architecture = f" 2D: {model_setup['symm_2D']} || 2D: {model_setup['symm_Z2']} || trivial: {model_setup['trivial_Z2']} \n"
+        architecture = f" 2D: {model_setup['symm_2D']} || Z2: {model_setup['symm_Z2']} || trivial: {model_setup['trivial_Z2']} \n"
         architecture += f"ViT 2D \n"
         architecture += f"|| b: {model_setup['token_size']}  D_emb: {model_setup['embedding_d']}  heads: {model_setup['n_heads']} ||\n"
         architecture += f"|| n_blocks: {model_setup['n_blocks']}   ffn_layers: {model_setup['n_ffn_layers']} ||\n"
@@ -203,6 +203,15 @@ def architecture_label(name, model_setup):
         architecture += f"EDPPh\n"
         architecture += f"||       channels:  {model_setup['edpph_channels']}        ||"
         architecture += f"||             Z2: {model_setup['symm_Z2']}  trivial: {model_setup['trivial_Z2']}              ||"
+    elif name == "CvT3_CNNClsf":
+        architecture = (
+            f" Z2: {model_setup['symm_Z2']} || trivial: {model_setup['trivial_Z2']} \n"
+        )
+        architecture = f"CvT3\n"
+        architecture += f"|| n_CTE_ch: {model_setup['CTemb_channels']}  n_CPB: {model_setup['n_CP_blocks']}  CP_ch: {model_setup['CP_channels']} ||\n"
+        architecture += f"|| heads: {model_setup['attn_heads']}  kernel: {model_setup['kernel']}  final_arch: {model_setup['final_architecture']} ||\n"
+        architecture += f"CNNClsf\n"
+        architecture += f"||       channels:  {model_setup['cnnclsf_channels']}    n_classes: {model_setup['n_classes']}      ||"
 
     return architecture
 
@@ -490,6 +499,32 @@ def get_filenames_from_settings(cm_name, nn_name, **kwargs):
 
         nnparams = f"_CvT3_blocks_{blocks_label}emb_ch_{emb_ch_label}cp_ch_{cp_ch_label}heads_{heads_label}kernel_{kernel_label}finarch_{arch_label}"
         nnparams += f"_EDPPh_ch_{edpph_channels}"
+
+    elif nn_name == "CvT3_CNNClsf":
+        n_CP_blocks = kwargs["n_CP_blocks"]
+        CTemb_channels = kwargs["CTemb_channels"]
+        CP_channels = kwargs["CP_channels"]
+        attn_heads = kwargs["attn_heads"]
+        kernel = kwargs["kernel"]
+        final_architecture = ast.literal_eval(kwargs["final_architecture"])
+        cnnclsf_channels = kwargs["cnnclsf_channels"]
+        n_classes = kwargs["n_classes"]
+
+        kernel_label = blocks_label = emb_ch_label = cp_ch_label = heads_label = (
+            arch_label
+        ) = clsf_ch_label = ""
+        for i in range(len(n_CP_blocks)):
+            blocks_label += f"{n_CP_blocks[i]}_"
+            emb_ch_label += f"{CTemb_channels[i]}_"
+            cp_ch_label += f"{CP_channels[i]}_"
+            heads_label += f"{attn_heads[i]}_"
+            clsf_ch_label += f"{cnnclsf_channels[i]}_"
+        for i in range(len(final_architecture)):
+            arch_label += f"{final_architecture[i]}_"
+        kernel_label += f"{kernel[0]}x{kernel[1]}_"
+
+        nnparams = f"_CvT3_blocks_{blocks_label}emb_ch_{emb_ch_label}cp_ch_{cp_ch_label}heads_{heads_label}kernel_{kernel_label}finarch_{arch_label}"
+        nnparams += f"_EDPPh_ch_{clsf_ch_label}n_classes_{n_classes}"
 
     sim_label = model_label + f"_simulation_{size[0]}x{size[1]}" + cparams + nnparams
     ED_label = model_label + f"_xED_{size[0]}x{size[1]}" + cparams

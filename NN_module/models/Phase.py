@@ -3,8 +3,10 @@ import jax
 import jax.typing as jt
 import jax.numpy as jnp
 import flax
+from netket.nn import log_cosh
 from typing import Tuple, Callable
 from NN_module.models.CvT3 import DepthPointwiseConv
+
 
 REAL_DTYPE = jnp.float64
 
@@ -76,3 +78,44 @@ class EDPPh(nn.Module):
         # jax.debug.print("EDPPh output shape: {}", x)
 
         return x
+
+
+class CNNClsf(nn.Module):
+
+    lattice_size: Tuple
+    channels: Tuple
+    n_classes: int = 2
+    activation: Callable = nn.swish
+
+    @nn.compact
+    def __call__(self, x):
+
+        kernel = (3, 3) if self.lattice_size[1] != 1 else (3, 1)
+        x = x.reshape(-1, *self.lattice_size, 1)
+
+        for C in self.channels:
+
+            x = nn.Conv(
+                features=C,
+                kernel_size=kernel,
+                strides=(1, 1),
+                padding="CIRCULAR",
+                # mask=mask,
+                dtype=REAL_DTYPE,
+                kernel_init=jax.nn.initializers.lecun_normal(),
+            )(x)
+            x = self.activation(nn.LayerNorm()(x))
+
+        x = x.reshape(-1, self.lattice_size[0] * self.lattice_size[1], x.shape[-1])
+        x = x.mean(axis=-1)
+
+        # # Clasificador 2 clases. Devuelve 0 o pi segun la probabilidad
+        # x = nn.Dense(self.n_classes)(x)
+        # x = nn.softmax(x)
+        # phase = jnp.where(x[:, 0] > x[:, 1], 0.0, jnp.pi)
+
+        # Clasificador binario. 1 salida pasada por sigmoid * pi
+        x = nn.Dense(1)(x)
+        phase = nn.sigmoid(x) * jnp.pi
+
+        return phase

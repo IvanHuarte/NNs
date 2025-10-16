@@ -4,10 +4,10 @@ import flax.linen as nn
 import jax
 import jax.numpy as jnp
 from ..CvT3 import CvT3
-from ..Phase import CNNPh
+from ..Phase import CNNClsf
 
 
-class CvT3_CNNPh_Worker(nn.Module):
+class CvT3_CNNClsf_Worker(nn.Module):
     """
     Flax module to train module and phase separately
     """
@@ -30,8 +30,9 @@ class CvT3_CNNPh_Worker(nn.Module):
     kernel: Tuple = (3, 3)  # Kernel size for the convolutional operations (must be 3x3)
     final_architecture: Tuple = (5,)
 
-    "Module settings CNNPhasor"
-    cnnph_channels: int = 64
+    "Module settings CNNClsf"
+    cnnclsf_channels: Tuple[int, ...] = (32,)
+    n_classes: int = 2
 
     @nn.compact
     def __call__(self, x: jnp.ndarray) -> jnp.ndarray:
@@ -47,14 +48,17 @@ class CvT3_CNNPh_Worker(nn.Module):
             final_architecture=self.final_architecture,
         )(x)
 
-        phase = CNNPh(
-            name="phase", lattice_size=self.lattice_size, channels=self.cnnph_channels
+        phase = CNNClsf(
+            name="phase",
+            lattice_size=self.lattice_size,
+            channels=self.cnnclsf_channels,
+            n_classes=self.n_classes,
         )(x)
 
         return log_modulus + 1j * phase
 
 
-class CvT3_CNNPh_Z2(nn.Module):
+class CvT3_CNNClsf_Z2(nn.Module):
 
     lattice_size: Tuple[int, int]
 
@@ -74,17 +78,17 @@ class CvT3_CNNPh_Z2(nn.Module):
     kernel: Tuple = (3, 3)  # Kernel size for the convolutional operations (must be 3x3)
     final_architecture: Tuple = (5,)
 
-    "Module settings CNNPhasor"
-    cnnph_channels: int = 64
+    "Module settings CNNClsf"
+    cnnclsf_channels: Tuple[int, ...] = (32,)
+    n_classes: int = 2
 
     "Symmetries"
-    symm_Z2: bool = False
     trivial_Z2: bool = False
 
     @nn.compact
     def __call__(self, x):
 
-        worker = CvT3_CNNPh_Worker(
+        worker = CvT3_CNNClsf_Worker(
             lattice_size=self.lattice_size,
             n_CP_blocks_list=self.n_CP_blocks_list,
             CTemb_channels_list=self.CTemb_channels_list,
@@ -92,13 +96,14 @@ class CvT3_CNNPh_Z2(nn.Module):
             attn_heads_list=self.attn_heads_list,
             kernel=self.kernel,
             final_architecture=self.final_architecture,
-            cnnph_channels=self.cnnph_channels,
+            cnnclsf_channels=self.cnnclsf_channels,
+            n_classes=self.n_classes,
         )
 
         output_x = jnp.atleast_1d(worker(x))
         output_inv_x = jnp.atleast_1d(worker(-x))
 
-        # Ahora sí podemos concatenar
+        # Concatenamos las dos contribuciones
         z2_stack = jnp.stack([output_x, output_inv_x], axis=0)
 
         if self.trivial_Z2:
@@ -110,7 +115,7 @@ class CvT3_CNNPh_Z2(nn.Module):
             return res
 
 
-class CvT3_CNNPh(nn.Module):
+class CvT3_CNNClsf(nn.Module):
     """
     Flax module to train module and phase separately
     """
@@ -133,8 +138,9 @@ class CvT3_CNNPh(nn.Module):
     kernel: Tuple = (3, 3)  # Kernel size for the convolutional operations (must be 3x3)
     final_architecture: Tuple = (5,)
 
-    "Module settings CNNPhasor"
-    cnnph_channels: int = 64
+    "Module settings CNNClsf"
+    cnnclsf_channels: Tuple[int, ...] = (32,)
+    n_classes: int = 2
 
     "Symmetries"
     symm_Z2: bool = True
@@ -144,7 +150,7 @@ class CvT3_CNNPh(nn.Module):
     def __call__(self, x: jnp.ndarray) -> jnp.ndarray:
 
         if self.symm_Z2:
-            worker = CvT3_CNNPh_Z2(
+            worker = CvT3_CNNClsf_Z2(
                 lattice_size=self.lattice_size,
                 n_CP_blocks_list=self.n_CP_blocks_list,
                 CTemb_channels_list=self.CTemb_channels_list,
@@ -152,11 +158,12 @@ class CvT3_CNNPh(nn.Module):
                 attn_heads_list=self.attn_heads_list,
                 kernel=self.kernel,
                 final_architecture=self.final_architecture,
-                cnnph_channels=self.cnnph_channels,
+                cnnclsf_channels=self.cnnclsf_channels,
+                n_classes=self.n_classes,
                 trivial_Z2=self.trivial_Z2,
             )
         else:
-            worker = CvT3_CNNPh_Worker(
+            worker = CvT3_CNNClsf_Worker(
                 lattice_size=self.lattice_size,
                 n_CP_blocks_list=self.n_CP_blocks_list,
                 CTemb_channels_list=self.CTemb_channels_list,
@@ -164,7 +171,8 @@ class CvT3_CNNPh(nn.Module):
                 attn_heads_list=self.attn_heads_list,
                 kernel=self.kernel,
                 final_architecture=self.final_architecture,
-                cnnph_channels=self.cnnph_channels,
+                cnnclsf_channels=self.cnnclsf_channels,
+                n_classes=self.n_classes,
             )
 
         x = worker(x)

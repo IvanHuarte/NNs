@@ -202,7 +202,7 @@ for i, size in enumerate(sizes):
                         "total_segments": total_segments,
                     },
                 )
-                ds_schedule = jnp.linspace(1e-1, 1e-4, total_segments)
+                ds_schedule = jnp.linspace(1e-2, 1e-4, total_segments)
 
                 transformations = {
                     "train": optax.sgd(0.1),
@@ -239,7 +239,7 @@ for i, size in enumerate(sizes):
                         elif mode == "P":
                             mode = "phase"
                             mask = "modulus"
-                            transformations["train"] = optax.sgd(learning_rate=lr)
+                            transformations["train"] = optax.sgd(learning_rate=lr * 5)
 
                         elif mode == "B":
                             mode = "both"

@@ -29,6 +29,7 @@ from NN_module.models.split_training import (
 )
 from NN_module.models.ST_modules.CvT3_CNNPh import CvT3_CNNPh
 from NN_module.models.ST_modules.CvT3_EDPPh import CvT3_EDPPh
+from NN_module.models.ST_modules.CvT3_CNNClsf import CvT3_CNNClsf
 from NN_module.models.ST_modules.CvT3_CvT3 import CvT3_CvT3
 from NN_module.models.ST_modules.ViT2D_CNN import ViT2D_CNN
 from NN_module.NN_utils import activation_dict, sampler_dict, rule_dict
@@ -845,6 +846,20 @@ def init_model(name, model_setup):
             kernel=tuple(model_setup["kernel"]),
             final_architecture=ast.literal_eval(model_setup["final_architecture"]),
             edpph_channels=model_setup["edpph_channels"],
+            symm_Z2=model_setup["symm_Z2"],
+            trivial_Z2=model_setup["trivial_Z2"],
+        )
+    elif name == "CvT3_CNNClsf":
+        return CvT3_CNNClsf(
+            lattice_size=tuple(model_setup["lattice_size"]),
+            n_CP_blocks_list=tuple(model_setup["n_CP_blocks"]),
+            CTemb_channels_list=tuple(model_setup["CTemb_channels"]),
+            CP_channels_list=tuple(model_setup["CP_channels"]),
+            attn_heads_list=tuple(model_setup["attn_heads"]),
+            kernel=tuple(model_setup["kernel"]),
+            final_architecture=ast.literal_eval(model_setup["final_architecture"]),
+            cnnclsf_channels=tuple(model_setup["cnnclsf_channels"]),
+            n_classes=model_setup["n_classes"],
             symm_Z2=model_setup["symm_Z2"],
             trivial_Z2=model_setup["trivial_Z2"],
         )

@@ -8,7 +8,7 @@
 
 
     "CM": {
-            "selection": "Chain_YYZZ",
+            "selection": "J1J2Square",
 
             "Oxalate":{
                 "strength": 0.2,
@@ -52,7 +52,7 @@
                     1.0, 1.0, 1.0
                 ],
                 "J2_list": [
-                    0.45, 0.51, 0.6
+                     0.51, 0.45, 0.6
             ],
                 "fields_list": [[0.0,0.0,0.0]]
             }
