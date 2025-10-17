@@ -176,5 +176,5 @@ class CvT3_CNNClsf(nn.Module):
             )
 
         x = worker(x)
-        # jax.debug.print("x_out: {}", x)
+        
         return x

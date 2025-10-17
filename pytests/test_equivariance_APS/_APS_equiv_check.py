@@ -1,6 +1,6 @@
 import jax
 import jax.numpy as jnp
-from NN_module.models.CvT_APS import get_maxnorm_indices
+from NN_module.models.CvTaps import get_maxnorm_indices
 
 def APS_equiv_check(x0, params, model, atol=1e-5, v=0):
 

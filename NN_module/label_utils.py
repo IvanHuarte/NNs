@@ -135,10 +135,16 @@ def architecture_label(name, model_setup):
         architecture += f"|| final_arch: {model_setup['final_architecture']}  symm_Z2: {model_setup['symm_Z2']}  trivial: {model_setup['trivial_Z2']} ||\n"
 
     elif name == "CvT3":
-        architecture = f"|| n_CTE_ch: {model_setup['CTemb_channels']}  n_CPB: {model_setup['n_CP_blocks']}  CP_ch: {model_setup['CP_channels']} ||\n"
+        architecture = f"|| symm_Z2: {model_setup['symm_Z2']}   trivial: {model_setup['trivial_Z2']} ||"
+        architecture += f"|| n_CTE_ch: {model_setup['CTemb_channels']}  n_CPB: {model_setup['n_CP_blocks']}  CP_ch: {model_setup['CP_channels']} ||\n"
         architecture += f"|| heads: {model_setup['attn_heads']}  kernel: {model_setup['kernel']}  final_arch: {model_setup['final_architecture']} ||\n"
-        architecture += f"|| 2heads: {model_setup['two_heads']}  2heads_SC: {model_setup['two_heads_sincos']}  symm_Z2: {model_setup['symm_Z2']} ||\n"
-        architecture += f"||     trivial: {model_setup['trivial_Z2']}  phasors: :{model_setup['phasors']}    ||\n"
+        architecture += f"|| 2heads: {model_setup['two_heads']}  2heads_SC: {model_setup['two_heads_sincos']}  phasors: :{model_setup['phasors']} ||\n"
+
+    elif name == "CvTaps":
+        architecture = f"||        symm_Z2: {model_setup['symm_Z2']}   trivial: {model_setup['trivial_Z2']}             ||"
+        architecture += f"|| blocks: {model_setup['n_CP_blocks']}  CP_ch: {model_setup['channels']}  strides: {model_setup['strides']} ||\n"
+        architecture += f"|| heads: {model_setup['attn_heads']}  kernel: {model_setup['kernel']}  final_arch: {model_setup['final_architecture']} ||\n"
+        architecture += f"|| 2heads: {model_setup['two_heads']}  2heads_SC: {model_setup['two_heads_sincos']}  phasors: :{model_setup['phasors']} ||\n"
 
     elif name == "SplitTraining_ViT_MLP":
         architecture = f"ViT \n"
@@ -344,6 +350,27 @@ def get_filenames_from_settings(cm_name, nn_name, **kwargs):
             strides_label += f"{strides[i][0]}x{strides[i][1]}_"
         kernel_label += f"{kernel[0]}x{kernel[1]}_"
         nnparams = f"_blocks_{blocks_label}emb_ch_{emb_ch_label}cp_ch_{cp_ch_label}heads_{heads_label}strides_{strides_label}kernel_{kernel_label}finarch_{arch_label}"
+
+    elif nn_name == "CvTaps":
+        n_CP_blocks = kwargs["n_CP_blocks"]
+        channels = kwargs["channels"]
+        attn_heads = kwargs["attn_heads"]
+        strides = kwargs["strides"]
+        kernel = kwargs["kernel"]
+        final_architecture = ast.literal_eval(kwargs["final_architecture"])
+        kernel_label = blocks_label = ch_label = str_label = heads_label = (
+            arch_label
+        ) = ""
+        for i in range(len(n_CP_blocks)):
+            blocks_label += f"{n_CP_blocks[i]}_"
+            ch_label += f"{channels[i]}_"
+            heads_label += f"{attn_heads[i]}_"
+        for i in range(len(final_architecture)):
+            arch_label += f"{final_architecture[i]}_"
+        for stride in len(strides):
+            str_label += f"{stride[0]}x{stride[1]}_"
+        kernel_label += f"{kernel[0]}x{kernel[1]}_"
+        nnparams = f"_blocks_{blocks_label}channels_{emb_ch_label}strides_{str_label}heads_{heads_label}kernel_{kernel_label}finarch_{arch_label}"
 
     elif nn_name == "SplitTraining_ViT_MLP":
         token_size = kwargs["token_size"]

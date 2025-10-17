@@ -5,7 +5,7 @@ import sys
 import os
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../")))
-from NN_module.models.CvT_APS import Conv_APS
+from NN_module.models.CvTaps import ConvAPS
 from pytests.test_equivariance_APS._APS_equiv_check import APS_equiv_check
 
 equivariance_test = APS_equiv_check
@@ -23,7 +23,7 @@ verbosity = 1
 
 
 def test_Conv_APS():
-    model = Conv_APS(
+    model = ConvAPS(
         channels=C_out,
         strides=strides,
         padding="CIRCULAR",

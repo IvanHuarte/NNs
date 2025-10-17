@@ -6,11 +6,11 @@ import sys
 import os
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../")))
-from NN_module.models.CvT_APS import Conv_APS
+from NN_module.models.CvTaps import ConvAPS
 from pytests.test_equivariance_APS._APS_equiv_check import APS_equiv_check
 
 
-from NN_module.models.CvT_APS import Conv_APS, APS_equivariance_adapter  # ajusta import
+from NN_module.models.CvTaps import Conv_APS, APS_equivariance_adapter  # ajusta import
 
 
 def polyphase_argmax(x, stride):

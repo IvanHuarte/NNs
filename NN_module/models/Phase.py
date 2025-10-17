@@ -118,4 +118,4 @@ class CNNClsf(nn.Module):
         x = nn.Dense(1)(x)
         phase = nn.sigmoid(x) * jnp.pi
 
-        return phase
+        return phase.squeeze(-1)

@@ -22,6 +22,7 @@ from NN_module.models.CNN import CNN
 from NN_module.models.CvT import CvT
 from NN_module.models.CvT2 import CvT2
 from NN_module.models.CvT3 import CvT3
+from NN_module.models.CvTaps import CvTaps
 from NN_module.models.split_training import (
     SplitTraining_ViT_MLP,
     SplitTraining_ViT_CNN,
@@ -728,6 +729,22 @@ def init_model(name, model_setup):
             trivial_Z2=model_setup["trivial_Z2"],
             phasors=model_setup["phasors"],
         )
+    
+    elif name == "CvTaps":
+        return CvTaps(
+            lattice_size=tuple(model_setup["lattice_size"]),
+            n_CP_blocks_list=tuple(model_setup["n_CP_blocks"]),
+            channels_list=tuple(model_setup["channels"]),
+            attn_heads_list=tuple(model_setup["attn_heads"]),
+            strides=tuple([tuple(st) for st in model_setup["strides"]]),
+            kernel=tuple(model_setup["kernel"]),
+            final_architecture=ast.literal_eval(model_setup["final_architecture"]),
+            two_heads=model_setup["two_heads"],
+            two_heads_sincos=model_setup["two_heads_sincos"],
+            symm_Z2=model_setup["symm_Z2"],
+            trivial_Z2=model_setup["trivial_Z2"],
+            phasors=model_setup["phasors"],
+        )
 
     elif name == "SplitTraining_ViT_MLP":
 
@@ -785,22 +802,6 @@ def init_model(name, model_setup):
             block_channels_cnn=tuple(model_setup["block_channels_cnn"]),
             kernel_size_cnn=tuple(model_setup["kernel_size_cnn"]),
             n_ffn_layers_cnn=model_setup["n_ffn_layers_cnn"],
-        )
-    elif name == "SplitTraining_CvT_CvT":
-        return SplitTraining_CvT_CvT(
-            lattice_size=tuple(model_setup["lattice_size"]),
-            n_CP_blocks_list_1=tuple(model_setup["n_CP_blocks_1"]),
-            CTemb_channels_list_1=tuple(model_setup["CTemb_channels_1"]),
-            CP_channels_list_1=tuple(model_setup["CP_channels_1"]),
-            attn_heads_list_1=tuple(model_setup["attn_heads_1"]),
-            kernel_1=tuple(model_setup["kernel_1"]),
-            final_architecture_1=ast.literal_eval(model_setup["final_architecture_1"]),
-            n_CP_blocks_list_2=tuple(model_setup["n_CP_blocks_2"]),
-            CTemb_channels_list_2=tuple(model_setup["CTemb_channels_2"]),
-            CP_channels_list_2=tuple(model_setup["CP_channels_2"]),
-            attn_heads_list_2=tuple(model_setup["attn_heads_2"]),
-            kernel_2=tuple(model_setup["kernel_2"]),
-            final_architecture_2=ast.literal_eval(model_setup["final_architecture_2"]),
         )
 
     elif name == "CvT3_CvT3":
