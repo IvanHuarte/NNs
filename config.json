@@ -1,6 +1,6 @@
 {
 
-   "write_folder_sim":"/home/ihuarte/Escritorio/Ivan/NNs/pruebas_clasificador/CvT3_1S64_CLSF_64_lr0.01/",    "sim <---> SSF":"Ruta donde se guardan los productos de simulaciones",
+   "write_folder_sim":"/home/ihuarte/Escritorio/Ivan/NNs/pruebas/",    "sim <---> SSF":"Ruta donde se guardan los productos de simulaciones",
     
 
     "exact_diagonalization": true,
@@ -22,16 +22,16 @@
         "lr_name": "warmup_exponential_decay",
 
         "setup":{
-            "total_epochs": 300
+            "total_epochs": 500
 
         },
 
         "lr_schedules":{
             "warmup_exponential_decay":{
-                "lr0": 0.5,                 
-                "peak_value": 1.0,
+                "lr0": 0.001,                 
+                "peak_value": 0.05,
                 "warmup_steps": 50,
-                "decay_rate": 0.992
+                "decay_rate": 0.991
             },
 
             "exp_cos_schedule":{
@@ -47,9 +47,9 @@
     "ST_schedule":{
         "lr_name":"stairs_schedule",
         "setup":{
-            "segments":[[25,25,25]],
-            "mode":[["P", "M","B"]],
-            "repeat_segment":[15]
+            "segments":[[50,50]],
+            "mode":[["P","M"]],
+            "repeat_segment":[6]
         },
 
         "lr_schedules":{

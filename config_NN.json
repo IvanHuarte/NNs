@@ -1,7 +1,7 @@
 {
     "model_NN": {
 
-        "selection": "CvT3_CNNClsf",
+        "selection": "CvTaps_CvTaps",
         
         "ViT": {
             "token_size": 2,
@@ -75,8 +75,8 @@
             "kernel": [3, 3],
             "final_architecture": "(128,5,)",
             "two_heads": false,
-            "two_heads_sincos": false,
-            "phasors": true,
+            "two_heads_sincos": true,
+            "phasors": false,
             
             "symm_Z2": true,
             "trivial_Z2": true
@@ -160,6 +160,26 @@
             "final_architecture_2": "(64,5,)",
             "phasors": false,
 
+            "symm_Z2": true,
+            "trivial_Z2": true
+        },
+
+        "CvTaps_CvTaps": {
+            "n_CP_blocks_1": [2],
+            "channels_1": [32],
+            "attn_heads_1": [4],
+            "strides_1": [[2,2]],
+            "kernel_1": [3, 3],
+            "final_architecture_1": "(128,5,)",
+
+            "n_CP_blocks_2": [2],
+            "channels_2": [32],
+            "attn_heads_2": [4],
+            "strides_2": [[2,2]],
+            "kernel_2": [3, 3],
+            "final_architecture_2": "(128,5,)",
+            "phasors": true,
+            
             "symm_Z2": true,
             "trivial_Z2": true
         },

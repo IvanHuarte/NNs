@@ -181,7 +181,7 @@ class two_heads_phasors(nn.Module):
 class ConvAPS(nn.Module):
 
     features: int
-    kernel: Tuple = (3, 3)
+    kernel_size: Tuple = (3, 3)
     strides: Tuple = (1, 1)
     mask: jt.ArrayLike | None = None
     feature_group_count: int = 1
@@ -197,7 +197,7 @@ class ConvAPS(nn.Module):
 
         x = nn.Conv(
             features=self.features,
-            kernel_size=self.kernel,
+            kernel_size=self.kernel_size,
             strides=self.strides,
             mask=self.mask,
             feature_group_count=self.feature_group_count,
@@ -497,7 +497,7 @@ class CvTaps_Z2(nn.Module):
             n_CP_blocks_list=self.n_CP_blocks_list,
             channels_list=self.channels_list,
             attn_heads_list=self.attn_heads_list,
-            strides=self.strides_list,
+            strides_list=self.strides_list,
             kernel=self.kernel,
             final_architecture=self.final_architecture,
             two_heads=self.two_heads,
@@ -557,7 +557,7 @@ class CvTaps(nn.Module):
                 n_CP_blocks_list=self.n_CP_blocks_list,
                 channels_list=self.channels_list,
                 attn_heads_list=self.attn_heads_list,
-                strides=self.strides_list,
+                strides_list=self.strides_list,
                 kernel=self.kernel,
                 final_architecture=self.final_architecture,
                 two_heads=self.two_heads,
@@ -571,7 +571,7 @@ class CvTaps(nn.Module):
                 n_CP_blocks_list=self.n_CP_blocks_list,
                 channels_list=self.channels_list,
                 attn_heads_list=self.attn_heads_list,
-                strides=self.strides_list,
+                strides_list=self.strides_list,
                 kernel=self.kernel,
                 final_architecture=self.final_architecture,
                 two_heads=self.two_heads,

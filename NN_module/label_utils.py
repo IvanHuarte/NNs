@@ -28,15 +28,10 @@ def get_write_folder_from_model(config):
         conditions = [model_setup["symm_2D"], model_setup["symm_Z2"]]
         labels = ["_2D", "_Z2"]
 
-    elif name in ["ViT", "CvT", "CvT2", "CvT3"]:
-        conditions = [model_setup["symm_Z2"]]
-        labels = ["_Z2"]
-
-    elif name in ["SplitTraining_CvT3_CvT3"]:
-        conditions = [model_setup["symm_Z2_1"], model_setup["symm_Z2_2"]]
-        labels = ["_1Z2", "_2Z2"]
-
-    elif name in ["CvT3_CNNPh", "CvT3_EDPPh", "CvT3_CvT3", "CvT3_CNNClsf"]:
+    elif name in [
+            "ViT", "CvT", "CvT2", "CvT3", "CvT3_CNNPh", 
+            "CvT3_EDPPh", "CvT3_CvT3", "CvT3_CNNClsf"
+        ]:
         conditions = [model_setup["symm_Z2"]]
         labels = ["_Z2"]
 
@@ -142,7 +137,7 @@ def architecture_label(name, model_setup):
 
     elif name == "CvTaps":
         architecture = f"||        symm_Z2: {model_setup['symm_Z2']}   trivial: {model_setup['trivial_Z2']}             ||"
-        architecture += f"|| blocks: {model_setup['n_CP_blocks']}  CP_ch: {model_setup['channels']}  strides: {model_setup['strides']} ||\n"
+        architecture += f"|| blocks: {model_setup['n_CP_blocks']}  channels: {model_setup['channels']}  strides: {model_setup['strides']} ||\n"
         architecture += f"|| heads: {model_setup['attn_heads']}  kernel: {model_setup['kernel']}  final_arch: {model_setup['final_architecture']} ||\n"
         architecture += f"|| 2heads: {model_setup['two_heads']}  2heads_SC: {model_setup['two_heads_sincos']}  phasors: :{model_setup['phasors']} ||\n"
 
@@ -193,6 +188,16 @@ def architecture_label(name, model_setup):
         architecture += f"|| heads: {model_setup['attn_heads_2']}  kernel: {model_setup['kernel_2']}   final_arch: {model_setup['final_architecture_2']} ||\n"
         architecture += f"|| phasors:{model_setup['phasors']}  ||"
         architecture += f"            Z2: {model_setup['symm_Z2']} trivial: {model_setup['trivial_Z2']}         \n"
+    
+    elif name == "CvTaps_CvTaps":
+        architecture = f"||        symm_Z2: {model_setup['symm_Z2']}   trivial: {model_setup['trivial_Z2']}             ||"
+        architecture += f"CvTaps 1\n"
+        architecture += f"|| blocks: {model_setup['n_CP_blocks_1']}  channels: {model_setup['channels_1']}  strides: {model_setup['strides_1']} ||\n"
+        architecture += f"|| heads: {model_setup['attn_heads_1']}  kernel: {model_setup['kernel_1']}  final_arch: {model_setup['final_architecture_1']} ||\n"
+        architecture += f"CvTaps 2\n"
+        architecture += f"|| blocks: {model_setup['n_CP_blocks_2']}  channels: {model_setup['channels_2']}  strides: {model_setup['strides_2']} ||\n"
+        architecture += f"|| heads: {model_setup['attn_heads_2']}  kernel: {model_setup['kernel_2']}  final_arch: {model_setup['final_architecture_2']} ||\n"
+        architecture += f"||                        phasors: :{model_setup['phasors']}                        ||\n"
 
     elif name == "CvT3_CNNPh":
         architecture = f"CvT3\n"
@@ -367,10 +372,10 @@ def get_filenames_from_settings(cm_name, nn_name, **kwargs):
             heads_label += f"{attn_heads[i]}_"
         for i in range(len(final_architecture)):
             arch_label += f"{final_architecture[i]}_"
-        for stride in len(strides):
+        for stride in strides:
             str_label += f"{stride[0]}x{stride[1]}_"
         kernel_label += f"{kernel[0]}x{kernel[1]}_"
-        nnparams = f"_blocks_{blocks_label}channels_{emb_ch_label}strides_{str_label}heads_{heads_label}kernel_{kernel_label}finarch_{arch_label}"
+        nnparams = f"_blocks_{blocks_label}channels_{ch_label}strides_{str_label}heads_{heads_label}kernel_{kernel_label}finarch_{arch_label}"
 
     elif nn_name == "SplitTraining_ViT_MLP":
         token_size = kwargs["token_size"]
@@ -478,6 +483,53 @@ def get_filenames_from_settings(cm_name, nn_name, **kwargs):
 
         nnparams = f"CvT1_blocks_{blocks_label_1}emb_ch_{emb_ch_label_1}cp_ch_{cp_ch_label_1}heads_{heads_label_1}kernel_{kernel_label_1}finarch_{arch_label_1}"
         nnparams += f"_CvT2_blocks_{blocks_label_2}emb_ch_{emb_ch_label_2}cp_ch_{cp_ch_label_2}heads_{heads_label_2}kernel_{kernel_label_2}finarch_{arch_label_2}"
+    
+    elif nn_name == "CvTaps_CvTaps":
+        # CvTaps 1 params
+        n_CP_blocks_1 = kwargs["n_CP_blocks_1"]
+        channels_1 = kwargs["channels_1"]
+        attn_heads_1 = kwargs["attn_heads_1"]
+        strides_1 = kwargs["strides_1"]
+        kernel_1 = kwargs["kernel_1"]
+        final_architecture_1 = ast.literal_eval(kwargs["final_architecture_1"])
+
+        blocks_label_1 = ch_label_1 = str_label_1 = kernel_label_1 =(
+            heads_label_1
+        ) = arch_label_1 = ""
+        for i in range(len(n_CP_blocks_1)):
+            blocks_label_1 += f"{n_CP_blocks_1[i]}_"
+            ch_label_1 += f"{channels_1[i]}_"
+            heads_label_1 += f"{attn_heads_1[i]}_"
+        for i in range(len(strides_1)):
+            str_label_1 += f"{strides_1[i][0]}x{strides_1[i][1]}_"
+        for i in range(len(final_architecture_1)):
+            arch_label_1 += f"{final_architecture_1[i]}_"
+        kernel_label_1 += f"{kernel_1[0]}x{kernel_1[0]}_"
+
+        # CvTaps 2 params
+        n_CP_blocks_2 = kwargs["n_CP_blocks_2"]
+        channels_2 = kwargs["channels_2"]
+        attn_heads_2 = kwargs["attn_heads_2"]
+        strides_2 = kwargs["strides_2"]
+        kernel_2 = kwargs["kernel_2"]
+        final_architecture_2 = ast.literal_eval(kwargs["final_architecture_2"])
+
+        blocks_label_2 = ch_label_2 = str_label_2 = kernel_label_2 = (
+            heads_label_2
+        ) = arch_label_2 = ""
+        for i in range(len(n_CP_blocks_2)):
+            blocks_label_2 += f"{n_CP_blocks_2[i]}_"
+            ch_label_2 += f"{channels_2[i]}_"
+            heads_label_2 += f"{attn_heads_2[i]}_"
+        for i in range(len(strides_2)):
+            str_label_2 += f"{strides_2[i][0]}x{strides_2[i][1]}_"
+        for i in range(len(final_architecture_2)):
+            arch_label_2 += f"{final_architecture_2[i]}_"
+        kernel_label_2 += f"{kernel_2[0]}x{kernel_2[0]}_"
+
+        nnparams = f"CvTaps1_blocks_{blocks_label_1}channels_{ch_label_1}heads_{heads_label_1}kernel_{kernel_label_1}finarch_{arch_label_1}"
+        nnparams += f"_CvTaps2_blocks_{blocks_label_2}channels_{ch_label_2}heads_{heads_label_2}kernel_{kernel_label_2}finarch_{arch_label_2}"
+
 
     elif nn_name in ["CvT3_CNNPh", "SplitTraining_CvT3_CNNPhasor"]:
         n_CP_blocks = kwargs["n_CP_blocks"]
