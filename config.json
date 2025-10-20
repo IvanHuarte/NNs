@@ -13,7 +13,7 @@
         "n_chains_per_rank": 16,
         "n_samples_per_chain": 64,
         "chunk_sampler": null,
-        "chunk_vstate": 512
+        "chunk_vstate": null
     },
 
     "split_training": true,
@@ -49,7 +49,7 @@
         "setup":{
             "segments":[[50,50]],
             "mode":[["P","M"]],
-            "repeat_segment":[20]
+            "repeat_segment":[10]
         },
 
         "lr_schedules":{

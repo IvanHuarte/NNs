@@ -1,7 +1,7 @@
 {
     "model_NN": {
 
-        "selection": "CvTaps_CvTaps",
+        "selection": "CvT3_CNNClsf",
         
         "ViT": {
             "token_size": 2,
@@ -214,8 +214,8 @@
 
         "CvT3_CNNClsf": {
             "n_CP_blocks": [2],
-            "CTemb_channels": [64],
-            "CP_channels": [64],
+            "CTemb_channels": [32],
+            "CP_channels": [32],
             "attn_heads": [4],
             "kernel": [3, 3],
             "final_architecture": "(128,5,)",
