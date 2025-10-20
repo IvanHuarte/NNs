@@ -1,7 +1,7 @@
 {
     "model_NN": {
 
-        "selection": "CvT3_CNNClsf",
+        "selection": "ViT2D_CNNClsf",
         
         "ViT": {
             "token_size": 2,
@@ -225,6 +225,24 @@
 
             "symm_Z2": true,
             "trivial_Z2": true
+        },
+
+        "ViT2D_CNNClsf": {
+            "token_size": [2, 1],
+            "embedding_d": 32,
+            "n_heads": 4,
+            "n_blocks": 2,
+            "n_ffn_layers": 2,
+            "is_complex": false,
+            "final_architecture": "(5,)",
+
+            "cnnclsf_channels": [64],
+            "n_classes": 2,
+
+            "symm_2D": true,
+            "symm_Z2": true,
+            "trivial_Z2": true
         }
+
     }
 }

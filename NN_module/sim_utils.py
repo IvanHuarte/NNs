@@ -34,6 +34,8 @@ from NN_module.models.ST_modules.CvT3_CNNClsf import CvT3_CNNClsf
 from NN_module.models.ST_modules.CvT3_CvT3 import CvT3_CvT3
 from NN_module.models.ST_modules.CvTaps_CvTaps import CvTaps_CvTaps
 from NN_module.models.ST_modules.ViT2D_CNN import ViT2D_CNN
+from NN_module.models.ST_modules.ViT2D_CNNClsf import ViT2D_CNNClsf
+
 from NN_module.NN_utils import activation_dict, sampler_dict, rule_dict
 
 
@@ -650,7 +652,7 @@ def init_model(name, model_setup):
             output_dim=1,
             symm_2D=model_setup["symm_2D"],
             symm_Z2=model_setup["symm_Z2"],
-            trivial_Z2=model_setup["trivial_Z2"]
+            trivial_Z2=model_setup["trivial_Z2"],
         )
 
     elif name == "ViT":
@@ -663,7 +665,7 @@ def init_model(name, model_setup):
             final_architecture=ast.literal_eval(model_setup["final_architecture"]),
             is_complex=model_setup["is_complex"],
             symm_Z2=model_setup["symm_Z2"],
-            trivial_Z2=model_setup["trivial_Z2"]
+            trivial_Z2=model_setup["trivial_Z2"],
         )
 
     elif name == "ViT_2D":
@@ -678,14 +680,14 @@ def init_model(name, model_setup):
             is_complex=model_setup["is_complex"],
             symm_2D=model_setup["symm_2D"],
             symm_Z2=model_setup["symm_Z2"],
-            trivial_Z2=model_setup["trivial_Z2"]
+            trivial_Z2=model_setup["trivial_Z2"],
         )
     elif name == "CNN":
         return CNN(
             lattice_size=tuple(model_setup["lattice_size"]),
             block_channels=tuple(model_setup["block_channels"]),
             kernel_size=tuple(model_setup["kernel_size"]),
-            n_ffn_layers_cnn=model_setup["n_ffn_layers_cnn"]
+            n_ffn_layers_cnn=model_setup["n_ffn_layers_cnn"],
         )
     elif name == "CvT":
         return CvT(
@@ -698,7 +700,7 @@ def init_model(name, model_setup):
             final_architecture=ast.literal_eval(model_setup["final_architecture"]),
             two_heads=model_setup["two_heads"],
             symm_Z2=model_setup["symm_Z2"],
-            trivial_Z2=model_setup["trivial_Z2"]
+            trivial_Z2=model_setup["trivial_Z2"],
         )
     elif name == "CvT2":
         return CvT2(
@@ -712,7 +714,7 @@ def init_model(name, model_setup):
             final_architecture=ast.literal_eval(model_setup["final_architecture"]),
             two_heads=model_setup["two_heads"],
             symm_Z2=model_setup["symm_Z2"],
-            trivial_Z2=model_setup["trivial_Z2"]
+            trivial_Z2=model_setup["trivial_Z2"],
         )
 
     elif name == "CvT3":
@@ -728,9 +730,9 @@ def init_model(name, model_setup):
             two_heads_sincos=model_setup["two_heads_sincos"],
             symm_Z2=model_setup["symm_Z2"],
             trivial_Z2=model_setup["trivial_Z2"],
-            phasors=model_setup["phasors"]
+            phasors=model_setup["phasors"],
         )
-    
+
     elif name == "CvTaps":
         return CvTaps(
             lattice_size=tuple(model_setup["lattice_size"]),
@@ -744,7 +746,7 @@ def init_model(name, model_setup):
             two_heads_sincos=model_setup["two_heads_sincos"],
             symm_Z2=model_setup["symm_Z2"],
             trivial_Z2=model_setup["trivial_Z2"],
-            phasors=model_setup["phasors"]
+            phasors=model_setup["phasors"],
         )
 
     elif name == "SplitTraining_ViT_MLP":
@@ -772,7 +774,7 @@ def init_model(name, model_setup):
             output_dim=model_setup["output_dim"],
             symm_2D_phase=model_setup["symm_2D_phase"],
             symm_Z2_phase=model_setup["symm_Z2_phase"],
-            trivial_Z2_phase=model_setup["trivial_Z2_phase"]
+            trivial_Z2_phase=model_setup["trivial_Z2_phase"],
         )
     elif name == "ViT2D_CNN":
         return ViT2D_CNN(
@@ -789,7 +791,7 @@ def init_model(name, model_setup):
             n_ffn_layers_cnn=model_setup["n_ffn_layers_cnn"],
             symm_2D=model_setup["symm_2D"],
             symm_Z2=model_setup["symm_Z2"],
-            trivial_Z2=model_setup["trivial_Z2"]
+            trivial_Z2=model_setup["trivial_Z2"],
         )
     elif name == "SplitTraining_CvT_CNN":
         return SplitTraining_CvT_CNN(
@@ -802,7 +804,7 @@ def init_model(name, model_setup):
             final_architecture=ast.literal_eval(model_setup["final_architecture"]),
             block_channels_cnn=tuple(model_setup["block_channels_cnn"]),
             kernel_size_cnn=tuple(model_setup["kernel_size_cnn"]),
-            n_ffn_layers_cnn=model_setup["n_ffn_layers_cnn"]
+            n_ffn_layers_cnn=model_setup["n_ffn_layers_cnn"],
         )
 
     elif name == "CvT3_CvT3":
@@ -822,7 +824,7 @@ def init_model(name, model_setup):
             final_architecture_2=ast.literal_eval(model_setup["final_architecture_2"]),
             phasors=model_setup["phasors"],
             symm_Z2=model_setup["symm_Z2"],
-            trivial_Z2=model_setup["trivial_Z2"]
+            trivial_Z2=model_setup["trivial_Z2"],
         )
 
     elif name == "CvT3_CNNPh":
@@ -836,7 +838,7 @@ def init_model(name, model_setup):
             final_architecture=ast.literal_eval(model_setup["final_architecture"]),
             cnnph_channels=model_setup["cnnph_channels"],
             symm_Z2=model_setup["symm_Z2"],
-            trivial_Z2=model_setup["trivial_Z2"]
+            trivial_Z2=model_setup["trivial_Z2"],
         )
     elif name == "CvT3_EDPPh":
         return CvT3_EDPPh(
@@ -849,7 +851,7 @@ def init_model(name, model_setup):
             final_architecture=ast.literal_eval(model_setup["final_architecture"]),
             edpph_channels=model_setup["edpph_channels"],
             symm_Z2=model_setup["symm_Z2"],
-            trivial_Z2=model_setup["trivial_Z2"]
+            trivial_Z2=model_setup["trivial_Z2"],
         )
     elif name == "CvT3_CNNClsf":
         return CvT3_CNNClsf(
@@ -863,9 +865,9 @@ def init_model(name, model_setup):
             cnnclsf_channels=tuple(model_setup["cnnclsf_channels"]),
             n_classes=model_setup["n_classes"],
             symm_Z2=model_setup["symm_Z2"],
-            trivial_Z2=model_setup["trivial_Z2"]
+            trivial_Z2=model_setup["trivial_Z2"],
         )
-    
+
     elif name == "CvTaps_CvTaps":
         return CvTaps_CvTaps(
             lattice_size=tuple(model_setup["lattice_size"]),
@@ -875,7 +877,6 @@ def init_model(name, model_setup):
             strides_list_1=tuple([tuple(st) for st in model_setup["strides_1"]]),
             kernel_1=tuple(model_setup["kernel_1"]),
             final_architecture_1=ast.literal_eval(model_setup["final_architecture_1"]),
-
             n_CP_blocks_list_2=tuple(model_setup["n_CP_blocks_2"]),
             channels_list_2=tuple(model_setup["channels_2"]),
             attn_heads_list_2=tuple(model_setup["attn_heads_2"]),
@@ -883,9 +884,23 @@ def init_model(name, model_setup):
             kernel_2=tuple(model_setup["kernel_2"]),
             final_architecture_2=ast.literal_eval(model_setup["final_architecture_2"]),
             phasors=model_setup["phasors"],
-
             symm_Z2=model_setup["symm_Z2"],
-            trivial_Z2=model_setup["trivial_Z2"]
+            trivial_Z2=model_setup["trivial_Z2"],
+        )
+    elif name == "ViT2D_CNNClsf":
+        return ViT2D_CNNClsf(
+            lattice_size=tuple(model_setup["lattice_size"]),
+            token_size=tuple(model_setup["token_size"]),
+            embedding_d=model_setup["embedding_d"],
+            n_heads=model_setup["n_heads"],
+            n_blocks=model_setup["n_blocks"],
+            n_ffn_layers=model_setup["n_ffn_layers"],
+            final_architecture=ast.literal_eval(model_setup["final_architecture"]),
+            cnnclsf_channels=tuple(model_setup["cnnclsf_channels"]),
+            n_classes=model_setup["n_classes"],
+            symm_2D=model_setup["symm_2D"],
+            symm_Z2=model_setup["symm_Z2"],
+            trivial_Z2=model_setup["trivial_Z2"],
         )
 
 

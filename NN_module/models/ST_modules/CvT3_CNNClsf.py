@@ -176,5 +176,5 @@ class CvT3_CNNClsf(nn.Module):
             )
 
         x = worker(x)
-        
+
         return x

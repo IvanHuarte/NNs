@@ -13,7 +13,7 @@
         "n_chains_per_rank": 16,
         "n_samples_per_chain": 64,
         "chunk_sampler": null,
-        "chunk_vstate": null
+        "chunk_vstate": 512
     },
 
     "split_training": true,
@@ -45,11 +45,11 @@
     },
 
     "ST_schedule":{
-        "lr_name":"stairs_schedule",
+        "lr_name":"segment",
         "setup":{
             "segments":[[50,50]],
-            "mode":[["P","M"]],
-            "repeat_segment":[10]
+            "mode":[["M"],["P"],[["M"],["P"],["B"],["M"]]],
+            "repeat_segment":[1,1,1,1,1,1]
         },
 
         "lr_schedules":{
@@ -61,8 +61,8 @@
 
             "segment":{
                 "lr":[
-                    0.1, 0.01, 0.005,
-                    0.001, 0.0005, 0.0001
+                    0.01, 0.1, 0.001, 0.05,
+                    0.0005, 0.000001
                 ]
             }
         }
