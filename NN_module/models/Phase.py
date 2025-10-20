@@ -119,8 +119,13 @@ class CNNClsf(nn.Module):
         phase = nn.sigmoid(x) * jnp.pi
 
         # Sign bias
+        print(f"x_in shape in CNNClsf: {x_in.shape}")
         bias = x_in.sum(axis=-1) * jnp.pi / 2
-        phase += bias
+        print(f"bias shape: {bias.shape}")
+        print(f"phase shape: {phase.shape}")
+
+        phase += bias[:, None]
+
         phase = (phase + jnp.pi) % (2 * jnp.pi) - jnp.pi
 
         return phase.squeeze(-1)
