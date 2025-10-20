@@ -88,10 +88,10 @@ class CNNClsf(nn.Module):
     activation: Callable = nn.swish
 
     @nn.compact
-    def __call__(self, x):
+    def __call__(self, x_in):
 
         kernel = (3, 3) if self.lattice_size[1] != 1 else (3, 1)
-        x = x.reshape(-1, *self.lattice_size, 1)
+        x = x_in.reshape(-1, *self.lattice_size, 1)
 
         for C in self.channels:
 
@@ -117,5 +117,10 @@ class CNNClsf(nn.Module):
         # Clasificador binario. 1 salida pasada por sigmoid * pi
         x = nn.Dense(1)(x)
         phase = nn.sigmoid(x) * jnp.pi
+
+        # Sign bias
+        bias = x_in.sum(axis=-1) * jnp.pi / 2
+        phase += bias
+        phase = (phase + jnp.pi) % (2 * jnp.pi) - jnp.pi
 
         return phase.squeeze(-1)
