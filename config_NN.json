@@ -214,13 +214,13 @@
 
         "CvT3_CNNClsf": {
             "n_CP_blocks": [2],
-            "CTemb_channels": [32],
-            "CP_channels": [32],
+            "CTemb_channels": [64],
+            "CP_channels": [64],
             "attn_heads": [4],
             "kernel": [3, 3],
             "final_architecture": "(128,5,)",
 
-            "cnnclsf_channels": [64],
+            "cnnclsf_channels": [128],
             "n_classes": 2,
 
             "symm_Z2": true,

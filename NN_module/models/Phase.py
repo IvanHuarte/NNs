@@ -11,6 +11,25 @@ from NN_module.models.CvT3 import DepthPointwiseConv
 REAL_DTYPE = jnp.float64
 
 
+def MarshallSign(x: jt.ArrayLike, radians: bool = True) -> jt.ArrayLike:
+    """Marshall sign for 2D square lattices
+
+    Args:
+        x: input array of shape (B,H,W)
+    Returns:
+        array of shape (B,) with the Marshall sign
+    """
+    Lx, Ly = x.shape[1], x.shape[2]
+    xs = jnp.arange(Lx).reshape(-1, 1) + jnp.arange(Ly).reshape(1, -1)
+    marshall_pattern = (-1) ** (xs % 2)
+    sign = jnp.prod(jnp.where(x > 0, marshall_pattern, 1), axis=(1, 2))
+
+    if radians:
+        sign = jnp.where(sign < 0, jnp.pi, 0.0)
+
+    return sign
+
+
 class CNNPh(nn.Module):
 
     lattice_size: Tuple
@@ -119,8 +138,13 @@ class CNNClsf(nn.Module):
         phase = nn.sigmoid(x) * jnp.pi
 
         # Sign bias
-        bias = x_in.sum(axis=-1) * jnp.pi / 2
-        phase += bias[:, None]
+        # bias = x_in.sum(axis=-1) * jnp.pi
+        # phase += bias[:, None]
+        # phase = (phase + jnp.pi) % (2 * jnp.pi) - jnp.pi
+
+        # Marshall sign rule
+        bias_mars = MarshallSign(x_in.reshape(-1, *self.lattice_size), radians=True)
+        phase += bias_mars[:, None]
         phase = (phase + jnp.pi) % (2 * jnp.pi) - jnp.pi
 
         return phase.squeeze(-1)
