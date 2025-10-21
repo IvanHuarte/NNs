@@ -49,20 +49,26 @@ from transformer_LR_WF.utils import InvertMagnetization
 
 parser = argparse.ArgumentParser()
 parser.add_argument(
-    "-c",
-    "--config",
+    "-c", "--config",
     action="append",
     required=False,
-    default=[
+    help="Parse configuration files in order. Simulation/CM/NN",
+)
+
+args = parser.parse_args()
+
+if args.config is None:
+    args.config = [
         "/home/ihuarte/Escritorio/Ivan/NNs/config.json",
         "/home/ihuarte/Escritorio/Ivan/NNs/config_CM.json",
         "/home/ihuarte/Escritorio/Ivan/NNs/config_NN.json",
-    ],
-    help="Parse configuration files in order. Simulation/CM/NN",
-)
-configurations = parser.parse_args().config
+    ]
+configurations = args.config
 
-print(f"Configurations: {configurations}")
+print(f"Configurations:")
+for c in configurations:
+    print(f" - {c}")
+    
 # Cargamos configuraciones de archivos json
 with open(configurations[0], "r") as f:
     config = json.load(f)

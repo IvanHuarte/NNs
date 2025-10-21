@@ -8,8 +8,7 @@ from netket.operator.spin import sigmaz
 import optax
 import json
 import time
-import ast
-import os
+import argparse
 
 # os.environ["XLA_PYTHON_CLIENT_PREALLOCATE"] = "false"
 
@@ -44,6 +43,29 @@ from NN_module.NN_utils import scheduler_initializer, phase_stats_vstate, modpha
 from NN_module.ST_utils import compare_params, masked_optimizer
 from NN_module.observables import calc_all_observables_vs, calc_all_observables_ED
 from transformer_LR_WF.utils import InvertMagnetization
+
+parser = argparse.ArgumentParser()
+parser.add_argument(
+    "-c", "--config",
+    action="append",
+    required=False,
+    help="Parse configuration files in order. Simulation/CM/NN",
+)
+
+args = parser.parse_args()
+
+if args.config is None:
+    args.config = [
+        "/home/ihuarte/Escritorio/Ivan/NNs/config.json",
+        "/home/ihuarte/Escritorio/Ivan/NNs/config_CM.json",
+        "/home/ihuarte/Escritorio/Ivan/NNs/config_NN.json",
+    ]
+configurations = args.config
+
+print(f"Configurations:")
+for c in configurations:
+    print(f" - {c}")
+    
 
 # Cargamos configuraciones de archivos json
 with open("/home/ihuarte/Escritorio/Ivan/NNs/config.json", "r") as f:
