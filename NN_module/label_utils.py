@@ -625,6 +625,7 @@ def get_filenames_from_settings(cm_name, nn_name, **kwargs):
             emb_ch_label += f"{CTemb_channels[i]}_"
             cp_ch_label += f"{CP_channels[i]}_"
             heads_label += f"{attn_heads[i]}_"
+        for i in range(len(cnnclsf_channels)):
             clsf_ch_label += f"{cnnclsf_channels[i]}_"
         for i in range(len(final_architecture)):
             arch_label += f"{final_architecture[i]}_"
