@@ -8,6 +8,7 @@ import numpy.typing as npt
 from typing import Optional, Tuple
 import sys
 from pathlib import Path
+import itertools
 
 sys.path.append(
     str(
@@ -312,3 +313,23 @@ def modphase(xvs):
     else:
         print(f"ERROR. Unknown input instance for vstate: {type(xvs)}")
         sys.exit(1)
+
+
+def all_spin_configurations(N):
+    # Genera todas las combinaciones posibles de N spines con valores ±1
+    return jnp.array(list(itertools.product([-1, 1], repeat=N)))
+
+
+def print_max_contributors(x, size, N_max=10):
+    (mod, ph), _ = modphase(x)
+    configs = all_spin_configurations(size[0] * size[1])
+
+    idx = jnp.argsort(mod)[::-1][:N_max]
+    max_configs = configs[idx, :]
+    max_mods = mod[idx]
+    max_phs = ph[idx]
+
+    for config, mod, phs in zip(max_configs, max_mods, max_phs):
+        print(f"Config: \n{config.reshape(size)}")
+        print(f"\nModulus: {mod}")
+        print(f"Phase: {phs}\n")

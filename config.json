@@ -1,12 +1,10 @@
 {
 
-   "write_folder_sim":"/home/ihuarte/Escritorio/Ivan/NNs/pruebas/",    "sim <---> SSF":"Ruta donde se guardan los productos de simulaciones",
-    
+   "write_folder_sim":"/home/ihuarte/Escritorio/Ivan/NNs/pruebas/softmax/",    "sim <---> SSF":"Ruta donde se guardan los productos de simulaciones",
 
     "exact_diagonalization": true,
     "dump_sim_callback": true,
     "explore_mode": true,
-
 
     "sampler":{
         "n_ranks": 1,
@@ -46,13 +44,19 @@
     "ST_schedule":{
         "lr_name":"segment",
         "setup":{
-            "segments":[[500],
-                [500],
-                [500]],
-            "mode":[["P"],
-                ["B"],
-                ["P"]],
-            "repeat_segment":[1,6,1]
+            "segments":[
+                [50],[50],[500],
+                [50],[50],[500],
+                [50],[50],[3000],
+                [50]
+            ],
+            "mode":[
+                ["M"],["P"],["B"],
+                ["M"],["P"],["B"],
+                ["M"],["P"],["B"],
+                ["P"]
+            ],
+            "repeat_segment":[1,1,1,1,1,1,1,1,1,1]
         },
 
 
@@ -65,9 +69,10 @@
 
             "segment":{
                 "lr":[
-                    0.2, 
-                    0.01, 0.001, 0.0001, 0.00001, 0.000001, 0.0000001, 
-                    0.2
+                0.05, 0.2, 0.01,
+                0.005, 0.1, 0.001,
+                0.0005, 0.1, 0.00001,
+                0.05
                 ]
             }
         }
