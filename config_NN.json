@@ -244,5 +244,61 @@
             "trivial_Z2": true
         }
 
-    }
+    },
+
+"ST_MCvT3-None_MCvT3-None":{
+
+    "module": "SplitTraining",
+    "setup":{
+
+        "modulus_setup":{
+            "module": "MotherModule",
+            "setup":{
+                "Core":{
+                    "module":"CvT3",
+                    "setup":{
+                        "n_CP_blocks": [2, 2],
+                        "CTemb_channels": [32, 16],
+                        "CP_channels": [32, 16],
+                        "attn_heads": [4, 4],
+                        "kernel": [3, 3],
+                        "final_architecture": [128,5]
+                    }
+                },
+                "Final":{
+                    "module": null,
+                    "setup":{}
+                }
+            }
+        },
+
+        "phase_setup":{
+            "module": "MotherModule",
+            "setup":{
+                "Core":{
+                    "module":"CvT3",
+                    "setup":{
+                        "n_CP_blocks": [2, 2],
+                        "CTemb_channels": [32, 16],
+                        "CP_channels": [32, 16],
+                        "attn_heads": [4, 4],
+                        "kernel": [3, 3],
+                        "final_architecture": [128,5]
+                    }
+                },
+                "Final":{
+                    "module": null,
+                    "setup":{}
+                }
+            }    
+        }
+    },
+
+    "symm_Z2": true,
+    "trivial_Z2": true,
+    "symm_2D": true
+
+    
+}
+
 }

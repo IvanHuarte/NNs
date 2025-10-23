@@ -1,0 +1,201 @@
+import importlib
+from frozendict import deepfreeze
+import flax.linen as nn
+
+from .models._registry import NN_REGISTRY
+
+activation_dict = {
+    "sigmoid": nn.sigmoid,
+    "tanh": nn.tanh,
+    "softmax": nn.softmax,
+    "gelu": nn.gelu,
+    "swish": nn.swish,
+    "selu": nn.selu,
+    "elu": nn.elu,
+    "softplus": nn.softplus,
+    "relu": nn.relu,
+}
+
+
+# def preprocess_setup(setup: dict) -> dict:
+
+#     clean_setup = {}
+
+#     for k, v in setup.items():
+
+#         if isinstance(v, dict):
+#             v = preprocess_setup(v)
+
+#         elif isinstance(v, list):
+#             v = recursive_list_to_tuple(v)
+
+#         elif "activation" in k:
+#             if all([type(act) in [str, int] for act in v]):
+#                 v = tuple([activation_dict[act] if act != 0 else 0 for act in v])
+
+#         clean_setup[k] = v
+
+#     return clean_setup
+
+
+# def init_model_auto(model_setup):
+
+#     model_class = get_model_class(model_setup["path"])
+#     adapted_setup = preprocess_setup(model_setup["setup"])
+
+#     return model_class(**adapted_setup)
+
+
+# def init_model(name, model_setup, split_training=True):
+
+#     if split_training:
+
+#         model_setup["modulus_setup"]["setup"]["name"] = "modulus"
+#         model_setup["phase_setup"]["setup"]["name"] = "phase"
+
+#         model_setup["modulus_setup"]["setup"]["lattice_size"] = model_setup[
+#             "lattice_size"
+#         ]
+#         model_setup["phase_setup"]["setup"]["lattice_size"] = model_setup[
+#             "lattice_size"
+#         ]
+
+#         lattice_size = (
+#             tuple(model_setup["lattice_size"]) if model_setup["symm_2D"] else None
+#         )
+#         token_size = (
+#             tuple(model_setup["modulus_setup"]["setup"]["token_size"])
+#             if "ViT" in name
+#             else None
+#         )
+
+#         # model_setup = preprocess_setup(model_setup)
+
+#         modulus_clss = get_model_class(model_setup["modulus_setup"]["path"])
+#         phase_clss = get_model_class(model_setup["phase_setup"]["path"])
+
+#         frozen_modulus_setup = deepfreeze(model_setup["modulus_setup"]["setup"])
+#         frozen_phase_setup = deepfreeze(model_setup["phase_setup"]["setup"])
+
+#         return SplitTraining(
+#             modulus_clss=modulus_clss,
+#             phase_clss=phase_clss,
+#             modulus_setup=frozen_modulus_setup,
+#             phase_setup=frozen_phase_setup,
+#             symm_2D=False,
+#             symm_Z2=model_setup["symm_Z2"],
+#             trivial_Z2=model_setup["trivial_Z2"],
+#             lattice_size=lattice_size,
+#             token_size=token_size,
+#         )
+
+
+class FactoryBuilder:
+
+    def __init__(self, model_setup, **kwargs):
+
+        extra_args = kwargs
+
+        print(kwargs)
+
+        model_setup = self.insert_external_kwargs(
+            model_setup, extra_args
+        )  # Utilizar append, retorna None
+        frozen_setup = deepfreeze(self.preprocess_setup(model_setup))
+
+        self.model = self.build_module(frozen_setup, extra_args)
+
+    def recursive_list_to_tuple(self, target):
+
+        out = []
+        if all(isinstance(element, list) for element in target):
+            for element in target:
+                out.append(self.recursive_list_to_tuple(element))
+        else:
+            return tuple(target)
+        return tuple(out)
+
+    def insert_external_kwargs(self, setup: dict, external_args: dict):
+        """
+        To add some arguments (e.g. lattice_size) which are needed but not
+        native in NN configurations or changes during simulations.
+        """
+
+        lattice_size = [
+            "CNN",
+            "CvT",
+            "CvT2",
+            "CvT3",
+            "CNNPh",
+            "EDPPh",
+            "CNNClsf",
+            "CvTaps",
+            "MLP",
+        ]
+
+        if "module" in setup.keys() and "setup" in setup.keys():
+            if setup["module"] in lattice_size:
+                setup["setup"]["lattice_size"] = external_args["lattice_size"]
+
+        # Recorrer todas las claves-valor
+        for _, val in setup.items():
+            if isinstance(val, dict):
+                self.insert_external_kwargs(val, external_args)
+
+    def preprocess_setup(self, setup: dict) -> dict:
+
+        clean_setup = {}
+
+        for k, v in setup.items():
+
+            if isinstance(v, dict):
+                v = self.preprocess_setup(v)
+
+            elif isinstance(v, list):
+                v = self.recursive_list_to_tuple(v)
+
+            elif "activation" in k:
+                if all([type(act) in [str, int] for act in v]):
+                    v = tuple([activation_dict[act] if act != 0 else 0 for act in v])
+
+            clean_setup[k] = v
+
+        return clean_setup
+
+    def get_model_class(self, module_name):
+        return NN_REGISTRY[module_name]
+
+    def build_module(self, config, **kwargs):
+
+        module_name = config["module"]
+        setup = config["setup"]
+        clss = self.get_model_class(module_name)
+
+        if module_name == "SplitTraining":
+            modulus = self.build_module(config["modulus_setup"])
+            phase = self.build_module(config["phase_setup"])
+            lattice_size = kwargs["lattice_size"] if config["symm_2D"] else None
+            return clss(
+                modulus=modulus,
+                phase=phase,
+                symm_Z2=config["symm_Z2"],
+                trivial_Z2=config["trivial_Z2"],
+                symm_2D=config["symm_2D"],
+                lattice_size=lattice_size,
+            )
+
+        elif module_name == "Sequential":
+            core_module = self.build_module(setup["Core"])
+            final_module = self.build_module(setup["Ending"])
+            lattice_size = kwargs["lattice_size"] if config["symm_2D"] else None
+            return clss(
+                core=core_module,
+                ending=final_module,
+                symm_Z2=config["symm_Z2"],
+                trivial_Z2=config["trivial_Z2"],
+                symm_2D=config["symm_2D"],
+                lattice_size=lattice_size,
+            )
+
+        else:
+            return clss(**setup)

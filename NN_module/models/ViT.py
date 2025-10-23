@@ -1,4 +1,3 @@
-
 from typing import Callable, Sequence
 
 import flax.linen as nn
@@ -9,6 +8,7 @@ import netket as nk
 import numpy.typing as npt
 
 from ..NN_utils import REAL_DTYPE, circulant
+from NN_module.models._registry import register_module
 
 
 class MultiLayerPerceptron(nn.Module):
@@ -57,9 +57,7 @@ class AffinityPosWeight(nn.Module):
     def __call__(self, x: jt.ArrayLike) -> jt.ArrayLike:
         weight_row = self.param(
             "alpha_delta",
-            nn.initializers.truncated_normal(
-                stddev=jnp.sqrt(1.0 / x.shape[-2])
-            ),
+            nn.initializers.truncated_normal(stddev=jnp.sqrt(1.0 / x.shape[-2])),
             (x.shape[-2],),
             REAL_DTYPE,
         )
@@ -84,9 +82,7 @@ class PositionalHead(nn.Module):
 
     @nn.compact
     def __call__(self, x: jt.ArrayLike) -> jt.ArrayLike:
-        value = nn.Dense(
-            self.head_size, use_bias=False, param_dtype=REAL_DTYPE
-        )
+        value = nn.Dense(self.head_size, use_bias=False, param_dtype=REAL_DTYPE)
         aff = AffinityPosWeight()
         # print(f"6:Input shape: {x.shape}")
         # print(f"6:Value shape: {value(x).shape}")
@@ -134,23 +130,21 @@ class CoreBlock(nn.Module):
     @nn.compact
     def __call__(self, x) -> jt.ArrayLike:
         embedding_d = x.shape[-1]
-        #print(f"Input shape: {x.shape}")
+        # print(f"Input shape: {x.shape}")
         if embedding_d % self.n_heads != 0:
-            raise ValueError(
-                "The number of heads must divide the embedding dimensions"
-            )
+            raise ValueError("The number of heads must divide the embedding dimensions")
         head_size = embedding_d // self.n_heads
         # print(f"4:Embedding dimension: {embedding_d}  Head size: {head_size}")
         sa = MultiHeadPositionalAttention(self.n_heads, head_size)
         x += sa(nn.LayerNorm(param_dtype=REAL_DTYPE)(x))
-        #print(f"After attention: {x.shape}")
+        # print(f"After attention: {x.shape}")
         ffn = MultiLayerPerceptron(
             [
                 embedding_d,
             ]
             * self.n_ffn_layers
         )
-        #print(f"After MLP: {ffn(x).shape}\n\n")
+        # print(f"After MLP: {ffn(x).shape}\n\n")
         # No LayerNorm here because it is already included in the perceptron.
         return nk.nn.log_cosh(ffn(x) + x)
 
@@ -183,31 +177,30 @@ class RealSpinViT(nn.Module):
     @nn.compact
     def __call__(self, x):
         # print(f"3:Input shape_RSV: {x.shape}")
-        
+
         embedding = nn.Dense(self.embedding_d, param_dtype=REAL_DTYPE)
 
-        #print(f"Input shape: {x.shape}")
+        # print(f"Input shape: {x.shape}")
         x = embedding(x)
-        #print(f"After embedding: {x.shape}")
+        # print(f"After embedding: {x.shape}")
 
         blocks = [
-            CoreBlock(self.n_heads, self.n_ffn_layers)
-            for _ in range(self.n_blocks)
+            CoreBlock(self.n_heads, self.n_ffn_layers) for _ in range(self.n_blocks)
         ]
-        #print(f"Entering blocks: {len(blocks)} blocks with {self.n_heads} heads each. Number of FFN layers: {self.n_ffn_layers}")
+        # print(f"Entering blocks: {len(blocks)} blocks with {self.n_heads} heads each. Number of FFN layers: {self.n_ffn_layers}")
 
         for cb in blocks:
             x = cb(x)
-            #print(f"After CoreBlock: {x.shape}")
+            # print(f"After CoreBlock: {x.shape}")
 
         # Sum over tokens (set pooling operation).
-        #print(f"Entering pooling operation. ")
+        # print(f"Entering pooling operation. ")
         x = x.sum(axis=0)
-        #print(f"After pooling: {x.shape}")
+        # print(f"After pooling: {x.shape}")
         postprocessor = MultiLayerPerceptron(self.final_architecture)
         x = postprocessor(x)
-        #print(f"After postprocessing: {x.shape}")
-        #print(f"And finished with Dense(1) to get the final output.\n\n")
+        # print(f"After postprocessing: {x.shape}")
+        # print(f"And finished with Dense(1) to get the final output.\n\n")
         # Fix the offset and scale.
         return nn.Dense(1, param_dtype=REAL_DTYPE)(x).squeeze()
 
@@ -291,17 +284,17 @@ class SpinViT(nn.Module):
             self.final_architecture,
             self.is_complex,
         )
-        #print(self.token_size, type(self.token_size))
+        # print(self.token_size, type(self.token_size))
         # print(f"1:ini_x shape: {x.shape}")
-        #print(f"token_size: {self.token_size}  embedding_d: {self.embedding_d}  n_heads: {self.n_heads}  n_blocks: {self.n_blocks}  n_ffn_layers: {self.n_ffn_layers}  final_architecture: {self.final_architecture}  is_complex: {self.is_complex}")
-
+        # print(f"token_size: {self.token_size}  embedding_d: {self.embedding_d}  n_heads: {self.n_heads}  n_blocks: {self.n_blocks}  n_ffn_layers: {self.n_ffn_layers}  final_architecture: {self.final_architecture}  is_complex: {self.is_complex}")
 
         circulant_x = circulant(x, self.token_size).reshape(
             (self.token_size, -1, self.token_size)
         )
-        #print(f"circulant_x shape: {circulant_x.shape}")
+        # print(f"circulant_x shape: {circulant_x.shape}")
         return jax.vmap(worker, in_axes=0)(circulant_x).mean(axis=0)
-    
+
+
 class SpinViT_Z2(nn.Module):
     """Flax module wrapping `SpinViTWorker` and enforcing translation invariance.
 
@@ -341,10 +334,11 @@ class SpinViT_Z2(nn.Module):
         if self.trivial_Z2:
             return jax.nn.logsumexp(z2_stack, axis=0, keepdims=False)
         else:
-            b = jnp.asarray([1., -1.])[:, None]  # shape (2,1)
+            b = jnp.asarray([1.0, -1.0])[:, None]  # shape (2,1)
             return jax.nn.logsumexp(z2_stack, b=b, axis=0, keepdims=False)
 
 
+@register_module("ViT")
 class BatchedSpinViT(nn.Module):
     "Batched version of SpinViT, accepting several spin configurations at once."
 
@@ -371,7 +365,7 @@ class BatchedSpinViT(nn.Module):
                 self.n_ffn_layers,
                 self.final_architecture,
                 self.is_complex,
-                self.trivial_Z2
+                self.trivial_Z2,
             )
         else:
             worker = SpinViT(
@@ -381,6 +375,6 @@ class BatchedSpinViT(nn.Module):
                 self.n_blocks,
                 self.n_ffn_layers,
                 self.final_architecture,
-                self.is_complex
+                self.is_complex,
             )
         return jax.vmap(worker, in_axes=0)(batched_x).squeeze()

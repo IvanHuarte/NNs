@@ -6,6 +6,8 @@ from typing import Tuple
 from netket.nn import log_cosh
 from .ViT_2D import MultiLayerPerceptron
 
+from NN_module.models._registry import register_module
+
 REAL_DTYPE = jnp.float64
 
 
@@ -297,16 +299,16 @@ class CvTWorker(nn.Module):
 
     lattice_size: Tuple[int, int]
 
-    n_CP_blocks_list: Tuple[
+    n_CP_blocks: Tuple[
         int, ...
     ]  # Number of convolutional projection blocks in each stage
-    CTemb_channels_list: Tuple[
+    CTemb_channels: Tuple[
         int, ...
     ]  # Number of channels in the convolutional token embedding.
-    CP_channels_list: Tuple[
+    CP_channels: Tuple[
         int, ...
     ]  # Number of channels for each convolutional projection block in each stage.
-    attn_heads_list: Tuple[
+    attn_heads: Tuple[
         int, ...
     ]  # Number of heads for each convolutional projection block in each stage.
     kernel: Tuple = (3, 3)  # Kernel size for the convolutional operations (must be 3x3)
@@ -322,17 +324,17 @@ class CvTWorker(nn.Module):
         # print(f"Begging CvT")
         # print(f"Input shape: {x.shape}")
 
-        n_stages = len(self.n_CP_blocks_list)
+        n_stages = len(self.n_CP_blocks)
         x = x.reshape((-1, *self.lattice_size, 1))
 
         B = x.shape[0]
         for i in range(n_stages):
 
             x = StageBlock(
-                n_CP_blocks=self.n_CP_blocks_list[i],
-                CTemb_channels=self.CTemb_channels_list[i],
-                CP_channels=self.CP_channels_list[i],
-                n_heads=self.attn_heads_list[i],
+                n_CP_blocks=self.n_CP_blocks[i],
+                CTemb_channels=self.CTemb_channels[i],
+                CP_channels=self.CP_channels[i],
+                n_heads=self.attn_heads[i],
                 kernel=self.kernel,
             )(x)
 
@@ -362,16 +364,16 @@ class CvT_Z2(nn.Module):
 
     lattice_size: Tuple[int, int]
 
-    n_CP_blocks_list: Tuple[
+    n_CP_blocks: Tuple[
         int, ...
     ]  # Number of convolutional projection blocks in each stage
-    CTemb_channels_list: Tuple[
+    CTemb_channels: Tuple[
         int, ...
     ]  # Number of channels in the convolutional token embedding.
-    CP_channels_list: Tuple[
+    CP_channels: Tuple[
         int, ...
     ]  # Number of channels for each convolutional projection block in each stage.
-    attn_heads_list: Tuple[
+    attn_heads: Tuple[
         int, ...
     ]  # Number of heads for each convolutional projection block in each stage.
     kernel: Tuple = (3, 3)  # Kernel size for the convolutional operations (must be 3x3)
@@ -391,10 +393,10 @@ class CvT_Z2(nn.Module):
 
         worker = CvTWorker(
             lattice_size=self.lattice_size,
-            n_CP_blocks_list=self.n_CP_blocks_list,
-            CTemb_channels_list=self.CTemb_channels_list,
-            CP_channels_list=self.CP_channels_list,
-            attn_heads_list=self.attn_heads_list,
+            n_CP_blocks=self.n_CP_blocks,
+            CTemb_channels=self.CTemb_channels,
+            CP_channels=self.CP_channels,
+            attn_heads=self.attn_heads,
             kernel=self.kernel,
             final_architecture=self.final_architecture,
             two_heads=self.two_heads,
@@ -414,20 +416,21 @@ class CvT_Z2(nn.Module):
             return jax.nn.logsumexp(z2_stack, b=b, axis=0, keepdims=False)
 
 
+@register_module("CvT3")
 class CvT3(nn.Module):
 
     lattice_size: Tuple[int, int]
 
-    n_CP_blocks_list: Tuple[
+    n_CP_blocks: Tuple[
         int, ...
     ]  # Number of convolutional projection blocks in each stage
-    CTemb_channels_list: Tuple[
+    CTemb_channels: Tuple[
         int, ...
     ]  # Number of channels in the convolutional token embedding.
-    CP_channels_list: Tuple[
+    CP_channels: Tuple[
         int, ...
     ]  # Number of channels for each convolutional projection block in each stage.
-    attn_heads_list: Tuple[
+    attn_heads: Tuple[
         int, ...
     ]  # Number of heads for each convolutional projection block in each stage.
     kernel: Tuple = (3, 3)  # Kernel size for the convolutional operations (must be 3x3)
@@ -449,10 +452,10 @@ class CvT3(nn.Module):
         if self.symm_Z2:
             worker = CvT_Z2(
                 lattice_size=self.lattice_size,
-                n_CP_blocks_list=self.n_CP_blocks_list,
-                CTemb_channels_list=self.CTemb_channels_list,
-                CP_channels_list=self.CP_channels_list,
-                attn_heads_list=self.attn_heads_list,
+                n_CP_blocks=self.n_CP_blocks,
+                CTemb_channels=self.CTemb_channels,
+                CP_channels=self.CP_channels,
+                attn_heads=self.attn_heads,
                 kernel=self.kernel,
                 final_architecture=self.final_architecture,
                 two_heads=self.two_heads,
@@ -463,10 +466,10 @@ class CvT3(nn.Module):
         else:
             worker = CvTWorker(
                 lattice_size=self.lattice_size,
-                n_CP_blocks_list=self.n_CP_blocks_list,
-                CTemb_channels_list=self.CTemb_channels_list,
-                CP_channels_list=self.CP_channels_list,
-                attn_heads_list=self.attn_heads_list,
+                n_CP_blocks=self.n_CP_blocks,
+                CTemb_channels=self.CTemb_channels,
+                CP_channels=self.CP_channels,
+                attn_heads=self.attn_heads,
                 kernel=self.kernel,
                 final_architecture=self.final_architecture,
                 two_heads=self.two_heads,

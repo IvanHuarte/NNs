@@ -21,18 +21,6 @@ from transformer_LR_WF.utils import InvertMagnetization
 
 REAL_DTYPE = jnp.asarray(1.0).dtype
 
-activation_dict = {
-    "sigmoid": nn.sigmoid,
-    "tanh": nn.tanh,
-    "softmax": nn.softmax,
-    "gelu": nn.gelu,
-    "swish": nn.swish,
-    "selu": nn.selu,
-    "elu": nn.elu,
-    "softplus": nn.softplus,
-    "relu": nn.relu,
-}
-
 optimizer_name_dict = {
     "Sgd": nk.optimizer.Sgd,
     "adam": nk.optimizer.Adam,
@@ -163,11 +151,20 @@ def traslations_2D(
     token_size: Tuple[int, int] = None,
     memory: bool = False,
 ) -> npt.ArrayLike:
+    """
+    Expects a x=(B,N) tensor and returns a x=(N_tr, B, N_to), where
+    N_tr is the number of traslations in the group and N_to is equal to
+    N (token_size=None) or a tuple showing a tokenized lattice
+    (N_tokens,token_dim) (token_size!=None)
+    """
+
+    x = jnp.atleast_2d(x)
+    B = x.shape[0]
 
     if token_size is None:
         token_size = size
 
-    if x.shape[0] != size[0] * size[1]:
+    if x.shape[1] != size[0] * size[1]:
         raise ValueError(
             "`x` dimension must be equal to `prod(size)`, "
             + f"but got {x.shape[0]} and {size[0] * size[1]}."
@@ -184,7 +181,7 @@ def traslations_2D(
     x = (
         x.reshape((-1, sub_lat[1], token_size[1], sub_lat[0], token_size[0]), order="C")
         .transpose((0, 1, 3, 2, 4))
-        .reshape(size[0] * size[1], -1, token_size[0] * token_size[1])
+        .reshape(size[0] * size[1], B, -1, token_size[0] * token_size[1])
         .squeeze()
     )
 

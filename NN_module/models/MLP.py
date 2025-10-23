@@ -6,6 +6,7 @@ import jax.numpy as jnp
 from typing import Callable, Tuple, Any
 
 from ..NN_utils import traslations_2D
+from NN_module.models._registry import register_module
 
 DTYPE = jnp.complex128
 
@@ -118,7 +119,8 @@ class MLP_2D_Z2(nn.Module):
             )
 
 
-class BatchedMultiLayerPerceptron(nn.Module):
+@register_module("MLP")
+class MLP(nn.Module):
     """A batched multi-layer perceptron."""
 
     lattice_size: Tuple[int, int]

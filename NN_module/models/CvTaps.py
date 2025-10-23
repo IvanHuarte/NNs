@@ -6,47 +6,58 @@ from typing import Tuple, Any
 from netket.nn import log_cosh
 from .ViT_2D import MultiLayerPerceptron
 
+from NN_module.models._registry import register_module
+
+
 REAL_DTYPE = jnp.float64
 
 ###########################################################################
 # APS equivariance correction functions
 ###########################################################################
 
+
 def vmap_P_traslations(x, P_shifts):
-    
-    batched_traslations = lambda x, shift: jnp.roll(x, shift=shift, axis=(0,1))
+
+    batched_traslations = lambda x, shift: jnp.roll(x, shift=shift, axis=(0, 1))
 
     return jax.vmap(batched_traslations)(x, P_shifts)
+
 
 def scan_P_traslations(x, P_shifts):
 
     def rollit(i, x_batch):
-        x_b_trasl = jnp.roll(x_batch, shift=P_shifts[i], axis=(0,1))
-        return i+1, x_b_trasl
-    
+        x_b_trasl = jnp.roll(x_batch, shift=P_shifts[i], axis=(0, 1))
+        return i + 1, x_b_trasl
+
     _, x_trasl = jax.lax.scan(rollit, init=0, xs=x)
 
     return x_trasl
 
+
 def polyphase_components(x, strides):
 
     B, H, W, C = x.shape
-    Hd, Wd = H // strides[0], W // strides[1], 
-    xt = x.reshape(
-        (B ,Hd ,strides[0],Wd,strides[1], C)
-        ).transpose((0,1,3,4,2,5)).reshape(
-            (B, Hd*Wd, *strides, C)
-            ).transpose((0,3,2,1,4))
+    Hd, Wd = (
+        H // strides[0],
+        W // strides[1],
+    )
+    xt = (
+        x.reshape((B, Hd, strides[0], Wd, strides[1], C))
+        .transpose((0, 1, 3, 4, 2, 5))
+        .reshape((B, Hd * Wd, *strides, C))
+        .transpose((0, 3, 2, 1, 4))
+    )
 
     shape = xt.shape
-    poly_comp = xt.reshape(shape[0], shape[1]*shape[2], shape[3]*shape[4])
+    poly_comp = xt.reshape(shape[0], shape[1] * shape[2], shape[3] * shape[4])
 
     return poly_comp
+
 
 def get_maxnorm_indices(x, strides):
     """
     This function returns the traslation indices for a batched input of shape (B, H, W, C).
-    It computes the polyphase components of a grid for each batch and channel, calculates 
+    It computes the polyphase components of a grid for each batch and channel, calculates
     the L2 norm for each component and chooses the indices of the maximum value component.
     It works for both 1D and 2D inputs.
     Input:
@@ -54,39 +65,42 @@ def get_maxnorm_indices(x, strides):
         - strides: (tuple) Strides for the next downsampling convolution.
 
     Returns:
-        - x: Shifts (translations) for all batches and channels which makes the input 
+        - x: Shifts (translations) for all batches and channels which makes the input
              traslationaly equivariant.
 
     """
     _, H, W, _ = x.shape
-    assert (H % strides[0]==0) & (W % strides[1]==0), f"`lattice_size` must be disible by `strides`. But they are {(H,W)} and {strides}"
-    
+    assert (H % strides[0] == 0) & (
+        W % strides[1] == 0
+    ), f"`lattice_size` must be disible by `strides`. But they are {(H,W)} and {strides}"
 
     poly_comp = polyphase_components(x, strides)
 
     norm = jnp.linalg.norm(poly_comp, axis=-1)
     flat_idx = jnp.argmax(norm, axis=-1, keepdims=False)
-    p, q = jnp.unravel_index(flat_idx, strides) 
+    p, q = jnp.unravel_index(flat_idx, strides)
     anchors = jnp.array([-p, -q]).T
 
     return anchors
-     
 
-def APS_equivariance_adapter(x, strides, mode = 'vmap'):
+
+def APS_equivariance_adapter(x, strides, mode="vmap"):
 
     P_shifts = get_maxnorm_indices(x, strides)
 
-    if mode == 'scan':
+    if mode == "scan":
         x = scan_P_traslations(x, P_shifts)
-    elif mode == 'vmap':
+    elif mode == "vmap":
         x = vmap_P_traslations(x, P_shifts)
     else:
         raise ValueError(f"No such mode: {mode}")
     return x
 
+
 ###########################################################################
 # Adjacent modules for CvT
 ###########################################################################
+
 
 def get_mask() -> jnp.ndarray:
     return jnp.array(
@@ -96,6 +110,7 @@ def get_mask() -> jnp.ndarray:
             [1, 1, 0],
         ]
     )
+
 
 class glu_phasor(nn.Module):
     """Transforms input into phasors, do pooling in each channel,
@@ -178,6 +193,7 @@ class two_heads_phasors(nn.Module):
 # Modules with APS equivariance correction
 ###########################################################################
 
+
 class ConvAPS(nn.Module):
 
     features: int
@@ -207,6 +223,7 @@ class ConvAPS(nn.Module):
         )(x)
 
         return x
+
 
 class DepthPointwiseConv(nn.Module):
     """
@@ -323,7 +340,7 @@ class ConvProjectionBlock(nn.Module):
         )(x_ffn)
         x_ffn = x_ffn.reshape((B, Hq, Wq, self.channels))
         x_ffn = nn.LayerNorm(dtype=REAL_DTYPE)(x_ffn)
-        
+
         return x + x_ffn
 
 
@@ -372,9 +389,7 @@ class StageBlock(nn.Module):
         # Convolutional projection blocks
         for _ in range(self.n_CP_blocks):
             x = ConvProjectionBlock(
-                channels=self.channels,
-                n_heads=self.n_heads,
-                kernel=self.kernel
+                channels=self.channels, n_heads=self.n_heads, kernel=self.kernel
             )(x)
 
         return log_cosh(x)
@@ -435,7 +450,7 @@ class CvTapsWorker(nn.Module):
                 channels=self.channels_list[i],
                 n_heads=self.attn_heads_list[i],
                 strides=self.strides_list[i],
-                kernel=self.kernel
+                kernel=self.kernel,
             )(x)
 
         # Phasors and glu activation if true
@@ -517,6 +532,7 @@ class CvTaps_Z2(nn.Module):
             return jax.nn.logsumexp(z2_stack, b=b, axis=0)
 
 
+@register_module("CvTaps")
 class CvTaps(nn.Module):
 
     lattice_size: Tuple[int, int]
