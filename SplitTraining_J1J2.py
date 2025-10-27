@@ -21,16 +21,13 @@ jax.devices()
 import sys
 from pathlib import Path
 
-sys.path.append(str(Path(__file__).resolve().parent.parent / "ATMOS_VA/VA_project/src"))
-sys.path.append(
-    str(
-        Path(__file__).resolve().parent.parent / "Transformers/transformer_LR_WF_public"
-    )
-)
 # Importar módulos necesarios
 from VA_project.model.model import J1J2Square
 from VA_project.engine.runners import Runner
-from NN_module.sim_utils import save_results, dump_callback, init_model, BestIterKeeper
+from NN_module.callbacks import BestIterKeeper, dump_callback
+from NN_module.saveNload import save_results
+
+from NN_module.initialize_models import FactoryBuilder
 from NN_module.label_utils import (
     get_filenames_from_settings,
     architecture_label,
@@ -117,7 +114,6 @@ E_ED = None
 x_ED = None
 
 for i, size in enumerate(sizes):
-    nn_model_setup["lattice_size"] = size
 
     N = int(np.prod(size))
     if N > 20:
@@ -168,7 +164,10 @@ for i, size in enumerate(sizes):
             callback_artifacts = {}
             time_in = time.time()
 
-            model = init_model(nn_model_name, nn_model_setup)
+            # model = init_model(nn_model_name, nn_model_setup)
+            model = FactoryBuilder(nn_model_setup, **{"lattice_size": size}).get_model()
+
+            sys.exit(0)
 
             log = (
                 nk.logging.RuntimeLog()
@@ -261,7 +260,7 @@ for i, size in enumerate(sizes):
 
                         variables = vstate.variables
                         sampler = vstate.sampler
-                        optimizer, _ = masked_optimizer(
+                        optimizer = masked_optimizer(
                             vstate.parameters, transformations, mode=mask
                         )
 

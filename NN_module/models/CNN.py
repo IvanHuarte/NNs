@@ -6,7 +6,6 @@ from typing import Callable, Tuple
 
 
 from NN_module.models.ViT_2D import MultiLayerPerceptron
-from NN_module.models._registry import register_module
 
 REAL_DTYPE = jnp.asarray(1.0).dtype
 
@@ -75,7 +74,6 @@ class ConvBlock(nn.Module):
         return x
 
 
-@register_module("CNN")
 class CNN(nn.Module):
     """A simple 2D Convolutional Neural Network (CNN) model."""
 

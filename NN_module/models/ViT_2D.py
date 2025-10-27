@@ -22,7 +22,6 @@ import netket as nk
 import numpy.typing as npt
 
 from ..NN_utils import traslations_2D
-from NN_module.models._registry import register_module
 
 REAL_DTYPE = jnp.asarray(1.0).dtype
 
@@ -521,8 +520,7 @@ class SpinViT_2D_Z2(nn.Module):
             )
 
 
-@register_module("ViT2D")
-class BatchedSpinViT_2D(nn.Module):
+class ViT2D(nn.Module):
     "Batched version of SpinViT, accepting several spin configurations at once."
 
     lattice_size: Tuple[int, int]

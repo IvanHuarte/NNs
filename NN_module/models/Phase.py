@@ -7,8 +7,6 @@ from netket.nn import log_cosh
 from typing import Tuple, Callable
 from NN_module.models.CvT3 import DepthPointwiseConv
 
-from NN_module.models._registry import register_module
-
 REAL_DTYPE = jnp.float64
 
 
@@ -31,7 +29,6 @@ def MarshallSign(x: jt.ArrayLike, radians: bool = True) -> jt.ArrayLike:
     return sign
 
 
-@register_module("CNNPh")
 class CNNPh(nn.Module):
 
     lattice_size: Tuple
@@ -60,7 +57,6 @@ class CNNPh(nn.Module):
         return jnp.angle(x)
 
 
-@register_module("EDPPh")
 class EDPPh(nn.Module):
     """
     Embedded Depthwise-Pointwise convolution wit sum over Phasors
@@ -102,7 +98,6 @@ class EDPPh(nn.Module):
         return x
 
 
-@register_module("CNNClsf")
 class CNNClsf(nn.Module):
 
     lattice_size: Tuple

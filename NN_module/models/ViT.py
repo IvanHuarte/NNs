@@ -8,7 +8,6 @@ import netket as nk
 import numpy.typing as npt
 
 from ..NN_utils import REAL_DTYPE, circulant
-from NN_module.models._registry import register_module
 
 
 class MultiLayerPerceptron(nn.Module):
@@ -338,8 +337,7 @@ class SpinViT_Z2(nn.Module):
             return jax.nn.logsumexp(z2_stack, b=b, axis=0, keepdims=False)
 
 
-@register_module("ViT")
-class BatchedSpinViT(nn.Module):
+class ViT(nn.Module):
     "Batched version of SpinViT, accepting several spin configurations at once."
 
     token_size: int

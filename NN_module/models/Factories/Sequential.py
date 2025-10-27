@@ -5,62 +5,59 @@ from typing import Tuple, Any
 from frozendict import frozendict as FrozenDict
 
 from NN_module.NN_utils import traslations_2D
-from NN_module.models._registry import register_module
-
 
 class Sequential_Worker(nn.Module):
     """
     Flax module to train module and phase separately
     """
 
-    core_class: nn.Module
-    ending_class: nn.Module
+    Core: nn.Module
+    End: nn.Module | None
 
     def setup(self):
-        self.core = self.core_class
-        self.ending = self.ending_class
+
+        self.core = self.Core
+        self.end = self.End if (
+            isinstance(self.End, nn.Module)
+            ) else lambda x: x 
 
     def __call__(self, x: jnp.ndarray) -> jnp.ndarray:
-        print(f"x_in.shape: {x.shape}")
 
         x = self.core(x)
-        x = self.ending(x)
+        x = self.end(x)
 
         return x
 
 
 class Sequential_2D(nn.Module):
 
-    core_class: nn.Module
-    ending_class: nn.Module
+    Core: nn.Module
+    End: nn.Module
 
     lattice_size: Tuple[int, int] = None
-    token_size: Tuple[int, int] = None
 
     @nn.compact
     def __call__(self, x):
 
         worker = Sequential_Worker(
-            core_class=self.core_class, ending_class=self.ending_class
+            Core=self.Core, 
+            End=self.End
         )
 
         # 2D traslation
-        print(f"x_before: {x.shape}")
         traslational_x = traslations_2D(
-            x, size=self.lattice_size, token_size=self.token_size, memory=False
+            x, size=self.lattice_size, token_size=None, memory=False
         )
-        print(f"Translational x shape: {traslational_x.shape}")
 
         return jax.vmap(worker, in_axes=0)(traslational_x).mean(axis=0)
 
 
 class Sequential_Z2(nn.Module):
 
-    core_class: nn.Module
-    ending_class: nn.Module
+    Core: nn.Module
+    End: nn.Module | None
 
     lattice_size: Tuple[int, int] = None
-    token_size: Tuple[int, int] = None
 
     "Symmetries"
     symm_2D: bool = False
@@ -71,10 +68,9 @@ class Sequential_Z2(nn.Module):
 
         if self.symm_2D:
             worker = Sequential_2D(
-                core_class=self.core_class,
-                ending_class=self.ending_class,
+                Core=self.Core, 
+                End=self.End,
                 lattice_size=self.lattice_size,
-                token_size=self.token_size,
             )
         else:
             worker = Sequential_Worker(
@@ -87,7 +83,7 @@ class Sequential_Z2(nn.Module):
 
         # Concatenamos las dos contribuciones
         z2_stack = jnp.stack([output_x, output_inv_x], axis=0)
-
+        
         if self.trivial_Z2:
             res = jax.nn.logsumexp(z2_stack, axis=0)
             return res
@@ -97,7 +93,6 @@ class Sequential_Z2(nn.Module):
             return res
 
 
-@register_module("Sequential")
 class Sequential(nn.Module):
     """
     Flax module to have a general model (core) which carries and trains
@@ -105,8 +100,8 @@ class Sequential(nn.Module):
     which carries the dimensional reduction and/or modulus-phase spliting.
     """
 
-    core_class: nn.Module
-    ending_class: nn.Module
+    Core: nn.Module
+    End: nn.Module | None
 
     "Symmetries"
     symm_Z2: bool = False
@@ -115,31 +110,28 @@ class Sequential(nn.Module):
 
     "Needed for performing 2D traslation symmetries"
     lattice_size: Tuple[int, int] = None
-    token_size: Tuple[int, int] = None
 
     @nn.compact
     def __call__(self, x: jnp.ndarray) -> jnp.ndarray:
 
         if self.symm_Z2:
             worker = Sequential_Z2(
-                core_class=self.core_class,
-                ending_class=self.ending_class,
+                Core=self.Core, 
+                End=self.End,
                 trivial_Z2=self.trivial_Z2,
                 symm_2D=self.symm_2D,
-                lattice_size=self.lattice_size,
-                token_size=self.token_size,
+                lattice_size=self.lattice_size
             )
         elif self.symm_2D:
             worker = Sequential_2D(
-                core_class=self.core_class,
-                ending_class=self.ending_class,
-                lattice_size=self.lattice_size,
-                token_size=self.token_size,
+                Core=self.Core, 
+                End=self.End,
+                lattice_size=self.lattice_size
             )
         else:
             worker = Sequential_Worker(
-                core_class=self.core_class,
-                ending_class=self.ending_class,
+                Core=self.Core, 
+                End=self.End
             )
 
         x = worker(x)

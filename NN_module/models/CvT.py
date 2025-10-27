@@ -6,9 +6,6 @@ from typing import Callable, Tuple, Any
 from netket.nn import log_cosh
 from .ViT_2D import MultiLayerPerceptron
 
-from NN_module.models._registry import register_module
-
-
 REAL_DTYPE = jnp.float64
 
 
@@ -329,7 +326,6 @@ class CvT_Z2(nn.Module):
             return jax.nn.logsumexp(z2_stack, b=b, axis=0, keepdims=False)
 
 
-@register_module("CvT")
 class CvT(nn.Module):
 
     lattice_size: Tuple[int, int]

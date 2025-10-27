@@ -19,16 +19,13 @@ def make_mask(params, predicate):
 
 
 def mask_modulus(path, leaf):
-    return "freeze" if "modulus" in path else "train"
-
+    return "freeze" if "ModulusNet" in path else "train"
 
 def mask_phase(path, leaf):
-    return "freeze" if "phase" in path else "train"
-
+    return "freeze" if "PhaseNet" in path else "train"
 
 def mask_both(path, leaf):
     return "freeze"
-
 
 def no_mask(path, leaf):
     return "train"
@@ -39,10 +36,11 @@ def masked_optimizer(params, transform_map, mode=None):
 
     Args:
         params: Parámetros del modelo.
-        mode: Parte a la que aplicar la máscara ('modulus','phase')
+        mode: Parte a la que aplicar la máscara ('modulus'/'phase'/'both'/None)
         transform_map: Mapa de transformaciones a aplicar.
     Returns:
-        dict: Máscara con la misma estructura que `params`.
+        Pytree: Máscara con la misma estructura que `params`.
+
     """
 
     if mode == "modulus":
@@ -60,7 +58,7 @@ def masked_optimizer(params, transform_map, mode=None):
 
     optimizer = optax.multi_transform(transform_map, trans_tree)
 
-    return optimizer, trans_tree
+    return optimizer
 
 
 def compare_params(old_params, new_params, atol=1e-13):

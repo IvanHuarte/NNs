@@ -1,8 +1,9 @@
-import importlib
 from frozendict import deepfreeze
 import flax.linen as nn
+from flax import traverse_util
 
-from .models._registry import NN_REGISTRY
+import NN_module.models
+from NN_module.models import REGISTRY
 
 activation_dict = {
     "sigmoid": nn.sigmoid,
@@ -15,6 +16,171 @@ activation_dict = {
     "softplus": nn.softplus,
     "relu": nn.relu,
 }
+
+def print_tree(tree, prefix='', values = False):
+    for key, val in tree.items():
+        
+        if isinstance(val, dict):
+            print(prefix + str(key))
+            print_tree(val, prefix + '  ', values=values)
+        else:
+            if values:
+                print(prefix + f"{str(key)}: {str(val)}")
+            else:
+                print(prefix + str(key))
+
+
+class FactoryBuilder:
+
+    def __init__(self, setup, **kwargs):
+        """
+        Class for automatically build an arbitry network architecture
+        based only on a configuration dictionary. It can use either 
+        simple modules and factories, being the latests flux information 
+        organizers.
+        __init__:
+            -setup:(dict) Pytree dictionary which contains all NN 
+                    architecture information.
+            -kwargs:(dict) External arguments needed by modules
+        
+        First, it inserts recursively the kwargs in required setup sites
+        via `insert_external_kwargs`. Next, it performs a prepocessing in
+        the setup data (`preprocess_setup`) and then `deepfreeze` it to 
+        build an inmmutable and hashable dictionary. Finally, it builds
+        the NN architecture via `build_module`
+        """
+
+        extra_args = kwargs
+
+        setup = self.insert_external_kwargs(
+            setup, extra_args
+        )
+        self.setup = deepfreeze(
+            self.preprocess_setup(setup)
+        )
+        self.model = self.build_module(self.setup, extra_args)
+
+    def get_model(self):
+        return self.model
+
+    def get_model_class(self, module_name):
+        return REGISTRY[module_name]
+    
+    def print_setup(self, values=True):
+        print_tree(self.setup, values=values)
+        print("\n")
+    
+    def recursive_list_to_tuple(self, target):
+
+        out = []
+        if all(isinstance(element, list) for element in target):
+            for element in target:
+                out.append(self.recursive_list_to_tuple(element))
+        else:
+            return tuple(target)
+        return tuple(out)
+    
+    def insert_external_kwargs(self, setup: dict, external_args: dict):
+        """
+        To add some arguments (e.g. lattice_size) which are needed but not
+        native in NN configurations or changes during simulations.
+        """
+
+        latsize_nn = [
+            "CNN",
+            "CvT",
+            "CvT2",
+            "CvT3",
+            "CNNPh",
+            "EDPPh",
+            "CNNClsf",
+            "CvTaps",
+            "MLP"
+        ]
+
+        # Add lattice_size to modules which natively need spatial info and/or
+        # is necesary to perform 2D traslational symmetries 
+        if "module" in setup.keys() and "setup" in setup.keys():
+            if setup["module"] in latsize_nn:
+                setup["setup"]["lattice_size"] = external_args["lattice_size"]
+
+        if "symm_2D" in setup:
+            setup['lattice_size'] = external_args["lattice_size"]
+
+
+        for _, val in setup.items():
+            if isinstance(val, dict):
+                self.insert_external_kwargs(val, external_args)
+        
+        
+        return setup
+
+    def preprocess_setup(self, setup: dict) -> dict:
+
+        clean_setup = {}
+
+        for k, v in setup.items():
+
+            if isinstance(v, dict):
+                v = self.preprocess_setup(v)
+
+            elif isinstance(v, list):
+                v = self.recursive_list_to_tuple(v)
+
+            elif "activation" in k:
+                if all([type(act) in [str, int] for act in v]):
+                    v = tuple([activation_dict[act] if act != 0 else 0 for act in v])
+
+            clean_setup[k] = v
+
+        return clean_setup
+
+
+    def build_module(self, setup, extra_args):
+
+        module_name = setup["module"]
+        setup = setup["setup"]
+        clss = self.get_model_class(module_name)
+
+        symm_Z2=setup["symm_Z2"] if "symm_Z2" in setup else False
+        trivial_Z2=setup["trivial_Z2"] if "trivial_Z2" in setup else False
+        symm_2D=setup["symm_2D"] if "symm_Z2" in setup else False
+        lattice_size=setup["lattice_size"] if "symm_2D" in setup else None
+
+        print(module_name)
+
+        if module_name == "SplitTraining":
+            modulus = self.build_module(setup["modulus_setup"], extra_args)
+            phase = self.build_module(setup["phase_setup"], extra_args)
+            
+            return clss(
+                ModulusNet=modulus,
+                PhaseNet=phase,
+                symm_Z2=symm_Z2,
+                trivial_Z2=trivial_Z2,
+                symm_2D=symm_2D,
+                lattice_size=lattice_size
+            )
+
+        elif module_name == "Sequential":
+            core_module = self.build_module(setup["Core"], extra_args)
+            ending_module = self.build_module(setup["Ending"], extra_args)
+
+            return clss(
+                Core=core_module,
+                End=ending_module,
+                symm_Z2=symm_Z2,
+                trivial_Z2=trivial_Z2,
+                symm_2D=symm_2D,
+                lattice_size=lattice_size
+            )
+        elif module_name is None:
+            return None            
+
+        else:
+            return clss(**setup)
+        
+
 
 
 # def preprocess_setup(setup: dict) -> dict:
@@ -89,113 +255,3 @@ activation_dict = {
 #             token_size=token_size,
 #         )
 
-
-class FactoryBuilder:
-
-    def __init__(self, model_setup, **kwargs):
-
-        extra_args = kwargs
-
-        print(kwargs)
-
-        model_setup = self.insert_external_kwargs(
-            model_setup, extra_args
-        )  # Utilizar append, retorna None
-        frozen_setup = deepfreeze(self.preprocess_setup(model_setup))
-
-        self.model = self.build_module(frozen_setup, extra_args)
-
-    def recursive_list_to_tuple(self, target):
-
-        out = []
-        if all(isinstance(element, list) for element in target):
-            for element in target:
-                out.append(self.recursive_list_to_tuple(element))
-        else:
-            return tuple(target)
-        return tuple(out)
-
-    def insert_external_kwargs(self, setup: dict, external_args: dict):
-        """
-        To add some arguments (e.g. lattice_size) which are needed but not
-        native in NN configurations or changes during simulations.
-        """
-
-        lattice_size = [
-            "CNN",
-            "CvT",
-            "CvT2",
-            "CvT3",
-            "CNNPh",
-            "EDPPh",
-            "CNNClsf",
-            "CvTaps",
-            "MLP",
-        ]
-
-        if "module" in setup.keys() and "setup" in setup.keys():
-            if setup["module"] in lattice_size:
-                setup["setup"]["lattice_size"] = external_args["lattice_size"]
-
-        # Recorrer todas las claves-valor
-        for _, val in setup.items():
-            if isinstance(val, dict):
-                self.insert_external_kwargs(val, external_args)
-
-    def preprocess_setup(self, setup: dict) -> dict:
-
-        clean_setup = {}
-
-        for k, v in setup.items():
-
-            if isinstance(v, dict):
-                v = self.preprocess_setup(v)
-
-            elif isinstance(v, list):
-                v = self.recursive_list_to_tuple(v)
-
-            elif "activation" in k:
-                if all([type(act) in [str, int] for act in v]):
-                    v = tuple([activation_dict[act] if act != 0 else 0 for act in v])
-
-            clean_setup[k] = v
-
-        return clean_setup
-
-    def get_model_class(self, module_name):
-        return NN_REGISTRY[module_name]
-
-    def build_module(self, config, **kwargs):
-
-        module_name = config["module"]
-        setup = config["setup"]
-        clss = self.get_model_class(module_name)
-
-        if module_name == "SplitTraining":
-            modulus = self.build_module(config["modulus_setup"])
-            phase = self.build_module(config["phase_setup"])
-            lattice_size = kwargs["lattice_size"] if config["symm_2D"] else None
-            return clss(
-                modulus=modulus,
-                phase=phase,
-                symm_Z2=config["symm_Z2"],
-                trivial_Z2=config["trivial_Z2"],
-                symm_2D=config["symm_2D"],
-                lattice_size=lattice_size,
-            )
-
-        elif module_name == "Sequential":
-            core_module = self.build_module(setup["Core"])
-            final_module = self.build_module(setup["Ending"])
-            lattice_size = kwargs["lattice_size"] if config["symm_2D"] else None
-            return clss(
-                core=core_module,
-                ending=final_module,
-                symm_Z2=config["symm_Z2"],
-                trivial_Z2=config["trivial_Z2"],
-                symm_2D=config["symm_2D"],
-                lattice_size=lattice_size,
-            )
-
-        else:
-            return clss(**setup)
