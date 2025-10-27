@@ -2,105 +2,139 @@ import flax.linen as nn
 import jax
 import jax.typing as jt
 import jax.numpy as jnp
-from typing import Tuple
+from typing import Tuple, Any
 from netket.nn import log_cosh
 from .ViT_2D import MultiLayerPerceptron
+from ..toolbox import (
+    DepthPointwiseConv,
+    two_heads,
+    two_heads_phasors,
+    glu_phasor,
+    get_mask,
+)
 
 REAL_DTYPE = jnp.float64
 
+###########################################################################
+# APS equivariance correction functions
+###########################################################################
 
-def get_mask() -> jnp.ndarray:
-    return jnp.array(
-        [  # Mascara para red triangular
-            [0, 1, 1],
-            [1, 1, 1],
-            [1, 1, 0],
-        ]
+
+def vmap_P_traslations(x, P_shifts):
+
+    batched_traslations = lambda x, shift: jnp.roll(x, shift=shift, axis=(0, 1))
+
+    return jax.vmap(batched_traslations)(x, P_shifts)
+
+
+def scan_P_traslations(x, P_shifts):
+
+    def rollit(i, x_batch):
+        x_b_trasl = jnp.roll(x_batch, shift=P_shifts[i], axis=(0, 1))
+        return i + 1, x_b_trasl
+
+    _, x_trasl = jax.lax.scan(rollit, init=0, xs=x)
+
+    return x_trasl
+
+
+def polyphase_components(x, strides):
+
+    B, H, W, C = x.shape
+    Hd, Wd = (
+        H // strides[0],
+        W // strides[1],
+    )
+    xt = (
+        x.reshape((B, Hd, strides[0], Wd, strides[1], C))
+        .transpose((0, 1, 3, 4, 2, 5))
+        .reshape((B, Hd * Wd, *strides, C))
+        .transpose((0, 3, 2, 1, 4))
     )
 
+    shape = xt.shape
+    poly_comp = xt.reshape(shape[0], shape[1] * shape[2], shape[3] * shape[4])
 
-def all2one_pool(x):
-    return nn.avg_pool(x, window_shape=(x.shape[1], x.shape[2]), strides=(1, 1))
+    return poly_comp
 
 
-class glu_phasor(nn.Module):
-    """Transforms input into phasors, do pooling in each channel,
-    applies the GLU activation function and sum over phasors.
-
-    Args:
-        x: Input array of shape (N_batch, N_spins, N_channels).
+def get_maxnorm_indices(x, strides):
+    """
+    This function returns the traslation indices for a batched input of shape (B, H, W, C).
+    It computes the polyphase components of a grid for each batch and channel, calculates
+    the L2 norm for each component and chooses the indices of the maximum value component.
+    It works for both 1D and 2D inputs.
+    Input:
+        - x: (jnp.ArrayLike) Input data.
+        - strides: (tuple) Strides for the next downsampling convolution.
 
     Returns:
-        A 1D array (N_batches, 1).
+        - x: Shifts (translations) for all batches and channels which makes the input
+             traslationaly equivariant.
+
     """
+    _, H, W, _ = x.shape
+    assert (H % strides[0] == 0) & (
+        W % strides[1] == 0
+    ), f"`lattice_size` must be disible by `strides`. But they are {(H,W)} and {strides}"
+
+    poly_comp = polyphase_components(x, strides)
+
+    norm = jnp.linalg.norm(poly_comp, axis=-1)
+    flat_idx = jnp.argmax(norm, axis=-1, keepdims=False)
+    p, q = jnp.unravel_index(flat_idx, strides)
+    anchors = jnp.array([-p, -q]).T
+
+    return anchors
+
+
+def APS_equivariance_adapter(x, strides, mode="vmap"):
+
+    P_shifts = get_maxnorm_indices(x, strides)
+
+    if mode == "scan":
+        x = scan_P_traslations(x, P_shifts)
+    elif mode == "vmap":
+        x = vmap_P_traslations(x, P_shifts)
+    else:
+        raise ValueError(f"No such mode: {mode}")
+    return x
+
+
+###########################################################################
+# Modules with APS equivariance correction
+###########################################################################
+
+
+class ConvAPS(nn.Module):
+
+    features: int
+    kernel_size: Tuple = (3, 3)
+    strides: Tuple = (1, 1)
+    mask: jt.ArrayLike | None = None
+    feature_group_count: int = 1
+    padding: str = "SAME"
+    dtype: Any = REAL_DTYPE
+    use_bias: bool = False
 
     @nn.compact
     def __call__(self, x: jt.ArrayLike) -> jt.ArrayLike:
 
-        # phasors
+        if any([s > 1 for s in self.strides]):  # Downsampling APS correction
+            x = APS_equivariance_adapter(x, self.strides)
 
-        x = nn.glu(x.mean(axis=1))
+        x = nn.Conv(
+            features=self.features,
+            kernel_size=self.kernel_size,
+            strides=self.strides,
+            mask=self.mask,
+            feature_group_count=self.feature_group_count,
+            padding=self.padding,
+            dtype=self.dtype,
+            use_bias=self.use_bias,
+        )(x)
 
-        x = jnp.exp(1j * x).sum(axis=-1)
-
-        return jnp.angle(x)
-
-
-class two_heads(nn.Module):
-    """
-    Two heads for complex output
-    """
-
-    final_architecture: Tuple = (5,)
-
-    @nn.compact
-    def __call__(self, x: jt.ArrayLike) -> jt.ArrayLike:
-
-        x = x.reshape((x.shape[0], -1))
-        log_modulus = nn.Dense(1)(MultiLayerPerceptron(self.final_architecture)(x))
-        phase = nn.Dense(1)(MultiLayerPerceptron(self.final_architecture)(x))
-
-        return (log_modulus + 1j * phase).astype(jnp.complex128).squeeze()
-
-
-class two_heads_sincos(nn.Module):
-    """
-    Two heads for complex output with prediction for sin and cos of the phase
-    """
-
-    final_architecture: Tuple = (5,)
-
-    @nn.compact
-    def __call__(self, x: jt.ArrayLike) -> jt.ArrayLike:
-
-        x = x.reshape((x.shape[0], -1))
-        log_modulus = nn.Dense(1)(MultiLayerPerceptron(self.final_architecture)(x))
-        sin = nn.Dense(1)(MultiLayerPerceptron(self.final_architecture)(x))
-        cos = nn.Dense(1)(MultiLayerPerceptron(self.final_architecture)(x))
-        phase = jnp.arctan2(sin, cos)
-
-        return (log_modulus + 1j * phase).astype(jnp.complex128).squeeze()
-
-
-class two_heads_phasors(nn.Module):
-    """
-    Two heads for complex output
-    """
-
-    final_architecture: Tuple = (5,)
-
-    @nn.compact
-    def __call__(self, x: jt.ArrayLike) -> jt.ArrayLike:
-
-        x = x.reshape(x.shape[0], -1, x.shape[-1])
-        phase = glu_phasor()(x)
-
-        x = x.mean(axis=1)
-        log_modulus = nn.Dense(1)(
-            MultiLayerPerceptron(self.final_architecture)(x)
-        ).squeeze()
-
-        return (log_modulus + 1j * phase).astype(jnp.complex128).squeeze()
+        return x
 
 
 class DepthPointwiseConv(nn.Module):
@@ -123,11 +157,11 @@ class DepthPointwiseConv(nn.Module):
             mask = None
 
         # Depth-wise convolution (Aplica mascara adyacente a cada canal)
-        x = nn.Conv(
+        x = ConvAPS(
             features=Ch_in,
             kernel_size=self.kernel,
             feature_group_count=Ch_in,
-            strides=(1, 1),
+            strides=self.strides,
             padding="CIRCULAR",
             # mask=mask,
             dtype=REAL_DTYPE,
@@ -154,13 +188,11 @@ class ConvProjectionBlock(nn.Module):
     channels: int
     n_heads: int = 1
     kernel: Tuple = (3, 3)
-    strides_qkv: Tuple[Tuple, Tuple, Tuple] = ((1, 1), (1, 1), (1, 1))
+    strides_qkv: Tuple[Tuple, Tuple, Tuple] = ((1, 1), (2, 2), (2, 2))
     n_mlp_layers: int = 1
 
     @nn.compact
     def __call__(self, x: jt.ArrayLike) -> jt.ArrayLike:
-        # print(f"Begging ConvProjectionBlock")
-        # print(f"Input shape: {x.shape}")
 
         # Convolutional projection
         # x (B,H,W,Ch_in)
@@ -220,7 +252,7 @@ class ConvProjectionBlock(nn.Module):
         )(x_ffn)
         x_ffn = x_ffn.reshape((B, Hq, Wq, self.channels))
         x_ffn = nn.LayerNorm(dtype=REAL_DTYPE)(x_ffn)
-        # print(f"After MLP: {x_ffn.shape}")
+
         return x + x_ffn
 
 
@@ -236,9 +268,9 @@ class StageBlock(nn.Module):
     """
 
     n_CP_blocks: int  # Number of convolutional projection blocks in the stage
-    CTemb_channels: int  # Number of channels in the convolutional token embedding
-    CP_channels: int  # Number of channels for each convolutional projection block
+    channels: int  # Number of channels in the convolutional token embedding
     n_heads: int  # Number of heads for each block
+    strides: Tuple = (1, 1)  # Strides for the convolutional token embedding
     kernel: Tuple = (3, 3)  # Kernel size for the convolutional operations (must be 3x3)
 
     @nn.compact
@@ -248,19 +280,20 @@ class StageBlock(nn.Module):
 
         mask = get_mask()
         mask = jnp.broadcast_to(
-            mask[:, :, None, None], (*mask.shape, x.shape[-1], self.CTemb_channels)
+            mask[:, :, None, None], (*mask.shape, x.shape[-1], self.channels)
         )
         if self.kernel[1] == 1:
             mask = None
 
         # Convolutional token embedding
-        x = nn.Conv(
-            features=self.CTemb_channels,
+        x = ConvAPS(
+            features=self.channels,
             kernel_size=self.kernel,
-            strides=(1, 1),
+            strides=self.strides,
             padding="CIRCULAR",
             # mask=mask,
             dtype=REAL_DTYPE,
+            use_bias=False,
         )(x)
 
         x = nn.LayerNorm(dtype=REAL_DTYPE)(x)
@@ -268,15 +301,13 @@ class StageBlock(nn.Module):
         # Convolutional projection blocks
         for _ in range(self.n_CP_blocks):
             x = ConvProjectionBlock(
-                channels=self.CP_channels,
-                n_heads=self.n_heads,
-                kernel=self.kernel,
+                channels=self.channels, n_heads=self.n_heads, kernel=self.kernel
             )(x)
 
         return log_cosh(x)
 
 
-class CvTWorker(nn.Module):
+class CvTapsWorker(nn.Module):
     """
     Convolutional Vision Transformer (CvT) implementation.
     It consists of multiple stages, each containing a convolutional token embedding
@@ -284,11 +315,8 @@ class CvTWorker(nn.Module):
     Inputs:
         n_stages: Number of stages in the CvT model.
         n_blocks: Number of convolutional projection blocks in each stage.
-        CTemb_channels: Number of channels in the convolutional token embedding in
+        channels: Number of channels in the convolutional token embedding in
                         each stage.
-        proj_channels_setup: Tuple of tuples, where each inner tuple contains the
-                             number of channels for each convolutional projection block
-                             in the stage.
         kernel: Kernel size for the convolutional operations.
     Outputs:
         x: Output tensor. If `two_heads` is True, it returns a complex output with
@@ -297,25 +325,25 @@ class CvTWorker(nn.Module):
 
     lattice_size: Tuple[int, int]
 
+    "CvTaps parameters"
     n_CP_blocks: Tuple[
         int, ...
     ]  # Number of convolutional projection blocks in each stage
-    CTemb_channels: Tuple[
+    channels: Tuple[
         int, ...
     ]  # Number of channels in the convolutional token embedding.
-    CP_channels: Tuple[
-        int, ...
-    ]  # Number of channels for each convolutional projection block in each stage.
     attn_heads: Tuple[
         int, ...
     ]  # Number of heads for each convolutional projection block in each stage.
+    strides: Tuple[Tuple, ...] = (1, 1)  # Strides for each stage
     kernel: Tuple = (3, 3)  # Kernel size for the convolutional operations (must be 3x3)
-    final_architecture: Tuple = (5,)
+    final_architecture: Tuple | None = None
+
+    "Exit modes"
     two_heads: bool = (
         False  # If True, the output will be a complex number with modulus and phase
     )
-    two_heads_sincos: bool = False  # The same but with sin and cos for the phase
-    phasors: bool = False  # If True, apply GLU phasor activation before the final MLP
+    phasors: bool = False
 
     @nn.compact
     def __call__(self, x: jt.ArrayLike) -> jt.ArrayLike:
@@ -330,75 +358,81 @@ class CvTWorker(nn.Module):
 
             x = StageBlock(
                 n_CP_blocks=self.n_CP_blocks[i],
-                CTemb_channels=self.CTemb_channels[i],
-                CP_channels=self.CP_channels[i],
+                channels=self.channels[i],
                 n_heads=self.attn_heads[i],
+                strides=self.strides[i],
                 kernel=self.kernel,
             )(x)
 
-        # Phasors and glu activation if true
-        if self.phasors:
-            return glu_phasor()(  # Salida float (phase)
-                x.reshape(x.shape[0], -1, x.shape[-1])
-            )
-            # return two_heads_phasors(            # Salida complex (mod + phase)
-            #   self.final_architecture
-            # )(x)
+        # Works with termination module by default
+        if self.final_architecture is None:
+            return x
 
-        x = x.reshape(B, -1, x.shape[-1]).mean(axis=1)
-        # Final MLP layer
-        x = x.reshape((B, -1))
+        # To work only with this module, we distinguish between real output
+        # and imaginary output (modulus + phase).
+        x = x.reshape(B, -1, x.shape[-1])
+
         if self.two_heads:
-            return two_heads(self.final_architecture)(x)
-        elif self.two_heads_sincos:
-            return two_heads_sincos(self.final_architecture)(x)
+
+            if self.phasors:
+                return two_heads_phasors(self.final_architecture)(x)
+
+            else:
+                x = x.mean(axis=1)
+                x = x.reshape((B, -1))
+                return two_heads(self.final_architecture)(x)
+
         else:
-            return nn.Dense(1)(
-                MultiLayerPerceptron(self.final_architecture)(x)
-            ).squeeze()
+
+            if self.phasors:
+                return glu_phasor()(x)
+            else:
+                x = x.mean(axis=1)
+                x = x.reshape((B, -1))
+                return nn.Dense(1)(
+                    MultiLayerPerceptron(self.final_architecture)(x)
+                ).squeeze()
 
 
-class CvT_Z2(nn.Module):
+class CvTaps_Z2(nn.Module):
 
     lattice_size: Tuple[int, int]
 
+    "CvTaps parameters"
     n_CP_blocks: Tuple[
         int, ...
     ]  # Number of convolutional projection blocks in each stage
-    CTemb_channels: Tuple[
+    channels: Tuple[
         int, ...
     ]  # Number of channels in the convolutional token embedding.
-    CP_channels: Tuple[
-        int, ...
-    ]  # Number of channels for each convolutional projection block in each stage.
     attn_heads: Tuple[
         int, ...
     ]  # Number of heads for each convolutional projection block in each stage.
+    strides: Tuple[Tuple, ...] = (1, 1)  # Strides for each stage
     kernel: Tuple = (3, 3)  # Kernel size for the convolutional operations (must be 3x3)
-    final_architecture: Tuple = (5,)
+    final_architecture: Tuple | None = None
+
+    "Exit modes"
     two_heads: bool = (
         False  # If True, the output will be a complex number with modulus and phase
     )
-    two_heads_sincos: bool = False  # The same but with sin and cos for the phase
     phasors: bool = False
 
-    trivial_Z2: bool = (
-        True  # If True, the wavefunction is even under global Z2 transformation
-    )
+    "Symmetries"
+    trivial_Z2: bool = True
 
     @nn.compact
     def __call__(self, x: jt.ArrayLike) -> jt.ArrayLike:
 
-        worker = CvTWorker(
+        worker = CvTapsWorker(
             lattice_size=self.lattice_size,
             n_CP_blocks=self.n_CP_blocks,
-            CTemb_channels=self.CTemb_channels,
-            CP_channels=self.CP_channels,
+            channels=self.channels,
             attn_heads=self.attn_heads,
+            strides=self.strides,
             kernel=self.kernel,
             final_architecture=self.final_architecture,
             two_heads=self.two_heads,
-            two_heads_sincos=self.two_heads_sincos,
             phasors=self.phasors,
         )
         output_x = jnp.atleast_1d(worker(x))
@@ -408,36 +442,37 @@ class CvT_Z2(nn.Module):
         z2_stack = jnp.stack([output_x, output_inv_x], axis=0)
 
         if self.trivial_Z2:
-            return jax.nn.logsumexp(z2_stack, axis=0, keepdims=False)
+            return jax.nn.logsumexp(z2_stack, axis=0)
         else:
             b = jnp.asarray([1.0, -1.0])[:, None]  # shape (2,1)
-            return jax.nn.logsumexp(z2_stack, b=b, axis=0, keepdims=False)
+            return jax.nn.logsumexp(z2_stack, b=b, axis=0)
 
 
-class CvT3(nn.Module):
+class CvTaps(nn.Module):
 
     lattice_size: Tuple[int, int]
 
+    "CvTaps parameters"
     n_CP_blocks: Tuple[
         int, ...
     ]  # Number of convolutional projection blocks in each stage
-    CTemb_channels: Tuple[
+    channels: Tuple[
         int, ...
     ]  # Number of channels in the convolutional token embedding.
-    CP_channels: Tuple[
-        int, ...
-    ]  # Number of channels for each convolutional projection block in each stage.
     attn_heads: Tuple[
         int, ...
     ]  # Number of heads for each convolutional projection block in each stage.
+    strides: Tuple[Tuple, ...] = (1, 1)  # Strides for each stage
     kernel: Tuple = (3, 3)  # Kernel size for the convolutional operations (must be 3x3)
-    final_architecture: Tuple = (5,)
+    final_architecture: Tuple | None = None
+
+    "Exit modes"
     two_heads: bool = (
         False  # If True, the output will be a complex number with modulus and phase
     )
-    two_heads_sincos: bool = False  # The same but with sin and cos for the phase
     phasors: bool = False
 
+    "Symmetries"
     symm_Z2: bool = (
         False  # If True, the wavefunction is even under global Z2 transformation
     )
@@ -447,30 +482,28 @@ class CvT3(nn.Module):
     def __call__(self, x: jt.ArrayLike) -> jt.ArrayLike:
 
         if self.symm_Z2:
-            worker = CvT_Z2(
+            worker = CvTaps_Z2(
                 lattice_size=self.lattice_size,
                 n_CP_blocks=self.n_CP_blocks,
-                CTemb_channels=self.CTemb_channels,
-                CP_channels=self.CP_channels,
+                channels=self.channels,
                 attn_heads=self.attn_heads,
+                strides=self.strides,
                 kernel=self.kernel,
                 final_architecture=self.final_architecture,
                 two_heads=self.two_heads,
-                two_heads_sincos=self.two_heads_sincos,
                 trivial_Z2=self.trivial_Z2,
                 phasors=self.phasors,
             )
         else:
-            worker = CvTWorker(
+            worker = CvTapsWorker(
                 lattice_size=self.lattice_size,
                 n_CP_blocks=self.n_CP_blocks,
-                CTemb_channels=self.CTemb_channels,
-                CP_channels=self.CP_channels,
+                channels=self.channels,
                 attn_heads=self.attn_heads,
+                strides=self.strides,
                 kernel=self.kernel,
                 final_architecture=self.final_architecture,
                 two_heads=self.two_heads,
-                two_heads_sincos=self.two_heads_sincos,
                 phasors=self.phasors,
             )
 

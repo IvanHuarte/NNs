@@ -1,24 +1,23 @@
-# Importation of single modules
-from .CNN import CNN
-from .CvT import CvT
-from .CvT2 import CvT2
-from .CvT3 import CvT3
-from .CvTaps import CvTaps
-from .MLP import MLP
-from .Phase import CNNPh, EDPPh, CNNClsf
-from .ViT_2D import ViT2D
-from .ViT import ViT
-
 # Importation of factories
 from .Factories.SplitTraining import SplitTraining
 from .Factories.Sequential import Sequential
+from .Factories.Transversal import Transversal
+
+# Importation of single modules
+from .SingleModels.CNN import CNN
+from .SingleModels.CvT import CvT
+from .SingleModels.CvTaps import CvTaps
+from .SingleModels.MLP import MLP
+from .SingleModels.Phase import CNNPh, EDPPh, CNNClsf
+from .SingleModels.ViT_2D import ViT2D
+from .SingleModels.ViT import ViT
+
+# Final Architecture modules
 
 
 __all__ = [
     "CNN",
     "CvT",
-    "CvT2",
-    "CvT3",
     "CvTaps",
     "CNNPh",
     "EDPPh",
@@ -26,25 +25,23 @@ __all__ = [
     "MLP",
     "ViT2D",
     "ViT",
-
     "SplitTraining",
-    "Sequential"
+    "Sequential",
+    "Transversal",
 ]
 
 REGISTRY = {
-    None : None,
-    "CNN":CNN,
-    "CvT":CvT,
-    "CvT2":CvT2,
-    "CvT3":CvT3,
-    "CvTaps":CvTaps,
-    "CNNPh":CNNPh,
-    "EDPPh":EDPPh,
-    "CNNClsf":CNNClsf,
-    "MLP":MLP,
-    "ViT2D":ViT2D,
-    "ViT":ViT,
-    
-    "SplitTraining":SplitTraining,
-    "Sequential":Sequential,
+    None: None,
+    "CNN": CNN,
+    "CvT": CvT,
+    "CvTaps": CvTaps,
+    "CNNPh": CNNPh,
+    "EDPPh": EDPPh,
+    "CNNClsf": CNNClsf,
+    "MLP": MLP,
+    "ViT2D": ViT2D,
+    "ViT": ViT,
+    "SplitTraining": SplitTraining,
+    "Sequential": Sequential,
+    "Transversal": Transversal,
 }

@@ -7,7 +7,7 @@ import jax.typing as jt
 import netket as nk
 import numpy.typing as npt
 
-from ..NN_utils import REAL_DTYPE, circulant
+from NN_module.NN_utils import REAL_DTYPE, circulant
 
 
 class MultiLayerPerceptron(nn.Module):
@@ -193,13 +193,10 @@ class RealSpinViT(nn.Module):
             # print(f"After CoreBlock: {x.shape}")
 
         # Sum over tokens (set pooling operation).
-        # print(f"Entering pooling operation. ")
         x = x.sum(axis=0)
-        # print(f"After pooling: {x.shape}")
-        postprocessor = MultiLayerPerceptron(self.final_architecture)
-        x = postprocessor(x)
-        # print(f"After postprocessing: {x.shape}")
-        # print(f"And finished with Dense(1) to get the final output.\n\n")
+
+        x = MultiLayerPerceptron(self.final_architecture)(x)
+
         # Fix the offset and scale.
         return nn.Dense(1, param_dtype=REAL_DTYPE)(x).squeeze()
 

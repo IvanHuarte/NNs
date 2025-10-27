@@ -1,29 +1,29 @@
 import jax
 import jax.numpy as jnp
 import flax.linen as nn
-from typing import Tuple, Any
-from frozendict import frozendict as FrozenDict
+from typing import Tuple
 
 from NN_module.NN_utils import traslations_2D
+
 
 class Sequential_Worker(nn.Module):
     """
     Flax module to train module and phase separately
     """
 
-    Core: nn.Module
+    Seq: Tuple[nn.Module, ...]
     End: nn.Module | None
 
     def setup(self):
 
-        self.core = self.Core
-        self.end = self.End if (
-            isinstance(self.End, nn.Module)
-            ) else lambda x: x 
+        self.seq = self.Seq
+        self.end = self.End if (isinstance(self.End, nn.Module)) else lambda x: x
 
     def __call__(self, x: jnp.ndarray) -> jnp.ndarray:
 
-        x = self.core(x)
+        for module in self.seq:
+            x = module(x)
+
         x = self.end(x)
 
         return x
@@ -31,7 +31,7 @@ class Sequential_Worker(nn.Module):
 
 class Sequential_2D(nn.Module):
 
-    Core: nn.Module
+    Seq: Tuple[nn.Module, ...]
     End: nn.Module
 
     lattice_size: Tuple[int, int] = None
@@ -39,10 +39,7 @@ class Sequential_2D(nn.Module):
     @nn.compact
     def __call__(self, x):
 
-        worker = Sequential_Worker(
-            Core=self.Core, 
-            End=self.End
-        )
+        worker = Sequential_Worker(Seq=self.Seq, End=self.End)
 
         # 2D traslation
         traslational_x = traslations_2D(
@@ -54,7 +51,7 @@ class Sequential_2D(nn.Module):
 
 class Sequential_Z2(nn.Module):
 
-    Core: nn.Module
+    Seq: Tuple[nn.Module, ...]
     End: nn.Module | None
 
     lattice_size: Tuple[int, int] = None
@@ -68,22 +65,19 @@ class Sequential_Z2(nn.Module):
 
         if self.symm_2D:
             worker = Sequential_2D(
-                Core=self.Core, 
+                Seq=self.Seq,
                 End=self.End,
                 lattice_size=self.lattice_size,
             )
         else:
-            worker = Sequential_Worker(
-                core_class=self.core_class,
-                ending_class=self.ending_class,
-            )
+            worker = Sequential_Worker(Seq=self.Seq, End=self.End)
 
         output_x = jnp.atleast_1d(worker(x))
         output_inv_x = jnp.atleast_1d(worker(-x))
 
         # Concatenamos las dos contribuciones
         z2_stack = jnp.stack([output_x, output_inv_x], axis=0)
-        
+
         if self.trivial_Z2:
             res = jax.nn.logsumexp(z2_stack, axis=0)
             return res
@@ -95,12 +89,12 @@ class Sequential_Z2(nn.Module):
 
 class Sequential(nn.Module):
     """
-    Flax module to have a general model (core) which carries and trains
+    Flax module to have a general model (Seq) which carries and trains
     global information of the system and ending up with an ending model
     which carries the dimensional reduction and/or modulus-phase spliting.
     """
 
-    Core: nn.Module
+    Seq: Tuple[nn.Module, ...]
     End: nn.Module | None
 
     "Symmetries"
@@ -116,23 +110,18 @@ class Sequential(nn.Module):
 
         if self.symm_Z2:
             worker = Sequential_Z2(
-                Core=self.Core, 
+                Seq=self.Seq,
                 End=self.End,
                 trivial_Z2=self.trivial_Z2,
                 symm_2D=self.symm_2D,
-                lattice_size=self.lattice_size
+                lattice_size=self.lattice_size,
             )
         elif self.symm_2D:
             worker = Sequential_2D(
-                Core=self.Core, 
-                End=self.End,
-                lattice_size=self.lattice_size
+                Seq=self.Seq, End=self.End, lattice_size=self.lattice_size
             )
         else:
-            worker = Sequential_Worker(
-                Core=self.Core, 
-                End=self.End
-            )
+            worker = Sequential_Worker(Seq=self.Seq, End=self.End)
 
         x = worker(x)
 

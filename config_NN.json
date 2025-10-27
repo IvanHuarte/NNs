@@ -1,7 +1,7 @@
 {
     "model_NN": {
 
-        "selection": "ST_MCvT3-None_MCvT3-None",
+        "selection": "ST_Transversal",
         
         "ViT": {
             "token_size": 2,
@@ -252,13 +252,22 @@
                 "modulus_setup":{
                     "module": "Sequential",
                     "setup":{
-                        "Core":{
-                            "module":"CvT3",
+                        "Seq_0":{
+                            "module":"CvT",
                             "setup":{
-                                "n_CP_blocks": [2, 2],
-                                "CTemb_channels": [32, 16],
-                                "CP_channels": [32, 16],
-                                "attn_heads": [4, 4],
+                                "n_CP_blocks": [2],
+                                "channels": [32],
+                                "attn_heads": [4],
+                                "kernel": [3, 3],
+                                "final_architecture": null
+                            }
+                        },
+                        "Seq_1":{
+                            "module":"CvT",
+                            "setup":{
+                                "n_CP_blocks": [2],
+                                "channels": [64],
+                                "attn_heads": [4],
                                 "kernel": [3, 3],
                                 "final_architecture": [128,5]
                             }
@@ -273,7 +282,65 @@
                 "phase_setup":{
                     "module": "Sequential",
                     "setup":{
-                        "Core":{
+                        "Seq_0":{
+                            "module":"CNNClsf",
+                            "setup":{
+                                "cnnclsf_channels": [64],
+                                "n_classes": 2
+                            }
+                        },
+                        "Ending":{
+                            "module": null,
+                            "setup":{}
+                        }
+                    }    
+                },
+
+                "symm_Z2": true,
+                "trivial_Z2": true,
+                "symm_2D": false
+
+            }         
+        },
+
+
+        "ST_Transversal":{
+
+            "module": "SplitTraining",
+            "setup":{
+
+                "modulus_setup":{
+                    "module": "Transversal",
+                    "setup":{
+                        "Trans_0":{
+                            "module":"CvT",
+                            "setup":{
+                                "n_CP_blocks": [2],
+                                "channels": [32],
+                                "attn_heads": [4],
+                                "kernel": [3, 3],
+                                "final_architecture": [128,5]
+                            }
+                        },
+                        "Trans_1":{
+                            "module":"CvT",
+                            "setup":{
+                                "n_CP_blocks": [2],
+                                "channels": [32],
+                                "attn_heads": [4],
+                                "kernel": [3, 3],
+                                "final_architecture": [128,5]
+                            }
+                        },
+                        "operation": "sum",
+                        "post_norm": true
+                    }
+                },
+
+                "phase_setup":{
+                    "module": "Sequential",
+                    "setup":{
+                        "Seq_0":{
                             "module":"CNNClsf",
                             "setup":{
                                 "cnnclsf_channels": [64],
@@ -293,5 +360,13 @@
 
             }         
         }
+
+
+
+
+
+
+
+
     }
 }

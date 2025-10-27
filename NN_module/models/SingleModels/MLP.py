@@ -5,36 +5,86 @@ import jax
 import jax.numpy as jnp
 from typing import Callable, Tuple, Any
 
-from ..NN_utils import traslations_2D
+from NN_module.NN_utils import traslations_2D
 
-DTYPE = jnp.complex128
+DTYPE = jnp.float64
 
 
 class MultiLayerPerceptron(nn.Module):
     """A simple multi-layer perceptron."""
 
-    N: int = None
     param_dtype: Any = DTYPE
     hidden_alpha: int | Tuple[int, ...] = None
     activation: Callable | Tuple[Callable, ...] = None
-    output_dim: int = 1
+    final_architecture: Tuple[int, ...] | None = None
 
     @nn.compact
     def __call__(self, x):
+
+        B = x.shape[0]
+
         if jnp.issubdtype(self.param_dtype, jnp.complexfloating):
             normalizer = lambda x: x
         else:
             normalizer = nn.LayerNorm(param_dtype=self.param_dtype)
 
-        hidden_dims = tuple([int(ha * self.N) for ha in self.hidden_alpha])
+        hidden_dims = tuple([int(ha * x.shape[0]) for ha in self.hidden_alpha])
 
         for hi, act in zip(hidden_dims, self.activation):
             x = normalizer(nn.Dense(hi, param_dtype=self.param_dtype)(x))
             if callable(act):
                 x = act(x)
-        x = nn.Dense(self.output_dim, param_dtype=self.param_dtype)(x)
+
+        # Works with termination module by default
+        if self.final_architecture is None:
+            return x
+
+        # To work only with this module, we distinguish between real output
+        # and imaginary output (modulus + phase).
+        x = x.reshape(B, -1, x.shape[-1])
+
+        if self.two_heads:
+
+            if self.phasors:
+                return two_heads_phasors(self.final_architecture)(x)
+
+            else:
+                x = x.mean(axis=1)
+                x = x.reshape((B, -1))
+                return two_heads(self.final_architecture)(x)
+
+        else:
+
+            if self.phasors:
+                return glu_phasor()(x)
+            else:
+                x = x.mean(axis=1)
+                x = x.reshape((B, -1))
+                return nn.Dense(1)(
+                    MultiLayerPerceptron(self.final_architecture)(x)
+                ).squeeze()
 
         return x
+
+
+class MLP_2D(nn.Module):
+    """A multi-layer perceptron with 2D-traslational symmetry"""
+
+    lattice_size: Tuple[int, int]
+    param_dtype: Any = DTYPE
+    hidden_alpha: Tuple[int, ...] = None
+    activation: Tuple[Callable, ...] = None
+    output_dim: int = 1
+
+    @nn.compact
+    def __call__(self, x):
+        N = self.lattice_size[0] * self.lattice_size[1]
+        worker = MultiLayerPerceptron(
+            N, self.param_dtype, self.hidden_alpha, self.activation, self.output_dim
+        )
+        traslational_x = traslations_2D(x, size=self.lattice_size, memory=False)
+
+        return jax.vmap(worker, in_axes=0)(traslational_x).mean(axis=0)
 
 
 class MLP_Z2(nn.Module):
@@ -65,59 +115,6 @@ class MLP_Z2(nn.Module):
             )
 
 
-class MLP_2D(nn.Module):
-    """A multi-layer perceptron with 2D-traslational symmetry"""
-
-    lattice_size: Tuple[int, int]
-    param_dtype: Any = DTYPE
-    hidden_alpha: Tuple[int, ...] = None
-    activation: Tuple[Callable, ...] = None
-    output_dim: int = 1
-
-    @nn.compact
-    def __call__(self, x):
-        N = self.lattice_size[0] * self.lattice_size[1]
-        worker = MultiLayerPerceptron(
-            N, self.param_dtype, self.hidden_alpha, self.activation, self.output_dim
-        )
-        traslational_x = traslations_2D(x, size=self.lattice_size, memory=False)
-
-        return jax.vmap(worker, in_axes=0)(traslational_x).mean(axis=0)
-
-
-class MLP_2D_Z2(nn.Module):
-    """A multi-layer perceptron with both 2D-traslational and Z2 symmetries"""
-
-    lattice_size: Tuple[int, int]
-    param_dtype: Any = jnp.complex64
-    hidden_alpha: int | Tuple[int, ...] = None
-    activation: Callable | Tuple[Callable, ...] = None
-    output_dim: int = 1
-    trivial: bool = True
-
-    @nn.compact
-    def __call__(self, x):
-        N = self.lattice_size[0] * self.lattice_size[1]
-        worker = MultiLayerPerceptron(
-            N, self.param_dtype, self.hidden_alpha, self.activation, self.output_dim
-        )
-
-        # 2D traslation
-        traslational_x = traslations_2D(  # shape = (token_dim, n_tokens, token_dim)
-            x, size=self.lattice_size, memory=False
-        )
-
-        output_x = jax.vmap(worker, in_axes=0)(traslational_x).mean(axis=0)
-        output_inv_x = jax.vmap(worker, in_axes=0)(-1.0 * traslational_x).mean(axis=0)
-
-        if self.trivial:
-            return jax.nn.logsumexp(jnp.array([output_x, output_inv_x]), axis=0)
-        else:
-            return jax.nn.logsumexp(
-                jnp.array([output_x, output_inv_x]), b=jnp.array([1.0, -1]), axis=0
-            )
-
-
 class MLP(nn.Module):
     """A batched multi-layer perceptron."""
 
@@ -133,17 +130,7 @@ class MLP(nn.Module):
     @nn.compact
     def __call__(self, batched_x):
 
-        if self.symm_Z2 and self.symm_2D:
-            worker = MLP_2D_Z2(
-                self.lattice_size,
-                self.param_dtype,
-                self.hidden_alpha,
-                self.activation,
-                self.output_dim,
-                self.trivial_Z2,
-            )
-
-        elif self.symm_2D and not self.symm_Z2:
+        if self.symm_Z2:
             worker = MLP_2D(
                 self.lattice_size,
                 self.param_dtype,
@@ -152,7 +139,7 @@ class MLP(nn.Module):
                 self.output_dim,
             )
 
-        elif not self.symm_2D and self.symm_Z2:
+        elif self.symm_2D:
             worker = MLP_Z2(
                 self.lattice_size,
                 self.param_dtype,

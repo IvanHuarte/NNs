@@ -1,6 +1,8 @@
 from frozendict import deepfreeze
 import flax.linen as nn
 from flax import traverse_util
+import jax
+import jax.numpy as jnp
 
 import NN_module.models
 from NN_module.models import REGISTRY
@@ -17,12 +19,13 @@ activation_dict = {
     "relu": nn.relu,
 }
 
-def print_tree(tree, prefix='', values = False):
+
+def print_tree(tree, prefix="", values=False):
     for key, val in tree.items():
-        
+
         if isinstance(val, dict):
             print(prefix + str(key))
-            print_tree(val, prefix + '  ', values=values)
+            print_tree(val, prefix + "  ", values=values)
         else:
             if values:
                 print(prefix + f"{str(key)}: {str(val)}")
@@ -35,29 +38,25 @@ class FactoryBuilder:
     def __init__(self, setup, **kwargs):
         """
         Class for automatically build an arbitry network architecture
-        based only on a configuration dictionary. It can use either 
-        simple modules and factories, being the latests flux information 
+        based only on a configuration dictionary. It can use either
+        simple modules and factories, being the latests flux information
         organizers.
         __init__:
-            -setup:(dict) Pytree dictionary which contains all NN 
+            -setup:(dict) Pytree dictionary which contains all NN
                     architecture information.
             -kwargs:(dict) External arguments needed by modules
-        
+
         First, it inserts recursively the kwargs in required setup sites
         via `insert_external_kwargs`. Next, it performs a prepocessing in
-        the setup data (`preprocess_setup`) and then `deepfreeze` it to 
+        the setup data (`preprocess_setup`) and then `deepfreeze` it to
         build an inmmutable and hashable dictionary. Finally, it builds
         the NN architecture via `build_module`
         """
 
         extra_args = kwargs
 
-        setup = self.insert_external_kwargs(
-            setup, extra_args
-        )
-        self.setup = deepfreeze(
-            self.preprocess_setup(setup)
-        )
+        setup = self.insert_external_kwargs(setup, extra_args)
+        self.setup = deepfreeze(self.preprocess_setup(setup))
         self.model = self.build_module(self.setup, extra_args)
 
     def get_model(self):
@@ -65,11 +64,22 @@ class FactoryBuilder:
 
     def get_model_class(self, module_name):
         return REGISTRY[module_name]
-    
+
+    def get_params_info(self, model, N, show_info=False):
+        variables = model.init(jax.random.PRNGKey(0), jnp.ones((1, N)))
+        params = variables["params"]
+        nbytes = sum(
+            x.size * x.dtype.itemsize for x in jax.tree_util.tree_leaves(params)
+        )
+        nparams = sum(x.size for x in jax.tree_util.tree_leaves(params))
+        if show_info:
+            print(f"NN stats: {nparams} parameters ({nbytes/(1024**2)} MB)")
+        return nparams, nbytes
+
     def print_setup(self, values=True):
         print_tree(self.setup, values=values)
         print("\n")
-    
+
     def recursive_list_to_tuple(self, target):
 
         out = []
@@ -79,7 +89,7 @@ class FactoryBuilder:
         else:
             return tuple(target)
         return tuple(out)
-    
+
     def insert_external_kwargs(self, setup: dict, external_args: dict):
         """
         To add some arguments (e.g. lattice_size) which are needed but not
@@ -95,24 +105,22 @@ class FactoryBuilder:
             "EDPPh",
             "CNNClsf",
             "CvTaps",
-            "MLP"
+            "MLP",
         ]
 
         # Add lattice_size to modules which natively need spatial info and/or
-        # is necesary to perform 2D traslational symmetries 
+        # is necesary to perform 2D traslational symmetries
         if "module" in setup.keys() and "setup" in setup.keys():
             if setup["module"] in latsize_nn:
                 setup["setup"]["lattice_size"] = external_args["lattice_size"]
 
         if "symm_2D" in setup:
-            setup['lattice_size'] = external_args["lattice_size"]
-
+            setup["lattice_size"] = external_args["lattice_size"]
 
         for _, val in setup.items():
             if isinstance(val, dict):
                 self.insert_external_kwargs(val, external_args)
-        
-        
+
         return setup
 
     def preprocess_setup(self, setup: dict) -> dict:
@@ -135,52 +143,73 @@ class FactoryBuilder:
 
         return clean_setup
 
-
     def build_module(self, setup, extra_args):
 
         module_name = setup["module"]
         setup = setup["setup"]
         clss = self.get_model_class(module_name)
 
-        symm_Z2=setup["symm_Z2"] if "symm_Z2" in setup else False
-        trivial_Z2=setup["trivial_Z2"] if "trivial_Z2" in setup else False
-        symm_2D=setup["symm_2D"] if "symm_Z2" in setup else False
-        lattice_size=setup["lattice_size"] if "symm_2D" in setup else None
-
-        print(module_name)
+        symm_Z2 = setup["symm_Z2"] if "symm_Z2" in setup else False
+        trivial_Z2 = setup["trivial_Z2"] if "trivial_Z2" in setup else False
+        symm_2D = setup["symm_2D"] if "symm_Z2" in setup else False
+        lattice_size = setup["lattice_size"] if "symm_2D" in setup else None
 
         if module_name == "SplitTraining":
             modulus = self.build_module(setup["modulus_setup"], extra_args)
             phase = self.build_module(setup["phase_setup"], extra_args)
-            
+
             return clss(
                 ModulusNet=modulus,
                 PhaseNet=phase,
                 symm_Z2=symm_Z2,
                 trivial_Z2=trivial_Z2,
                 symm_2D=symm_2D,
-                lattice_size=lattice_size
+                lattice_size=lattice_size,
             )
 
         elif module_name == "Sequential":
-            core_module = self.build_module(setup["Core"], extra_args)
+            seq_module = tuple(
+                [
+                    self.build_module(seq_setup, extra_args)
+                    for name, seq_setup in setup.items()
+                    if name != "Ending"
+                ]
+            )
             ending_module = self.build_module(setup["Ending"], extra_args)
 
             return clss(
-                Core=core_module,
+                Seq=seq_module,
                 End=ending_module,
                 symm_Z2=symm_Z2,
                 trivial_Z2=trivial_Z2,
                 symm_2D=symm_2D,
-                lattice_size=lattice_size
+                lattice_size=lattice_size,
             )
+
+        elif module_name == "Transversal":
+            trans_module = tuple(
+                [
+                    self.build_module(trans_setup, extra_args)
+                    for trans_setup in setup.values()
+                    if isinstance(trans_setup, dict)
+                ]
+            )
+
+            return clss(
+                Trans=trans_module,
+                operation=setup["operation"],
+                post_norm=setup["post_norm"],
+                symm_Z2=symm_Z2,
+                trivial_Z2=trivial_Z2,
+                symm_2D=symm_2D,
+                lattice_size=lattice_size,
+            )
+
         elif module_name is None:
-            return None            
+            return None
 
         else:
             return clss(**setup)
-        
-
 
 
 # def preprocess_setup(setup: dict) -> dict:
@@ -254,4 +283,3 @@ class FactoryBuilder:
 #             lattice_size=lattice_size,
 #             token_size=token_size,
 #         )
-

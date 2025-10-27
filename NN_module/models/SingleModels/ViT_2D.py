@@ -19,9 +19,9 @@ import jax
 import jax.numpy as jnp
 import jax.typing as jt
 import netket as nk
-import numpy.typing as npt
 
-from ..NN_utils import traslations_2D
+from NN_module.NN_utils import traslations_2D
+
 
 REAL_DTYPE = jnp.asarray(1.0).dtype
 
@@ -75,9 +75,6 @@ class AffinityPosWeight(nn.Module):
     def __call__(self, x: jt.ArrayLike) -> jt.ArrayLike:
         # print(x.shape)
 
-        # print(f"Input shape: {x.shape}")
-        # print(f"Weight row shape: {weight_row.shape}")
-
         # Traslation 2D
         if self.token_lattice_size is not None:
             weight_row = self.param(
@@ -97,9 +94,6 @@ class AffinityPosWeight(nn.Module):
                 REAL_DTYPE,
             )
             # weight = jnp.tile(weight_row, (x.shape[-2], 1))
-
-        # print(f"Weight shape: {weight.shape}")
-        # print(f"Output shape: {(weight @ x).shape}")
 
         return weight @ x
 

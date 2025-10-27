@@ -2,78 +2,18 @@ import flax.linen as nn
 import jax
 import jax.typing as jt
 import jax.numpy as jnp
-from typing import Callable, Tuple, Any
+from typing import Tuple
 from netket.nn import log_cosh
 from .ViT_2D import MultiLayerPerceptron
+from ..toolbox import (
+    DepthPointwiseConv,
+    two_heads,
+    two_heads_phasors,
+    glu_phasor,
+    get_mask,
+)
 
 REAL_DTYPE = jnp.float64
-
-
-def get_mask(
-    flag: bool = False,  # Por defacto, se usa la máscara de patches adyacentes
-) -> jnp.ndarray:
-
-    if flag:
-        mask = jnp.array(
-            [  # Mascara para red triangular
-                [0, 1, 1],
-                [1, 1, 1],
-                [1, 1, 0],
-            ]
-        )
-    else:
-        mask = jnp.array(
-            [  # Mascara para patches adyacentes
-                [0, 1, 0],
-                [1, 1, 1],
-                [0, 1, 0],
-            ]
-        )
-    return mask
-
-
-class DepthPointwiseConv(nn.Module):
-    """
-    Depthwise pointwise convolution
-    """
-
-    channels: int
-    kernel: Tuple = (3, 3)
-    strides: Tuple = (1, 1)
-
-    @nn.compact
-    def __call__(self, x: jt.ArrayLike) -> jt.ArrayLike:
-
-        mask = get_mask()
-        if self.kernel[1] == 1:
-            mask = mask[1][:, None]
-
-        # Depth-wise convolution (Aplica mascara adyacente a cada canal)
-        Ch_in = x.shape[-1]
-        x = nn.Conv(
-            features=Ch_in,
-            kernel_size=self.kernel,
-            feature_group_count=Ch_in,
-            strides=self.strides,
-            padding="CIRCULAR",  # 'CIRCULAR' para BC periódicas
-            mask=jnp.broadcast_to(mask[:, :, None, None], (*mask.shape, 1, Ch_in)),
-            dtype=REAL_DTYPE,
-            use_bias=False,
-        )(x)
-        # Normalizacion
-        x = nn.LayerNorm()(x)
-
-        # Point-wise convolution
-        x = nn.Conv(
-            features=self.channels,
-            kernel_size=(1, 1),
-            strides=(1, 1),
-            padding="SAME",  # 'CIRCULAR' para BC periódicas
-            dtype=REAL_DTYPE,
-            use_bias=False,
-        )(x)
-
-        return x
 
 
 class ConvProjectionBlock(nn.Module):
@@ -81,15 +21,17 @@ class ConvProjectionBlock(nn.Module):
     channels: int
     n_heads: int = 1
     kernel: Tuple = (3, 3)
-    strides_qkv: Tuple[Tuple, Tuple, Tuple] = ((1, 1), (2, 2), (2, 2))
+    strides_qkv: Tuple[Tuple, Tuple, Tuple] = ((1, 1), (1, 1), (1, 1))
     n_mlp_layers: int = 1
 
     @nn.compact
     def __call__(self, x: jt.ArrayLike) -> jt.ArrayLike:
         # print(f"Begging ConvProjectionBlock")
         # print(f"Input shape: {x.shape}")
+
         # Convolutional projection
         # x (B,H,W,Ch_in)
+
         B = x.shape[0]
         assert (
             self.channels % self.n_heads == 0
@@ -156,35 +98,34 @@ class StageBlock(nn.Module):
     convolutional projection blocks. x = (B, H, W, Ch)
     Inputs:
         n_blocks: Number of convolutional projection blocks in the stage.
-        CTemb_channels: Number of channels in the convolutional token embedding.
+        channels: Number of channels in the convolutional token embedding.
         proj_channels_setup: Tuple of tuples, where each inner tuple contains the
     """
 
     n_CP_blocks: int  # Number of convolutional projection blocks in the stage
-    CTemb_channels: int  # Number of channels in the convolutional token embedding
-    CP_channels: int  # Number of channels for each convolutional projection block
+    channels: Tuple[int, ...]  # Number of channels in each stage
     n_heads: int  # Number of heads for each block
     kernel: Tuple = (3, 3)  # Kernel size for the convolutional operations (must be 3x3)
-    CTE_triangular: bool = False
 
     @nn.compact
     def __call__(self, x: jt.ArrayLike) -> jt.ArrayLike:
         # print(f"Beginning Stage")
         # print(f"Input shape: {x.shape}")
 
-        mask = get_mask(flag=self.CTE_triangular)
+        mask = get_mask()
+        mask = jnp.broadcast_to(
+            mask[:, :, None, None], (*mask.shape, x.shape[-1], self.channels)
+        )
         if self.kernel[1] == 1:
-            mask = mask[1][:, None]
+            mask = None
 
         # Convolutional token embedding
         x = nn.Conv(
-            features=self.CTemb_channels,
+            features=self.channels,
             kernel_size=self.kernel,
-            strides=(2, 2),
+            strides=(1, 1),
             padding="CIRCULAR",
-            mask=jnp.broadcast_to(
-                mask[:, :, None, None], (*mask.shape, x.shape[-1], self.CTemb_channels)
-            ),
+            # mask=mask,
             dtype=REAL_DTYPE,
         )(x)
 
@@ -193,7 +134,7 @@ class StageBlock(nn.Module):
         # Convolutional projection blocks
         for _ in range(self.n_CP_blocks):
             x = ConvProjectionBlock(
-                channels=self.CP_channels,
+                channels=self.channels,
                 n_heads=self.n_heads,
                 kernel=self.kernel,
             )(x)
@@ -209,93 +150,101 @@ class CvTWorker(nn.Module):
     Inputs:
         n_stages: Number of stages in the CvT model.
         n_blocks: Number of convolutional projection blocks in each stage.
-        CTemb_channels: Number of channels in the convolutional token embedding in
+        channels: Number of channels in the convolutional token embedding in
                         each stage.
         proj_channels_setup: Tuple of tuples, where each inner tuple contains the
                              number of channels for each convolutional projection block
                              in the stage.
         kernel: Kernel size for the convolutional operations.
     Outputs:
-        x: Output tensor. If `two_heads` is True, it returns a complex output with modulus and phase.
-           Otherwise, it returns a real-valued output.
+        x: Output tensor. If `two_heads` is True, it returns a complex output with
+           modulus and phase. Otherwise, it returns a real-valued output.
     """
 
     lattice_size: Tuple[int, int]
 
-    n_CP_blocks_list: Tuple[
+    n_CP_blocks: Tuple[
         int, ...
     ]  # Number of convolutional projection blocks in each stage
-    CTemb_channels_list: Tuple[
-        int, ...
-    ]  # Number of channels in the convolutional token embedding.
-    CP_channels_list: Tuple[
-        int, ...
-    ]  # Number of channels for each convolutional projection block in each stage.
-    attn_heads_list: Tuple[
+    channels: Tuple[int, ...]  # Number of channels in each stage
+    attn_heads: Tuple[
         int, ...
     ]  # Number of heads for each convolutional projection block in each stage.
     kernel: Tuple = (3, 3)  # Kernel size for the convolutional operations (must be 3x3)
-    final_architecture: Tuple = (5,)
+    final_architecture: Tuple | None = None
     two_heads: bool = (
         False  # If True, the output will be a complex number with modulus and phase
     )
+    phasors: bool = False  # If True, apply GLU phasor activation before the final MLP
 
     @nn.compact
     def __call__(self, x: jt.ArrayLike) -> jt.ArrayLike:
         # print(f"Begging CvT")
         # print(f"Input shape: {x.shape}")
 
-        n_stages = len(self.n_CP_blocks_list)
+        n_stages = len(self.n_CP_blocks)
         x = x.reshape((-1, *self.lattice_size, 1))
 
         B = x.shape[0]
         for i in range(n_stages):
-            if i == 0:
-                CTE_triangular = True  # Aplica mascara triangular en el primer stage solo en el CTEmb
-            else:
-                CTE_triangular = False
 
             x = StageBlock(
-                n_CP_blocks=self.n_CP_blocks_list[i],
-                CTemb_channels=self.CTemb_channels_list[i],
-                CP_channels=self.CP_channels_list[i],
-                n_heads=self.attn_heads_list[i],
+                n_CP_blocks=self.n_CP_blocks[i],
+                channels=self.channels[i],
+                n_heads=self.attn_heads[i],
                 kernel=self.kernel,
-                CTE_triangular=CTE_triangular,
             )(x)
 
-        # Final MLP layer
-        x = x.reshape((B, -1))
+        # Works with termination module by default
+        if self.final_architecture is None:
+            return x
+
+        # To work only with this module, we distinguish between real output
+        # and imaginary output (modulus + phase).
+        x = x.reshape(B, -1, x.shape[-1])
+
         if self.two_heads:
-            log_modulus = nn.Dense(1)(MultiLayerPerceptron(self.final_architecture)(x))
-            phase = nn.Dense(1)(MultiLayerPerceptron(self.final_architecture)(x))
-            return (log_modulus + 1j * phase).astype(jnp.complex128).squeeze()
+
+            if self.phasors:
+                return two_heads_phasors(self.final_architecture)(x)
+
+            else:
+                x = x.mean(axis=1)
+                x = x.reshape((B, -1))
+                return two_heads(self.final_architecture)(x)
+
         else:
-            x = MultiLayerPerceptron(self.final_architecture)(x)
-            return nn.Dense(1)(x).squeeze()
+
+            if self.phasors:
+                return glu_phasor()(x)
+            else:
+                x = x.mean(axis=1)
+                x = x.reshape((B, -1))
+                return nn.Dense(1)(
+                    MultiLayerPerceptron(self.final_architecture)(x)
+                ).squeeze()
 
 
 class CvT_Z2(nn.Module):
 
     lattice_size: Tuple[int, int]
 
-    n_CP_blocks_list: Tuple[
+    n_CP_blocks: Tuple[
         int, ...
     ]  # Number of convolutional projection blocks in each stage
-    CTemb_channels_list: Tuple[
+    channels: Tuple[
         int, ...
     ]  # Number of channels in the convolutional token embedding.
-    CP_channels_list: Tuple[
-        int, ...
-    ]  # Number of channels for each convolutional projection block in each stage.
-    attn_heads_list: Tuple[
+    attn_heads: Tuple[
         int, ...
     ]  # Number of heads for each convolutional projection block in each stage.
     kernel: Tuple = (3, 3)  # Kernel size for the convolutional operations (must be 3x3)
-    final_architecture: Tuple = (5,)
+    final_architecture: Tuple | None = None
     two_heads: bool = (
         False  # If True, the output will be a complex number with modulus and phase
     )
+    phasors: bool = False
+
     trivial_Z2: bool = (
         True  # If True, the wavefunction is even under global Z2 transformation
     )
@@ -305,13 +254,13 @@ class CvT_Z2(nn.Module):
 
         worker = CvTWorker(
             lattice_size=self.lattice_size,
-            n_CP_blocks_list=self.n_CP_blocks_list,
-            CTemb_channels_list=self.CTemb_channels_list,
-            CP_channels_list=self.CP_channels_list,
-            attn_heads_list=self.attn_heads_list,
+            n_CP_blocks=self.n_CP_blocks,
+            channels=self.channels,
+            attn_heads=self.attn_heads,
             kernel=self.kernel,
             final_architecture=self.final_architecture,
             two_heads=self.two_heads,
+            phasors=self.phasors,
         )
         output_x = jnp.atleast_1d(worker(x))
         output_inv_x = jnp.atleast_1d(worker(-x))
@@ -330,23 +279,23 @@ class CvT(nn.Module):
 
     lattice_size: Tuple[int, int]
 
-    n_CP_blocks_list: Tuple[
+    n_CP_blocks: Tuple[
         int, ...
     ]  # Number of convolutional projection blocks in each stage
-    CTemb_channels_list: Tuple[
+    channels: Tuple[
         int, ...
     ]  # Number of channels in the convolutional token embedding.
-    CP_channels_list: Tuple[
-        int, ...
-    ]  # Number of channels for each convolutional projection block in each stage.
-    attn_heads_list: Tuple[
+
+    attn_heads: Tuple[
         int, ...
     ]  # Number of heads for each convolutional projection block in each stage.
     kernel: Tuple = (3, 3)  # Kernel size for the convolutional operations (must be 3x3)
-    final_architecture: Tuple = (5,)
+    final_architecture: Tuple | None = None
+
     two_heads: bool = (
         False  # If True, the output will be a complex number with modulus and phase
     )
+    phasors: bool = False
 
     symm_Z2: bool = (
         False  # If True, the wavefunction is even under global Z2 transformation
@@ -359,25 +308,25 @@ class CvT(nn.Module):
         if self.symm_Z2:
             worker = CvT_Z2(
                 lattice_size=self.lattice_size,
-                n_CP_blocks_list=self.n_CP_blocks_list,
-                CTemb_channels_list=self.CTemb_channels_list,
-                CP_channels_list=self.CP_channels_list,
-                attn_heads_list=self.attn_heads_list,
+                n_CP_blocks=self.n_CP_blocks,
+                channels=self.channels,
+                attn_heads=self.attn_heads,
                 kernel=self.kernel,
                 final_architecture=self.final_architecture,
                 two_heads=self.two_heads,
                 trivial_Z2=self.trivial_Z2,
+                phasors=self.phasors,
             )
         else:
             worker = CvTWorker(
                 lattice_size=self.lattice_size,
-                n_CP_blocks_list=self.n_CP_blocks_list,
-                CTemb_channels_list=self.CTemb_channels_list,
-                CP_channels_list=self.CP_channels_list,
-                attn_heads_list=self.attn_heads_list,
+                n_CP_blocks=self.n_CP_blocks,
+                channels=self.channels,
+                attn_heads=self.attn_heads,
                 kernel=self.kernel,
                 final_architecture=self.final_architecture,
                 two_heads=self.two_heads,
+                phasors=self.phasors,
             )
 
         output_x = worker(x)

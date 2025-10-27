@@ -165,7 +165,8 @@ for i, size in enumerate(sizes):
             time_in = time.time()
 
             # model = init_model(nn_model_name, nn_model_setup)
-            model = FactoryBuilder(nn_model_setup, **{"lattice_size": size}).get_model()
+            factory = FactoryBuilder(nn_model_setup, **{"lattice_size": size})
+            model = factory.get_model()
 
             sys.exit(0)
 
