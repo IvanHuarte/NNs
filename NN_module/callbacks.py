@@ -8,6 +8,7 @@ import numpy.typing as npt
 from typing import Optional
 from pathlib import Path
 
+
 class OnlineNormalizer:
     """Class to normalize energy and vscore"""
 
@@ -112,7 +113,7 @@ class BestIterKeeper:
             iteration falls under this threshold, the process will be stopped
             early.
         filename: Either None or a file to write the best state to.
-    """ 
+    """
 
     def __init__(
         self,
@@ -317,7 +318,12 @@ class EnergyPlotter:
 
         (self.energy,) = self.ax1.plot([], [], "-o", color="blue", label="Energía")
         (self.vscore,) = self.ax2.plot([], [], "-o", color="purple", label="Vscore")
+        (self.error,) = self.ax3.plot([], [], "-o", color="red", label="Error")
 
+        if E_ED is not None:
+            self.ax1.axhline(
+                E_ED, color="tab:green", linestyle="-", label="E_ED (Exact diag.)"
+            )
         if E_prev is not None:
             self.ax1.axhline(
                 E_prev,
@@ -326,16 +332,11 @@ class EnergyPlotter:
                 alpha=0.8,
                 label="Energía inicial",
             )
-        if E_ED is not None:
-            self.ax1.axhline(
-                E_ED, color="tab:green", linestyle="-", label="E_ED (Exact diag.)"
-            )
         if vs_prev is not None:
             self.ax2.axhline(
                 vs_prev, color="tab:purple", linestyle="--", label="Vscore inicial"
             )
         if error_prev is not None:
-            (self.error,) = self.ax3.plot([], [], "-o", color="red", label="Error")
             self.ax3.axhline(
                 error_prev,
                 color="tab:red",
@@ -347,15 +348,18 @@ class EnergyPlotter:
         self.ax1.set_ylabel("Energía")
         self.ax1.set_title("Refinement callback")
         self.ax1.legend(fontsize=8)
+        self.ax3.grid()
 
         self.ax2.set_ylabel("Vscore")
         self.ax2.set_yscale("log")
         self.ax2.legend(fontsize=8)
+        self.ax2.grid()
 
         self.ax3.set_xlabel("Iteración")
         self.ax3.set_ylabel("Error")
         self.ax3.set_yscale("log")
         self.ax3.legend(fontsize=8)
+        self.ax3.grid()
 
     def __call__(self, step, log_data, driver):
         # Calcula la energía y vstate en este step

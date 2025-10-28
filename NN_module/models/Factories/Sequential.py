@@ -1,7 +1,7 @@
 import jax
 import jax.numpy as jnp
 import flax.linen as nn
-from typing import Tuple
+from typing import Tuple, Callable
 
 from NN_module.NN_utils import traslations_2D
 
@@ -13,6 +13,8 @@ class Sequential_Worker(nn.Module):
 
     Seq: Tuple[nn.Module, ...]
     End: nn.Module | None
+
+    squeeze: Callable = lambda x: x
 
     def setup(self):
 
@@ -26,20 +28,21 @@ class Sequential_Worker(nn.Module):
 
         x = self.end(x)
 
-        return x
+        return self.squeeze(x)
 
 
 class Sequential_2D(nn.Module):
 
     Seq: Tuple[nn.Module, ...]
     End: nn.Module
+    squeeze: Callable = lambda x: x
 
     lattice_size: Tuple[int, int] = None
 
     @nn.compact
     def __call__(self, x):
 
-        worker = Sequential_Worker(Seq=self.Seq, End=self.End)
+        worker = Sequential_Worker(Seq=self.Seq, End=self.End, squeeze=self.squeeze)
 
         # 2D traslation
         traslational_x = traslations_2D(
@@ -53,6 +56,7 @@ class Sequential_Z2(nn.Module):
 
     Seq: Tuple[nn.Module, ...]
     End: nn.Module | None
+    squeeze: Callable = lambda x: x
 
     lattice_size: Tuple[int, int] = None
 
@@ -68,6 +72,7 @@ class Sequential_Z2(nn.Module):
                 Seq=self.Seq,
                 End=self.End,
                 lattice_size=self.lattice_size,
+                squeeze=self.squeeze,
             )
         else:
             worker = Sequential_Worker(Seq=self.Seq, End=self.End)
@@ -96,6 +101,7 @@ class Sequential(nn.Module):
 
     Seq: Tuple[nn.Module, ...]
     End: nn.Module | None
+    squeeze: Callable = lambda x: x
 
     "Symmetries"
     symm_Z2: bool = False
@@ -115,13 +121,17 @@ class Sequential(nn.Module):
                 trivial_Z2=self.trivial_Z2,
                 symm_2D=self.symm_2D,
                 lattice_size=self.lattice_size,
+                squeeze=self.squeeze,
             )
         elif self.symm_2D:
             worker = Sequential_2D(
-                Seq=self.Seq, End=self.End, lattice_size=self.lattice_size
+                Seq=self.Seq,
+                End=self.End,
+                lattice_size=self.lattice_size,
+                squeeze=self.squeeze,
             )
         else:
-            worker = Sequential_Worker(Seq=self.Seq, End=self.End)
+            worker = Sequential_Worker(Seq=self.Seq, End=self.End, squeeze=self.squeeze)
 
         x = worker(x)
 

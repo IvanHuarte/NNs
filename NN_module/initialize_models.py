@@ -99,11 +99,10 @@ class FactoryBuilder:
         latsize_nn = [
             "CNN",
             "CvT",
-            "CvT2",
-            "CvT3",
             "CNNPh",
             "EDPPh",
             "CNNClsf",
+            "CNNbinClsf",
             "CvTaps",
             "MLP",
         ]
@@ -153,6 +152,7 @@ class FactoryBuilder:
         trivial_Z2 = setup["trivial_Z2"] if "trivial_Z2" in setup else False
         symm_2D = setup["symm_2D"] if "symm_Z2" in setup else False
         lattice_size = setup["lattice_size"] if "symm_2D" in setup else None
+        squeeze = jnp.squeeze if "squeeze" in setup else lambda x: x
 
         if module_name == "SplitTraining":
             modulus = self.build_module(setup["modulus_setup"], extra_args)
@@ -165,6 +165,7 @@ class FactoryBuilder:
                 trivial_Z2=trivial_Z2,
                 symm_2D=symm_2D,
                 lattice_size=lattice_size,
+                squeeze=squeeze,
             )
 
         elif module_name == "Sequential":
@@ -184,6 +185,7 @@ class FactoryBuilder:
                 trivial_Z2=trivial_Z2,
                 symm_2D=symm_2D,
                 lattice_size=lattice_size,
+                squeeze=squeeze,
             )
 
         elif module_name == "Transversal":
@@ -203,6 +205,7 @@ class FactoryBuilder:
                 trivial_Z2=trivial_Z2,
                 symm_2D=symm_2D,
                 lattice_size=lattice_size,
+                squeeze=squeeze,
             )
 
         elif module_name is None:

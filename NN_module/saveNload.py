@@ -13,6 +13,7 @@ from platform import architecture, python_version
 from NN_module.NN_utils import sampler_dict, rule_dict
 from .initialize_models import FactoryBuilder
 
+
 def save_results(
     vstate,
     setup,
@@ -97,7 +98,6 @@ def save_results(
         json.dump(setup, outfile, separators=(",", ":"), sort_keys=True, indent=4)
 
 
-
 def print_tree_keys(obj, indent=0):
     prefix = "  " * indent
     if isinstance(obj, dict):
@@ -115,10 +115,9 @@ def load_vstate(setup, tree_data=False):
     # Initialize model
     N = int(np.prod(setup["lattice"]["size"]))
 
-
     model = FactoryBuilder(
-        setup["model_NN"]["setup"]
-        )
+        setup["model_NN"]["setup"], **{"lattice_size": setup["lattice"]["size"]}
+    ).get_model
 
     # Initialize hilbert space
     hi = nk.hilbert.Spin(s=0.5, N=N)

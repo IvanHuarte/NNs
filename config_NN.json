@@ -1,7 +1,7 @@
 {
     "model_NN": {
 
-        "selection": "ST_Transversal",
+        "selection": "Experimental",
         
         "ViT": {
             "token_size": 2,
@@ -30,28 +30,16 @@
 
         "CvT": {
             "n_CP_blocks": [2],
-            "CTemb_channels": [32],
-            "CP_channels": [32],
+            "channels": [32],
             "attn_heads": [4],
             "kernel": [3, 1],
             "final_architecture": "(128,5,)",
             "two_heads": true,
+            "phasors":true,
             "symm_Z2": false,
             "trivial_Z2": true
         },
 
-        "CvT2": {
-            "n_CP_blocks": [2],
-            "CTemb_channels": [32],
-            "CP_channels": [32],
-            "attn_heads": [4],
-            "strides": [[10, 1]],
-            "kernel": [3, 1],
-            "final_architecture": "(128,5,)",
-            "two_heads": true,
-            "symm_Z2": false,
-            "trivial_Z2": true
-        },
 
         "CvT3": {
             "n_CP_blocks": [2],
@@ -78,168 +66,6 @@
             "two_heads_sincos": true,
             "phasors": false,
             
-            "symm_Z2": true,
-            "trivial_Z2": true
-        },
-
-        "SplitTraining_ViT_MLP": {
-            "token_size": [2, 1],
-            "embedding_d": 32,
-            "n_heads": 4,
-            "n_blocks": 2,
-            "n_ffn_layers": 2,
-            "is_complex": false,
-            "final_architecture": "(5,)",
-            "symm_2D_modulus": false,
-            "symm_Z2_modulus": false,
-            "trivial_Z2_modulus": true,
-            
-            "hidden_alpha": [2, 2, 2],
-            "activation": ["selu", "selu", "selu"],
-            "output_dim": 1,
-            "symm_2D_phase": true,
-            "symm_Z2_phase": false,
-            "trivial_Z2_phase": true
-        },
-
-        "ViT2D_CNN": {
-            "token_size": [2, 1],
-            "embedding_d": 32,
-            "n_heads": 4,
-            "n_blocks": 2,
-            "n_ffn_layers": 2,
-            "is_complex": false,
-            "final_architecture": "(5,)",
-
-            "block_channels": [32],
-            "kernel_size": [3, 3],
-            "n_ffn_layers_cnn": 1,
-            "symm_2D": true,
-            "symm_Z2": true,
-            "trivial_Z2": true
-        },
-
-        "SplitTraining_CvT_CNN": {
-            "n_CP_blocks": [2],
-            "CTemb_channels": [32],
-            "CP_channels": [32],
-            "attn_heads": [4],
-            "kernel": [3, 3],
-            "final_architecture": "(5,)",
-            "block_channels_cnn": [32],
-            "kernel_size_cnn": [3, 3],
-            "n_ffn_layers_cnn": 2
-        },
-        "SplitTraining_CvT_CvT": {
-            "n_CP_blocks_1": [2],
-            "CTemb_channels_1": [32],
-            "CP_channels_1": [32],
-            "attn_heads_1": [4],
-            "kernel_1": [3, 3],
-            "final_architecture_1": "(5,)",
-            "n_CP_blocks_2": [2],
-            "CTemb_channels_2": [32],
-            "CP_channels_2": [32],
-            "attn_heads_2": [4],
-            "kernel_2": [3, 3],
-            "final_architecture_2": "(5,)"
-        },
-        "CvT3_CvT3": {
-            "n_CP_blocks_1": [2,2,1,1,1],
-            "CTemb_channels_1": [16,12,8,4,2],
-            "CP_channels_1": [16,12,8,4,2],
-            "attn_heads_1": [2,2,2,1,1],
-            "kernel_1": [3, 3],
-            "final_architecture_1": "(64,5,)",
-
-            "n_CP_blocks_2": [2,2,1,1,1],
-            "CTemb_channels_2": [16,12,8,4,2],
-            "CP_channels_2": [16,12,8,4,2],
-            "attn_heads_2": [2,2,2,1,1],
-            "kernel_2": [3, 3],
-            "final_architecture_2": "(64,5,)",
-            "phasors": false,
-
-            "symm_Z2": true,
-            "trivial_Z2": true
-        },
-
-        "CvTaps_CvTaps": {
-            "n_CP_blocks_1": [2,2],
-            "channels_1": [32,32],
-            "attn_heads_1": [4,4],
-            "strides_1": [[1,1],[2,2]],
-            "kernel_1": [3, 3],
-            "final_architecture_1": "(128,5,)",
-
-            "n_CP_blocks_2": [2,2],
-            "channels_2": [32,32],
-            "attn_heads_2": [4,4],
-            "strides_2": [[1,1],[2,2]],
-            "kernel_2": [3, 3],
-            "final_architecture_2": "(128,5,)",
-            "phasors": true,
-            
-            "symm_Z2": true,
-            "trivial_Z2": true
-        },
-
-        "CvT3_CNNPh": {
-            "n_CP_blocks": [2],
-            "CTemb_channels": [64],
-            "CP_channels": [64],
-            "attn_heads": [4],
-            "kernel": [3, 3],
-            "final_architecture": "(128,5,)",
-
-            "cnnph_channels": 64,
-
-            "symm_Z2": true,
-            "trivial_Z2": true
-        },
-
-        "CvT3_EDPPh": {
-            "n_CP_blocks": [2],
-            "CTemb_channels": [64],
-            "CP_channels": [64],
-            "attn_heads": [4],
-            "kernel": [3, 3],
-            "final_architecture": "(128,5,)",
-
-            "edpph_channels": 128,
-
-            "symm_Z2": true,
-            "trivial_Z2": true
-        },
-
-        "CvT3_CNNClsf": {
-            "n_CP_blocks": [2, 2],
-            "CTemb_channels": [32, 16],
-            "CP_channels": [32, 16],
-            "attn_heads": [4, 4],
-            "kernel": [3, 3],
-            "final_architecture": "(128,5,)",
-
-            "cnnclsf_channels": [32],
-            "n_classes": 2,
-
-            "symm_Z2": true,
-            "trivial_Z2": true
-        },
-
-        "ViT2D_CNNClsf": {
-            "token_size": [2, 1],
-            "embedding_d": 32,
-            "n_heads": 4,
-            "n_blocks": 2,
-            "n_ffn_layers": 2,
-            "is_complex": false,
-            "final_architecture": "(5,)",
-
-            "cnnclsf_channels": [64],
-            "n_classes": 2,
-
-            "symm_2D": true,
             "symm_Z2": true,
             "trivial_Z2": true
         },
@@ -304,59 +130,34 @@
         },
 
 
-        "ST_Transversal":{
+        "Experimental":{
 
             "module": "SplitTraining",
             "setup":{
 
                 "modulus_setup":{
-                    "module": "Transversal",
+                    "module":"CvT",
                     "setup":{
-                        "Trans_0":{
-                            "module":"CvT",
-                            "setup":{
-                                "n_CP_blocks": [2],
-                                "channels": [32],
-                                "attn_heads": [4],
-                                "kernel": [3, 3],
-                                "final_architecture": [128,5]
-                            }
-                        },
-                        "Trans_1":{
-                            "module":"CvT",
-                            "setup":{
-                                "n_CP_blocks": [2],
-                                "channels": [32],
-                                "attn_heads": [4],
-                                "kernel": [3, 3],
-                                "final_architecture": [128,5]
-                            }
-                        },
-                        "operation": "sum",
-                        "post_norm": true
+                        "n_CP_blocks": [2, 2, 2, 2],
+                        "channels": [64, 32, 16, 8],
+                        "attn_heads": [4, 4, 4, 2],
+                        "kernel": [3, 3],
+                        "final_architecture": [128, 64, 5]
                     }
                 },
 
                 "phase_setup":{
-                    "module": "Sequential",
+                    "module":"CNNbinClsf",
                     "setup":{
-                        "Seq_0":{
-                            "module":"CNNClsf",
-                            "setup":{
-                                "cnnclsf_channels": [64],
-                                "n_classes": 2
-                            }
-                        },
-                        "Ending":{
-                            "module": null,
-                            "setup":{}
-                        }
-                    }    
+                        "cnnclsf_channels": [64, 32],
+                        "marshall": true
+                    }
                 },
 
                 "symm_Z2": true,
                 "trivial_Z2": true,
-                "symm_2D": false
+                "symm_2D": false,
+                "squeeze":true
 
             }         
         }

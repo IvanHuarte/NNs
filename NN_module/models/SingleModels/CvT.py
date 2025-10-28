@@ -220,9 +220,7 @@ class CvTWorker(nn.Module):
             else:
                 x = x.mean(axis=1)
                 x = x.reshape((B, -1))
-                return nn.Dense(1)(
-                    MultiLayerPerceptron(self.final_architecture)(x)
-                ).squeeze()
+                return nn.Dense(1)(MultiLayerPerceptron(self.final_architecture)(x))
 
 
 class CvT_Z2(nn.Module):

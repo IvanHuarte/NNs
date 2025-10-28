@@ -1,12 +1,11 @@
 import jax
 import jax.numpy as jnp
 import flax.linen as nn
-from typing import Tuple, Any
-from frozendict import frozendict as FrozenDict
+from typing import Tuple, Callable
 
 from NN_module.NN_utils import traslations_2D
 
-    
+
 class SplitTraining_Worker(nn.Module):
     """
     Flax module to train modulus and phase separately
@@ -14,6 +13,8 @@ class SplitTraining_Worker(nn.Module):
 
     ModulusNet: nn.Module
     PhaseNet: nn.Module
+
+    squeeze: Callable = lambda x: x
 
     def setup(self):
         self.Modulus_model = self.ModulusNet
@@ -24,7 +25,9 @@ class SplitTraining_Worker(nn.Module):
         log_modulus = self.Modulus_model(x)
         phase = self.Phase_model(x)
 
-        return log_modulus + 1j * phase
+        phi = log_modulus + 1j * phase
+
+        return self.squeeze(phi)
 
 
 class SplitTraining_2D(nn.Module):
@@ -35,12 +38,13 @@ class SplitTraining_2D(nn.Module):
     lattice_size: Tuple[int, int] = None
     token_size: Tuple[int, int] = None
 
+    squeeze: Callable = lambda x: x
+
     @nn.compact
     def __call__(self, x):
 
         worker = SplitTraining_Worker(
-            ModulusNet=self.ModulusNet,
-            PhaseNet=self.PhaseNet,
+            ModulusNet=self.ModulusNet, PhaseNet=self.PhaseNet, squeeze=self.squeeze
         )
 
         # 2D traslation
@@ -63,6 +67,8 @@ class SplitTraining_Z2(nn.Module):
     symm_2D: bool = False
     trivial_Z2: bool = False
 
+    squeeze: Callable = lambda x: x
+
     @nn.compact
     def __call__(self, x):
 
@@ -72,11 +78,11 @@ class SplitTraining_Z2(nn.Module):
                 PhaseNet=self.PhaseNet,
                 lattice_size=self.lattice_size,
                 token_size=self.token_size,
+                squeeze=self.squeeze,
             )
         else:
             worker = SplitTraining_Worker(
-                ModulusNet=self.ModulusNet,
-                PhaseNet=self.PhaseNet
+                ModulusNet=self.ModulusNet, PhaseNet=self.PhaseNet, squeeze=self.squeeze
             )
 
         output_x = jnp.atleast_1d(worker(x))
@@ -111,6 +117,8 @@ class SplitTraining(nn.Module):
     lattice_size: Tuple[int, int] = None
     token_size: Tuple[int, int] = None
 
+    squeeze: Callable = lambda x: x
+
     @nn.compact
     def __call__(self, x: jnp.ndarray) -> jnp.ndarray:
 
@@ -122,6 +130,7 @@ class SplitTraining(nn.Module):
                 symm_2D=self.symm_2D,
                 lattice_size=self.lattice_size,
                 token_size=self.token_size,
+                squeeze=self.squeeze,
             )
         elif self.symm_2D:
             worker = SplitTraining_2D(
@@ -129,11 +138,11 @@ class SplitTraining(nn.Module):
                 PhaseNet=self.PhaseNet,
                 lattice_size=self.lattice_size,
                 token_size=self.token_size,
+                squeeze=self.squeeze,
             )
         else:
             worker = SplitTraining_Worker(
-                ModulusNet=self.ModulusNet,
-                PhaseNet=self.PhaseNet
+                ModulusNet=self.ModulusNet, PhaseNet=self.PhaseNet, squeeze=self.squeeze
             )
 
         x = worker(x)

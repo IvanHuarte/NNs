@@ -82,6 +82,7 @@ class CNNClsf(nn.Module):
     lattice_size: Tuple
     cnnclsf_channels: Tuple
     n_classes: int = 2
+    marshall: bool = False
     activation: Callable = nn.swish
 
     @nn.compact
@@ -106,74 +107,64 @@ class CNNClsf(nn.Module):
         x = x.reshape(-1, self.lattice_size[0] * self.lattice_size[1], x.shape[-1])
         x = x.mean(axis=-1)
 
-        # # Clasificador 2 clases. Devuelve 0 o pi segun la probabilidad
-        # x = nn.Dense(self.n_classes)(x)
-        # x = nn.softmax(x)
-        # phase = jnp.where(x[:, 0] > x[:, 1], 0.0, jnp.pi)
+        # Clasificador de n clases. Devuelve 0 o pi segun la probabilidad
+        x = nn.Dense(self.n_classes)(x)
+        x = nn.softmax(x)
+        phase = jnp.where(
+            x[:, 0] > x[:, 1],
+            jnp.array([0.0], dtype=REAL_DTYPE),
+            jnp.array([jnp.pi], dtype=REAL_DTYPE),
+        )[:, None]
+
+        # Marshall sign rule bias
+        if self.marshall:
+            bias_mars = MarshallSign(radians=True)(x_in.reshape(-1, *self.lattice_size))
+            phase += bias_mars[:, None]
+            phase = (phase + jnp.pi) % (2 * jnp.pi) - jnp.pi
+
+        return phase
+
+
+class CNNbinClsf(nn.Module):
+
+    lattice_size: Tuple
+    cnnclsf_channels: Tuple
+    marshall: bool = False
+    activation: Callable = nn.swish
+
+    @nn.compact
+    def __call__(self, x_in):
+
+        kernel = (3, 3) if self.lattice_size[1] != 1 else (3, 1)
+        x = x_in.reshape(-1, *self.lattice_size, 1)
+
+        for C in self.cnnclsf_channels:
+
+            x = nn.Conv(
+                features=C,
+                kernel_size=kernel,
+                strides=(1, 1),
+                padding="CIRCULAR",
+                # mask=mask,
+                dtype=REAL_DTYPE,
+                kernel_init=jax.nn.initializers.lecun_normal(),
+            )(x)
+            x = self.activation(nn.LayerNorm()(x))
+
+        x = x.reshape(-1, self.lattice_size[0] * self.lattice_size[1], x.shape[-1])
+        x = x.mean(axis=-1)
 
         # Clasificador binario. 1 salida pasada por sigmoid * pi
-        x = nn.Dense(1)(x)
+        # x = nn.Dense(1)(x)
+        x = jnp.mean(x, axis=-1, keepdims=True)
         phase = nn.sigmoid(x) * jnp.pi
+        # print(phase.shape)
 
-        # Sign bias
-        # bias = x_in.sum(axis=-1) * jnp.pi
-        # phase += bias[:, None]
-        # phase = (phase + jnp.pi) % (2 * jnp.pi) - jnp.pi
+        # Marshall sign rule bias
+        if self.marshall:
+            bias_mars = MarshallSign(radians=True)(x_in.reshape(-1, *self.lattice_size))
+            phase += bias_mars[:, None]
+            phase = (phase + jnp.pi) % (2 * jnp.pi) - jnp.pi
 
-        # Marshall sign rule
-        bias_mars = MarshallSign(x_in.reshape(-1, *self.lattice_size), radians=True)
-        phase += bias_mars[:, None]
-        phase = (phase + jnp.pi) % (2 * jnp.pi) - jnp.pi
-
-        return phase.squeeze(-1)
-
-
-# class CNNClsf(nn.Module):
-
-#     lattice_size: Tuple
-#     channels: Tuple
-#     n_classes: int = 2
-#     activation: Callable = nn.swish
-
-#     @nn.compact
-#     def __call__(self, x_in):
-
-#         kernel = (3, 3) if self.lattice_size[1] != 1 else (3, 1)
-#         x = x_in.reshape(-1, *self.lattice_size, 1)
-
-#         for C in self.channels:
-
-#             x = nn.Conv(
-#                 features=C,
-#                 kernel_size=kernel,
-#                 strides=(1, 1),
-#                 padding="CIRCULAR",
-#                 # mask=mask,
-#                 dtype=REAL_DTYPE,
-#                 kernel_init=jax.nn.initializers.lecun_normal(),
-#             )(x)
-#             x = self.activation(nn.LayerNorm()(x))
-
-#         x = x.reshape(-1, self.lattice_size[0] * self.lattice_size[1], x.shape[-1])
-#         x = x.mean(axis=-1)
-
-#         # # Clasificador 2 clases. Devuelve 0 o pi segun la probabilidad
-#         x = nn.Dense(self.n_classes)(x)
-#         x = nn.softmax(x)
-#         phase = jnp.where(x[:, 0] > x[:, 1], 0.0, jnp.pi)[:, None]
-
-#         # Clasificador binario. 1 salida pasada por sigmoid * pi
-#         # x = nn.Dense(1)(x)
-#         # phase = nn.sigmoid(x) * jnp.pi
-
-#         # Sign bias
-#         # bias = x_in.sum(axis=-1) * jnp.pi
-#         # phase += bias[:, None]
-#         # phase = (phase + jnp.pi) % (2 * jnp.pi) - jnp.pi
-
-#         # Marshall sign rule
-#         bias_mars = MarshallSign(x_in.reshape(-1, *self.lattice_size), radians=True)
-#         phase += bias_mars[:, None]
-#         phase = (phase + jnp.pi) % (2 * jnp.pi) - jnp.pi
-
-#         return phase.squeeze(-1)
+        # print(phase.shape)
+        return phase

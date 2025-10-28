@@ -8,7 +8,7 @@ from .SingleModels.CNN import CNN
 from .SingleModels.CvT import CvT
 from .SingleModels.CvTaps import CvTaps
 from .SingleModels.MLP import MLP
-from .SingleModels.Phase import CNNPh, EDPPh, CNNClsf
+from .SingleModels.Phase import CNNPh, EDPPh, CNNClsf, CNNbinClsf
 from .SingleModels.ViT_2D import ViT2D
 from .SingleModels.ViT import ViT
 
@@ -22,6 +22,7 @@ __all__ = [
     "CNNPh",
     "EDPPh",
     "CNNClsf",
+    "CNNbinClsf",
     "MLP",
     "ViT2D",
     "ViT",
@@ -38,6 +39,7 @@ REGISTRY = {
     "CNNPh": CNNPh,
     "EDPPh": EDPPh,
     "CNNClsf": CNNClsf,
+    "CNNbinClsf": CNNbinClsf,
     "MLP": MLP,
     "ViT2D": ViT2D,
     "ViT": ViT,

@@ -24,7 +24,7 @@ from pathlib import Path
 # Importar módulos necesarios
 from VA_project.model.model import J1J2Square
 from VA_project.engine.runners import Runner
-from NN_module.callbacks import BestIterKeeper, dump_callback
+from NN_module.callbacks import BestIterKeeper, EnergyPlotter, dump_callback
 from NN_module.saveNload import save_results
 
 from NN_module.initialize_models import FactoryBuilder
@@ -164,11 +164,8 @@ for i, size in enumerate(sizes):
             callback_artifacts = {}
             time_in = time.time()
 
-            # model = init_model(nn_model_name, nn_model_setup)
             factory = FactoryBuilder(nn_model_setup, **{"lattice_size": size})
             model = factory.get_model()
-
-            sys.exit(0)
 
             log = (
                 nk.logging.RuntimeLog()
@@ -219,6 +216,7 @@ for i, size in enumerate(sizes):
                 keeper = BestIterKeeper(
                     total_epochs, H, N, baseline=1e-8, mode="best_energy"
                 )
+                inline_call = EnergyPlotter(H, N, E_ED=E_ED)
                 # keeper.filename = 'Somewhere' #It allows you to store the parameters of the model for the state with lowest energy found.
 
                 print(f"\nEpochs:      {total_epochs}")
@@ -286,7 +284,7 @@ for i, size in enumerate(sizes):
                         gs.run(
                             n_iter=epochs,
                             out=log,
-                            callback=[keeper.update],
+                            callback=[keeper.update, inline_call],
                             show_progress=True,
                         )
                         mean, std, psi = phase_stats_vstate(vstate)

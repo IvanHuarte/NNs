@@ -24,28 +24,34 @@ class Transversal_Worker(nn.Module):
     operation: str = "sum"
     post_norm: bool = False
 
-    def setup(self):
-        self.trans = self.Trans
-        self.regroup = final_ensemble(ensem_mode=self.operation)
+    squeeze: Callable = lambda x: x
+
+    @nn.compact
+    def __call__(self, x: jnp.ndarray) -> jnp.ndarray:
+        B = x.shape[0]
+        # print(f"x_in: {x.shape}")
+
+        x = jnp.stack([module(x) for module in self.Trans], axis=0)
+        # print(f"res: {x.shape}")
+
         # Norm
         if self.post_norm:
-            self.norm = nn.LayerNorm()
+            x = x.swapaxes(0, -1)
+            x = nn.LayerNorm()(x)
+            x = x.swapaxes(0, -1)
+
         else:
             self.norm = lambda x: x
 
-    def __call__(self, x: jnp.ndarray) -> jnp.ndarray:
-        print(f"x_in: {x.shape}")
+        # print(f"x_norm: {x.shape}")
 
-        res = jnp.stack([module(x) for module in self.trans], axis=0)
-        print(f"x: {res.shape}")
+        x = final_ensemble(ensem_mode=self.operation)(x, axis=0, keepdims=True)
+        # print(f"final_ensemble: {x.shape}")
+        x = jnp.atleast_2d(x).reshape(B, *x.shape[2:])
 
-        x = jnp.atleast_1d(self.regroup(res, axis=0))
-        print(f"x: {x.shape}")
-
-        x = self.norm(x)
-        print(f"x: {x.shape}")
-        print(f"\n")
-        return x
+        # print(f"x_group: {x.shape}")
+        # print(f"\n")
+        return self.squeeze(x)
 
 
 class Transversal_2D(nn.Module):
@@ -53,6 +59,7 @@ class Transversal_2D(nn.Module):
     Trans: Tuple[nn.Module, ...]
     operation: str = "sum"
     post_norm: bool = False
+    squeeze: Callable = lambda x: x
 
     lattice_size: Tuple[int, int] = None
 
@@ -60,7 +67,10 @@ class Transversal_2D(nn.Module):
     def __call__(self, x):
 
         worker = Transversal_Worker(
-            Trans=self.Trans, operation=self.operation, post_norm=self.post_norm
+            Trans=self.Trans,
+            operation=self.operation,
+            post_norm=self.post_norm,
+            squeeze=self.squeeze,
         )
 
         # 2D traslation
@@ -76,6 +86,7 @@ class Transversal_Z2(nn.Module):
     Trans: Tuple[nn.Module, ...]
     operation: str = "sum"
     post_norm: bool = False
+    squeeze: Callable = lambda x: x
 
     "Symmetries"
     symm_2D: bool = False
@@ -92,10 +103,14 @@ class Transversal_Z2(nn.Module):
                 operation=self.operation,
                 post_norm=self.post_norm,
                 lattice_size=self.lattice_size,
+                squeeze=self.squeeze,
             )
         else:
             worker = Transversal_Worker(
-                Trans=self.Trans, operation=self.operation, post_norm=self.post_norm
+                Trans=self.Trans,
+                operation=self.operation,
+                post_norm=self.post_norm,
+                squeeze=self.squeeze,
             )
 
         output_x = jnp.atleast_1d(worker(x))
@@ -123,6 +138,7 @@ class Transversal(nn.Module):
     Trans: Tuple[nn.Module, ...]
     operation: str = "sum"
     post_norm: bool = False
+    squeeze: Callable = lambda x: x
 
     "Symmetries"
     symm_Z2: bool = False
@@ -143,6 +159,7 @@ class Transversal(nn.Module):
                 trivial_Z2=self.trivial_Z2,
                 symm_2D=self.symm_2D,
                 lattice_size=self.lattice_size,
+                squeeze=self.squeeze,
             )
         elif self.symm_2D:
             worker = Transversal_2D(
@@ -150,10 +167,14 @@ class Transversal(nn.Module):
                 operation=self.operation,
                 post_norm=self.post_norm,
                 lattice_size=self.lattice_size,
+                squeeze=self.squeeze,
             )
         else:
             worker = Transversal_Worker(
-                Trans=self.Trans, operation=self.operation, post_norm=self.post_norm
+                Trans=self.Trans,
+                operation=self.operation,
+                post_norm=self.post_norm,
+                squeeze=self.squeeze,
             )
 
         x = worker(x)

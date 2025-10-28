@@ -180,7 +180,7 @@ class DepthPointwiseConv(nn.Module):
         return x
 
 
-def MarshallSign(x: jt.ArrayLike, radians: bool = True) -> jt.ArrayLike:
+class MarshallSign(nn.Module):
     """Marshall sign for 2D square lattices
 
     Args:
@@ -188,12 +188,18 @@ def MarshallSign(x: jt.ArrayLike, radians: bool = True) -> jt.ArrayLike:
     Returns:
         array of shape (B,) with the Marshall sign
     """
-    Lx, Ly = x.shape[1], x.shape[2]
-    xs = jnp.arange(Lx).reshape(-1, 1) + jnp.arange(Ly).reshape(1, -1)
-    marshall_pattern = (-1) ** (xs % 2)
-    sign = jnp.prod(jnp.where(x > 0, marshall_pattern, 1), axis=(1, 2))
 
-    if radians:
-        sign = jnp.where(sign < 0, jnp.pi, 0.0)
+    radians: bool = True
 
-    return sign
+    @nn.compact
+    def __call__(self, x: jt.ArrayLike) -> jt.ArrayLike:
+
+        Lx, Ly = x.shape[1], x.shape[2]
+        xs = jnp.arange(Lx).reshape(-1, 1) + jnp.arange(Ly).reshape(1, -1)
+        marshall_pattern = (-1) ** (xs % 2)
+        sign = jnp.prod(jnp.where(x > 0, marshall_pattern, 1), axis=(1, 2))
+
+        if self.radians:
+            sign = jnp.where(sign < 0, jnp.pi, 0.0)
+
+        return sign
