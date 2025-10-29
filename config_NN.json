@@ -1,66 +1,50 @@
 {
     "NN": {
 
-        "selection": "Experimental",
+        "selection": "Parallel_Marshall",
 
-        "ST_MCvT3-None_MCvT3-None":{
+        "Parallel_Marshall":{
 
             "module": "SplitTraining",
             "setup":{
 
                 "modulus_setup":{
-                    "module": "Sequential",
+                    "module":"CvT",
                     "setup":{
-                        "Seq_0":{
-                            "module":"CvT",
-                            "setup":{
-                                "n_CP_blocks": [2],
-                                "channels": [32],
-                                "attn_heads": [4],
-                                "kernel": [3, 3],
-                                "final_architecture": null
-                            }
-                        },
-                        "Seq_1":{
-                            "module":"CvT",
-                            "setup":{
-                                "n_CP_blocks": [2],
-                                "channels": [32],
-                                "attn_heads": [4],
-                                "kernel": [3, 3],
-                                "final_architecture": [5]
-                            }
-                        },
-                        "Ending":{
-                            "module": null,
-                            "setup":{}
-                        }
+                        "n_CP_blocks": [2, 2, 2, 1],
+                        "channels": [64, 32, 16, 8],
+                        "attn_heads": [4, 4, 4, 2],
+                        "kernel": [3, 3],
+                        "final_architecture": [128, 64, 5]
                     }
                 },
 
                 "phase_setup":{
-                    "module": "Sequential",
+                    "module": "Transversal",
                     "setup":{
-                        "Seq_0":{
-                            "module":"CNNbinClsf",
+                        "Trans_0":{
+                            "module":"CvT",
                             "setup":{
-                                "cnnclsf_channels": [32],
-                                "marshall":true
+                                "n_CP_blocks": [2],
+                                "channels": [32],
+                                "attn_heads": [4],
+                                "kernel": [3, 3],
+                                "final_architecture": [128,64,5]
                             }
                         },
-                        "Ending":{
-                            "module": null,
-                            "setup":{}
-                        }
-                    }    
+                        "Trans_1":{
+                            "module":"MarshallSign",
+                            "setup":{
+                                "radians":true
+                            }
+                        }                        
+                    }
                 },
 
                 "symm_Z2": true,
                 "trivial_Z2": true,
                 "symm_2D": false,
                 "squeeze":true
-
-
             }         
         },
 

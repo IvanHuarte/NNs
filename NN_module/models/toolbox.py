@@ -202,4 +202,4 @@ class MarshallSign(nn.Module):
         if self.radians:
             sign = jnp.where(sign < 0, jnp.pi, 0.0)
 
-        return sign
+        return jnp.atleast_2d(sign)
