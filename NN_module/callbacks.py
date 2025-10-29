@@ -9,98 +9,6 @@ from typing import Optional
 from pathlib import Path
 
 
-class OnlineNormalizer:
-    """Class to normalize energy and vscore"""
-
-    def __init__(self, normalize_mode: str, window_size: int | None = None):
-
-        self.energy_history = []
-        self.vscore_history = []
-        self.normalize_mode = normalize_mode
-        self.window_size = window_size
-
-    def __call__(self, energy_step: float, vscore_step: float):
-
-        if self.normalize_mode == "Zscore":
-            return self.Zscore(energy_step, vscore_step)
-        elif self.normalize_mode == "MinMax":
-            return self.MinMax(energy_step, vscore_step)
-        else:
-            raise ValueError(f"Unknown normalize_mode: {self.normalize_mode}")
-
-    def update_history(self, energy_step: float, vscore_step: float):
-        self.energy_history.append(energy_step)
-        self.vscore_history.append(vscore_step)
-
-        if self.window_size is not None:
-            if len(self.energy_history) > self.window_size:
-                self.energy_history = self.energy_history[-self.window_size :]
-                self.vscore_history = self.vscore_history[-self.window_size :]
-
-    def Zscore(self, energy_step: float, vscore_step: float):
-        energy_hist = np.array(self.energy_history)
-        vscore_hist = np.array(self.vscore_history)
-
-        mu_e, std_e = float(energy_hist.mean()), float(energy_hist.std(ddof=1))
-        mu_v, std_v = float(vscore_hist.mean()), float(vscore_hist.std(ddof=1))
-
-        std_e = max(std_e, 1e-10)
-        std_v = max(std_v, 1e-10)
-
-        normalized_E = (energy_step - mu_e) / std_e
-        normalized_V = (vscore_step - mu_v) / std_v
-
-        # print(f"Normalization block")
-        # print(f"\nmu_e = {mu_e:.6e}, std_e = {std_e:.6e}")
-        # print(f"Energy step = {energy_step:.6e} -> norm_E = {normalized_E:.3e}")
-        # print(f"\nmu_v = {mu_v:.6e}, std_v = {std_v:.6e}")
-        # print(f"Vscore step = {vscore_step:.6e} -> norm_V = {normalized_V:.3e}")
-
-        return normalized_E, normalized_V
-
-    def MinMax(self, energy_step: float, vscore_step: float):
-        energy_hist = np.array(self.energy_history)
-        vscore_hist = np.array(self.vscore_history)
-
-        min_e, max_e = float(energy_hist.min()), float(energy_hist.max())
-        min_v, max_v = float(vscore_hist.min()), float(vscore_hist.max())
-
-        normalized_E = (energy_step - min_e) / (max_e - min_e) if max_e > min_e else 0
-        normalized_V = (vscore_step - min_v) / (max_v - min_v) if max_v > min_v else 0
-
-        return normalized_E, normalized_V
-
-
-class Selector:
-    def __init__(self, selector_mode: str):
-
-        self.best_e = np.inf
-        self.best_v = np.inf
-        self.selector_mode = selector_mode
-
-    def __call__(self, norm_E, norm_V):
-        if self.selector_mode == "linear":
-            return self.linear_combination(norm_E, norm_V)
-        elif self.selector_mode == "pareto":
-            return self.pareto(norm_E, norm_V)
-        else:
-            raise ValueError(f"Unknown selector_mode: {self.selector_mode}")
-
-    def linear_combination(self, norm_E, norm_V, alpha=0.2):
-        return alpha * norm_E + (1 - alpha) * norm_V
-
-    def pareto(self, norm_E, norm_V):
-
-        better_E = norm_E < self.best_e
-        better_V = norm_V < self.best_v
-
-        if better_E and better_V:
-            self.best_e = norm_E
-            self.best_v = norm_V
-
-        return self.best_e, self.best_v
-
-
 class BestIterKeeper:
     """Store the values of a bunch of quantities from the best iteration.
 
@@ -140,7 +48,7 @@ class BestIterKeeper:
         self.best_state_vscore = np.inf
         self.best_step = 0
         self.best_state = None
-        self.step_threshold = epochs // 10
+        self.step_threshold = 0  # epochs // 10
         self.step = -1
 
         if mode == "best_energy":
@@ -149,24 +57,6 @@ class BestIterKeeper:
             self.update = self.best_vscore_update
         elif mode == "always":
             self.update = self.always_update
-
-        elif mode == "balanced":
-            self.best_score = np.inf
-            self.stats_window = (
-                int(balanced_setup["stats_window"] * epochs)
-                if balanced_setup["stats_window"] is not None
-                else None
-            )
-            self.start_stats = (
-                int(balanced_setup["start_stats"] * epochs)
-                if balanced_setup["start_stats"] is not None
-                else None
-            )
-            self.normalizer = OnlineNormalizer(
-                balanced_setup["normalizer"], self.stats_window
-            )
-            self.selector = Selector(balanced_setup["selector"])
-            self.update = self.balanced_update
 
     def best_energy_update(self, step, log_data, driver):
         """Update the stored quantities if necessary.
@@ -453,17 +343,18 @@ def dump_callback(logger, settings, write=False):
 
     ax[0].plot(E_hist, color="blue", label="E")
     ax[0].plot(best_step, E_hist[best_step], marker="o", ms=3, color="gold")
-    ax[0].text(
-        0.45,
-        0.85,
-        architecture_display,
-        transform=ax[0].transAxes,
-        fontsize=12,
-        color="k",
-        ha="center",
-        va="center",
-        bbox=dict(boxstyle="round", facecolor="white", alpha=0.7),
-    )
+    if architecture_display is not None:
+        ax[0].text(
+            0.45,
+            0.85,
+            architecture_display,
+            transform=ax[0].transAxes,
+            fontsize=12,
+            color="k",
+            ha="center",
+            va="center",
+            bbox=dict(boxstyle="round", facecolor="white", alpha=0.7),
+        )
     ax[0].text(
         0.9,
         0.75,

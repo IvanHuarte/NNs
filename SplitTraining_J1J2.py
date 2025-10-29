@@ -9,8 +9,7 @@ import optax
 import json
 import time
 import argparse
-import ast
-import os
+import uuid
 
 # os.environ["XLA_PYTHON_CLIENT_PREALLOCATE"] = "false"
 jax.config.update("jax_enable_x64", True)
@@ -26,16 +25,17 @@ from VA_project.model.model import J1J2Square
 from VA_project.engine.runners import Runner
 from NN_module.callbacks import BestIterKeeper, EnergyPlotter, dump_callback
 from NN_module.saveNload import save_results
-
 from NN_module.initialize_models import FactoryBuilder
+from NN_module.schedules import get_ST_schedule
 from NN_module.label_utils import (
     get_filenames_from_settings,
     architecture_label,
     get_write_folder_from_model,
     display_simulation_settings,
     get_ST_folder,
+    get_sim_config,
 )
-from NN_module.schedules import get_ST_schedule
+from NN_module.sim_utils import measureNdump
 from NN_module.NN_utils import scheduler_initializer, phase_stats_vstate, modphase
 from NN_module.ST_utils import check_zero_grads, compare_params, masked_optimizer
 from NN_module.observables import calc_all_observables_vs, calc_all_observables_ED
@@ -73,15 +73,17 @@ with open(configurations[2], "r") as f:
     config_nn = json.load(f)
 
 cm_model_name = config_cm["CM"]["selection"]
-nn_model_name = config_nn["model_NN"]["selection"]
+nn_model_name = config_nn["NN"]["selection"]
 
-nn_model_setup = config_nn["model_NN"][nn_model_name]
+cm_model_setup = config_cm["CM"][cm_model_name]
+nn_model_setup = config_nn["NN"][nn_model_name]
+
 model_label = cm_model_name + "_" + nn_model_name
 
 sizes = config_cm["sizes"]
-J1_list = config_cm["CM"][cm_model_name]["J1_list"]  # Lattice and coupling model
-J2_list = config_cm["CM"][cm_model_name]["J2_list"]  # Lattice and coupling model
-fields_list = config_cm["CM"][cm_model_name]["fields_list"]
+J1_list = cm_model_setup["J1_list"]  # Lattice and coupling model
+J2_list = cm_model_setup["J2_list"]  # Lattice and coupling model
+fields_list = cm_model_setup["fields_list"]
 kwargs_lattice = config_cm["kwargs_lattice"]
 
 # Simulation settings
@@ -91,8 +93,7 @@ lr_name = config[training_name]["lr_name"]
 training_setup = config[training_name]["setup"]
 lr_schedule_setup = config[training_name]["lr_schedules"][lr_name]
 
-exact_diag = config["exact_diagonalization"]
-dump_simulation = config["dump_sim_callback"]
+plot_callback = config["plot_callback"]
 
 sampler_setup = config["sampler"]
 n_samples = (
@@ -110,20 +111,23 @@ rule2 = InvertMagnetization()
 pinvert = 0.25
 pflip = 1 - pinvert
 
-E_ED = None
-x_ED = None
 
 for i, size in enumerate(sizes):
 
     N = int(np.prod(size))
-    if N > 20:
-        exact_diag = False
+    exact_diag = True if N < 21 else False
+    if not exact_diag:
+        E_ED = None
+        x_ED = None
 
     write_folder_size = write + f"Size_{size[0]}x{size[1]}/"
 
     training_folder = get_ST_folder(split_training, training_setup)
 
-    write_folder = write_folder_size + f"{training_folder}/"
+    write_folder_training = write_folder_size + f"{training_folder}/"
+
+    sim_uuid = str(uuid.uuid4())[:8]
+    write_folder = write_folder_training + f"UUID_{sim_uuid}/"
 
     ###  Reseting Hilbert space object and the observables ###
     hi = nk.hilbert.Spin(s=1 / 2, N=N)
@@ -140,10 +144,22 @@ for i, size in enumerate(sizes):
 
         for J1, J2 in zip(J1_list, J2_list):
 
-            config_cm["CM"][cm_model_name]["J1"] = J1
-            config_cm["CM"][cm_model_name]["J2"] = J2
-            config_cm["CM"][cm_model_name]["fields"] = fields
+            # Set simulation specifications and variables
+
+            cm_model_setup["J1"] = J1
+            cm_model_setup["J2"] = J2
+            cm_model_setup["fields"] = fields
             config_cm["size"] = size
+            cm_model_setup["size"] = size
+
+            sim_config = get_sim_config(
+                {
+                    "SIM": config,
+                    "CM": {"name": cm_model_name, "setup": cm_model_setup},
+                    "NN": {"name": nn_model_name, "setup": nn_model_setup},
+                }
+            )
+
             display_simulation_settings({**config_cm, **config_nn})
 
             ## Update Hamiltonian
@@ -159,7 +175,7 @@ for i, size in enumerate(sizes):
                 E_ED = float(E_ED.squeeze(-1))
                 print(f"Energy ED: {E_ED}")
 
-            ####################################################
+            ###################################################
 
             callback_artifacts = {}
             time_in = time.time()
@@ -289,7 +305,6 @@ for i, size in enumerate(sizes):
                         )
                         mean, std, psi = phase_stats_vstate(vstate)
                         print(f"VS phase: {mean} \u00b1 {std}  ({psi})")
-
                         # P1 = vstate.parameters
                         # print(compare_params(P0, P1))
                         # check_zero_grads(vstate, mask)
@@ -321,12 +336,15 @@ for i, size in enumerate(sizes):
             time_out = time.time()
             time_exe = time_out - time_in
 
+            vstate = keeper.best_state
+
             if exact_diag:
                 keeper.E_ED = E_ED
+                keeper.x_ED = x_ED
                 log.E_ED = E_ED
 
             ## Save results
-            _kwargs = config_nn["model_NN"][nn_model_name]
+            _kwargs = nn_model_setup.copy()
             _kwargs["size"] = size
             _kwargs["J1"] = J1
             _kwargs["J2"] = J2
@@ -334,15 +352,16 @@ for i, size in enumerate(sizes):
 
             sim_label, ED_label, json_label, title_label_callback = (
                 get_filenames_from_settings(
-                    config_cm["CM"]["selection"],
-                    config_nn["model_NN"]["selection"],
+                    cm_model_name,
+                    nn_model_name,
+                    sim_uuid,
                     **_kwargs,
                 )
             )
 
-            if dump_simulation:
+            if plot_callback:
                 # For plotting architecture
-                architecture = architecture_label(nn_model_name, nn_model_setup)
+                architecture = None  # architecture_label(nn_model_name, nn_model_setup)
                 dump_setup = {
                     "size": size,
                     "opt_name": "Sgd",
@@ -361,55 +380,9 @@ for i, size in enumerate(sizes):
                 callback_artifacts = None
 
             ## Calculate some observables
-            # Modulus and phase
-
-            vstate = keeper.best_state
-            best_step = keeper.best_step
-            E_best = float(keeper.best_state_energy)
-            vscore = float(keeper.best_state_vscore)
-
-            modphase_results = {}
-            if exact_diag:
-                error = float(np.abs(E_best - E_ED) / np.abs(E_ED))
-                mp_array_ED, stats_ED = modphase(x_ED)
-                modphase_results["xED"] = stats_ED
-                print(
-                    f"xED phase: {stats_ED['phase']['mean']} \u00b1 {stats_ED['phase']['std']}  ({stats_ED['type']})"
-                )
-
-            else:
-                E_ED = None
-                x_ED = None
-                error = None
-
-            mp_array_vs, stats_vs = modphase(vstate)
-            modphase_results["vstate"] = stats_vs
-            print(
-                f"vstate phase: {stats_vs['phase']['mean']} \u00b1 {stats_vs['phase']['std']}  ({stats_vs['type']})"
+            results, mp_array_vs, mp_array_ED = measureNdump(
+                keeper, time_exe, exact_diag
             )
-
-            # Fidelity
-            fidelity = None
-            try:
-                fidelity = float(jnp.abs(jnp.vdot(vstate.to_array(), x_ED.squeeze())))
-                print(f"Fidelity: {fidelity:.3e}")
-            except (MemoryError, RuntimeError, ValueError):
-                print(f"Failed fidelity calculation due to memory allocation error")
-
-            # Renyi entropy, magnetization and its fluctuation
-            S_renyi, m, ms, m2, ms2 = calc_all_observables_vs(vstate)
-
-            print(f"\nRenyi entropy: {S_renyi}")
-            print(f"< m >: {m}   < m2 >: {m2}")
-            print(f"< ms >: {ms}  < ms2 >: {ms2}")
-
-            if exact_diag:
-                m_ED, ms_ED, m2_ED, ms2_ED = calc_all_observables_ED(x_ED.squeeze())
-                print(f"ED < m >: {m_ED}   < m2 >: {m2_ED}")
-                print(f"ED < ms >: {ms_ED}  < ms2 >: {ms2_ED}\n")
-
-            else:
-                m_ED, ms_ED, m2_ED, ms2_ED = None
 
             ## Save the results
             dump_setup = {
@@ -420,15 +393,7 @@ for i, size in enumerate(sizes):
                     "bc": kwargs_lattice["bc"],
                     "order": kwargs_lattice["order"],
                 },
-                "coupling_model": {
-                    "J1": J1,
-                    "J2": J2,
-                    "fields": fields,
-                },
-                "model_NN": {
-                    "name": nn_model_name,
-                    "setup": nn_model_setup,
-                },
+                **sim_config,
                 "sampler": {
                     "name": "MetropolisSampler",
                     "n_samples": n_samples,
@@ -437,30 +402,7 @@ for i, size in enumerate(sizes):
                     "setup": sampler_setup,
                 },
                 "optimizer": "Sgd",
-                "training": {
-                    "name": training_name,
-                    "setup": training_setup,
-                    "lr_schedule": {"name": lr_name, "setup": lr_schedule_setup},
-                },
-                "results": {
-                    "best_step": best_step,
-                    "E_best": E_best,
-                    "E_ED": E_ED,
-                    "error": error,
-                    "vscore": vscore,
-                    "time_exe": time_exe,
-                    "modphase": modphase_results,
-                    "fidelity": fidelity,
-                    "S_renyi": S_renyi,
-                    "m": m,
-                    "ms": ms,
-                    "m2": m2,
-                    "ms2": ms2,
-                    "m_ED": m_ED,
-                    "ms_ED": ms_ED,
-                    "m2_ED": m2_ED,
-                    "ms2_ED": ms2_ED,
-                },
+                "results": {**results},
                 "_artifacts": {"callback": callback_artifacts},
             }
 
@@ -474,4 +416,5 @@ for i, size in enumerate(sizes):
                 sim_label=sim_label,
                 ED_label=ED_label,
                 json_label=json_label,
+                sim_uuid=sim_uuid,
             )

@@ -1,7 +1,101 @@
 {
-    "model_NN": {
+    "NN": {
 
         "selection": "Experimental",
+
+        "ST_MCvT3-None_MCvT3-None":{
+
+            "module": "SplitTraining",
+            "setup":{
+
+                "modulus_setup":{
+                    "module": "Sequential",
+                    "setup":{
+                        "Seq_0":{
+                            "module":"CvT",
+                            "setup":{
+                                "n_CP_blocks": [2],
+                                "channels": [32],
+                                "attn_heads": [4],
+                                "kernel": [3, 3],
+                                "final_architecture": null
+                            }
+                        },
+                        "Seq_1":{
+                            "module":"CvT",
+                            "setup":{
+                                "n_CP_blocks": [2],
+                                "channels": [32],
+                                "attn_heads": [4],
+                                "kernel": [3, 3],
+                                "final_architecture": [5]
+                            }
+                        },
+                        "Ending":{
+                            "module": null,
+                            "setup":{}
+                        }
+                    }
+                },
+
+                "phase_setup":{
+                    "module": "Sequential",
+                    "setup":{
+                        "Seq_0":{
+                            "module":"CNNbinClsf",
+                            "setup":{
+                                "cnnclsf_channels": [32],
+                                "marshall":true
+                            }
+                        },
+                        "Ending":{
+                            "module": null,
+                            "setup":{}
+                        }
+                    }    
+                },
+
+                "symm_Z2": true,
+                "trivial_Z2": true,
+                "symm_2D": false,
+                "squeeze":true
+
+
+            }         
+        },
+
+
+        "Experimental":{
+
+            "module": "SplitTraining",
+            "setup":{
+
+                "modulus_setup":{
+                    "module":"CvT",
+                    "setup":{
+                        "n_CP_blocks": [2, 2, 2, 1],
+                        "channels": [64, 32, 16, 8],
+                        "attn_heads": [4, 4, 4, 2],
+                        "kernel": [3, 3],
+                        "final_architecture": [128, 64, 5]
+                    }
+                },
+
+                "phase_setup":{
+                    "module":"CNNbinClsf",
+                    "setup":{
+                        "cnnclsf_channels": [64, 32],
+                        "marshall": true
+                    }
+                },
+
+                "symm_Z2": true,
+                "trivial_Z2": true,
+                "symm_2D": false,
+                "squeeze":true
+
+            }         
+        },
         
         "ViT": {
             "token_size": 2,
@@ -68,99 +162,8 @@
             
             "symm_Z2": true,
             "trivial_Z2": true
-        },
-
-        "ST_MCvT3-None_MCvT3-None":{
-
-            "module": "SplitTraining",
-            "setup":{
-
-                "modulus_setup":{
-                    "module": "Sequential",
-                    "setup":{
-                        "Seq_0":{
-                            "module":"CvT",
-                            "setup":{
-                                "n_CP_blocks": [2],
-                                "channels": [32],
-                                "attn_heads": [4],
-                                "kernel": [3, 3],
-                                "final_architecture": null
-                            }
-                        },
-                        "Seq_1":{
-                            "module":"CvT",
-                            "setup":{
-                                "n_CP_blocks": [2],
-                                "channels": [64],
-                                "attn_heads": [4],
-                                "kernel": [3, 3],
-                                "final_architecture": [128,5]
-                            }
-                        },
-                        "Ending":{
-                            "module": null,
-                            "setup":{}
-                        }
-                    }
-                },
-
-                "phase_setup":{
-                    "module": "Sequential",
-                    "setup":{
-                        "Seq_0":{
-                            "module":"CNNClsf",
-                            "setup":{
-                                "cnnclsf_channels": [64],
-                                "n_classes": 2
-                            }
-                        },
-                        "Ending":{
-                            "module": null,
-                            "setup":{}
-                        }
-                    }    
-                },
-
-                "symm_Z2": true,
-                "trivial_Z2": true,
-                "symm_2D": false
-
-            }         
-        },
-
-
-        "Experimental":{
-
-            "module": "SplitTraining",
-            "setup":{
-
-                "modulus_setup":{
-                    "module":"CvT",
-                    "setup":{
-                        "n_CP_blocks": [2, 2, 2, 2],
-                        "channels": [64, 32, 16, 8],
-                        "attn_heads": [4, 4, 4, 2],
-                        "kernel": [3, 3],
-                        "final_architecture": [128, 64, 5]
-                    }
-                },
-
-                "phase_setup":{
-                    "module":"CNNbinClsf",
-                    "setup":{
-                        "cnnclsf_channels": [64, 32],
-                        "marshall": true
-                    }
-                },
-
-                "symm_Z2": true,
-                "trivial_Z2": true,
-                "symm_2D": false,
-                "squeeze":true
-
-            }         
         }
+
 
 
 

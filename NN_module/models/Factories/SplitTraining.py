@@ -24,6 +24,8 @@ class SplitTraining_Worker(nn.Module):
 
         log_modulus = self.Modulus_model(x)
         phase = self.Phase_model(x)
+        # print(log_modulus.shape)
+        # print(phase.shape)
 
         phi = log_modulus + 1j * phase
 

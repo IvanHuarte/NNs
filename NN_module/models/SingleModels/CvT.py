@@ -182,10 +182,10 @@ class CvTWorker(nn.Module):
         # print(f"Begging CvT")
         # print(f"Input shape: {x.shape}")
 
-        n_stages = len(self.n_CP_blocks)
-        x = x.reshape((-1, *self.lattice_size, 1))
-
         B = x.shape[0]
+        x = x.reshape((B, *self.lattice_size, -1))
+
+        n_stages = len(self.n_CP_blocks)
         for i in range(n_stages):
 
             x = StageBlock(

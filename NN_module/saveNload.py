@@ -9,6 +9,8 @@ import netket as nk
 from flax.serialization import to_bytes, from_bytes
 from datetime import date
 from platform import architecture, python_version
+from pathlib import Path
+
 
 from NN_module.NN_utils import sampler_dict, rule_dict
 from .initialize_models import FactoryBuilder
@@ -24,6 +26,7 @@ def save_results(
     sim_label="",
     ED_label="",
     json_label="",
+    sim_uuid=None,
 ):
     """
     Save the results of the simulation.
@@ -37,11 +40,16 @@ def save_results(
 
     os.makedirs(write_folder, exist_ok=True)
 
-    # Save the variational state parameters
-    file = f"{sim_label}"
-    file_ED = f"{ED_label}"
+    # Save LEGEND .json in previous dir
+    legend = {"NN": setup["NN"], "SIM": setup["SIM"], "CM": setup["CM"]}
+    parent = str(Path(write_folder).parent) + "/"
 
-    path_vstate = write_folder + file + "_vstate_params.msgpack"
+    with open(parent + f"UUID_{sim_uuid}.json", "w") as legendfile:
+        json.dump(legend, legendfile, separators=(",", ":"), sort_keys=True, indent=4)
+
+    # Save the variational state parameters
+
+    path_vstate = write_folder + sim_label + "_vstate_params.msgpack"
 
     with open(path_vstate, "wb") as f:
         f.write(to_bytes(vstate.parameters))
@@ -49,15 +57,15 @@ def save_results(
     setup["_artifacts"]["vstate"] = path_vstate
 
     # Save the vstate sampler state
-    path_sampler = write_folder + file + "_vstate_sampler_state.msgpack"
+    path_sampler = write_folder + sim_label + "_vstate_sampler_state.msgpack"
     with open(path_sampler, "wb") as f:
         f.write(to_bytes(vstate.sampler_state))
     setup["_artifacts"]["sampler_state"] = path_sampler
 
     # Save exact diagonalization eigenstate
     if x_ED is not None:
-        path_ED = write_folder + file_ED + ".txt"
-        if not os.path.isfile(write_folder + file_ED):
+        path_ED = write_folder + ED_label + ".txt"
+        if not os.path.isfile(write_folder + ED_label):
             np.savetxt(path_ED, x_ED)
         setup["_artifacts"]["x_ED"] = path_ED
 
@@ -65,12 +73,12 @@ def save_results(
     if not "modphase" in setup["_artifacts"]:
         setup["_artifacts"]["modphase"] = {}
     if modphase is not None:
-        modphase_path = write_folder + file + "_modphase_vstate.txt"
+        modphase_path = write_folder + sim_label + "_modphase_vstate.txt"
         np.savetxt(modphase_path, modphase)
         setup["_artifacts"]["modphase"]["vstate"] = modphase_path
 
     if modphase_ED is not None:
-        modphase_ED_path = write_folder + file_ED + "_modphase_xED.txt"
+        modphase_ED_path = write_folder + ED_label + "_modphase_xED.txt"
         np.savetxt(modphase_ED_path, modphase_ED)
         setup["_artifacts"]["modphase"]["xED"] = modphase_ED_path
 

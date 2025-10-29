@@ -1,68 +1,127 @@
-import ast
+import uuid
+from datetime import datetime
 
 from rich.console import Console
 from rich.panel import Panel
 from rich.text import Text
 from rich.table import Table
 
+import NN_module.models
+from NN_module.models import __all_single__
+
+
+def get_sim_config(configurations, **kwargs):
+
+    sim = configurations["SIM"]
+    cm = configurations["CM"]
+    nn = configurations["NN"]
+    cleaned = {**kwargs}
+
+    # Simulation
+    cleaned["SIM"] = {}
+
+    split_training = sim["split_training"]
+    training_name = "ST_schedule" if split_training else "normal_schedule"
+    lr_name = sim[training_name]["lr_name"]
+    training_setup = sim[training_name]["setup"]
+    lr_schedule_setup = sim[training_name]["lr_schedules"][lr_name]
+
+    cleaned["SIM"]["split_training"] = split_training
+    cleaned["SIM"]["sampler"] = sim["sampler"]
+    cleaned["SIM"]["schedule"] = {}
+    cleaned["SIM"]["schedule"]["split_training"] = True
+    cleaned["SIM"]["schedule"]["setup"] = training_setup
+
+    cleaned["SIM"]["schedule"]["lr_schedule"] = {}
+    cleaned["SIM"]["schedule"]["lr_schedule"]["name"] = lr_name
+    cleaned["SIM"]["schedule"]["lr_schedule"]["setup"] = lr_schedule_setup
+
+    # Coupling model
+    cleaned["CM"] = {}
+
+    cm_name = cm["name"]
+    cm_setup = cm["setup"]
+
+    cleaned["CM"]["name"] = cm_name
+    for k, v in cm_setup.items():
+        if not "_list" in k:
+            cleaned["CM"][k] = v
+
+    cleaned["CM"]["size"] = cm_setup["size"]
+
+    # NN architecture
+
+    cleaned["NN"] = {}
+    cleaned["NN"]["name"] = nn["name"]
+    cleaned["NN"]["setup"] = nn["setup"]
+
+    return cleaned
+
+
+def get_string_from_nnsetup(dic, nivel=0):
+    if not isinstance(dic, dict):
+        return ""
+
+    modulo = dic.get("module")
+    setup = dic.get("setup")  # setup puede no existir en algunos niveles
+
+    if modulo is None:
+        return ""
+
+    if modulo in __all_single__:
+        return modulo
+
+    nombres_submodulos = []
+
+    # Si existe la clave 'setup' y es dict, se usa
+    if isinstance(setup, dict):
+        sub_setup = setup.get("setup")
+        if isinstance(sub_setup, dict):
+            for key, val in sub_setup.items():
+                res = get_string_from_nnsetup(val, nivel + 1)
+                if res:
+                    nombres_submodulos.append(res)
+        else:
+            # Si no existe la clave 'setup' dentro, probamos iterar setup directamente
+            for key, val in setup.items():
+                # Evitar iterar claves no módulos, como flags booleanos, etc.
+                if isinstance(val, dict):
+                    res = get_string_from_nnsetup(val, nivel + 1)
+                    if res:
+                        nombres_submodulos.append(res)
+
+    # En caso de que 'setup' no exista, intentar ver si el dicc contiene submódulos directos
+    elif isinstance(dic, dict):
+        # Iterar claves que no sean 'module' ni 'setup' ni otras claves conocidas no módulo
+        for key, val in dic.items():
+            if key not in ("module", "setup") and isinstance(val, dict):
+                res = get_string_from_nnsetup(val, nivel + 1)
+                if res:
+                    nombres_submodulos.append(res)
+
+    separador = "_" * (nivel + 1)
+    if nombres_submodulos:
+        hijos = separador.join(nombres_submodulos)
+        return f"{modulo}{separador}{hijos}"
+    else:
+        return modulo
+
 
 def get_write_folder_from_model(config):
 
-    name = config["model_NN"]["selection"]
-    model_setup = config["model_NN"][name]
-    model_label = config["CM"]["selection"] + "_" + name
+    name = config["NN"]["selection"]
+    nn_setup = config["NN"][name]
+    model_label = config["CM"]["selection"]
 
-    conditions = []
-    labels = []
-    if name == "SplitTraining_ViT_MLP":
-
-        conditions = [
-            model_setup["symm_2D_modulus"],
-            model_setup["symm_2D_phase"],
-            model_setup["symm_Z2_modulus"],
-            model_setup["symm_Z2_phase"],
-        ]
-        labels = ["_2DM", "_2DP", "_Z2M", "_Z2P"]
-
-    elif name in ["ViT2D_CNN", "ViT2D_CNNClsf"]:
-        conditions = [model_setup["symm_2D"], model_setup["symm_Z2"]]
-        labels = ["_2D", "_Z2"]
-
-    elif name in [
-        "ViT",
-        "CvT",
-        "CvT2",
-        "CvT3",
-        "CvT3_CNNPh",
-        "CvT3_EDPPh",
-        "CvT3_CvT3",
-        "CvT3_CNNClsf",
-    ]:
-        conditions = [model_setup["symm_Z2"]]
-        labels = ["_Z2"]
-
-    symm = ""
-    for cond, label in zip(conditions, labels):
-        if cond:
-            symm += label
-            if label == "_Z2":
-                symm += "t" if model_setup["trivial_Z2"] else "nt"
-            if label == "_Z2M":
-                symm += "t" if model_setup["trivial_Z2_modulus"] else "nt"
-            if label == "_Z2P":
-                symm += "t" if model_setup["trivial_Z2_phase"] else "nt"
-            if label == "_1Z2":
-                symm += "t" if model_setup["trivial_Z2_1"] else "nt"
-            if label == "_2Z2":
-                symm += "t" if model_setup["trivial_Z2_2"] else "nt"
-
-    return config["write_folder_sim"] + model_label + symm + "/"
+    nn_label = get_string_from_nnsetup(nn_setup)
+    nn_label = name + "_" + nn_label
+    return config["write_folder_sim"] + model_label + "/" + nn_label + "/"
 
 
 def display_simulation_settings(settings, n_cols=5):
     console = Console()
     cm_sel = settings["CM"]["selection"]
-    nn_sel = settings["model_NN"]["selection"]
+    nn_sel = settings["NN"]["selection"]
 
     cm_color = "red"
     nn_color = "bright_yellow"
@@ -100,7 +159,7 @@ def display_simulation_settings(settings, n_cols=5):
         console.print(panel_cm)
 
     # Panel de red neuronal
-    nn_dict = settings["model_NN"].get(nn_sel, {})
+    nn_dict = settings["NN"].get(nn_sel, {})
     if isinstance(nn_dict, dict):
         table_nn = _group_params(nn_dict)
         panel_nn = Panel(table_nn, title=f"[bold]{nn_sel}[/]", border_style=nn_color)
@@ -241,7 +300,7 @@ def architecture_label(name, model_setup):
     return architecture
 
 
-def get_filenames_from_settings(cm_name, nn_name, **kwargs):
+def get_filenames_from_settings(cm_name, nn_name, sim_uuid, **kwargs):
 
     model_label = cm_name + "_" + nn_name
     size = kwargs["size"]
@@ -300,339 +359,9 @@ def get_filenames_from_settings(cm_name, nn_name, **kwargs):
             fields[2],
         )
 
-    if nn_name == "MLP":
-        alphas = kwargs["hidden_alpha"]
-        activation = kwargs["activation"]
-        act_label = ""
-        dim_label = ""
-        for act in activation:
-            act_label += f"{act}_"
-        for a in alphas:
-            dim_label += f"{a}_"
-        nnparams = f"_alphas_{dim_label}_activations_{act_label}"
-
-    elif nn_name == "ViT":
-        token_size = kwargs["token_size"]
-        embedding_d = kwargs["embedding_d"]
-        n_heads = kwargs["n_heads"]
-        n_blocks = kwargs["n_blocks"]
-        n_ffn_layers = kwargs["n_ffn_layers"]
-        nnparams = f"_b_{token_size}_Demb_{embedding_d}_heads_{n_heads}_blocks_{n_blocks}_ffn_lay_{n_ffn_layers}"
-
-    elif nn_name == "ViT_2D":
-        token_size = kwargs["token_size"]
-        embedding_d = kwargs["embedding_d"]
-        n_heads = kwargs["n_heads"]
-        n_blocks = kwargs["n_blocks"]
-        n_ffn_layers = kwargs["n_ffn_layers"]
-        nnparams = f"_b_{token_size[0]}x{token_size[1]}_Demb_{embedding_d}_heads_{n_heads}_blocks_{n_blocks}_ffn_lay_{n_ffn_layers}"
-
-    elif nn_name in ["CvT", "CvT3"]:
-        n_CP_blocks = kwargs["n_CP_blocks"]
-        CTemb_channels = kwargs["CTemb_channels"]
-        CP_channels = kwargs["CP_channels"]
-        attn_heads = kwargs["attn_heads"]
-        kernel = kwargs["kernel"]
-        final_architecture = ast.literal_eval(kwargs["final_architecture"])
-        kernel_label = blocks_label = emb_ch_label = cp_ch_label = heads_label = (
-            arch_label
-        ) = ""
-        for i in range(len(n_CP_blocks)):
-            blocks_label += f"{n_CP_blocks[i]}_"
-            emb_ch_label += f"{CTemb_channels[i]}_"
-            cp_ch_label += f"{CP_channels[i]}_"
-            heads_label += f"{attn_heads[i]}_"
-        for i in range(len(final_architecture)):
-            arch_label += f"{final_architecture[i]}_"
-        kernel_label += f"{kernel[0]}x{kernel[1]}_"
-        nnparams = f"_blocks_{blocks_label}emb_ch_{emb_ch_label}cp_ch_{cp_ch_label}heads_{heads_label}kernel_{kernel_label}finarch_{arch_label}"
-
-    elif nn_name == "CvT2":
-        n_CP_blocks = kwargs["n_CP_blocks"]
-        CTemb_channels = kwargs["CTemb_channels"]
-        CP_channels = kwargs["CP_channels"]
-        attn_heads = kwargs["attn_heads"]
-        strides = kwargs["strides"]
-        kernel = kwargs["kernel"]
-        final_architecture = ast.literal_eval(kwargs["final_architecture"])
-        kernel_label = blocks_label = emb_ch_label = cp_ch_label = heads_label = (
-            strides_label
-        ) = arch_label = ""
-        for i in range(len(n_CP_blocks)):
-            blocks_label += f"{n_CP_blocks[i]}_"
-            emb_ch_label += f"{CTemb_channels[i]}_"
-            cp_ch_label += f"{CP_channels[i]}_"
-            heads_label += f"{attn_heads[i]}_"
-        for i in range(len(final_architecture)):
-            arch_label += f"{final_architecture[i]}_"
-        for i in range(len(strides)):
-            strides_label += f"{strides[i][0]}x{strides[i][1]}_"
-        kernel_label += f"{kernel[0]}x{kernel[1]}_"
-        nnparams = f"_blocks_{blocks_label}emb_ch_{emb_ch_label}cp_ch_{cp_ch_label}heads_{heads_label}strides_{strides_label}kernel_{kernel_label}finarch_{arch_label}"
-
-    elif nn_name == "CvTaps":
-        n_CP_blocks = kwargs["n_CP_blocks"]
-        channels = kwargs["channels"]
-        attn_heads = kwargs["attn_heads"]
-        strides = kwargs["strides"]
-        kernel = kwargs["kernel"]
-        final_architecture = ast.literal_eval(kwargs["final_architecture"])
-        kernel_label = blocks_label = ch_label = str_label = heads_label = (
-            arch_label
-        ) = ""
-        for i in range(len(n_CP_blocks)):
-            blocks_label += f"{n_CP_blocks[i]}_"
-            ch_label += f"{channels[i]}_"
-            heads_label += f"{attn_heads[i]}_"
-        for i in range(len(final_architecture)):
-            arch_label += f"{final_architecture[i]}_"
-        for stride in strides:
-            str_label += f"{stride[0]}x{stride[1]}_"
-        kernel_label += f"{kernel[0]}x{kernel[1]}_"
-        nnparams = f"_blocks_{blocks_label}channels_{ch_label}strides_{str_label}heads_{heads_label}kernel_{kernel_label}finarch_{arch_label}"
-
-    elif nn_name == "SplitTraining_ViT_MLP":
-        token_size = kwargs["token_size"]
-        embedding_d = kwargs["embedding_d"]
-        n_heads = kwargs["n_heads"]  # ViT
-        n_blocks = kwargs["n_blocks"]
-        n_ffn_layers = kwargs["n_ffn_layers"]
-        alphas = kwargs["hidden_alpha"]
-        activation = kwargs["activation"]  # MLP
-        act_label = ""
-        dim_label = ""
-        for act in activation:
-            act_label += f"{act}_"
-        for a in alphas:
-            dim_label += f"{a}_"
-
-        nnparams = f"_ViT_b_{token_size[0]}x{token_size[1]}_Demb_{embedding_d}_heads_{n_heads}_blocks_{n_blocks}_ffn_lay_{n_ffn_layers}__MLP_alphas_{dim_label}_activations_{act_label}"
-
-    elif nn_name == "ViT2D_CNN":
-        token_size = kwargs["token_size"]
-        embedding_d = kwargs["embedding_d"]
-        n_heads = kwargs["n_heads"]  # ViT
-        n_blocks = kwargs["n_blocks"]
-        n_ffn_layers = kwargs["n_ffn_layers"]
-        block_channels = kwargs["block_channels"]
-        kernel_size = kwargs["kernel_size"]
-        n_ffn_layers_cnn = kwargs["n_ffn_layers_cnn"]  # CNN
-        cha_label = ""
-        for ch in block_channels:
-            cha_label += f"{ch}_"
-        nnparams = f"_ViT_b_{token_size[0]}x{token_size[1]}_Demb_{embedding_d}_heads_{n_heads}_blocks_{n_blocks}_ffn_lay_{n_ffn_layers}_"
-        nnparams = f"_CNN_channels_{cha_label}kernel_{kernel_size[0]}x{kernel_size[1]}_n_ffn_lay_{n_ffn_layers_cnn}"
-
-    elif nn_name == "ViT2D_CNNClsf":
-        token_size = kwargs["token_size"]
-        embedding_d = kwargs["embedding_d"]
-        n_heads = kwargs["n_heads"]  # ViT
-        n_blocks = kwargs["n_blocks"]
-        n_ffn_layers = kwargs["n_ffn_layers"]
-        cnnclsf_channels = kwargs["cnnclsf_channels"]
-        n_classes = kwargs["n_classes"]
-        clsf_ch_label = ""
-        for i in range(len(cnnclsf_channels)):
-            clsf_ch_label += f"{cnnclsf_channels[i]}_"
-
-        nnparams = f"_ViT_b_{token_size[0]}x{token_size[1]}_Demb_{embedding_d}_heads_{n_heads}_blocks_{n_blocks}_ffn_lay_{n_ffn_layers}_"
-        nnparams = f"_CNN_channels_{clsf_ch_label}n_classes_{n_classes}"
-
-    elif nn_name == "SplitTraining_CvT_CNN":
-        # CvT params
-        n_CP_blocks = kwargs["n_CP_blocks"]
-        CTemb_channels = kwargs["CTemb_channels"]
-        CP_channels = kwargs["CP_channels"]
-        attn_heads = kwargs["attn_heads"]
-        kernel = kwargs["kernel"]
-        final_architecture = ast.literal_eval(kwargs["final_architecture"])
-
-        kernel_label = blocks_label = emb_ch_label = cp_ch_label = heads_label = (
-            arch_label
-        ) = ""
-        for i in range(len(n_CP_blocks)):
-            blocks_label += f"{n_CP_blocks[i]}_"
-            emb_ch_label += f"{CTemb_channels[i]}_"
-            cp_ch_label += f"{CP_channels[i]}_"
-            heads_label += f"{attn_heads[i]}_"
-        for i in range(len(final_architecture)):
-            arch_label += f"{final_architecture[i]}_"
-        kernel_label += f"{kernel[0]}x{kernel[1]}_"
-
-        # CNN params
-        block_channels_cnn = kwargs["block_channels_cnn"]
-        kernel_size_cnn = kwargs["kernel_size_cnn"]
-        n_ffn_layers_cnn = kwargs["n_ffn_layers_cnn"]  # CNN
-        cha_label_cnn = ""
-        for ch in block_channels_cnn:
-            cha_label_cnn += f"{ch}_"
-        nnparams = f"CvT_blocks_{blocks_label}emb_ch_{emb_ch_label}cp_ch_{cp_ch_label}heads_{heads_label}kernel_{kernel_label}finarch_{arch_label}"
-        nnparams += f"_CNN_channels_{cha_label_cnn}kernel_{kernel_size_cnn[0]}x{kernel_size_cnn[0]}_n_ffn_lay_{n_ffn_layers_cnn}"
-
-    elif nn_name in ["SplitTraining_CvT_CvT", "CvT3_CvT3"]:
-        # CvT 1 params
-        n_CP_blocks_1 = kwargs["n_CP_blocks_1"]
-        CTemb_channels_1 = kwargs["CTemb_channels_1"]
-        CP_channels_1 = kwargs["CP_channels_1"]
-        attn_heads_1 = kwargs["attn_heads_1"]
-        kernel_1 = kwargs["kernel_1"]
-        final_architecture_1 = ast.literal_eval(kwargs["final_architecture_1"])
-
-        kernel_label_1 = blocks_label_1 = emb_ch_label_1 = cp_ch_label_1 = (
-            heads_label_1
-        ) = arch_label_1 = ""
-        for i in range(len(n_CP_blocks_1)):
-            blocks_label_1 += f"{n_CP_blocks_1[i]}_"
-            emb_ch_label_1 += f"{CTemb_channels_1[i]}_"
-            cp_ch_label_1 += f"{CP_channels_1[i]}_"
-            heads_label_1 += f"{attn_heads_1[i]}_"
-        for i in range(len(final_architecture_1)):
-            arch_label_1 += f"{final_architecture_1[i]}_"
-        kernel_label_1 += f"{kernel_1[0]}x{kernel_1[0]}_"
-
-        # CvT 2 params
-        n_CP_blocks_2 = kwargs["n_CP_blocks_2"]
-        CTemb_channels_2 = kwargs["CTemb_channels_2"]
-        CP_channels_2 = kwargs["CP_channels_2"]
-        attn_heads_2 = kwargs["attn_heads_2"]
-        kernel_2 = kwargs["kernel_2"]
-        final_architecture_2 = ast.literal_eval(kwargs["final_architecture_2"])
-
-        kernel_label_2 = blocks_label_2 = emb_ch_label_2 = cp_ch_label_2 = (
-            heads_label_2
-        ) = arch_label_2 = ""
-        for i in range(len(n_CP_blocks_2)):
-            blocks_label_2 += f"{n_CP_blocks_2[i]}_"
-            emb_ch_label_2 += f"{CTemb_channels_2[i]}_"
-            cp_ch_label_2 += f"{CP_channels_2[i]}_"
-            heads_label_2 += f"{attn_heads_2[i]}_"
-        for i in range(len(final_architecture_2)):
-            arch_label_2 += f"{final_architecture_2[i]}_"
-        kernel_label_2 += f"{kernel_2[0]}x{kernel_2[0]}_"
-
-        nnparams = f"CvT1_blocks_{blocks_label_1}emb_ch_{emb_ch_label_1}cp_ch_{cp_ch_label_1}heads_{heads_label_1}kernel_{kernel_label_1}finarch_{arch_label_1}"
-        nnparams += f"_CvT2_blocks_{blocks_label_2}emb_ch_{emb_ch_label_2}cp_ch_{cp_ch_label_2}heads_{heads_label_2}kernel_{kernel_label_2}finarch_{arch_label_2}"
-
-    elif nn_name == "CvTaps_CvTaps":
-        # CvTaps 1 params
-        n_CP_blocks_1 = kwargs["n_CP_blocks_1"]
-        channels_1 = kwargs["channels_1"]
-        attn_heads_1 = kwargs["attn_heads_1"]
-        strides_1 = kwargs["strides_1"]
-        kernel_1 = kwargs["kernel_1"]
-        final_architecture_1 = ast.literal_eval(kwargs["final_architecture_1"])
-
-        blocks_label_1 = ch_label_1 = str_label_1 = kernel_label_1 = heads_label_1 = (
-            arch_label_1
-        ) = ""
-        for i in range(len(n_CP_blocks_1)):
-            blocks_label_1 += f"{n_CP_blocks_1[i]}_"
-            ch_label_1 += f"{channels_1[i]}_"
-            heads_label_1 += f"{attn_heads_1[i]}_"
-        for i in range(len(strides_1)):
-            str_label_1 += f"{strides_1[i][0]}x{strides_1[i][1]}_"
-        for i in range(len(final_architecture_1)):
-            arch_label_1 += f"{final_architecture_1[i]}_"
-        kernel_label_1 += f"{kernel_1[0]}x{kernel_1[0]}_"
-
-        # CvTaps 2 params
-        n_CP_blocks_2 = kwargs["n_CP_blocks_2"]
-        channels_2 = kwargs["channels_2"]
-        attn_heads_2 = kwargs["attn_heads_2"]
-        strides_2 = kwargs["strides_2"]
-        kernel_2 = kwargs["kernel_2"]
-        final_architecture_2 = ast.literal_eval(kwargs["final_architecture_2"])
-
-        blocks_label_2 = ch_label_2 = str_label_2 = kernel_label_2 = heads_label_2 = (
-            arch_label_2
-        ) = ""
-        for i in range(len(n_CP_blocks_2)):
-            blocks_label_2 += f"{n_CP_blocks_2[i]}_"
-            ch_label_2 += f"{channels_2[i]}_"
-            heads_label_2 += f"{attn_heads_2[i]}_"
-        for i in range(len(strides_2)):
-            str_label_2 += f"{strides_2[i][0]}x{strides_2[i][1]}_"
-        for i in range(len(final_architecture_2)):
-            arch_label_2 += f"{final_architecture_2[i]}_"
-        kernel_label_2 += f"{kernel_2[0]}x{kernel_2[0]}_"
-
-        nnparams = f"CvTaps1_blocks_{blocks_label_1}channels_{ch_label_1}heads_{heads_label_1}kernel_{kernel_label_1}finarch_{arch_label_1}"
-        nnparams += f"_CvTaps2_blocks_{blocks_label_2}channels_{ch_label_2}heads_{heads_label_2}kernel_{kernel_label_2}finarch_{arch_label_2}"
-
-    elif nn_name in ["CvT3_CNNPh", "SplitTraining_CvT3_CNNPhasor"]:
-        n_CP_blocks = kwargs["n_CP_blocks"]
-        CTemb_channels = kwargs["CTemb_channels"]
-        CP_channels = kwargs["CP_channels"]
-        attn_heads = kwargs["attn_heads"]
-        kernel = kwargs["kernel"]
-        final_architecture = ast.literal_eval(kwargs["final_architecture"])
-        cnnph_channels = kwargs["cnnph_channels"]
-
-        kernel_label = blocks_label = emb_ch_label = cp_ch_label = heads_label = (
-            arch_label
-        ) = ""
-        for i in range(len(n_CP_blocks)):
-            blocks_label += f"{n_CP_blocks[i]}_"
-            emb_ch_label += f"{CTemb_channels[i]}_"
-            cp_ch_label += f"{CP_channels[i]}_"
-            heads_label += f"{attn_heads[i]}_"
-        for i in range(len(final_architecture)):
-            arch_label += f"{final_architecture[i]}_"
-        kernel_label += f"{kernel[0]}x{kernel[1]}_"
-
-        nnparams = f"_CvT3_blocks_{blocks_label}emb_ch_{emb_ch_label}cp_ch_{cp_ch_label}heads_{heads_label}kernel_{kernel_label}finarch_{arch_label}"
-        nnparams += f"_CNNPh_ch_{cnnph_channels}"
-
-    elif nn_name == "CvT3_EDPPh":
-        n_CP_blocks = kwargs["n_CP_blocks"]
-        CTemb_channels = kwargs["CTemb_channels"]
-        CP_channels = kwargs["CP_channels"]
-        attn_heads = kwargs["attn_heads"]
-        kernel = kwargs["kernel"]
-        final_architecture = ast.literal_eval(kwargs["final_architecture"])
-        edpph_channels = kwargs["edpph_channels"]
-
-        kernel_label = blocks_label = emb_ch_label = cp_ch_label = heads_label = (
-            arch_label
-        ) = ""
-        for i in range(len(n_CP_blocks)):
-            blocks_label += f"{n_CP_blocks[i]}_"
-            emb_ch_label += f"{CTemb_channels[i]}_"
-            cp_ch_label += f"{CP_channels[i]}_"
-            heads_label += f"{attn_heads[i]}_"
-        for i in range(len(final_architecture)):
-            arch_label += f"{final_architecture[i]}_"
-        kernel_label += f"{kernel[0]}x{kernel[1]}_"
-
-        nnparams = f"_CvT3_blocks_{blocks_label}emb_ch_{emb_ch_label}cp_ch_{cp_ch_label}heads_{heads_label}kernel_{kernel_label}finarch_{arch_label}"
-        nnparams += f"_EDPPh_ch_{edpph_channels}"
-
-    elif nn_name == "CvT3_CNNClsf":
-        n_CP_blocks = kwargs["n_CP_blocks"]
-        CTemb_channels = kwargs["CTemb_channels"]
-        CP_channels = kwargs["CP_channels"]
-        attn_heads = kwargs["attn_heads"]
-        kernel = kwargs["kernel"]
-        final_architecture = ast.literal_eval(kwargs["final_architecture"])
-        cnnclsf_channels = kwargs["cnnclsf_channels"]
-        n_classes = kwargs["n_classes"]
-
-        kernel_label = blocks_label = emb_ch_label = cp_ch_label = heads_label = (
-            arch_label
-        ) = clsf_ch_label = ""
-        for i in range(len(n_CP_blocks)):
-            blocks_label += f"{n_CP_blocks[i]}_"
-            emb_ch_label += f"{CTemb_channels[i]}_"
-            cp_ch_label += f"{CP_channels[i]}_"
-            heads_label += f"{attn_heads[i]}_"
-        for i in range(len(cnnclsf_channels)):
-            clsf_ch_label += f"{cnnclsf_channels[i]}_"
-        for i in range(len(final_architecture)):
-            arch_label += f"{final_architecture[i]}_"
-        kernel_label += f"{kernel[0]}x{kernel[1]}_"
-
-        nnparams = f"_CvT3_blocks_{blocks_label}emb_ch_{emb_ch_label}cp_ch_{cp_ch_label}heads_{heads_label}kernel_{kernel_label}finarch_{arch_label}"
-        nnparams += f"_EDPPh_ch_{clsf_ch_label}n_classes_{n_classes}"
+    # Necessary to set unique simulation labels
+    date = datetime.now().strftime("%Y%m%dT%H%M%S")
+    nnparams = get_string_from_nnsetup(kwargs) + f"_date_{date}_UUID_{sim_uuid}"
 
     sim_label = model_label + f"_simulation_{size[0]}x{size[1]}" + cparams + nnparams
     ED_label = model_label + f"_xED_{size[0]}x{size[1]}" + cparams
