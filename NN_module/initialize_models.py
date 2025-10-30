@@ -5,7 +5,7 @@ import jax
 import jax.numpy as jnp
 
 import NN_module.models
-from NN_module.models import REGISTRY
+from NN_module.models import REGISTRY, EXTERNAL_ARGS
 
 activation_dict = {
     "sigmoid": nn.sigmoid,
@@ -96,22 +96,12 @@ class FactoryBuilder:
         native in NN configurations or changes during simulations.
         """
 
-        latsize_nn = [
-            "CNN",
-            "CvT",
-            "CNNPh",
-            "EDPPh",
-            "CNNClsf",
-            "CNNbinClsf",
-            "CvTaps",
-            "MLP",
-        ]
-
         # Add lattice_size to modules which natively need spatial info and/or
         # is necesary to perform 2D traslational symmetries
         if "module" in setup.keys() and "setup" in setup.keys():
-            if setup["module"] in latsize_nn:
-                setup["setup"]["lattice_size"] = external_args["lattice_size"]
+            for k, v in external_args.items():
+                if setup["module"] in EXTERNAL_ARGS[k]:
+                    setup["setup"][k] = v
 
         if "symm_2D" in setup:
             setup["lattice_size"] = external_args["lattice_size"]
@@ -150,7 +140,7 @@ class FactoryBuilder:
 
         symm_Z2 = setup["symm_Z2"] if "symm_Z2" in setup else False
         trivial_Z2 = setup["trivial_Z2"] if "trivial_Z2" in setup else False
-        symm_2D = setup["symm_2D"] if "symm_Z2" in setup else False
+        symm_2D = setup["symm_2D"] if "symm_2D" in setup else False
         lattice_size = setup["lattice_size"] if "symm_2D" in setup else None
         squeeze = jnp.squeeze if "squeeze" in setup else lambda x: x
 
@@ -196,11 +186,13 @@ class FactoryBuilder:
                     if isinstance(trans_setup, dict)
                 ]
             )
+            operation = setup["operation"] if "operation" in setup else "sum"
+            post_norm = setup["post_norm"] if "post_norm" in setup else False
 
             return clss(
                 Trans=trans_module,
-                operation=setup["operation"],
-                post_norm=setup["post_norm"],
+                operation=operation,
+                post_norm=post_norm,
                 symm_Z2=symm_Z2,
                 trivial_Z2=trivial_Z2,
                 symm_2D=symm_2D,

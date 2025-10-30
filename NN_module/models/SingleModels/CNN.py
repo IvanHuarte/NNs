@@ -4,8 +4,12 @@ import jax.numpy as jnp
 import jax.typing as jt
 from typing import Callable, Tuple
 
-
-from NN_module.models.SingleModels.ViT_2D import MultiLayerPerceptron
+from .ViT_2D import MultiLayerPerceptron
+from ..toolbox import (
+    two_heads,
+    two_heads_phasors,
+    glu_phasor,
+)
 
 REAL_DTYPE = jnp.asarray(1.0).dtype
 

@@ -22,14 +22,16 @@ class SplitTraining_Worker(nn.Module):
 
     def __call__(self, x: jnp.ndarray) -> jnp.ndarray:
 
+        # print(f"Modulus")
         log_modulus = self.Modulus_model(x)
+
+        # print(f"Phase")
         phase = self.Phase_model(x)
+
         # print(log_modulus.shape)
         # print(phase.shape)
 
-        phi = log_modulus + 1j * phase
-
-        return self.squeeze(phi)
+        return self.squeeze(log_modulus + 1j * phase)
 
 
 class SplitTraining_2D(nn.Module):

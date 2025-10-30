@@ -12,6 +12,8 @@ from .SingleModels.Phase import CNNPh, EDPPh, CNNClsf, CNNbinClsf
 from .SingleModels.ViT_2D import ViT2D
 from .SingleModels.ViT import ViT
 
+from .toolbox import MarshallSign
+
 # Final Architecture modules
 
 
@@ -30,6 +32,7 @@ __all_single__ = [
     "EDPPh",
     "CNNClsf",
     "CNNbinClsf",
+    "MarshallSign",
     "MLP",
     "ViT2D",
     "ViT",
@@ -52,10 +55,31 @@ REGISTRY_SINGLE = {
     "EDPPh": EDPPh,
     "CNNClsf": CNNClsf,
     "CNNbinClsf": CNNbinClsf,
+    "MarshallSign": MarshallSign,
     "MLP": MLP,
     "ViT2D": ViT2D,
     "ViT": ViT,
 }
 
-# Opcional: REGISTRY general combinando ambos
 REGISTRY = {None: None, **REGISTRY_SINGLE, **REGISTRY_FACTORIES}
+
+
+# Diccionarios de modulos que necesitan argumentos externos
+
+LATTICE_SIZE = {
+    "lattice_size": [
+        "CNN",
+        "CvT",
+        "CvTaps",
+        "CNNPh",
+        "EDPPh",
+        "CNNClsf",
+        "CNNbinClsf",
+        "MarshallSign",
+        "MLP",
+        "ViT2D",
+        "ViT",
+    ]
+}
+
+EXTERNAL_ARGS = {**LATTICE_SIZE}

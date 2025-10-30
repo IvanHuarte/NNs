@@ -2,7 +2,11 @@
 
    "write_folder_sim":"/home/ihuarte/Escritorio/Ivan/NNs/pruebas/new/",    "sim <---> SSF":"Ruta donde se guardan los productos de simulaciones",
 
-    "plot_callback": true,
+   "callback":{
+        "keeper": true,
+        "inline": true
+   },
+   
     "explore_mode": true,
 
     "sampler":{

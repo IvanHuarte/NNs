@@ -93,8 +93,6 @@ lr_name = config[training_name]["lr_name"]
 training_setup = config[training_name]["setup"]
 lr_schedule_setup = config[training_name]["lr_schedules"][lr_name]
 
-plot_callback = config["plot_callback"]
-
 sampler_setup = config["sampler"]
 n_samples = (
     sampler_setup["n_samples_per_chain"]
@@ -103,14 +101,19 @@ n_samples = (
 )
 print(f"Total samples: {n_samples}")
 
-write = get_write_folder_from_model({**config, **config_cm, **config_nn})
-
 ### MC sampling rules ###
 rule1 = nk.sampler.rules.LocalRule()
 rule2 = InvertMagnetization()
 pinvert = 0.25
 pflip = 1 - pinvert
 
+### Callbacks
+enable_keeper = config["callback"]["keeper"]
+enable_inline = config["callback"]["inline"]
+callbacks = []
+
+
+write = get_write_folder_from_model({**config, **config_cm, **config_nn})
 
 for i, size in enumerate(sizes):
 
@@ -229,11 +232,17 @@ for i, size in enumerate(sizes):
                     "freeze": optax.set_to_zero(),
                 }
 
-                keeper = BestIterKeeper(
-                    total_epochs, H, N, baseline=1e-8, mode="best_energy"
-                )
-                inline_call = EnergyPlotter(H, N, E_ED=E_ED)
+                # Callbacks
+                if enable_keeper:
+                    keeper = BestIterKeeper(
+                        total_epochs, H, N, baseline=1e-8, mode="best_energy"
+                    )
+                    callbacks.append(keeper.update)
                 # keeper.filename = 'Somewhere' #It allows you to store the parameters of the model for the state with lowest energy found.
+
+                if enable_inline:
+                    inline_plot = EnergyPlotter(H, N, E_ED=E_ED)
+                    callbacks.append(inline_plot)
 
                 print(f"\nEpochs:      {total_epochs}")
                 print(f"Segments:      {segments}")
@@ -300,7 +309,7 @@ for i, size in enumerate(sizes):
                         gs.run(
                             n_iter=epochs,
                             out=log,
-                            callback=[keeper.update, inline_call],
+                            callback=callbacks,
                             show_progress=True,
                         )
                         mean, std, psi = phase_stats_vstate(vstate)
@@ -312,10 +321,17 @@ for i, size in enumerate(sizes):
             else:  # Training modulus and phase at the same time
 
                 total_epochs = training_setup["total_epochs"]
-                keeper = BestIterKeeper(
-                    total_epochs, H, N, baseline=1e-8, mode="best_energy"
-                )
+                # Callbacks
+                if enable_keeper:
+                    keeper = BestIterKeeper(
+                        total_epochs, H, N, baseline=1e-8, mode="best_energy"
+                    )
+                    callbacks.append(keeper.update)
                 # keeper.filename = 'Somewhere' #It allows you to store the parameters of the model for the state with lowest energy found.
+
+                if enable_inline:
+                    inline_plot = EnergyPlotter(H, N, E_ED=E_ED)
+                    callbacks.append(inline_plot)
                 lr_schedule_setup["total_epochs"] = total_epochs
 
                 ds_schedule = optax.linear_schedule(1e-2, 1e-4, total_epochs)
@@ -329,7 +345,7 @@ for i, size in enumerate(sizes):
                 ).run(
                     n_iter=total_epochs,
                     out=log,
-                    callback=[keeper.update],
+                    callback=callbacks,
                     show_progress=True,
                 )
 
@@ -359,25 +375,21 @@ for i, size in enumerate(sizes):
                 )
             )
 
-            if plot_callback:
-                # For plotting architecture
-                architecture = None  # architecture_label(nn_model_name, nn_model_setup)
-                dump_setup = {
-                    "size": size,
-                    "opt_name": "Sgd",
-                    "learning_rate": "Scheduled",
-                    "write_folder": write_folder,
-                    "time_exe": time_exe,
-                    "architecture": architecture,
-                    "sim_label": sim_label,
-                    "title_label_callback": title_label_callback,
-                    "best_step": keeper.best_step,
-                }
+            # For plotting architecture
+            architecture = None  # architecture_label(nn_model_name, nn_model_setup)
+            dump_setup = {
+                "size": size,
+                "opt_name": "Sgd",
+                "learning_rate": "Scheduled",
+                "write_folder": write_folder,
+                "time_exe": time_exe,
+                "architecture": architecture,
+                "sim_label": sim_label,
+                "title_label_callback": title_label_callback,
+                "best_step": keeper.best_step,
+            }
 
-                callback_artifacts = dump_callback(log, dump_setup)
-
-            else:
-                callback_artifacts = None
+            callback_artifacts = dump_callback(log, dump_setup)
 
             ## Calculate some observables
             results, mp_array_vs, mp_array_ED = measureNdump(

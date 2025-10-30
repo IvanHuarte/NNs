@@ -238,7 +238,7 @@ class EnergyPlotter:
         self.ax1.set_ylabel("Energía")
         self.ax1.set_title("Refinement callback")
         self.ax1.legend(fontsize=8)
-        self.ax3.grid()
+        self.ax1.grid()
 
         self.ax2.set_ylabel("Vscore")
         self.ax2.set_yscale("log")

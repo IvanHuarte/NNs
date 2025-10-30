@@ -40,9 +40,6 @@ class Transversal_Worker(nn.Module):
             x = nn.LayerNorm()(x)
             x = x.swapaxes(0, -1)
 
-        else:
-            self.norm = lambda x: x
-
         # print(f"x_norm: {x.shape}")
 
         x = final_ensemble(ensem_mode=self.operation)(x, axis=0, keepdims=True)

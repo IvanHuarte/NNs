@@ -118,7 +118,7 @@ class CNNClsf(nn.Module):
 
         # Marshall sign rule bias
         if self.marshall:
-            bias_mars = MarshallSign(radians=True)(x_in.reshape(-1, *self.lattice_size))
+            bias_mars = MarshallSign(lattice_size=self.lattice_size, radians=True)(x_in)
             phase += bias_mars[:, None]
             phase = (phase + jnp.pi) % (2 * jnp.pi) - jnp.pi
 
@@ -162,7 +162,7 @@ class CNNbinClsf(nn.Module):
 
         # Marshall sign rule bias
         if self.marshall:
-            bias_mars = MarshallSign(radians=True)(x_in.reshape(-1, *self.lattice_size))
+            bias_mars = MarshallSign(lattice_size=self.lattice_size, radians=True)(x_in)
             phase += bias_mars[:, None]
             phase = (phase + jnp.pi) % (2 * jnp.pi) - jnp.pi
 
