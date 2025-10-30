@@ -285,14 +285,14 @@ def modphase_extended(mod, phase, sigmas=1):
 def modphase(xvs):
 
     if isinstance(xvs, (np.ndarray, jax.Array)):
-        print("ED in modphase")
+        # print("ED in modphase")
         mod = jnp.abs(xvs)
         phase = jnp.angle(xvs)
         return modphase_extended(mod, phase)
 
     elif isinstance(xvs, nk.vqs.VariationalState):
         try:
-            print("vstate in modphase")
+            # print("vstate in modphase")
             x = xvs.to_array()
             mod = jnp.abs(x)
             phase = jnp.angle(x)

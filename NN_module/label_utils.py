@@ -300,7 +300,7 @@ def architecture_label(name, model_setup):
     return architecture
 
 
-def get_filenames_from_settings(cm_name, nn_name, sim_uuid, **kwargs):
+def get_filenames_from_settings(cm_name, nn_name, sim_uuid=None, **kwargs):
 
     model_label = cm_name + "_" + nn_name
     size = kwargs["size"]

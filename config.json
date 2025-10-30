@@ -4,9 +4,10 @@
 
    "callback":{
         "keeper": true,
-        "inline": true
+        "inline": true,
+        "modphase": true
    },
-   
+
     "explore_mode": true,
 
     "sampler":{

@@ -3,10 +3,14 @@ import os
 import copy
 import numpy as np
 import matplotlib.pyplot as plt
+import matplotlib.transforms as mtransforms
 import flax
 import numpy.typing as npt
 from typing import Optional
 from pathlib import Path
+
+from NN_module.NN_utils import modphase
+from NN_module.label_utils import get_filenames_from_settings
 
 
 class BestIterKeeper:
@@ -48,7 +52,7 @@ class BestIterKeeper:
         self.best_state_vscore = np.inf
         self.best_step = 0
         self.best_state = None
-        self.step_threshold = 0  # epochs // 10
+        self.step_threshold = epochs // 10
         self.step = -1
 
         if mode == "best_energy":
@@ -276,6 +280,199 @@ class EnergyPlotter:
         self.ax3.relim()
         self.ax3.autoscale_view()
         # Dibuja y hace una pausa breve para que se renderice
+        self.fig.canvas.draw()
+        self.fig.canvas.flush_events()
+        plt.pause(0.01)
+
+        return True
+
+
+class ModPhasePlotter:
+    """
+    Dynamic callback for plotting modulus and phase in each iteration
+    """
+
+    def __init__(self, sim_config, x_ED=None, plot_each=2):
+        self.plot_each = plot_each
+        self.sim_config = sim_config
+        self.x_ED = x_ED
+
+        (mod_ED, phase_ED), stats_ED = modphase(x_ED)
+
+        kwargs = {**sim_config["CM"], **sim_config["NN"]["setup"]}
+        _, _, _, callback = get_filenames_from_settings(
+            sim_config["CM"]["name"], sim_config["NN"]["name"], **kwargs
+        )
+        title = callback.replace("Callback", "").lstrip().replace(" ", "\\quad")
+
+        plt.ion()
+        nplots = 4 if x_ED is not None else 3
+        self.fig, self.ax = plt.subplots(nplots, 1, figsize=[15, 10])
+
+        # Plot MODULUS
+        self.line_mod_vs = self.ax[0].plot(
+            [], [], ls="-", color="r", alpha=0.6, label="vstate"
+        )
+
+        if x_ED is not None:
+            self.line_mod_ed = self.ax[0].plot(mod_ED, ls="-", alpha=0.6, label="ED")
+        else:
+            self.line_mod_ed = None
+
+        # Plot PHASE SCATTER
+        self.sc_phase_vs = self.ax[1].plot(
+            [], [], alpha=0.15, ls="", marker="o", ms=0.1, color="r", label="vstate"
+        )
+        if x_ED is not None:
+            self.sc_phase_ed = self.ax[2].plot(
+                phase_ED, alpha=0.15, ls="", marker="o", ms=0.1, label="ED"
+            )
+        else:
+            self.sc_phase_ed = None
+
+        # Plot PHASE HISTOGRAM
+        self.phase_hist_vs = None
+
+        if x_ED is not None:
+            self.phase_hist_ed = self.ax[-1].hist(
+                phase_ED,
+                bins=1000,
+                range=(-np.pi, np.pi),
+                density=True,
+                alpha=0.7,
+                label=f"ED  ({stats_ED['type']})",
+            )
+        else:
+            self.sc_phase_ed = None
+
+        # Configuración de ejes
+        self.ax[0].set_title(r"$Modulus\;and\;Phase\qquad %s$" % (title), fontsize=10)
+        self.ax[0].set_xticks([])
+        self.ax[0].set_ylabel(r"$Modulus$")
+        self.ax[0].legend()
+
+        self.ax[1].set_xticks([])
+        self.ax[1].set_yticks([-np.pi, -np.pi / 2, 0, np.pi / 2, np.pi])
+        self.ax[1].set_yticklabels(
+            [r"$-\pi$", r"$-\pi/2$", r"$0$", r"$\pi/2$", r"$\pi$"]
+        )
+        self.ax[1].set_ylabel(r"$Phase \;vstate$")
+        self.ax[1].set_ylim(-np.pi - 0.1, np.pi + 0.1)
+        self.ax[1].legend()
+
+        if x_ED is not None:
+            self.ax[2].set_xlabel(r"$C_i$")
+            self.ax[2].set_ylabel(r"$Phase \;ED$")
+            self.ax[2].set_ylim(-np.pi - 0.1, np.pi + 0.1)
+            self.ax[2].set_yticks([-np.pi, -np.pi / 2, 0, np.pi / 2, np.pi])
+            self.ax[2].set_yticklabels(
+                [r"$-\pi$", r"$-\pi/2$", r"$0$", r"$\pi/2$", r"$\pi$"]
+            )
+            self.ax[2].legend(loc="upper right")
+        else:
+            self.ax[1].set_xlabel(r"$C_i$")
+
+        self.ax[-1].set_xlabel(r"$Phase\;(radians)$")
+        self.ax[-1].set_ylabel(r"$Phase \;histogram$")
+
+        self.transform = mtransforms.blended_transform_factory(
+            self.ax[-1].transData, self.ax[-1].transAxes
+        )
+
+        if x_ED is not None and stats_ED["peaks"] is not None:
+            for peak in stats_ED["peaks"]["values"]:
+                self.ax[-1].text(
+                    peak - 0.1,
+                    0.9,
+                    r"%.2f" % peak,
+                    color="b",
+                    transform=self.transform,
+                    fontsize=8,
+                    alpha=0.7,
+                )
+
+        self.max_mod_ED = max(mod_ED)
+        self.peak_texts_vs = []
+        self.text_stats = None
+
+        # Ajustes comunes
+        for axis in self.ax:
+            axis.grid(True)
+
+        plt.show()
+
+    def __call__(self, step, log_data, driver):
+        # Solo plotear cada plot_each iteraciones
+        if step % self.plot_each != 0:
+            return True
+
+        vstate = driver.state
+        (mod_vs, phase_vs), stats_vs = modphase(vstate)
+
+        # Actualizar línea de módulo del vstate
+        self.line_mod_vs[0].set_data(np.arange(len(mod_vs)), mod_vs)
+
+        # Actualizar scatter de fase del vstate
+        self.sc_phase_vs[0].set_data(np.arange(len(phase_vs)), phase_vs)
+
+        # Actualizar límites de ejes
+        self.ax[0].set_ylim(-0.00001, max(self.max_mod_ED, max(mod_vs)) * 9 / 8)
+        self.ax[0].relim()
+        self.ax[0].autoscale_view()
+        self.ax[1].relim()
+        self.ax[1].autoscale_view()
+
+        # Limpiar histogramas anteriores
+        if self.phase_hist_vs is not None:
+            for patch in self.phase_hist_vs[2]:
+                patch.remove()
+
+        self.phase_hist_vs = self.ax[-1].hist(
+            phase_vs,
+            bins=1000,
+            range=(-np.pi, np.pi),
+            color="r",
+            density=True,
+            alpha=0.7,
+            label=f"vstate ({stats_vs['type']})",
+        )
+
+        # Actualizar texto con estadísticas
+        if self.text_stats is not None:
+            self.text_stats.remove()
+
+        self.text_stats = self.ax[-1].text(
+            0.8,
+            0.7,
+            r"$\varphi_{vs}=%.2f \pm %.2f$"
+            % (stats_vs["phase"]["mean"], stats_vs["phase"]["std"]),
+            transform=self.ax[-1].transAxes,
+            fontsize=10,
+            bbox=dict(facecolor="white", alpha=0.4),
+        )
+
+        # Actualizar picos del vstate
+        for txt in self.peak_texts_vs:
+            txt.remove()
+        self.peak_texts_vs = []
+
+        if stats_vs["peaks"] is not None:
+            for peak in stats_vs["peaks"]["values"]:
+                txt = self.ax[-1].text(
+                    peak - 0.1,
+                    0.85,
+                    r"%.2f" % peak,
+                    color="r",
+                    transform=self.transform,
+                    fontsize=8,
+                    alpha=0.7,
+                )
+                self.peak_texts_vs.append(txt)
+        self.ax[-1].legend()
+
+        samples = driver.sampler.samples
+
+        # Una sola actualización del canvas
         self.fig.canvas.draw()
         self.fig.canvas.flush_events()
         plt.pause(0.01)

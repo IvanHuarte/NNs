@@ -23,7 +23,12 @@ from pathlib import Path
 # Importar módulos necesarios
 from VA_project.model.model import J1J2Square
 from VA_project.engine.runners import Runner
-from NN_module.callbacks import BestIterKeeper, EnergyPlotter, dump_callback
+from NN_module.callbacks import (
+    BestIterKeeper,
+    EnergyPlotter,
+    ModPhasePlotter,
+    dump_callback,
+)
 from NN_module.saveNload import save_results
 from NN_module.initialize_models import FactoryBuilder
 from NN_module.schedules import get_ST_schedule
@@ -110,6 +115,7 @@ pflip = 1 - pinvert
 ### Callbacks
 enable_keeper = config["callback"]["keeper"]
 enable_inline = config["callback"]["inline"]
+enable_modphase = config["callback"]["modphase"]
 callbacks = []
 
 
@@ -239,10 +245,12 @@ for i, size in enumerate(sizes):
                     )
                     callbacks.append(keeper.update)
                 # keeper.filename = 'Somewhere' #It allows you to store the parameters of the model for the state with lowest energy found.
-
                 if enable_inline:
-                    inline_plot = EnergyPlotter(H, N, E_ED=E_ED)
-                    callbacks.append(inline_plot)
+                    inline_energy = EnergyPlotter(H, N, E_ED=E_ED)
+                    callbacks.append(inline_energy)
+                if enable_modphase:
+                    inline_modphase = ModPhasePlotter(sim_config, x_ED)
+                    callbacks.append(inline_modphase)
 
                 print(f"\nEpochs:      {total_epochs}")
                 print(f"Segments:      {segments}")
@@ -297,6 +305,7 @@ for i, size in enumerate(sizes):
                             chunk_size=sampler_setup["chunk_vstate"],
                             variables=variables,
                         )
+                        sys.exit(0)
 
                         gs = nk.driver.VMC(
                             H,
