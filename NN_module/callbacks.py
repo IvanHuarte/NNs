@@ -293,7 +293,7 @@ class ModPhasePlotter:
     Dynamic callback for plotting modulus and phase in each iteration
     """
 
-    def __init__(self, sim_config, x_ED=None, plot_each=10):
+    def __init__(self, sim_config, x_ED=None, plot_each=5):
         self.plot_each = plot_each
         self.sim_config = sim_config
         self.x_ED = x_ED
@@ -352,7 +352,7 @@ class ModPhasePlotter:
         self.ax[0].set_title(r"$Modulus\;and\;Phase\qquad %s$" % (title), fontsize=10)
         self.ax[0].set_xticks([])
         self.ax[0].set_ylabel(r"$Modulus$")
-        self.ax[0].legend()
+        self.ax[0].legend(loc='upper right')
 
         self.ax[1].set_xticks([])
         self.ax[1].set_yticks([-np.pi, -np.pi / 2, 0, np.pi / 2, np.pi])
@@ -361,7 +361,7 @@ class ModPhasePlotter:
         )
         self.ax[1].set_ylabel(r"$Phase \;vstate$")
         self.ax[1].set_ylim(-np.pi - 0.1, np.pi + 0.1)
-        self.ax[1].legend()
+        self.ax[1].legend(loc='upper right')
 
         if x_ED is not None:
             self.ax[2].set_xlabel(r"$C_i$")
@@ -429,15 +429,16 @@ class ModPhasePlotter:
         samples_idx = jnp.sum(bin_samples * 2**powers, axis=-1)
 
         # Agrega líneas verticales en las posiciones de samples_idx
+        ymin_vlines_pos = -0.2*max(self.max_mod_ED, max(mod_vs)) * 9 / 8
         for idx in np.asarray(samples_idx):
-            vline = self.ax[0].axvline(x=idx, ymin=-0.00001, ymax=max(self.max_mod_ED, max(mod_vs)) * 9 / 8, color='gray', alpha=0.18, linewidth=0.8)
+            vline = self.ax[0].vlines(x=idx, ymin=ymin_vlines_pos, ymax=0, color='gray', alpha=0.18, linewidth=0.5)
             self.sample_vlines.append(vline)
 
         # Actualizar scatter de fase del vstate
         self.sc_phase_vs[0].set_data(np.arange(len(phase_vs)), phase_vs)
 
         # Actualizar límites de ejes
-        self.ax[0].set_ylim(-0.00001, max(self.max_mod_ED, max(mod_vs)) * 9 / 8)
+        self.ax[0].set_ylim(ymin_vlines_pos, max(self.max_mod_ED, max(mod_vs)) * 9 / 8)
         self.ax[0].relim()
         self.ax[0].autoscale_view()
         self.ax[1].relim()
@@ -489,7 +490,7 @@ class ModPhasePlotter:
                     alpha=0.7,
                 )
                 self.peak_texts_vs.append(txt)
-        self.ax[-1].legend()
+        self.ax[-1].legend(loc='upper right')
 
         # Una sola actualización del canvas
         self.fig.canvas.draw()

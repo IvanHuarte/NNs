@@ -11,11 +11,11 @@
                 "modulus_setup":{
                     "module":"CvT",
                     "setup":{
-                        "n_CP_blocks": [2],
-                        "channels": [32],
-                        "attn_heads": [4],
+                        "n_CP_blocks": [2, 2 ,2 ,2],
+                        "channels": [64, 32, 16, 8],
+                        "attn_heads": [4, 4, 2, 1],
                         "kernel": [3, 3],
-                        "final_architecture": [64, 5]
+                        "final_architecture": [128, 5]
                     }
                 },
 
@@ -25,9 +25,9 @@
                         "Trans_0":{
                             "module":"CvT",
                             "setup":{
-                                "n_CP_blocks": [2],
-                                "channels": [32],
-                                "attn_heads": [4],
+                                "n_CP_blocks": [2, 2],
+                                "channels": [64, 32],
+                                "attn_heads": [4, 4],
                                 "kernel": [3, 3],
                                 "final_architecture": [64,5]
                             }
@@ -37,10 +37,11 @@
                             "setup":{
                                 "radians":true
                             }
-                        }                        
+                        },
+                        "operation": "sum angles"
                     }
                 },
-
+                
                 "symm_Z2": true,
                 "trivial_Z2": true,
                 "symm_2D": false,

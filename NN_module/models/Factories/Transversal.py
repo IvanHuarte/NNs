@@ -11,6 +11,11 @@ def final_ensemble(ensem_mode: AnyStr = "sum") -> Callable:
     # Operation selection
     if ensem_mode == "sum":
         return jnp.sum
+    if ensem_mode == "sum angles":
+        def fun(x, axis=0, keepdims=True):
+            x = jnp.sum(x, axis=axis, keepdims=keepdims)
+            x = (x + jnp.pi) % (2 * jnp.pi) - jnp.pi
+        return fun
     elif ensem_mode == "mean":
         return jnp.mean
 

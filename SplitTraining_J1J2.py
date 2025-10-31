@@ -3,8 +3,6 @@ import numpy as np
 import jax
 import jax.numpy as jnp
 import netket as nk
-import netket.experimental as nkx
-from netket.operator.spin import sigmaz
 import optax
 import json
 import time
@@ -45,7 +43,7 @@ from NN_module.sim_utils import measureNdump
 from NN_module.NN_utils import scheduler_initializer, phase_stats_vstate, modphase
 from NN_module.ST_utils import check_zero_grads, compare_params, masked_optimizer
 from NN_module.observables import calc_all_observables_vs, calc_all_observables_ED
-from transformer_LR_WF.utils import InvertMagnetization
+from NN_module.sampler import InvertMagnetization, LocalRule_Z2
 
 parser = argparse.ArgumentParser()
 parser.add_argument(
@@ -108,9 +106,9 @@ n_samples = (
 print(f"Total samples: {n_samples}")
 
 ### MC sampling rules ###
-rule1 = nk.sampler.rules.LocalRule()
-rule2 = InvertMagnetization()
-pinvert = 0.25
+rule1 = LocalRule_Z2()# nk.sampler.rules.LocalRule()
+rule2 = None #InvertMagnetization()
+pinvert = 0
 pflip = 1 - pinvert
 
 ### Callbacks
@@ -145,7 +143,7 @@ for i, size in enumerate(sizes):
     ## Reset sampler
     sampler = nk.sampler.MetropolisSampler(
         hi,
-        nk.sampler.rules.MultipleRules([rule1, rule2], [pflip, pinvert]),
+        nk.sampler.rules.MultipleRules([rule1], [pflip]),
         n_chains_per_rank=sampler_setup["n_chains_per_rank"],
         chunk_size=sampler_setup["chunk_sampler"],
     )
