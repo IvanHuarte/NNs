@@ -5,6 +5,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.transforms as mtransforms
 import flax
+import jax.numpy as jnp
 import numpy.typing as npt
 from typing import Optional
 from pathlib import Path
@@ -394,6 +395,7 @@ class ModPhasePlotter:
         self.max_mod_ED = max(mod_ED)
         self.peak_texts_vs = []
         self.text_stats = None
+        self.sample_vlines = []
 
         # Ajustes comunes
         for axis in self.ax:
@@ -411,6 +413,23 @@ class ModPhasePlotter:
 
         # Actualizar línea de módulo del vstate
         self.line_mod_vs[0].set_data(np.arange(len(mod_vs)), mod_vs)
+
+        # Actualizar los samples
+        # Borrar antiguas
+        for vline in self.sample_vlines:
+            vline.remove()
+        self.sample_vlines = []
+
+        samples = vstate.samples.reshape(-1,self.N)
+        bin_samples = (-(samples-1)/2).astype(jnp.int8)
+        bin_samples = bin_samples.T[::-1].T
+        powers = jnp.tile(jnp.arange(self.N), (bin_samples.shape[0],1))
+        samples_idx = jnp.sum(bin_samples * 2**powers, axis=-1)
+
+        # Agrega líneas verticales en las posiciones de samples_idx
+        for idx in np.asarray(samples_idx):
+            vline = self.ax[0].axvline(x=idx, ymin=-0.00001, ymax=max(self.max_mod_ED, max(mod_vs)) * 9 / 8, color='gray', alpha=0.18, linewidth=0.8)
+            self.sample_vlines.append(vline)
 
         # Actualizar scatter de fase del vstate
         self.sc_phase_vs[0].set_data(np.arange(len(phase_vs)), phase_vs)
