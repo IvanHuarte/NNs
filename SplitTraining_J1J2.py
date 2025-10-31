@@ -58,9 +58,9 @@ args = parser.parse_args()
 
 if args.config is None:
     args.config = [
-        "/home/skontos/Escritorio/Ivan/NNs/config.json",
-        "/home/skontos/Escritorio/Ivan/NNs/config_CM.json",
-        "/home/skontos/Escritorio/Ivan/NNs/config_NN.json",
+        "/home/ihuarte/Escritorio/Ivan/NNs/config.json",
+        "/home/ihuarte/Escritorio/Ivan/NNs/config_CM.json",
+        "/home/ihuarte/Escritorio/Ivan/NNs/config_NN.json",
     ]
 configurations = args.config
 
