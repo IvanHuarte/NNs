@@ -14,11 +14,12 @@ import uuid
 # os.environ["XLA_PYTHON_CLIENT_PREALLOCATE"] = "false"
 jax.config.update("jax_enable_x64", True)
 jax.config.update("jax_platform_name", "gpu")
-jax.devices()
+print(jax.devices())
 
 # Añadir los directorios necesarios
 import sys
 from pathlib import Path
+
 
 # Importar módulos necesarios
 from VA_project.model.model import J1J2Square
@@ -59,9 +60,9 @@ args = parser.parse_args()
 
 if args.config is None:
     args.config = [
-        "/home/ihuarte/Escritorio/Ivan/NNs/config.json",
-        "/home/ihuarte/Escritorio/Ivan/NNs/config_CM.json",
-        "/home/ihuarte/Escritorio/Ivan/NNs/config_NN.json",
+        "/home/skontos/Escritorio/Ivan/NNs/config.json",
+        "/home/skontos/Escritorio/Ivan/NNs/config_CM.json",
+        "/home/skontos/Escritorio/Ivan/NNs/config_NN.json",
     ]
 configurations = args.config
 
@@ -305,7 +306,6 @@ for i, size in enumerate(sizes):
                             chunk_size=sampler_setup["chunk_vstate"],
                             variables=variables,
                         )
-                        sys.exit(0)
 
                         gs = nk.driver.VMC(
                             H,

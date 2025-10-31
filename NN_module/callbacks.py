@@ -293,10 +293,12 @@ class ModPhasePlotter:
     Dynamic callback for plotting modulus and phase in each iteration
     """
 
-    def __init__(self, sim_config, x_ED=None, plot_each=2):
+    def __init__(self, sim_config, x_ED=None, plot_each=10):
         self.plot_each = plot_each
         self.sim_config = sim_config
         self.x_ED = x_ED
+        size = sim_config['CM']['size']
+        self.N = size[0] * size[1]
 
         (mod_ED, phase_ED), stats_ED = modphase(x_ED)
 
@@ -488,8 +490,6 @@ class ModPhasePlotter:
                 )
                 self.peak_texts_vs.append(txt)
         self.ax[-1].legend()
-
-        samples = driver.sampler.samples
 
         # Una sola actualización del canvas
         self.fig.canvas.draw()
