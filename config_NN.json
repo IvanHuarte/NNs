@@ -1,7 +1,54 @@
 {
     "NN": {
 
-        "selection": "Parallel_Marshall",
+        "selection": "BestPastResults",
+
+        "CNN_HUGE":{
+
+            "module": "SplitTraining",
+            "setup":{
+
+                "modulus_setup":{
+                    "module":"CNN",
+                    "setup":{
+                        "channels":[64, 32, 16],
+                        "strides":[[1,1],[1,1],[1,1]],
+                        "kernel":[3,3],
+                        "use_pooling":false,
+                        "pooling_strides":[[1,1],[1,1],[1,1]],
+                        "final_architecture":[64]
+                    }
+                },
+
+                "phase_setup":{
+                    "module": "Transversal",
+                    "setup":{
+                        "Trans_0":{
+                            "module":"CNN",
+                            "setup":{
+                                "channels":[32],
+                                "strides":[[1,1]],
+                                "kernel":[3,3],
+                                "use_pooling":false,
+                                "pooling_strides":[[1,1]],
+                                "final_architecture":[64]
+                            }
+                        },
+                        "Trans_1":{
+                            "module":"MarshallSign",
+                            "setup":{
+                                "radians":true
+                            }
+                        }                        
+                    }
+                },
+                
+                "symm_Z2": true,
+                "trivial_Z2": true,
+                "symm_2D": false,
+                "squeeze":true
+            }         
+        },
 
         "Parallel_Marshall":{
 
@@ -11,9 +58,9 @@
                 "modulus_setup":{
                     "module":"CvT",
                     "setup":{
-                        "n_CP_blocks": [2, 2 ,2 ,2],
-                        "channels": [64, 32, 16, 8],
-                        "attn_heads": [4, 4, 2, 1],
+                        "n_CP_blocks": [2, 2],
+                        "channels": [64, 32],
+                        "attn_heads": [4, 4],
                         "kernel": [3, 3],
                         "final_architecture": [128, 5]
                     }
@@ -25,9 +72,9 @@
                         "Trans_0":{
                             "module":"CvT",
                             "setup":{
-                                "n_CP_blocks": [2, 2],
-                                "channels": [64, 32],
-                                "attn_heads": [4, 4],
+                                "n_CP_blocks": [2],
+                                "channels": [64],
+                                "attn_heads": [4],
                                 "kernel": [3, 3],
                                 "final_architecture": [64,5]
                             }
@@ -38,6 +85,37 @@
                                 "radians":true
                             }
                         }                        
+                    }
+                },
+                
+                "symm_Z2": true,
+                "trivial_Z2": true,
+                "symm_2D": false,
+                "squeeze":true
+            }         
+        },
+
+        "BestPastResults":{
+
+            "module": "SplitTraining",
+            "setup":{
+
+                "modulus_setup":{
+                    "module":"CvT",
+                    "setup":{
+                        "n_CP_blocks": [2, 2, 2],
+                        "channels": [32, 16, 8],
+                        "attn_heads": [4, 4, 4],
+                        "kernel": [3, 3],
+                        "final_architecture": [128, 5]
+                    }
+                },
+
+                "phase_setup":{
+                    "module":"CNNbinClsf",
+                    "setup":{
+                        "cnnclsf_channels":[64,32],
+                        "marshall": true
                     }
                 },
                 
