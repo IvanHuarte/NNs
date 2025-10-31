@@ -37,8 +37,7 @@
                             "setup":{
                                 "radians":true
                             }
-                        },
-                        "operation": "sum angles"
+                        }                        
                     }
                 },
                 
