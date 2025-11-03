@@ -28,8 +28,8 @@ class SplitTraining_Worker(nn.Module):
         # print(f"Phase")
         phase = self.Phase_model(x)
 
-        # print(log_modulus.shape)
-        # print(phase.shape)
+        print(f"Modulus: {log_modulus.shape}")
+        print(f"Phase: {phase.shape}")
 
         return self.squeeze(log_modulus + 1j * phase)
 

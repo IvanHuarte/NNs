@@ -131,6 +131,7 @@ class CNNbinClsf(nn.Module):
     cnnclsf_channels: Tuple
     marshall: bool = False
     activation: Callable = nn.swish
+    pooling: bool = False
 
     @nn.compact
     def __call__(self, x_in):
@@ -153,18 +154,26 @@ class CNNbinClsf(nn.Module):
 
         x = x.reshape(-1, self.lattice_size[0] * self.lattice_size[1], x.shape[-1])
         x = x.mean(axis=-1)
+        # print(f"x shape: {x.shape}")
 
         # Clasificador binario. 1 salida pasada por sigmoid * pi
-        x = nn.Dense(1)(x)
-        # x = jnp.mean(x, axis=-1, keepdims=True)
+        if self.pooling:
+            x = jnp.mean(x, axis=-1, keepdims=True)
+        else:
+            x = nn.Dense(1)(x)
+        # print(f"x shape: {x.shape}")
+
         phase = nn.sigmoid(x) * jnp.pi
-        # print(phase.shape)
+        # print(f"phase shape: {phase.shape}")
 
         # Marshall sign rule bias
         if self.marshall:
             bias_mars = MarshallSign(lattice_size=self.lattice_size, radians=True)(x_in)
-            phase += bias_mars[:, None]
+            # print(f"bias shape: {bias_mars.shape}")
+            phase += bias_mars
+            # print(f"phase shape: {phase.shape}")
             phase = (phase + jnp.pi) % (2 * jnp.pi) - jnp.pi
 
-        # print(phase.shape)
+        # print(f"finalx shape: {phase.shape}\n\n")
+
         return phase
