@@ -79,14 +79,16 @@ class CNNWorker(nn.Module):
         B = x.shape[0]
 
         # Padding periódico manual
-        for i in len(self.channels):
+        for i in range(len(self.channels)):
 
             x = ConvBlock(
                 features=self.channels[i],
-                strides=self.strides,
-                kernel_size=self.kernel,
+                strides=self.strides[i],
+                kernel=self.kernel,
                 use_pooling=self.use_pooling,
+                pooling_strides=self.pooling_strides[i]
             )(x)
+
 
         # Works with termination module by default
         if self.final_architecture is None:

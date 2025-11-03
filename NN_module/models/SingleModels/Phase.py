@@ -156,7 +156,7 @@ class CNNbinClsf(nn.Module):
 
         # Clasificador binario. 1 salida pasada por sigmoid * pi
         x = nn.Dense(1)(x)
-        x = jnp.mean(x, axis=-1, keepdims=True)
+        # x = jnp.mean(x, axis=-1, keepdims=True)
         phase = nn.sigmoid(x) * jnp.pi
         # print(phase.shape)
 

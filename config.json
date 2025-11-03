@@ -1,6 +1,6 @@
 {
 
-   "write_folder_sim":"/home/ihuarte/Escritorio/Ivan/NNs/pruebas/new/",    "sim <---> SSF":"Ruta donde se guardan los productos de simulaciones",
+   "write_folder_sim":"/home/ihuarte/Escritorio/Ivan/NNs/pruebas/BestPastResults/",    "sim <---> SSF":"Ruta donde se guardan los productos de simulaciones",
 
    "callback":{
         "keeper": true,
@@ -50,7 +50,7 @@
         "setup":{
             "segments":[
                 [100],[100],
-                [100],[100],[400],
+                [100],[100],[500],
                 [200]
             ],
             "mode":[
@@ -58,7 +58,7 @@
                 ["M"],["P"],["B"],
                 ["M"]
             ],
-            "repeat_segment":[1,1,1,1,1,1,1,1,1,1,1,1,1,1]
+            "repeat_segment":[1,1,1,1,1,1]
         },
 
         "lr_schedules":{

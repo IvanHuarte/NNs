@@ -297,7 +297,7 @@ class ModPhasePlotter:
         self.plot_each = plot_each
         self.sim_config = sim_config
         self.x_ED = x_ED
-        size = sim_config['CM']['size']
+        size = sim_config["CM"]["size"]
         self.N = size[0] * size[1]
 
         (mod_ED, phase_ED), stats_ED = modphase(x_ED)
@@ -352,7 +352,7 @@ class ModPhasePlotter:
         self.ax[0].set_title(r"$Modulus\;and\;Phase\qquad %s$" % (title), fontsize=10)
         self.ax[0].set_xticks([])
         self.ax[0].set_ylabel(r"$Modulus$")
-        self.ax[0].legend(loc='upper right')
+        self.ax[0].legend(loc="upper right")
 
         self.ax[1].set_xticks([])
         self.ax[1].set_yticks([-np.pi, -np.pi / 2, 0, np.pi / 2, np.pi])
@@ -361,7 +361,7 @@ class ModPhasePlotter:
         )
         self.ax[1].set_ylabel(r"$Phase \;vstate$")
         self.ax[1].set_ylim(-np.pi - 0.1, np.pi + 0.1)
-        self.ax[1].legend(loc='upper right')
+        self.ax[1].legend(loc="upper right")
 
         if x_ED is not None:
             self.ax[2].set_xlabel(r"$C_i$")
@@ -422,16 +422,23 @@ class ModPhasePlotter:
             vline.remove()
         self.sample_vlines = []
 
-        samples = vstate.samples.reshape(-1,self.N)
-        bin_samples = (-(samples-1)/2).astype(jnp.int8)
+        samples = vstate.samples.reshape(-1, self.N)
+        bin_samples = (-(samples - 1) / 2).astype(jnp.int8)
         bin_samples = bin_samples.T[::-1].T
-        powers = jnp.tile(jnp.arange(self.N), (bin_samples.shape[0],1))
+        powers = jnp.tile(jnp.arange(self.N), (bin_samples.shape[0], 1))
         samples_idx = jnp.sum(bin_samples * 2**powers, axis=-1)
 
         # Agrega líneas verticales en las posiciones de samples_idx
-        ymin_vlines_pos = -0.2*max(self.max_mod_ED, max(mod_vs)) * 9 / 8
+        ymin_vlines_pos = -0.2 * max(self.max_mod_ED, max(mod_vs)) * 9 / 8
         for idx in np.asarray(samples_idx):
-            vline = self.ax[0].vlines(x=idx, ymin=ymin_vlines_pos, ymax=0, color='gray', alpha=0.18, linewidth=0.5)
+            vline = self.ax[0].vlines(
+                x=idx,
+                ymin=ymin_vlines_pos,
+                ymax=0,
+                color="gray",
+                alpha=0.18,
+                linewidth=0.5,
+            )
             self.sample_vlines.append(vline)
 
         # Actualizar scatter de fase del vstate
@@ -490,7 +497,7 @@ class ModPhasePlotter:
                     alpha=0.7,
                 )
                 self.peak_texts_vs.append(txt)
-        self.ax[-1].legend(loc='upper right')
+        self.ax[-1].legend(loc="upper right")
 
         # Una sola actualización del canvas
         self.fig.canvas.draw()
