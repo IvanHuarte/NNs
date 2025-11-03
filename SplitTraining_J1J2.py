@@ -107,8 +107,8 @@ print(f"Total samples: {n_samples}")
 
 ### MC sampling rules ###
 rule1 = LocalRule_Z2()  # nk.sampler.rules.LocalRule()
-rule2 = None  # InvertMagnetization()
-pinvert = 0
+rule2 = InvertMagnetization()
+pinvert = 0.25
 pflip = 1 - pinvert
 
 ### Callbacks
@@ -143,7 +143,7 @@ for i, size in enumerate(sizes):
     ## Reset sampler
     sampler = nk.sampler.MetropolisSampler(
         hi,
-        nk.sampler.rules.MultipleRules([rule1], [pflip]),
+        nk.sampler.rules.MultipleRules([rule1, rule2], [pinvert, pflip]),
         n_chains_per_rank=sampler_setup["n_chains_per_rank"],
         chunk_size=sampler_setup["chunk_sampler"],
     )

@@ -46,10 +46,11 @@ class EDPPh(nn.Module):
     lattice_size: Tuple
     channels: int
     activation: Callable = nn.swish
+    marshall: bool = False
 
     @nn.compact
-    def __call__(self, x: jt.ArrayLike) -> jt.ArrayLike:
-        assert len(x.shape) == 2, f"x.shape: {x.shape}"
+    def __call__(self, x_in: jt.ArrayLike) -> jt.ArrayLike:
+        assert len(x_in.shape) == 2, f"x.shape: {x_in.shape}"
 
         N = self.lattice_size[0] * self.lattice_size[1]
         kernel = (3, 3) if self.lattice_size[1] != 1 else (3, 1)
@@ -58,7 +59,7 @@ class EDPPh(nn.Module):
         x = nn.Embed(
             N,
             self.channels,
-        )(x)
+        )(x_in)
         x = x.reshape(-1, *self.lattice_size, self.channels)
 
         # Depthwise-Normalization-Pointwise
@@ -70,11 +71,15 @@ class EDPPh(nn.Module):
 
         x = nn.glu(x.mean(axis=1))  # Version JCM
         x = jnp.exp(1j * x).sum(axis=-1)
-        x = jnp.angle(x)
+        phase = jnp.angle(x)[:, None]
 
-        # jax.debug.print("EDPPh output shape: {}", x)
+        # Marshall sign rule bias
+        if self.marshall:
+            bias_mars = MarshallSign(lattice_size=self.lattice_size, radians=True)(x_in)
+            phase += bias_mars
+            phase = (phase + jnp.pi) % (2 * jnp.pi) - jnp.pi
 
-        return x
+        return phase
 
 
 class CNNClsf(nn.Module):
@@ -115,11 +120,15 @@ class CNNClsf(nn.Module):
             jnp.array([0.0], dtype=REAL_DTYPE),
             jnp.array([jnp.pi], dtype=REAL_DTYPE),
         )[:, None]
+        print(f"phase shape: {phase.shape}")
 
         # Marshall sign rule bias
         if self.marshall:
             bias_mars = MarshallSign(lattice_size=self.lattice_size, radians=True)(x_in)
-            phase += bias_mars[:, None]
+            print(f"bias shape: {bias_mars.shape}")
+            phase += bias_mars
+            print(f"phase shape: {phase.shape}\n\n")
+            
             phase = (phase + jnp.pi) % (2 * jnp.pi) - jnp.pi
 
         return phase
