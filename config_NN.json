@@ -1,8 +1,118 @@
 {
     "NN": {
+        
+        "selection": "BestPastResults",
+        
+        "BestPastResults":{
+            
+            "module": "SplitTraining",
+            "setup":{
+        
+                "modulus_setup":{
+                    "module":"CvT",
+                    "setup":{
+                        "n_CP_blocks": [2, 2, 2],
+                        "channels": [64, 32, 16],
+                        "attn_heads": [4, 4, 4],
+                        "kernel": [3, 3],
+                        "final_architecture": [128, 5]
+                    }
+                },
+        
+                "phase_setup":{
+                    "module":"CNNbinClsf",
+                    "setup":{
+                        "channels": [64, 32],
+                        "marshall": true,
+                        "pooling":false
+                        
+                    }
+                },
+                
+                "symm_Z2": true,
+                "trivial_Z2": true,
+                "symm_2D": false,
+                "squeeze":true
+            }         
+        },
+        
+        "BPRvariant":{
 
-        "selection": "CNN_HUGE",
+            "module": "SplitTraining",
+            "setup":{
 
+                "modulus_setup":{
+                    "module":"CvT",
+                    "setup":{
+                        "n_CP_blocks": [2, 2, 2],
+                        "channels": [64, 32, 16],
+                        "attn_heads": [4, 4, 4],
+                        "kernel": [3, 3],
+                        "final_architecture": [128, 5]
+                    }
+                },
+                
+                "phase_setup":{
+                    "module":"EDPPh",
+                    "setup":{
+                        "channels": 64,
+                        "marshall": true
+                    }
+                },
+                
+                "symm_Z2": true,
+                "trivial_Z2": true,
+                "symm_2D": false,
+                "squeeze":true
+            }         
+        },
+        "Parallel_Marshall":{
+
+            "module": "SplitTraining",
+            "setup":{
+
+                "modulus_setup":{
+                    "module":"CvT",
+                    "setup":{
+                        "n_CP_blocks": [2, 2],
+                        "channels": [64, 32],
+                        "attn_heads": [4, 4],
+                        "kernel": [3, 3],
+                        "final_architecture": [128, 5]
+                    }
+                },
+                
+                "phase_setup":{
+                    "module": "Transversal",
+                    "setup":{
+                        "Trans_0":{
+                            "module":"CvT",
+                            "setup":{
+                                "n_CP_blocks": [2],
+                                "channels": [64],
+                                "attn_heads": [4],
+                                "kernel": [3, 3],
+                                "final_architecture": [64,5]
+                            }
+                        },
+                        "Trans_1":{
+                            "module":"MarshallSign",
+                            "setup":{
+                                "radians":true
+                            }
+                        }                        
+                    }
+                },
+                
+                "symm_Z2": true,
+                "trivial_Z2": true,
+                "symm_2D": false,
+                "squeeze":true
+            }         
+        },
+
+        
+        
         "CNN_HUGE":{
 
             "module": "SplitTraining",
@@ -50,83 +160,6 @@
                 "squeeze":true
             }         
         },
-
-        "Parallel_Marshall":{
-
-            "module": "SplitTraining",
-            "setup":{
-
-                "modulus_setup":{
-                    "module":"CvT",
-                    "setup":{
-                        "n_CP_blocks": [2, 2],
-                        "channels": [64, 32],
-                        "attn_heads": [4, 4],
-                        "kernel": [3, 3],
-                        "final_architecture": [128, 5]
-                    }
-                },
-
-                "phase_setup":{
-                    "module": "Transversal",
-                    "setup":{
-                        "Trans_0":{
-                            "module":"CvT",
-                            "setup":{
-                                "n_CP_blocks": [2],
-                                "channels": [64],
-                                "attn_heads": [4],
-                                "kernel": [3, 3],
-                                "final_architecture": [64,5]
-                            }
-                        },
-                        "Trans_1":{
-                            "module":"MarshallSign",
-                            "setup":{
-                                "radians":true
-                            }
-                        }                        
-                    }
-                },
-                
-                "symm_Z2": true,
-                "trivial_Z2": true,
-                "symm_2D": false,
-                "squeeze":true
-            }         
-        },
-
-        "BPRvariant":{
-
-            "module": "SplitTraining",
-            "setup":{
-
-                "modulus_setup":{
-                    "module":"CvT",
-                    "setup":{
-                        "n_CP_blocks": [2, 2, 2],
-                        "channels": [64, 32, 16],
-                        "attn_heads": [4, 4, 4],
-                        "kernel": [3, 3],
-                        "final_architecture": [128, 5]
-                    }
-                },
-
-                "phase_setup":{
-                    "module":"EDPPh",
-                    "setup":{
-                        "channels": 64,
-                        "marshall": true
-                    }
-                },
-                
-                "symm_Z2": true,
-                "trivial_Z2": true,
-                "symm_2D": false,
-                "squeeze":true
-            }         
-        },
-
 
         "Experimental":{
 

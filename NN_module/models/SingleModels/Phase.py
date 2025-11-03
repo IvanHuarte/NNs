@@ -85,7 +85,7 @@ class EDPPh(nn.Module):
 class CNNClsf(nn.Module):
 
     lattice_size: Tuple
-    cnnclsf_channels: Tuple
+    channels: Tuple
     n_classes: int = 2
     marshall: bool = False
     activation: Callable = nn.swish
@@ -96,7 +96,7 @@ class CNNClsf(nn.Module):
         kernel = (3, 3) if self.lattice_size[1] != 1 else (3, 1)
         x = x_in.reshape(-1, *self.lattice_size, 1)
 
-        for C in self.cnnclsf_channels:
+        for C in self.channels:
 
             x = nn.Conv(
                 features=C,
@@ -128,7 +128,7 @@ class CNNClsf(nn.Module):
             print(f"bias shape: {bias_mars.shape}")
             phase += bias_mars
             print(f"phase shape: {phase.shape}\n\n")
-            
+
             phase = (phase + jnp.pi) % (2 * jnp.pi) - jnp.pi
 
         return phase
@@ -137,7 +137,7 @@ class CNNClsf(nn.Module):
 class CNNbinClsf(nn.Module):
 
     lattice_size: Tuple
-    cnnclsf_channels: Tuple
+    channels: Tuple
     marshall: bool = False
     activation: Callable = nn.swish
     pooling: bool = False
@@ -148,7 +148,7 @@ class CNNbinClsf(nn.Module):
         kernel = (3, 3) if self.lattice_size[1] != 1 else (3, 1)
         x = x_in.reshape(-1, *self.lattice_size, 1)
 
-        for C in self.cnnclsf_channels:
+        for C in self.channels:
 
             x = nn.Conv(
                 features=C,

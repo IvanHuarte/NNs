@@ -1,11 +1,11 @@
 {
 
-   "write_folder_sim":"/home/ihuarte/Escritorio/Ivan/NNs/pruebas/BestPastResults/",    "sim <---> SSF":"Ruta donde se guardan los productos de simulaciones",
+   "write_folder_sim":"/home/ihuarte/Escritorio/Ivan/NNs/pruebas/",    "sim <---> SSF":"Ruta donde se guardan los productos de simulaciones",
 
    "callback":{
         "keeper": true,
         "inline": false,
-        "modphase": false
+        "modphase": true
    },
 
     "explore_mode": true,

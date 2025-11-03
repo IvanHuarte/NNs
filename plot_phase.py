@@ -13,7 +13,7 @@ import ast
 import sys
 from pathlib import Path
 
-from NN_module.sim_utils import load_vstate
+from NN_module.saveNload import load_vstate
 from NN_module.label_utils import get_filenames_from_settings
 from NN_module.NN_utils import modphase_extended
 from NN_module.correlations import correlations_ED, correlations_vstate
@@ -65,7 +65,7 @@ model_label = model_label.split("_", 1)
 cm_name = model_label[0]
 nn_name = model_label[1]
 
-kwargs = {"size": size, **artifact["coupling_model"], **artifact["model_NN"]["setup"]}
+kwargs = {"size": size, **artifact["CM"], **artifact["NN"]["setup"]}
 
 sim_label, _, _, callback = get_filenames_from_settings(cm_name, nn_name, **kwargs)
 title = callback.replace("Callback", "").lstrip().replace(" ", "\\quad")
