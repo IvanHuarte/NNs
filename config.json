@@ -5,7 +5,7 @@
    "callback":{
         "keeper": true,
         "inline": false,
-        "modphase": true
+        "modphase": false
    },
 
     "explore_mode": true,
@@ -46,7 +46,7 @@
     },
 
     "ST_schedule":{
-        "lr_name":"segment",
+        "lr_name":"stairs_schedule",
         "setup":{
             "segments":[
                 [100],[100],
