@@ -11,9 +11,9 @@
                 "modulus_setup":{
                     "module":"CvT",
                     "setup":{
-                        "n_CP_blocks": [2],
-                        "channels": [16],
-                        "attn_heads": [4],
+                        "n_CP_blocks": [2, 2, 2],
+                        "channels": [64, 32, 16],
+                        "attn_heads": [4, 4, 4],
                         "kernel": [3, 3],
                         "final_architecture": [128, 5]
                     }
@@ -22,7 +22,7 @@
                 "phase_setup":{
                     "module":"CNNbinClsf",
                     "setup":{
-                        "channels": [32],
+                        "channels": [64, 32],
                         "marshall": true,
                         "pooling": false
                         
