@@ -1,7 +1,7 @@
 {
     "NN": {
         
-        "selection": "BPRvariant",
+        "selection": "BPRVariantViT2D",
         
         "BestPastResults":{
             
@@ -57,7 +57,7 @@
                     "setup":{
                         "channels": [64, 32],
                         "marshall": true,
-                        "pooling":false
+                        "pooling":true
                         
                     }
                 },
@@ -68,47 +68,36 @@
                 "squeeze":true
             }         
         },
-        "Parallel_Marshall":{
+        "BPRVariantViT2D":{
 
             "module": "SplitTraining",
             "setup":{
 
                 "modulus_setup":{
-                    "module":"CvT",
-                    "setup":{
-                        "n_CP_blocks": [2, 2],
-                        "channels": [64, 32],
-                        "attn_heads": [4, 4],
-                        "kernel": [3, 3],
-                        "final_architecture": [128, 5]
+                    "module":"ViT_2D",
+                    "setup": {
+                        "token_size": [2, 1],
+                        "embedding_d": 64,
+                        "n_heads": 4,
+                        "n_blocks": 2,
+                        "n_ffn_layers": 2,
+                        "final_architecture": [64, 5]
                     }
                 },
                 
                 "phase_setup":{
-                    "module": "Transversal",
+                    "module":"CNNbinClsf",
                     "setup":{
-                        "Trans_0":{
-                            "module":"CvT",
-                            "setup":{
-                                "n_CP_blocks": [2],
-                                "channels": [64],
-                                "attn_heads": [4],
-                                "kernel": [3, 3],
-                                "final_architecture": [64,5]
-                            }
-                        },
-                        "Trans_1":{
-                            "module":"MarshallSign",
-                            "setup":{
-                                "radians":true
-                            }
-                        }                        
+                        "channels": [64, 32],
+                        "marshall": true,
+                        "pooling": false
+                        
                     }
                 },
                 
                 "symm_Z2": true,
                 "trivial_Z2": true,
-                "symm_2D": false,
+                "symm_2D": true,
                 "squeeze":true
             }         
         },
