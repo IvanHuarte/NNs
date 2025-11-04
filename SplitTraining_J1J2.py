@@ -29,7 +29,8 @@ from NN_module.callbacks import (
     dump_callback,
 )
 from NN_module.saveNload import save_results
-from NN_module.initialize_models import FactoryBuilder
+from NN_module.initialize_NN import FactoryBuilder
+from NN_module.initialize_sampler import SamplerFactory
 from NN_module.schedules import get_ST_schedule
 from NN_module.label_utils import (
     get_filenames_from_settings,
@@ -40,10 +41,8 @@ from NN_module.label_utils import (
     get_sim_config,
 )
 from NN_module.sim_utils import measureNdump
-from NN_module.NN_utils import scheduler_initializer, phase_stats_vstate, modphase
-from NN_module.ST_utils import check_zero_grads, compare_params, masked_optimizer
-from NN_module.observables import calc_all_observables_vs, calc_all_observables_ED
-from NN_module.sampler import InvertMagnetization, LocalRule_Z2
+from NN_module.NN_utils import scheduler_initializer, phase_stats_vstate
+from NN_module.ST_utils import masked_optimizer
 
 parser = argparse.ArgumentParser()
 parser.add_argument(
@@ -106,10 +105,7 @@ n_samples = (
 print(f"Total samples: {n_samples}")
 
 ### MC sampling rules ###
-rule1 = LocalRule_Z2()  # nk.sampler.rules.LocalRule()
-rule2 = InvertMagnetization()
-pinvert = 0.25
-pflip = 1 - pinvert
+sampler_setup = config["sampler"]
 
 ### Callbacks
 enable_keeper = config["callback"]["keeper"]
@@ -141,12 +137,7 @@ for i, size in enumerate(sizes):
     hi = nk.hilbert.Spin(s=1 / 2, N=N)
 
     ## Reset sampler
-    sampler = nk.sampler.MetropolisSampler(
-        hi,
-        nk.sampler.rules.MultipleRules([rule1, rule2], [pinvert, pflip]),
-        n_chains_per_rank=sampler_setup["n_chains_per_rank"],
-        chunk_size=sampler_setup["chunk_sampler"],
-    )
+    sampler = SamplerFactory(sampler_setup).get_sampler(hi)
 
     for fields in fields_list:
 

@@ -26,8 +26,8 @@ def get_sim_config(configurations, **kwargs):
     training_setup = sim[training_name]["setup"]
     lr_schedule_setup = sim[training_name]["lr_schedules"][lr_name]
 
-    cleaned["SIM"]["split_training"] = split_training
     cleaned["SIM"]["sampler"] = sim["sampler"]
+    cleaned["SIM"]["split_training"] = split_training
     cleaned["SIM"]["schedule"] = {}
     cleaned["SIM"]["schedule"]["split_training"] = True
     cleaned["SIM"]["schedule"]["setup"] = training_setup

@@ -13,7 +13,7 @@ from pathlib import Path
 
 
 from NN_module.NN_utils import sampler_dict, rule_dict
-from .initialize_models import FactoryBuilder
+from .initialize_NN import FactoryBuilder
 
 
 def save_results(

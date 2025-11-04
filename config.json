@@ -1,6 +1,6 @@
 {
 
-   "write_folder_sim":"/home/ihuarte/Escritorio/Ivan/NNs/pruebas/",    "sim <---> SSF":"Ruta donde se guardan los productos de simulaciones",
+   "write_folder_sim":"/home/ihuarte/Escritorio/Ivan/NNs/pruebas/",
 
    "callback":{
         "keeper": true,
@@ -11,6 +11,10 @@
     "explore_mode": true,
 
     "sampler":{
+        "sampler":{
+            "rules": ["LocalRule_Z2", "InvertMagnetization"],
+            "prules": [0.75, 0.25]
+        },
         "n_ranks": 1,
         "n_chains_per_rank": 16,
         "n_samples_per_chain": 64,

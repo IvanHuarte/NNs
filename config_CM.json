@@ -1,4 +1,6 @@
 {
+    "mode": "zip",
+    
     "sizes":[[4,4]],
 
     "kwargs_lattice" : {
