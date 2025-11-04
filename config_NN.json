@@ -1,7 +1,7 @@
 {
     "NN": {
         
-        "selection": "BestPastResults",
+        "selection": "BPRvariant",
         
         "BestPastResults":{
             

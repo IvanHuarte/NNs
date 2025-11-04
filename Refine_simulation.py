@@ -11,7 +11,7 @@ import argparse
 import uuid
 import os
 
-from NN_module.loadNload import load_vstate
+from NN_module.saveNload import load_vstate
 
 # os.environ["XLA_PYTHON_CLIENT_PREALLOCATE"] = "false"
 jax.config.update("jax_enable_x64", True)
@@ -35,14 +35,8 @@ from NN_module.callbacks import (
 from NN_module.saveNload import save_results
 from NN_module.initialize_models import FactoryBuilder
 from NN_module.schedules import get_ST_schedule
-from NN_module.label_utils import (
-    get_filenames_from_settings,
-    architecture_label,
-    get_write_folder_from_model,
-    display_simulation_settings,
-    get_ST_folder,
-    get_sim_config,
-)
+from NN_module.label_utils import get_filenames_from_settings
+
 from NN_module.sim_utils import measureNdump
 from NN_module.NN_utils import scheduler_initializer, phase_stats_vstate, modphase
 from NN_module.ST_utils import check_zero_grads, compare_params, masked_optimizer
@@ -125,23 +119,32 @@ fields = artifact["CM"]["fields"]
 
 
 j1j2 = J1J2Square(
-    size, J1, J2, fields,
+    size,
+    J1,
+    J2,
+    fields,
     **{"bc": artifact["lattice"]["bc"], "order": artifact["lattice"]["order"]},
 )
 eng = Runner(j1j2.cm)
 H = eng.build_hamiltonian()
 
 # Get exact diag energy, in the case.
-E_ED = None
+
 if artifact["results"]["E_ED"] is not None:
     E_ED = artifact["results"]["E_ED"]
     x_ED = np.loadtxt(artifact["results"]["xED"], dtype=complex)
+    exact_diag = True
+
+else:
+    E_ED = None
+    x_ED = None
+    exact_diag = False
 
 
 callback_artifacts = {}
 time_in = time.time()
 
-factory = FactoryBuilder(artifact['NN']['setup'], **{"lattice_size": size})
+factory = FactoryBuilder(artifact["NN"]["setup"], **{"lattice_size": size})
 model = factory.get_model()
 
 log = (
@@ -183,9 +186,7 @@ if split_training:  # Alternated training between modulus and phase
 
     # Callbacks
     if enable_keeper:
-        keeper = BestIterKeeper(
-            total_epochs, H, N, baseline=1e-8, mode="best_energy"
-        )
+        keeper = BestIterKeeper(total_epochs, H, N, baseline=1e-8, mode="best_energy")
         callbacks.append(keeper.update)
     # keeper.filename = 'Somewhere' #It allows you to store the parameters of the model for the state with lowest energy found.
     if enable_inline:
@@ -206,10 +207,7 @@ if split_training:  # Alternated training between modulus and phase
     print(f"Segments:      {segments}")
     print(f"Modes:         {modes}")
 
-    for i, (segment, seg_modes, lr) in enumerate(
-        zip(segments, modes, lr_schedule)
-    ):
-
+    for i, (segment, seg_modes, lr) in enumerate(zip(segments, modes, lr_schedule)):
 
         print(
             f"\nSegment {i+1} of {total_segments}......   lr: {lr:.4f}  ds: {ds_schedule[i]:.4f}\n"
@@ -218,7 +216,7 @@ if split_training:  # Alternated training between modulus and phase
 
         for epochs, mode in zip(segment, seg_modes):
 
-            P0 = vstate.parameters
+            # P0 = vstate.parameters
 
             if mode == "M":
                 mode = "modulus"
@@ -243,17 +241,15 @@ if split_training:  # Alternated training between modulus and phase
 
             variables = vstate.variables
             sampler = vstate.sampler
-            optimizer = masked_optimizer(
-                vstate.parameters, transformations, mode=mask
-            )
+            optimizer = masked_optimizer(vstate.parameters, transformations, mode=mask)
 
             vstate = nk.vqs.MCState(
                 sampler,
                 sampler_seed=vstate.sampler_state.rng,
                 model=model,
-                n_samples=artifact['sampler']['n_samples'],
+                n_samples=artifact["sampler"]["n_samples"],
                 n_discard_per_chain=0,
-                chunk_size=artifact['sampler']['chunk_vstate'],
+                chunk_size=artifact["sampler"]["chunk_vstate"],
                 variables=variables,
             )
 
@@ -273,8 +269,8 @@ if split_training:  # Alternated training between modulus and phase
             )
             mean, std, psi = phase_stats_vstate(vstate)
             print(f"VS phase: {mean} \u00b1 {std}  ({psi})")
-            P1 = vstate.parameters
-            print(compare_params(P0, P1))
+            # P1 = vstate.parameters
+            # print(compare_params(P0, P1))
             # check_zero_grads(vstate, mask)
 
 else:  # Training modulus and phase at the same time
@@ -282,9 +278,7 @@ else:  # Training modulus and phase at the same time
     total_epochs = training_setup["total_epochs"]
     # Callbacks
     if enable_keeper:
-        keeper = BestIterKeeper(
-            total_epochs, H, N, baseline=1e-8, mode="best_energy"
-        )
+        keeper = BestIterKeeper(total_epochs, H, N, baseline=1e-8, mode="best_energy")
         callbacks.append(keeper.update)
     # keeper.filename = 'Somewhere' #It allows you to store the parameters of the model for the state with lowest energy found.
 
@@ -295,13 +289,9 @@ else:  # Training modulus and phase at the same time
 
     ds_schedule = optax.linear_schedule(1e-2, 1e-4, total_epochs)
     SR = nk.optimizer.SR(diag_shift=ds_schedule)
-    lr_schedule = scheduler_initializer(
-        "warmup_exponential_decay", lr_schedule_setup
-    )
+    lr_schedule = scheduler_initializer("warmup_exponential_decay", lr_schedule_setup)
     optimizer = nk.optimizer.Sgd(learning_rate=lr_schedule)
-    gs = nk.driver.VMC(
-        H, optimizer, variational_state=vstate, preconditioner=SR
-    ).run(
+    gs = nk.driver.VMC(H, optimizer, variational_state=vstate, preconditioner=SR).run(
         n_iter=total_epochs,
         out=log,
         callback=callbacks,
@@ -311,6 +301,7 @@ else:  # Training modulus and phase at the same time
 time_out = time.time()
 time_exe = time_out - time_in
 
+vstate = keeper.best_state
 
 resp = input("Do you want to save simulation? [y/N]: ").strip().lower()
 if resp not in ("y", "s", "si", "yes"):
@@ -318,15 +309,14 @@ if resp not in ("y", "s", "si", "yes"):
     sys.exit(0)
 print("Saving....")
 
-time_out = time.time()
-time_exe = time_out - time_in
 
-if E_ED is not None:
+if exact_diag:
     keeper.E_ED = E_ED
+    keeper.x_ED = x_ED
     log.E_ED = E_ED
 
 ## Save results
-_kwargs = artifact["NN"][artifact["NN"]["name"]]
+_kwargs = artifact["NN"][artifact["NN"]["name"]].copy()
 _kwargs["size"] = size
 _kwargs["J1"] = J1
 _kwargs["J2"] = J2
@@ -336,53 +326,24 @@ sim_label, ED_label, json_label, title_label_callback = get_filenames_from_setti
     config["CM"]["selection"], config["NN"]["selection"], **_kwargs
 )
 
-if dump_callback:
-    # For plotting architecture
-    architecture = architecture_label(
-        artifact["NN"]["name"], artifact["NN"]["setup"]
-    )
-    dump_setup = {
-        "size": size,
-        "opt_name": "Sgd",
-        "learning_rate": "Scheduled",
-        "write_folder": write_folder,
-        "time_exe": time_exe,
-        "architecture": architecture,
-        "sim_label": sim_label,
-        "title_label_callback": title_label_callback,
-    }
-
-    callback_artifacts = dump_callback(log, dump_setup)
-
-else:
-    callback_artifacts = None
-
-
-# Extract some results
-vstate = keeper.best_state
-E_best = float(keeper.best_energy)
-vscore = float(keeper.vscore)
-error = float(np.abs(E_best - E_ED) / np.abs(E_ED))
-
-modphase_results = {}
-if E_ED is not None:
-    exact_diag = True
-    error = float(np.abs(E_best - E_ED) / np.abs(E_ED))
-
-else:
-    exact_diag = False
-    E_ED = None
-    x_ED = None
-    error = None
+# Plot Callback
+dump_setup = {
+    "size": size,
+    "write_folder": write_folder,
+    "time_exe": time_exe,
+    "sim_label": sim_label,
+    "title_label_callback": title_label_callback,
+    "best_step": keeper.best_step,
+    "training_setup": {
+        "lr_name": lr_name,
+        **training_setup,
+        **lr_schedule_setup,
+    },
+}
+callback_artifacts = dump_callback(log, dump_setup)
 
 ## Calculate some observables
-results, mp_array_vs, mp_array_ED = measureNdump(
-    keeper, time_exe, exact_diag
-)
-
-lr_name = config[training_name]["lr_name"]
-training_setup = config[training_name]["setup"]
-lr_schedule_setup = config[training_name]["lr_schedules"][lr_name]
+results, mp_array_vs, mp_array_ED = measureNdump(keeper, time_exe, exact_diag)
 
 # Save the results
 artifact["SIM"]["sampler"]["rng"] = vstate.sampler_state.rng.tolist()
