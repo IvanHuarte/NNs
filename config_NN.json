@@ -24,8 +24,7 @@
                     "setup":{
                         "channels": [64, 32],
                         "marshall": true,
-                        "pooling": false
-                        
+                        "pooling": true
                     }
                 },
                 
