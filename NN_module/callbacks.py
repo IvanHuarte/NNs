@@ -507,18 +507,55 @@ class ModPhasePlotter:
         return True
 
 
+def plot_training_setup(ax, setup):
+    segments = []
+    modes = []
+    lr_schedule = []
+    s, m, r, lr_sch = (
+        setup["segments"],
+        setup["mode"],
+        setup["repeat_segment"],
+        setup["lr"],
+    )
+
+    for seg, mode, repeats, lrsch in zip(s, m, r, lr_sch):
+        segments += [seg] * repeats
+        modes += [mode] * repeats
+        lr_schedule += [lrsch] * repeats
+
+    total_epochs = int(np.array([s for seg in segments for s in seg]).sum())
+
+    cum_epoch = 0
+    for i, (segment, seg_modes, lr) in enumerate(zip(segments, modes, lr_schedule)):
+
+        print(segment, seg_modes, lr)
+        if i != 0:
+            ax.axvline(cum_epoch, color="grey", linestyle="--", alpha=0.5)
+
+        ax.text(
+            cum_epoch + segment[0] / 2,
+            0.7,
+            f"{''.join(seg_modes)}\n{lr}",
+            horizontalalignment="center",
+            verticalalignment="center",
+            fontsize=10,
+            color="black",
+            transform=ax.get_xaxis_transform(),
+        )
+
+        cum_epoch += segment[0]
+
+
 def dump_callback(logger, settings, write=False):
 
     callback_artifacts = {}
 
     time_exe = settings["time_exe"]
     write_folder = settings["write_folder"]
-    architecture_display = settings["architecture"]
-    opt_name = settings["opt_name"]
-    learning_rate = settings["learning_rate"]
     sim_label = settings["sim_label"]
     title_label_callback = settings["title_label_callback"]
     best_step = settings["best_step"]
+    training_setup = settings["training_setup"]
 
     N = int(np.prod(settings["size"]))
 
@@ -538,7 +575,7 @@ def dump_callback(logger, settings, write=False):
     vscore = N * var / (E_hist**2)
     # vs_min = np.round(np.log10(np.min(vscore)))-1
 
-    setup_sim = f"E_best: {E_best:.4f} \nopt: {opt_name} \nl_rate: {learning_rate} \ntime_exe: {time_exe:.2f}"
+    setup_sim = f"E_best: {E_best:.4f}\nlr:{training_setup['lr_name']} \ntime_exe: {time_exe:.2f}"
     if hasattr(logger, "E_ED"):
         setup_sim = f"E_ED: {E_gr:.4f}\n" + setup_sim
 
@@ -567,18 +604,7 @@ def dump_callback(logger, settings, write=False):
 
     ax[0].plot(E_hist, color="blue", label="E")
     ax[0].plot(best_step, E_hist[best_step], marker="o", ms=3, color="gold")
-    if architecture_display is not None:
-        ax[0].text(
-            0.45,
-            0.85,
-            architecture_display,
-            transform=ax[0].transAxes,
-            fontsize=12,
-            color="k",
-            ha="center",
-            va="center",
-            bbox=dict(boxstyle="round", facecolor="white", alpha=0.7),
-        )
+
     ax[0].text(
         0.9,
         0.75,
@@ -590,6 +616,9 @@ def dump_callback(logger, settings, write=False):
         va="center",
         bbox=dict(boxstyle="round", facecolor="white", alpha=0.7),
     )
+    # Plotting training setup
+    if training_setup["lr_name"] == "segment":
+        plot_training_setup(ax[0], training_setup)
 
     ax[0].legend()
     ax[0].set_xlabel("Iteration")
