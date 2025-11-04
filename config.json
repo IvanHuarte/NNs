@@ -46,12 +46,16 @@
     },
 
     "ST_schedule":{
-        "lr_name":"segment",
+        "lr_name":"stairs_schedule",
         "setup":{
             "segments":[
-                [2],[2]
+                [100],[100],
+                [3000],
+                [200], [200]
             ],
             "mode":[
+                ["M"],["P"],
+                ["B"],
                 ["M"],["P"]
             ],
             "repeat_segment":[1,1,1,1,1,1]
