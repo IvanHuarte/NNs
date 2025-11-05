@@ -43,10 +43,10 @@
                 "modulus_setup":{
                     "module":"CvTaps",
                     "setup":{
-                        "n_CP_blocks": [2, 2, 2],
-                        "channels": [64, 32, 16],
-                        "attn_heads": [4, 4, 4],
-                        "strides": [[2,2], [1,1], [1,1]],
+                        "n_CP_blocks": [2],
+                        "channels": [64],
+                        "attn_heads": [4],
+                        "strides": [[2,2]],
                         "kernel": [3, 3],
                         "final_architecture": [128, 5]
                     }
@@ -55,7 +55,7 @@
                 "phase_setup":{
                     "module":"CNNbinClsf",
                     "setup":{
-                        "channels": [64, 32],
+                        "channels": [32],
                         "marshall": true,
                         "pooling":true
                         

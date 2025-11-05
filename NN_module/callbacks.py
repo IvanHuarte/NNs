@@ -78,7 +78,7 @@ class BestIterKeeper:
         vscore_step = self.N * var / mean**2
 
         if self.step > self.step_threshold:
-            if self.best_state_energy > energy_step and vscore_step < 0.1:
+            if self.best_state_energy > energy_step:# and vscore_step < 0.1:
                 self.best_state = copy.copy(vstate)
                 self.best_state_energy = energy_step
                 self.best_state_vscore = vscore_step
@@ -528,7 +528,6 @@ def plot_training_setup(ax, setup):
     cum_epoch = 0
     for i, (segment, seg_modes, lr) in enumerate(zip(segments, modes, lr_schedule)):
 
-        print(segment, seg_modes, lr)
         if i != 0:
             ax.axvline(cum_epoch, color="grey", linestyle="--", alpha=0.5)
 

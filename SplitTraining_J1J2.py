@@ -152,7 +152,7 @@ for i, size in enumerate(sizes):
 
         ## Update Hamiltonian
         cm_model = model_factory.get_model()
-        eng = Runner(cm_model)
+        eng = Runner(cm_model.cm)
         H = eng.build_hamiltonian()
 
         if exact_diag:
@@ -345,18 +345,14 @@ for i, size in enumerate(sizes):
             log.E_ED = E_ED
 
         ## Save results
-        _kwargs = nn_model_setup.copy()
-        _kwargs["size"] = size
-        _kwargs["J1"] = J1
-        _kwargs["J2"] = J2
-        _kwargs["fields"] = fields
 
         sim_label, ED_label, json_label, title_label_callback = (
             get_filenames_from_settings(
                 cm_model_name,
                 nn_model_name,
                 sim_uuid,
-                **_kwargs,
+                **nn_model_setup,
+                **cm_model_setup
             )
         )
 
@@ -384,13 +380,7 @@ for i, size in enumerate(sizes):
 
         ## Save the results
         dump_setup = {
-            "model_label": model_label,
-            "lattice": {
-                "name": cm_model_name,
-                "size": size,
-                "bc": kwargs_lattice["bc"],
-                "order": kwargs_lattice["order"],
-            },
+
             **sim_config,
             "sampler": {
                 "name": "MetropolisSampler",

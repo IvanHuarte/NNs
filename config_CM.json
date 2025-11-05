@@ -10,7 +10,7 @@
 
 
     "CM": {
-            "selection": "J1J2Square",
+            "selection": "Oxalate",
 
             "Oxalate":{
                 "strength": 0.2,
@@ -56,7 +56,7 @@
                 "J2_list": [
                     0.5
             ],
-                "fields": [[0.0,0.0,0.0]]
+                "fields": [0.0,0.0,0.0]
             }
     },
     
