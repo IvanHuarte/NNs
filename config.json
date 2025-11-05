@@ -53,13 +53,14 @@
         "lr_name":"segment",
         "setup":{
             "segments":[
-                [5]
+                [20],
+                [100]
             ],
             "mode":[
-                
+                ["M","P","M","P","M","P"],
                 ["P"]
             ],
-            "repeat_segment":[ 1]
+            "repeat_segment":[20, 1]
         },
 
         "lr_schedules":{
@@ -78,8 +79,8 @@
                     
                 ]
             }
-            }
         }
+    }
 
 }
 

@@ -29,7 +29,7 @@ from NN_module.callbacks import (
     dump_callback
 )
 from NN_module.saveNload import save_results
-from NN_module.initialize_NN import FactoryBuilder
+from NN_module.initialize_NN import FactoryBuilder, print_tree
 from NN_module.initialize_sampler import SamplerFactory
 from NN_module.schedules import get_ST_schedule
 from NN_module.label_utils import (
@@ -147,12 +147,13 @@ for i, size in enumerate(sizes):
                 "NN": {"name": nn_model_name, "setup": nn_model_setup},
             }
         )
+        #print_tree(sim_config, values=True)
 
-        display_simulation_settings({**config_cm, **config_nn})
+        display_simulation_settings({**sim_config})
 
         ## Update Hamiltonian
         cm_model = model_factory.get_model()
-        eng = Runner(cm_model.cm)
+        eng = Runner(cm_model.cm, S_operators=model_factory.S_operators)
         H = eng.build_hamiltonian()
 
         if exact_diag:

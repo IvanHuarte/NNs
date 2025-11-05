@@ -1,7 +1,7 @@
 {
     "NN": {
         
-        "selection": "BPRvariant",
+        "selection": "BPRVariantViT2D",
         
         "BestPastResults":{
             
@@ -43,10 +43,10 @@
                 "modulus_setup":{
                     "module":"CvTaps",
                     "setup":{
-                        "n_CP_blocks": [2],
-                        "channels": [64],
-                        "attn_heads": [4],
-                        "strides": [[2,2]],
+                        "n_CP_blocks": [2, 2, 2],
+                        "channels": [64, 32, 16],
+                        "attn_heads": [4, 4, 4],
+                        "strides": [[2,2], [1,1], [1,1]],
                         "kernel": [3, 3],
                         "final_architecture": [128, 5]
                     }
@@ -55,9 +55,9 @@
                 "phase_setup":{
                     "module":"CNNbinClsf",
                     "setup":{
-                        "channels": [32],
+                        "channels": [64, 32],
                         "marshall": true,
-                        "pooling":true
+                        "pooling": false
                         
                     }
                 },
@@ -68,16 +68,17 @@
                 "squeeze":true
             }         
         },
+
         "BPRVariantViT2D":{
 
             "module": "SplitTraining",
             "setup":{
 
                 "modulus_setup":{
-                    "module":"ViT_2D",
+                    "module":"ViT2D",
                     "setup": {
                         "token_size": [2, 1],
-                        "embedding_d": 64,
+                        "embedding_d": 32,
                         "n_heads": 4,
                         "n_blocks": 2,
                         "n_ffn_layers": 2,
@@ -88,9 +89,9 @@
                 "phase_setup":{
                     "module":"CNNbinClsf",
                     "setup":{
-                        "channels": [64, 32],
+                        "channels": [32],
                         "marshall": true,
-                        "pooling": false
+                        "pooling": true
                         
                     }
                 },
