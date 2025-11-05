@@ -305,12 +305,12 @@ for i, size in enumerate(sizes):
             if enable_inline:
                 inline_plot = EnergyPlotter(H, N, E_ED=E_ED)
                 callbacks.append(inline_plot)
-            lr_schedule_setup["total_epochs"] = total_epochs
+            training_setup["total_epochs"] = total_epochs
 
             ds_schedule = optax.linear_schedule(1e-2, 1e-4, total_epochs)
             SR = nk.optimizer.SR(diag_shift=ds_schedule)
             lr_schedule = scheduler_initializer(
-                "warmup_exponential_decay", lr_schedule_setup
+                "warmup_exponential_decay", training_setup
             )
             optimizer = nk.optimizer.Sgd(learning_rate=lr_schedule)
             gs = nk.driver.VMC(
@@ -354,9 +354,9 @@ for i, size in enumerate(sizes):
             "best_step": keeper.best_step,
             "training_setup": {
                 "lr_name": lr_name,
-                **training_setup,
-                **lr_schedule_setup,
-            },
+                **training_setup['setup'],
+                **training_setup['lr_schedules'][lr_name],
+            }
         }
 
         callback_artifacts = dump_callback(log, dump_setup)
