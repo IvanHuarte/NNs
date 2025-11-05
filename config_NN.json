@@ -1,7 +1,7 @@
 {
     "NN": {
         
-        "selection": "BPRVariantViT2D",
+        "selection": "BPRvariant",
         
         "BestPastResults":{
             

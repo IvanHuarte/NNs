@@ -19,7 +19,7 @@ class SamplerFactory():
 
         sampler = MetropolisSampler(
             hilbert=hilbert,
-            rules=rules_wrapper,
+            rule=rules_wrapper,
             n_chains_per_rank=self.setup["n_chains_per_rank"],
             chunk_size=self.setup["chunk_sampler"],
         )

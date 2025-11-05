@@ -5,7 +5,8 @@ from netket.utils.types import PyTree, PRNGKeyT
 from netket.utils.struct import dataclass
 from netket.hilbert.random import flip_state
 
-from typing import overrides
+from typing import override
+
 
 @dataclass
 class InvertMagnetization(MetropolisRule):
@@ -15,7 +16,7 @@ class InvertMagnetization(MetropolisRule):
     the MetropolisRule interface.
     """
 
-    @overrides
+    @override
     def transition(rule, sampler, machine, parameters, state, key, σ):
         indxs = jax.random.randint(
             key, shape=(1,), minval=0, maxval=sampler.n_chains
@@ -26,7 +27,7 @@ class InvertMagnetization(MetropolisRule):
 
 class LocalRule_Z2(MetropolisRule):
 
-    @overrides
+    @override
     def random_state(
         self,
         sampler: "sampler.MetropolisSampler",  # noqa: F821
