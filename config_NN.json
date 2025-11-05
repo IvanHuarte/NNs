@@ -1,8 +1,41 @@
 {
     "NN": {
         
-        "selection": "BPRvariant",
+        "selection": "BPRvar2DZ2symm",
         
+        "BPRvarZ2symm":{
+        
+            "module": "SplitTraining",
+            "setup":{
+        
+                "modulus_setup":{
+                    "module":"CvTaps",
+                    "setup":{
+                        "n_CP_blocks": [2, 2],
+                        "channels": [64, 32],
+                        "attn_heads": [4, 4],
+                        "strides": [[2,2], [1,1]],
+                        "kernel": [3, 3],
+                        "final_architecture": [128, 5]
+                    }
+                },
+                
+                "phase_setup":{
+                    "module":"CNNbinClsf",
+                    "setup":{
+                        "channels": [64, 32],
+                        "marshall": true,
+                        "pooling": false
+                        
+                    }
+                },
+                
+                "symm_2D": true,
+                "symm_Z2": true,
+                "trivial_Z2": true,
+                "squeeze":true
+            }         
+        },
         "BestPastResults":{
             
             "module": "SplitTraining",
@@ -35,39 +68,6 @@
             }         
         },
         
-        "BPRvariant":{
-
-            "module": "SplitTraining",
-            "setup":{
-
-                "modulus_setup":{
-                    "module":"CvTaps",
-                    "setup":{
-                        "n_CP_blocks": [2, 2, 2],
-                        "channels": [64, 32, 16],
-                        "attn_heads": [4, 4, 4],
-                        "strides": [[2,2], [1,1], [1,1]],
-                        "kernel": [3, 3],
-                        "final_architecture": [128, 5]
-                    }
-                },
-                
-                "phase_setup":{
-                    "module":"CNNbinClsf",
-                    "setup":{
-                        "channels": [64, 32],
-                        "marshall": true,
-                        "pooling": false
-                        
-                    }
-                },
-                
-                "symm_Z2": true,
-                "trivial_Z2": false,
-                "symm_2D": false,
-                "squeeze":true
-            }         
-        },
 
         "BPRVariantViT2D":{
 
