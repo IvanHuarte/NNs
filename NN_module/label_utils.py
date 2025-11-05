@@ -450,7 +450,7 @@ def display_simulation_settings(settings, n_cols=5):
     # ============================================================
     nn_dict = settings.get("NN", {})
     table_nn = _group_params(nn_dict, n_cols=2)
-    panel_nn = Panel(table_nn, title=f"[bold]COUPLING MODEL ({nn_name})[/]", border_style=nn_color)
+    panel_nn = Panel(table_nn, title=f"[bold]NEURAL NETWORK ({nn_name})[/]", border_style=nn_color)
 
     console.print(panel_nn)
     # if nn_dict:

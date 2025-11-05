@@ -12,7 +12,7 @@
 
     "sampler":{
         "sampler":{
-            "rules": ["LocalRule_Z2", "InvertMagnetization"],
+            "rules": ["LocalRule"],
             "prules": [0.75, 0.25]
         },
         "n_ranks": 1,
@@ -53,7 +53,7 @@
         "lr_name":"segment",
         "setup":{
             "segments":[
-                [20],
+                [10,10,10,10,10,10],
                 [100]
             ],
             "mode":[

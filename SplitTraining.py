@@ -31,7 +31,7 @@ from NN_module.callbacks import (
 from NN_module.saveNload import save_results
 from NN_module.initialize_NN import FactoryBuilder, print_tree
 from NN_module.initialize_sampler import SamplerFactory
-from NN_module.schedules import get_ST_schedule
+from NN_module.schedules import generate_training
 from NN_module.label_utils import (
     get_filenames_from_settings,
     get_write_folder_from_model,
@@ -88,8 +88,7 @@ sizes = config_cm["sizes"]
 split_training = config["split_training"]
 training_name = "ST_schedule" if split_training else "normal_schedule"
 lr_name = config[training_name]["lr_name"]
-training_setup = config[training_name]["setup"]
-lr_schedule_setup = config[training_name]["lr_schedules"][lr_name]
+training_setup = config[training_name]
 
 sampler_setup = config["sampler"]
 n_samples = (
@@ -185,30 +184,13 @@ for i, size in enumerate(sizes):
 
         if split_training:  # Alternated training between modulus and phase
 
-            segments = []
-            modes = []
-            s, m, r = (
-                training_setup["segments"],
-                training_setup["mode"],
-                training_setup["repeat_segment"],
-            )
 
-            for seg, mode, repeats in zip(s, m, r):
-                segments += [seg] * repeats
-                modes += [mode] * repeats
+            segments, modes, lr_segments = generate_training(training_setup)
 
             total_segments = len(segments)
             total_epochs = int(np.array([s for seg in segments for s in seg]).sum())
             training_setup["total_epochs"] = total_epochs
 
-            lr_schedule = get_ST_schedule(
-                lr_name,
-                {
-                    **lr_schedule_setup,
-                    "total_epochs": total_epochs,
-                    "total_segments": total_segments,
-                },
-            )
             ds_schedule = jnp.linspace(1e-2, 1e-4, total_segments)
 
             transformations = {
@@ -234,17 +216,21 @@ for i, size in enumerate(sizes):
             print(f"Segments:      {segments}")
             print(f"Modes:         {modes}")
 
-            for i, (segment, seg_modes, lr) in enumerate(
-                zip(segments, modes, lr_schedule)
+            for i, (segment, seg_modes, lr_segment) in enumerate(
+                zip(segments, modes, lr_segments)
             ):
 
-                print(
-                    f"\nSegment {i+1} of {total_segments}......   lr: {lr:.4f}  ds: {ds_schedule[i]:.4f}\n"
-                )
                 SR = nk.optimizer.SR(diag_shift=ds_schedule[i])
+                print(f"\nSegment:")
+                print(f"  Epochs: {segment}")
+                print(f"  Modes:  {seg_modes}")
+                print(f"  LRs:    {lr_segment}")
 
-                for epochs, mode in zip(segment, seg_modes):
+                for epochs, mode, lr in zip(segment, seg_modes, lr_segment):
 
+                    print(
+                        f"\nSegment {i+1} of {total_segments}......   lr: {lr:.4e}  ds: {ds_schedule[i]:.4e}\n"
+                    )
                     # P0 = vstate.parameters
 
                     if mode == "M":
@@ -265,7 +251,7 @@ for i, size in enumerate(sizes):
                     else:
                         raise ValueError(
                             f"Invalid training mode: {mode}."
-                            f"'M' for modulus and 'P' for phase"
+                            f"'M' for modulus, 'P' for phase and 'B' for both"
                         )
 
                     variables = vstate.variables
@@ -300,6 +286,7 @@ for i, size in enumerate(sizes):
                     )
                     mean, std, psi = phase_stats_vstate(vstate)
                     print(f"VS phase: {mean} \u00b1 {std}  ({psi})")
+
                     # P1 = vstate.parameters
                     # print(compare_params(P0, P1))
                     # check_zero_grads(vstate, mask)
