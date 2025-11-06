@@ -26,7 +26,7 @@ from NN_module.callbacks import (
     BestIterKeeper,
     EnergyPlotter,
     ModPhasePlotter,
-    dump_callback
+    dump_callback,
 )
 from NN_module.saveNload import save_results
 from NN_module.initialize_NN import FactoryBuilder, print_tree
@@ -132,8 +132,8 @@ for i, size in enumerate(sizes):
 
     ## Reset sampler
     sampler = SamplerFactory(sampler_setup).get_sampler(hi)
-
     model_factory = ModelFactory(size, config_cm)
+
     for params in model_factory.get_params():
 
         cm_model_setup = model_factory.get_setup()
@@ -146,7 +146,7 @@ for i, size in enumerate(sizes):
                 "NN": {"name": nn_model_name, "setup": nn_model_setup},
             }
         )
-        #print_tree(sim_config, values=True)
+        # print_tree(sim_config, values=True)
 
         display_simulation_settings({**sim_config})
 
@@ -183,7 +183,6 @@ for i, size in enumerate(sizes):
         )
 
         if split_training:  # Alternated training between modulus and phase
-
 
             segments, modes, lr_segments = generate_training(training_setup)
 
@@ -335,13 +334,7 @@ for i, size in enumerate(sizes):
         ## Save results
 
         sim_label, ED_label, json_label, title_label_callback = (
-            get_filenames_from_settings(
-                cm_model_name,
-                nn_model_name,
-                sim_uuid,
-                **nn_model_setup,
-                **cm_model_setup
-            )
+            get_filenames_from_settings(nn_model_setup, cm_model_setup, sim_uuid)
         )
 
         # Plot Callback
@@ -354,21 +347,18 @@ for i, size in enumerate(sizes):
             "best_step": keeper.best_step,
             "training_setup": {
                 "lr_name": lr_name,
-                **training_setup['setup'],
-                **training_setup['lr_schedules'][lr_name],
-            }
+                **training_setup["setup"],
+                **training_setup["lr_schedules"][lr_name],
+            },
         }
 
         callback_artifacts = dump_callback(log, dump_setup)
 
         ## Calculate some observables
-        results, mp_array_vs, mp_array_ED = measureNdump(
-            keeper, time_exe, exact_diag
-        )
+        results, mp_array_vs, mp_array_ED = measureNdump(keeper, time_exe, exact_diag)
 
         ## Save the results
         dump_setup = {
-
             **sim_config,
             "sampler": {
                 "name": "MetropolisSampler",

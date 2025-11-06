@@ -463,15 +463,17 @@ def display_simulation_settings(settings, n_cols=5):
     console.rule("[bold green]")
 
 
-def get_filenames_from_settings(cm_name, nn_name, sim_uuid=None, **kwargs):
+def get_filenames_from_settings(cm_setup, nn_setup, sim_uuid=None, **kwargs):
+
+    cm_name, nn_name = cm_setup["name"], nn_setup["name"]
 
     model_label = cm_name + "_" + nn_name
-    size = kwargs["size"]
+    size = cm_setup["size"]
 
     if cm_name == "Oxalate":
-        strength = kwargs["strength"]
-        theta = kwargs["theta"]
-        phi = kwargs["phi"]
+        strength = cm_setup["strength"]
+        theta = cm_setup["theta"]
+        phi = cm_setup["phi"]
         cparams = f"_strength_{strength}_theta_{theta}_phi_{phi}"
         call_params = r"$a = %.1f$  $\theta = %.1f$  $\phi = %.1f$" % (
             strength,
@@ -480,8 +482,8 @@ def get_filenames_from_settings(cm_name, nn_name, sim_uuid=None, **kwargs):
         )
 
     elif cm_name == "Chain_YYZZ":
-        fields = kwargs["fields"]
-        couplings = kwargs["couplings"]
+        fields = cm_setup["fields"]
+        couplings = cm_setup["couplings"]
         flat_fields = ""
         field_values = ""
         call_params = ""
@@ -498,9 +500,9 @@ def get_filenames_from_settings(cm_name, nn_name, sim_uuid=None, **kwargs):
             call_params += f"{f}:{v}  "
 
     elif cm_name in ["LRChain", "LRSquare"]:
-        J = kwargs["J"]
-        alpha = kwargs["alpha"]
-        fields = kwargs["fields"]
+        J = cm_setup["J"]
+        alpha = cm_setup["alpha"]
+        fields = cm_setup["fields"]
         cparams = f"_J_{J}_alpha_{alpha}_XZ_{fields[0]}_{fields[1]}"
         call_params = r"$J=%.2f$  $\alpha=%.1f$  $XZ=(%.1f,%.1f)$" % (
             J,
@@ -510,9 +512,9 @@ def get_filenames_from_settings(cm_name, nn_name, sim_uuid=None, **kwargs):
         )
 
     elif cm_name == "J1J2Square":
-        J1 = kwargs["J1"]
-        J2 = kwargs["J2"]
-        fields = kwargs["fields"]
+        J1 = cm_setup["J1"]
+        J2 = cm_setup["J2"]
+        fields = cm_setup["fields"]
         cparams = f"_J1J2_{J1}_{J2}_XYZ_{fields[0]}_{fields[1]}_{fields[2]}"
         call_params = r"$J1=%.2f$  $J2=%.2f$  $XYZ=(%.1f,%1.f,%.1f)$" % (
             J1,
@@ -524,7 +526,9 @@ def get_filenames_from_settings(cm_name, nn_name, sim_uuid=None, **kwargs):
 
     # Necessary to set unique simulation labels
     date = datetime.now().strftime("%Y%m%dT%H%M%S")
-    nnparams = get_string_from_nnsetup(kwargs) + f"_date_{date}_UUID_{sim_uuid}"
+    nnparams = (
+        get_string_from_nnsetup(nn_setup["setup"]) + f"_date_{date}_UUID_{sim_uuid}"
+    )
 
     sim_label = model_label + f"_simulation_{size[0]}x{size[1]}" + cparams + nnparams
     ED_label = model_label + f"_xED_{size[0]}x{size[1]}" + cparams
