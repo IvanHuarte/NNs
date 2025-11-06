@@ -121,11 +121,13 @@ def print_tree_keys(obj, indent=0):
 def load_vstate(setup, tree_data=False):
 
     # Initialize model
-    N = int(np.prod(setup["lattice"]["size"]))
+    size = setup["CM"]["size"]
+    N = int(np.prod(size))
+    # print(setup["NN"])
 
     model = FactoryBuilder(
-        setup["model_NN"]["setup"], **{"lattice_size": setup["lattice"]["size"]}
-    ).get_model
+        setup["NN"]["setup"], **{"lattice_size": setup["CM"]["size"]}
+    ).get_model()
 
     # Initialize hilbert space
     hi = nk.hilbert.Spin(s=0.5, N=N)

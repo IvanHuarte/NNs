@@ -142,7 +142,7 @@ for i, size in enumerate(sizes):
         sim_config = get_sim_config(
             {
                 "SIM": config,
-                "CM": {"name": cm_model_name, "setup": cm_model_setup},
+                "CM": cm_model_setup,
                 "NN": {"name": nn_model_name, "setup": nn_model_setup},
             }
         )
@@ -210,10 +210,6 @@ for i, size in enumerate(sizes):
             if enable_modphase:
                 inline_modphase = ModPhasePlotter(sim_config, x_ED)
                 callbacks.append(inline_modphase)
-
-            print(f"\nEpochs:      {total_epochs}")
-            print(f"Segments:      {segments}")
-            print(f"Modes:         {modes}")
 
             for i, (segment, seg_modes, lr_segment) in enumerate(
                 zip(segments, modes, lr_segments)
@@ -334,11 +330,13 @@ for i, size in enumerate(sizes):
         ## Save results
 
         sim_label, ED_label, json_label, title_label_callback = (
-            get_filenames_from_settings(nn_model_setup, cm_model_setup, sim_uuid)
+            get_filenames_from_settings(
+                cm_model_setup, {"name": nn_model_name, **nn_model_setup}, sim_uuid
+            )
         )
 
         # Plot Callback
-        dump_setup = {
+        callback_args = {
             "size": size,
             "write_folder": write_folder,
             "time_exe": time_exe,
@@ -352,23 +350,19 @@ for i, size in enumerate(sizes):
             },
         }
 
-        callback_artifacts = dump_callback(log, dump_setup)
+        callback_artifacts = dump_callback(log, callback_args)
 
         ## Calculate some observables
         results, mp_array_vs, mp_array_ED = measureNdump(keeper, time_exe, exact_diag)
 
+        sim_config["SIM"]["sampler"]["nsamples"] = n_samples
+        sim_config["SIM"]["sampler"]["rng"] = vstate.sampler_state.rng.tolist()
+
         ## Save the results
         dump_setup = {
             **sim_config,
-            "sampler": {
-                "name": "MetropolisSampler",
-                "n_samples": n_samples,
-                "rng": vstate.sampler_state.rng.tolist(),
-                "rules": "LocalRule/InvertMagnetization",
-                "setup": sampler_setup,
-            },
+            "results": results,
             "optimizer": "Sgd",
-            "results": {**results},
             "_artifacts": {"callback": callback_artifacts},
         }
 

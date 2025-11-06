@@ -37,17 +37,7 @@ def get_sim_config(configurations, **kwargs):
     cleaned["SIM"]["schedule"]["lr_schedule"]["setup"] = lr_schedule_setup
 
     # Coupling model
-    cleaned["CM"] = {}
-
-    cm_name = cm["name"]
-    cm_setup = cm["setup"]
-
-    cleaned["CM"]["name"] = cm_name
-    for k, v in cm_setup.items():
-        if not "_list" in k:
-            cleaned["CM"][k] = v
-
-    cleaned["CM"]["size"] = cm_setup["size"]
+    cleaned["CM"] = cm
 
     # NN architecture
 
@@ -471,9 +461,9 @@ def get_filenames_from_settings(cm_setup, nn_setup, sim_uuid=None, **kwargs):
     size = cm_setup["size"]
 
     if cm_name == "Oxalate":
-        strength = cm_setup["strength"]
-        theta = cm_setup["theta"]
-        phi = cm_setup["phi"]
+        strength = cm_setup["params"]["strength"]
+        theta = cm_setup["params"]["theta"]
+        phi = cm_setup["params"]["phi"]
         cparams = f"_strength_{strength}_theta_{theta}_phi_{phi}"
         call_params = r"$a = %.1f$  $\theta = %.1f$  $\phi = %.1f$" % (
             strength,
@@ -482,8 +472,8 @@ def get_filenames_from_settings(cm_setup, nn_setup, sim_uuid=None, **kwargs):
         )
 
     elif cm_name == "Chain_YYZZ":
-        fields = cm_setup["fields"]
-        couplings = cm_setup["couplings"]
+        fields = cm_setup["params"]["fields"]
+        couplings = cm_setup["params"]["couplings"]
         flat_fields = ""
         field_values = ""
         call_params = ""
@@ -500,9 +490,9 @@ def get_filenames_from_settings(cm_setup, nn_setup, sim_uuid=None, **kwargs):
             call_params += f"{f}:{v}  "
 
     elif cm_name in ["LRChain", "LRSquare"]:
-        J = cm_setup["J"]
-        alpha = cm_setup["alpha"]
-        fields = cm_setup["fields"]
+        J = cm_setup["params"]["J"]
+        alpha = cm_setup["params"]["alpha"]
+        fields = cm_setup["params"]["fields"]
         cparams = f"_J_{J}_alpha_{alpha}_XZ_{fields[0]}_{fields[1]}"
         call_params = r"$J=%.2f$  $\alpha=%.1f$  $XZ=(%.1f,%.1f)$" % (
             J,
@@ -512,9 +502,9 @@ def get_filenames_from_settings(cm_setup, nn_setup, sim_uuid=None, **kwargs):
         )
 
     elif cm_name == "J1J2Square":
-        J1 = cm_setup["J1"]
-        J2 = cm_setup["J2"]
-        fields = cm_setup["fields"]
+        J1 = cm_setup["params"]["J1"]
+        J2 = cm_setup["params"]["J2"]
+        fields = cm_setup["params"]["fields"]
         cparams = f"_J1J2_{J1}_{J2}_XYZ_{fields[0]}_{fields[1]}_{fields[2]}"
         call_params = r"$J1=%.2f$  $J2=%.2f$  $XYZ=(%.1f,%1.f,%.1f)$" % (
             J1,

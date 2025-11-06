@@ -105,7 +105,7 @@ callbacks = []
 
 
 # Rebuild hamiltonian
-size = artifact["lattice"]["size"]
+size = artifact["CM"]["size"]
 N = int(np.prod(size))
 
 ####### HAMILTONIAN ########
@@ -116,6 +116,8 @@ H = eng.build_hamiltonian()
 
 factory = FactoryBuilder(artifact["NN"]["setup"], **{"lattice_size": size})
 model = factory.get_model()
+
+print(model)
 
 
 ##### VARIATIONAL STATE ######
@@ -132,13 +134,19 @@ vstate = load_vstate(artifact)
 # Get exact diag energy, in the case.
 if artifact["results"]["E_ED"] is not None:
     E_ED = artifact["results"]["E_ED"]
-    x_ED = np.loadtxt(artifact["results"]["xED"], dtype=complex)
+    x_ED = np.loadtxt(artifact["_artifacts"]["x_ED"], dtype=complex)
     exact_diag = True
 
 else:
     E_ED = None
     x_ED = None
     exact_diag = False
+
+n_samples = (
+    artifact["SIM"]["sampler"]["n_samples_per_chain"]
+    * artifact["SIM"]["sampler"]["n_chains_per_rank"]
+    * artifact["SIM"]["sampler"]["n_ranks"]
+)
 
 
 callback_artifacts = {}
@@ -228,9 +236,10 @@ if split_training:  # Alternated training between modulus and phase
                 sampler,
                 sampler_seed=vstate.sampler_state.rng,
                 model=model,
-                n_samples=artifact["sampler"]["n_samples"],
+                n_samples=n_samples,
+                # n_samples=artifact["SIM"]["sampler"]["n_samples"],
                 n_discard_per_chain=0,
-                chunk_size=artifact["sampler"]["chunk_vstate"],
+                chunk_size=artifact["SIM"]["sampler"]["chunk_vstate"],
                 variables=variables,
             )
 
@@ -317,9 +326,11 @@ results, mp_array_vs, mp_array_ED = measureNdump(keeper, time_exe, exact_diag)
 
 # Save the results
 artifact["SIM"]["sampler"]["rng"] = vstate.sampler_state.rng.tolist()
-artifact["SIM"]["lr_schedule"]["name"] = lr_name
-artifact["SIM"]["lr_schedule"]["setup"] = training_setup["lr_schedules"][lr_name]
-artifact["SIM"]["setup"] = training_setup
+artifact["SIM"]["schedule"]["lr_schedule"]["name"] = lr_name
+artifact["SIM"]["schedule"]["lr_schedule"]["setup"] = training_setup["lr_schedules"][
+    lr_name
+]
+artifact["SIM"]["schedule"]["setup"] = training_setup
 
 artifact["results"] = results
 

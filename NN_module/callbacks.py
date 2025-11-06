@@ -302,9 +302,8 @@ class ModPhasePlotter:
 
         (mod_ED, phase_ED), stats_ED = modphase(x_ED)
 
-        kwargs = {**sim_config["CM"], **sim_config["NN"]["setup"]}
         _, _, _, callback = get_filenames_from_settings(
-            sim_config["CM"]["name"], sim_config["NN"]["name"], **kwargs
+            sim_config["CM"], sim_config["NN"]
         )
         title = callback.replace("Callback", "").lstrip().replace(" ", "\\quad")
 
