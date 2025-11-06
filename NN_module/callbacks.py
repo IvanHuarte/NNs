@@ -412,13 +412,29 @@ class ModPhasePlotter:
         vstate = driver.state
         (mod_vs, phase_vs), stats_vs = modphase(vstate)
 
-        # Actualizar línea de módulo del vstate
-        self.line_mod_vs[0].set_data(np.arange(len(mod_vs)), mod_vs)
+        # Asegurarnos de usar numpy arrays para matplotlib (por si vienen jnp)
+        mod_vs = np.asarray(mod_vs)
+        phase_vs = np.asarray(phase_vs)
 
-        # Actualizar los samples
-        # Borrar antiguas
+        # --- Actualizar línea de módulo del vstate ---
+        x_mod = np.arange(len(mod_vs))
+        self.line_mod_vs[0].set_data(x_mod, mod_vs)
+        # Asegurar que el eje X muestre toda la señal
+        self.ax[0].set_xlim(0, max(1, x_mod[-1]))
+        # Actualizar límites Y a partir de los datos nuevos
+        ymin_vlines_pos = -0.2 * max(self.max_mod_ED, float(np.max(mod_vs))) * 9 / 8
+        self.ax[0].set_ylim(
+            ymin_vlines_pos, max(self.max_mod_ED, float(np.max(mod_vs))) * 9 / 8
+        )
+        self.ax[0].relim()
+        self.ax[0].autoscale_view(scalex=False, scaley=True)
+
+        # --- Actualizar los samples (vlines) ---
         for vline in self.sample_vlines:
-            vline.remove()
+            try:
+                vline.remove()
+            except Exception:
+                pass
         self.sample_vlines = []
 
         samples = vstate.samples.reshape(-1, self.N)
@@ -427,8 +443,6 @@ class ModPhasePlotter:
         powers = jnp.tile(jnp.arange(self.N), (bin_samples.shape[0], 1))
         samples_idx = jnp.sum(bin_samples * 2**powers, axis=-1)
 
-        # Agrega líneas verticales en las posiciones de samples_idx
-        ymin_vlines_pos = -0.2 * max(self.max_mod_ED, max(mod_vs)) * 9 / 8
         for idx in np.asarray(samples_idx):
             vline = self.ax[0].vlines(
                 x=idx,
@@ -440,23 +454,60 @@ class ModPhasePlotter:
             )
             self.sample_vlines.append(vline)
 
-        # Actualizar scatter de fase del vstate
-        self.sc_phase_vs[0].set_data(np.arange(len(phase_vs)), phase_vs)
-
-        # Actualizar límites de ejes
-        self.ax[0].set_ylim(ymin_vlines_pos, max(self.max_mod_ED, max(mod_vs)) * 9 / 8)
-        self.ax[0].relim()
-        self.ax[0].autoscale_view()
+        # --- Actualizar scatter de fase del vstate (siguiendo tu enfoque con plot -> Line2D) ---
+        # Si usas plot(..., ls="", marker="o") en init, self.sc_phase_vs es una lista con Line2D
+        # y set_data funciona: aseguramos set_data y ajustamos xlim para que entren los puntos.
+        x_vs = np.arange(len(phase_vs))
+        self.sc_phase_vs[0].set_data(x_vs, phase_vs)
+        self.ax[1].set_xlim(0, max(1, x_vs[-1]))
+        # Mantener el eje Y fijado a [-pi, pi] (como en init), no autoscale en Y
+        self.ax[1].set_ylim(-np.pi - 0.1, np.pi + 0.1)
         self.ax[1].relim()
-        self.ax[1].autoscale_view()
+        self.ax[1].autoscale_view(scalex=False, scaley=False)  # no cambiar Y
 
-        # Limpiar histogramas anteriores
-        if self.phase_hist_vs is not None:
-            for patch in self.phase_hist_vs[2]:
-                patch.remove()
+        # Si existiera scatter ED generado con plot en init, no lo tocamos (es estático)
 
+        # --- Limpiar y redibujar el histograma en el último eje de forma robusta ---
+        # Limpieza total del eje del histograma para evitar artefactos acumulados
+        self.ax[-1].cla()
+
+        # Re-configurar etiquetas/ticks del eje del histograma (igual que en __init__)
+        self.ax[-1].set_xlabel(r"$Phase\;(radians)$")
+        self.ax[-1].set_ylabel(r"$Phase \;histogram$")
+
+        # reconstruir transform usado para escribir picos (necesario porque hicimos cla())
+        self.transform = mtransforms.blended_transform_factory(
+            self.ax[-1].transData, self.ax[-1].transAxes
+        )
+
+        # Si hay ED, volver a calcular (o podrías haber guardado en __init__) y dibujar su hist
+        if self.x_ED is not None:
+            (mod_ED, phase_ED), stats_ED = modphase(self.x_ED)
+            # plot ED histogram (como en init)
+            self.ax[-1].hist(
+                np.asarray(phase_ED),
+                bins=1000,
+                range=(-np.pi, np.pi),
+                density=True,
+                alpha=0.7,
+                label=f"ED  ({stats_ED['type']})",
+            )
+            # volver a dibujar picos ED si los hubiera
+            if stats_ED.get("peaks") is not None:
+                for peak in stats_ED["peaks"]["values"]:
+                    self.ax[-1].text(
+                        peak - 0.1,
+                        0.9,
+                        r"%.2f" % peak,
+                        color="b",
+                        transform=self.transform,
+                        fontsize=8,
+                        alpha=0.7,
+                    )
+
+        # Dibujar histograma del vstate
         self.phase_hist_vs = self.ax[-1].hist(
-            phase_vs,
+            np.asarray(phase_vs),
             bins=1000,
             range=(-np.pi, np.pi),
             color="r",
@@ -465,9 +516,12 @@ class ModPhasePlotter:
             label=f"vstate ({stats_vs['type']})",
         )
 
-        # Actualizar texto con estadísticas
+        # --- Texto con estadísticas ---
         if self.text_stats is not None:
-            self.text_stats.remove()
+            try:
+                self.text_stats.remove()
+            except Exception:
+                pass
 
         self.text_stats = self.ax[-1].text(
             0.8,
@@ -479,12 +533,15 @@ class ModPhasePlotter:
             bbox=dict(facecolor="white", alpha=0.4),
         )
 
-        # Actualizar picos del vstate
+        # --- Picos del vstate: borramos previos y dibujamos nuevos (sobre el eje ya limpiado) ---
         for txt in self.peak_texts_vs:
-            txt.remove()
+            try:
+                txt.remove()
+            except Exception:
+                pass
         self.peak_texts_vs = []
 
-        if stats_vs["peaks"] is not None:
+        if stats_vs.get("peaks") is not None:
             for peak in stats_vs["peaks"]["values"]:
                 txt = self.ax[-1].text(
                     peak - 0.1,
@@ -496,14 +553,120 @@ class ModPhasePlotter:
                     alpha=0.7,
                 )
                 self.peak_texts_vs.append(txt)
-        self.ax[-1].legend(loc="upper right")
 
-        # Una sola actualización del canvas
-        self.fig.canvas.draw()
+        # Leyenda del histograma
+        try:
+            self.ax[-1].legend(loc="upper right")
+        except Exception:
+            pass
+
+        # --- Redibujar canvas de forma eficiente ---
+        self.fig.canvas.draw_idle()
         self.fig.canvas.flush_events()
         plt.pause(0.01)
 
         return True
+
+    # def __call__(self, step, log_data, driver):
+    #     # Solo plotear cada plot_each iteraciones
+    #     if step % self.plot_each != 0:
+    #         return True
+
+    #     vstate = driver.state
+    #     (mod_vs, phase_vs), stats_vs = modphase(vstate)
+
+    #     # Actualizar línea de módulo del vstate
+    #     self.line_mod_vs[0].set_data(np.arange(len(mod_vs)), mod_vs)
+
+    #     # Actualizar los samples
+    #     # Borrar antiguas
+    #     for vline in self.sample_vlines:
+    #         vline.remove()
+    #     self.sample_vlines = []
+
+    #     samples = vstate.samples.reshape(-1, self.N)
+    #     bin_samples = (-(samples - 1) / 2).astype(jnp.int8)
+    #     bin_samples = bin_samples.T[::-1].T
+    #     powers = jnp.tile(jnp.arange(self.N), (bin_samples.shape[0], 1))
+    #     samples_idx = jnp.sum(bin_samples * 2**powers, axis=-1)
+
+    #     # Agrega líneas verticales en las posiciones de samples_idx
+    #     ymin_vlines_pos = -0.2 * max(self.max_mod_ED, max(mod_vs)) * 9 / 8
+    #     for idx in np.asarray(samples_idx):
+    #         vline = self.ax[0].vlines(
+    #             x=idx,
+    #             ymin=ymin_vlines_pos,
+    #             ymax=0,
+    #             color="gray",
+    #             alpha=0.18,
+    #             linewidth=0.5,
+    #         )
+    #         self.sample_vlines.append(vline)
+
+    #     # Actualizar scatter de fase del vstate
+    #     self.sc_phase_vs[0].set_data(np.arange(len(phase_vs)), phase_vs)
+
+    #     # Actualizar límites de ejes
+    #     self.ax[0].set_ylim(ymin_vlines_pos, max(self.max_mod_ED, max(mod_vs)) * 9 / 8)
+    #     self.ax[0].relim()
+    #     self.ax[0].autoscale_view()
+    #     self.ax[1].relim()
+    #     self.ax[1].autoscale_view()
+
+    #     # Limpiar histogramas anteriores
+    #     if self.phase_hist_vs is not None:
+    #         for patch in self.phase_hist_vs[2]:
+    #             patch.remove()
+
+    #     self.phase_hist_vs = self.ax[-1].hist(
+    #         phase_vs,
+    #         bins=1000,
+    #         range=(-np.pi, np.pi),
+    #         color="r",
+    #         density=True,
+    #         alpha=0.7,
+    #         label=f"vstate ({stats_vs['type']})",
+    #     )
+
+    #     # Actualizar texto con estadísticas
+    #     if self.text_stats is not None:
+    #         self.text_stats.remove()
+
+    #     self.text_stats = self.ax[-1].text(
+    #         0.8,
+    #         0.7,
+    #         r"$\varphi_{vs}=%.2f \pm %.2f$"
+    #         % (stats_vs["phase"]["mean"], stats_vs["phase"]["std"]),
+    #         transform=self.ax[-1].transAxes,
+    #         fontsize=10,
+    #         bbox=dict(facecolor="white", alpha=0.4),
+    #     )
+
+    #     # Actualizar picos del vstate
+    #     # for txt in self.peak_texts_vs:
+    #     #     txt.remove()
+    #     # self.peak_texts_vs = []
+
+    #     # if stats_vs["peaks"] is not None:
+    #     #     for peak in stats_vs["peaks"]["values"]:
+    #     #         txt = self.ax[-1].text(
+    #     #             peak - 0.1,
+    #     #             0.85,
+    #     #             r"%.2f" % peak,
+    #     #             color="r",
+    #     #             transform=self.transform,
+    #     #             fontsize=8,
+    #     #             alpha=0.7,
+    #     #         )
+    #     #         self.peak_texts_vs.append(txt)
+    #     # self.ax[-1].legend(loc="upper right")
+
+    #     # Una sola actualización del canvas
+    #     self.fig.canvas.draw()
+    #     self.fig.canvas.flush_events()
+    #     plt.pause(0.01)
+
+    #     return True
 
 
 def plot_training_setup(ax, setup):

@@ -114,21 +114,19 @@ eng = Runner(cm_model.cm, S_operators=cm_model_setup["S_operators"])
 H = eng.build_hamiltonian()
 
 
-factory = FactoryBuilder(artifact["NN"]["setup"], **{"lattice_size": size})
-model = factory.get_model()
-
-print(model)
-
-
 ##### VARIATIONAL STATE ######
 ## Modify whatever in setup
-artifact["NN"]["setup"]["setup"]["phase_setup"]["setup"]["marshall"] = False
+# artifact["NN"]["setup"]["setup"]["phase_setup"]["setup"]["marshall"] = False
 
 print(f"Loading vstate")
 vstate = load_vstate(artifact)
 # for i in range(1000):
 #     print(f"Recalentando samples: {i}")
 #     vstate.sample()
+# factory = FactoryBuilder(artifact["NN"]["setup"], **{"lattice_size": size})
+# model = factory.get_model()
+
+print(vstate.model)
 
 
 # Get exact diag energy, in the case.
@@ -232,16 +230,16 @@ if split_training:  # Alternated training between modulus and phase
             sampler = vstate.sampler
             optimizer = masked_optimizer(vstate.parameters, transformations, mode=mask)
 
-            vstate = nk.vqs.MCState(
-                sampler,
-                sampler_seed=vstate.sampler_state.rng,
-                model=model,
-                n_samples=n_samples,
-                # n_samples=artifact["SIM"]["sampler"]["n_samples"],
-                n_discard_per_chain=0,
-                chunk_size=artifact["SIM"]["sampler"]["chunk_vstate"],
-                variables=variables,
-            )
+            # vstate = nk.vqs.MCState(
+            #     sampler,
+            #     sampler_seed=vstate.sampler_state.rng,
+            #     model=vstate.model,
+            #     n_samples=n_samples,
+            #     # n_samples=artifact["SIM"]["sampler"]["n_samples"],
+            #     n_discard_per_chain=0,
+            #     chunk_size=artifact["SIM"]["sampler"]["chunk_vstate"],
+            #     variables=variables,
+            # )
 
             gs = nk.driver.VMC(
                 H,
