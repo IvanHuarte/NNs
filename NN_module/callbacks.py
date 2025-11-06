@@ -78,7 +78,7 @@ class BestIterKeeper:
         vscore_step = self.N * var / mean**2
 
         if self.step > self.step_threshold:
-            if self.best_state_energy > energy_step:# and vscore_step < 0.1:
+            if self.best_state_energy > energy_step and vscore_step < 1.0:
                 self.best_state = copy.copy(vstate)
                 self.best_state_energy = energy_step
                 self.best_state_vscore = vscore_step

@@ -57,13 +57,12 @@ if not "modphase" in artifact["_artifacts"]:
     print("ERROR: Artifact has no modulus and phase files")
     sys.exit(1, f"Exiting...")
 
-size = artifact["lattice"]["size"]
+size = artifact["CM"]["size"]
 N = int(np.array(size).prod())
 
-model_label = artifact["model_label"]
-model_label = model_label.split("_", 1)
-cm_name = model_label[0]
-nn_name = model_label[1]
+
+cm_name = artifact["CM"]["name"]
+nn_name = artifact["NN"]["name"]
 
 kwargs = {"size": size, **artifact["CM"], **artifact["NN"]["setup"]}
 
