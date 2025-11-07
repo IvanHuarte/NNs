@@ -4,8 +4,8 @@
 
    "callback":{
         "keeper": true,
-        "inline": false,
-        "modphase": false
+        "inline": true,
+        "modphase": true
    },
 
     "explore_mode": true,
@@ -56,7 +56,7 @@
                 [100]
             ],
             "mode":[
-                ["P"]
+                ["M"]
             ],
             "repeat_segment":[5]
         },
