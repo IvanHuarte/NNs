@@ -22,7 +22,6 @@ def generate_training(setup):
         )
         lr_raw = lr_setup["lr"]
 
-        assert len(segments_raw) == len(modes_raw) == len(repeats_raw), "Las listas de segmentos, modos y repeticiones deben tener la misma longitud."
 
         for seg, mode, repeats in zip(segments_raw, modes_raw, repeats_raw):
             segments += [seg] * repeats
@@ -30,9 +29,10 @@ def generate_training(setup):
 
         lr_segments = [[lr_raw[i]]*len(segment_modes) for i, segment_modes in enumerate(modes)]
 
-        print(f"segments: {len(segments)}")
-        print(f"modes: {len(modes)}")
-        print(f"lr_segments:{len(lr_segments)}")
+        assert len(segments_raw) == len(modes_raw) == len(lr_segments),(
+                 f"Las listas de segmentos, modos y repeticiones deben tener la misma longitud"
+                 f",pero tienen longitudes {len(segments_raw)}, {len(modes_raw)} y {len(lr_segments)}"
+        )
 
         return segments, modes, lr_segments
 
