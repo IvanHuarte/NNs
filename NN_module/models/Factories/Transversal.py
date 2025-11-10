@@ -51,6 +51,8 @@ class Transversal_Worker(nn.Module):
     @nn.compact
     def __call__(self, x: jnp.ndarray) -> jnp.ndarray:
 
+        x = jnp.atleast_2d(x)
+
         B = x.shape[0]
         # print(f"x_in: {x.shape}")
 

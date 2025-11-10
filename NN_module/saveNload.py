@@ -11,9 +11,8 @@ from datetime import date
 from platform import architecture, python_version
 from pathlib import Path
 
-
-from NN_module.NN_utils import sampler_dict, rule_dict
 from .initialize_NN import FactoryBuilder
+from .initialize_sampler import SamplerFactory
 
 
 def save_results(
@@ -137,16 +136,15 @@ def load_vstate(setup, tree_data=False):
     dummy_params = model.init(rng, jnp.ones((1, N)))
 
     # Initialize sampler
-    sampler_name = setup["sampler"]["name"]
-    if "rules" in setup["sampler"]:
-        rule = rule_dict[setup["sampler"]["rules"]]
-        sampler = sampler_dict[sampler_name](hi, rule=rule)
-
-    else:
-        sampler = sampler_dict[sampler_name](hi)
+    sampler = SamplerFactory(setup["SIM"]["sampler"]).get_sampler(hi)
 
     # Load parameters and initialize vstate
-    n_samples = setup["sampler"]["n_samples"]
+    n_samples = (
+        setup["SIM"]["sampler"]["n_samples_per_chain"]
+        * setup["SIM"]["sampler"]["n_chains_per_rank"]
+        * setup["SIM"]["sampler"]["n_ranks"]
+    )
+    n_samples = n_samples  # setup["SIM"]["sampler"]["n_samples"]
 
     vs = nk.vqs.MCState(sampler, model, n_samples=n_samples, seed=0)
     dummy_params = dummy_params["params"]

@@ -1,9 +1,89 @@
 {
     "NN": {
         
+        "selection": "ViT2D_MLP",
+
+        "ViT2D_ViT2D":{
+
+            "module": "SplitTraining",
+            "setup":{
+
+                "modulus_setup":{
+                    "module":"ViT2D",
+                    "setup": {
+                        "token_size": [2, 1],
+                        "embedding_d": 64,
+                        "n_heads": 4,
+                        "n_blocks": 2,
+                        "n_ffn_layers": 2,
+                        "final_architecture": [64, 5]
+                    }
+                },
+                
+                "phase_setup":{
+                    "module": "Transversal",
+                    "setup":{
+                        "Trans_0":{
+                            "module":"ViT2D",
+                                "setup": {
+                                    "token_size": [2, 1],
+                                    "embedding_d": 64,
+                                    "n_heads": 4,
+                                    "n_blocks": 2,
+                                    "n_ffn_layers": 2,
+                                    "final_architecture": [64, 5]
+                                }
+                        },
+                        "Trans_1":{
+                            "module":"MarshallSign",
+                            "setup":{
+                                "radians":true
+                            }
+                        },
+                        "operation": "sum_angles"                    
+                    }
+                },
+                
+                "symm_Z2": true,
+                "trivial_Z2": true,
+                "symm_2D": false,
+                "squeeze":true
+            }         
+        },
 
         
-        "selection": "CvTaps_MLP",
+        "ViT2D_MLP":{
+
+            "module": "SplitTraining",
+            "setup":{
+
+                "modulus_setup":{
+                    "module":"ViT2D",
+                    "setup": {
+                        "token_size": [2, 1],
+                        "embedding_d": 64,
+                        "n_heads": 4,
+                        "n_blocks": 2,
+                        "n_ffn_layers": 2,
+                        "final_architecture": [64, 5]
+                    }
+                },
+                
+                "phase_setup":{
+                    "module":"MLP",
+                    "setup":{
+                        "hidden_alpha": [8, 4, 2, 1],
+                        "activation": ["swish","swish","swish","swish"],
+                        "final_architecture": [1]
+                    }
+                },
+                
+            "symm_Z2": true,
+            "trivial_Z2": true,
+            "symm_2D": false,
+            "squeeze":true
+            }
+        },
 
         "CvTaps_MLP":{
 
@@ -121,12 +201,7 @@
                                 "final_architecture": [1]
                             }
                         },
-                        "Trans_1":{
-                            "module":"MarshallSign",
-                            "setup":{
-                                "radians":true
-                            }
-                        },
+
                         "operation": "sum_angles"                    
                     }
                 },

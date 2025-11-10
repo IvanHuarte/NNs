@@ -28,15 +28,15 @@
         "lr_name": "warmup_exponential_decay",
 
         "setup":{
-            "total_epochs": 500
+            "total_epochs": 1000
         },
 
         "lr_schedules":{
             "warmup_exponential_decay":{
                 "lr0": 0.001,                 
-                "peak_value": 0.05,
+                "peak_value": 0.02,
                 "warmup_steps": 50,
-                "decay_rate": 0.991
+                "decay_rate": 0.992
             },
 
             "exp_cos_schedule":{
@@ -73,7 +73,7 @@
             "segment":{
                 "lr":[
                     
-                    0.02, 0.01, 0.005, 0.0005, 0.0001,
+                    0.05, 0.01, 0.005, 0.0005, 0.0001,
                     0.1
                     
                 ]

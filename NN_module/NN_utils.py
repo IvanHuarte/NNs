@@ -57,6 +57,7 @@ def cos_exp_scheduler(epochs, lr0, decay, cycles, n, lr_min):
 
 def scheduler_initializer(name, setup):
 
+    print(setup["total_epochs"])
     epochs = setup["total_epochs"]
 
     if name == "cos_exp_scheduler":

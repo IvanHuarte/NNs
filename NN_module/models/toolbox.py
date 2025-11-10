@@ -1,8 +1,7 @@
 import flax.linen as nn
 import jax.typing as jt
 import jax.numpy as jnp
-from typing import Tuple
-from NN_module.models.SingleModels.ViT_2D import MultiLayerPerceptron
+from typing import Callable, Sequence, Tuple
 
 REAL_DTYPE = jnp.float64
 
@@ -33,6 +32,46 @@ def get_mask(name: bool = "Triangular") -> jnp.ndarray:
                 [1, 1, 1],
             ]
         )
+
+
+class MultiLayerPerceptron(nn.Module):
+    """
+    Flax module for a Multi-layer perceptron architecture with normalization.
+
+    Args:
+        layer_widths: Sequence of integers that define both the number of layers
+            and their widths.
+        activation_funcion: The activation function that will be applied after
+            each dense layer.
+        kernel_init: Function to initialize the trainable parameters.
+
+    Returns:
+        A jax array with the output of the net.
+    """
+
+    layer_widths: Sequence[int]
+    activation_function: Callable = nn.swish
+    kernel_init: Callable = nn.initializers.lecun_normal()
+
+    @nn.compact
+    def __call__(self, x) -> jt.ArrayLike:
+        for w in self.layer_widths:
+            # We cannot use LayerNorm when the output has size 1, since
+            # that would destroy the data.
+            if w == 1:
+                normalizer = lambda x: x
+            else:
+                normalizer = nn.LayerNorm(param_dtype=REAL_DTYPE)
+            x = self.activation_function(
+                normalizer(
+                    nn.Dense(
+                        w,
+                        kernel_init=self.kernel_init,
+                        param_dtype=REAL_DTYPE,
+                    )(x)
+                )
+            )
+        return x
 
 
 class glu_phasor(nn.Module):

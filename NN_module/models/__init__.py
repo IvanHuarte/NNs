@@ -9,7 +9,7 @@ from .SingleModels.CvT import CvT
 from .SingleModels.CvTaps import CvTaps
 from .SingleModels.MLP import MLP
 from .SingleModels.Phase import CNNPh, EDPPh, CNNClsf, CNNbinClsf
-from .SingleModels.ViT_2D import ViT2D
+from .SingleModels.ViT2D import ViT2D
 from .SingleModels.ViT import ViT
 
 from .toolbox import MarshallSign

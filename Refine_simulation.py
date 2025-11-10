@@ -116,7 +116,8 @@ H = eng.build_hamiltonian()
 
 ##### VARIATIONAL STATE ######
 ## Modify whatever in setup
-# artifact["NN"]["setup"]["setup"]["phase_setup"]["setup"]["marshall"] = False
+
+# artifact["NN"]["setup"]["setup"]["phase_setup"]["setup"].pop("Trans_1")
 
 print(f"Loading vstate")
 vstate = load_vstate(artifact)
@@ -171,7 +172,7 @@ if split_training:  # Alternated training between modulus and phase
 
     # Callbacks
     if enable_keeper:
-        keeper = BestIterKeeper(total_epochs, H, N, baseline=1e-8, mode="best_energy")
+        keeper = BestIterKeeper(total_epochs, H, N, baseline=1e-8, mode="always")
         callbacks.append(keeper.update)
     # keeper.filename = 'Somewhere' #It allows you to store the parameters of the model for the state with lowest energy found.
     if enable_inline:
@@ -229,6 +230,13 @@ if split_training:  # Alternated training between modulus and phase
             variables = vstate.variables
             sampler = vstate.sampler
             optimizer = masked_optimizer(vstate.parameters, transformations, mode=mask)
+
+            initial_samples = vstate.sampler.init_state(
+                vstate._apply_fun, vstate.variables
+            )
+            vstate.sampler.reset(
+                vstate._apply_fun, vstate.variables, state=initial_samples
+            )
 
             # vstate = nk.vqs.MCState(
             #     sampler,

@@ -23,6 +23,8 @@ class Sequential_Worker(nn.Module):
 
     def __call__(self, x: jnp.ndarray) -> jnp.ndarray:
 
+        x = jnp.atleast_2d(x)
+
         for module in self.seq:
             x = module(x)
 

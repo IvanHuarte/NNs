@@ -4,8 +4,8 @@ import jax.numpy as jnp
 import jax.typing as jt
 from typing import Callable, Tuple
 
-from .ViT_2D import MultiLayerPerceptron
 from ..toolbox import (
+    MultiLayerPerceptron,
     two_heads,
     two_heads_phasors,
     glu_phasor,
@@ -86,9 +86,8 @@ class CNNWorker(nn.Module):
                 strides=self.strides[i],
                 kernel=self.kernel,
                 use_pooling=self.use_pooling,
-                pooling_strides=self.pooling_strides[i]
+                pooling_strides=self.pooling_strides[i],
             )(x)
-
 
         # Works with termination module by default
         if self.final_architecture is None:

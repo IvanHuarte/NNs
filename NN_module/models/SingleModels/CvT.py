@@ -4,8 +4,8 @@ import jax.typing as jt
 import jax.numpy as jnp
 from typing import Tuple
 from netket.nn import log_cosh
-from .ViT_2D import MultiLayerPerceptron
 from ..toolbox import (
+    MultiLayerPerceptron,
     DepthPointwiseConv,
     two_heads,
     two_heads_phasors,

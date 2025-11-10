@@ -84,7 +84,6 @@ class MLP_2D(nn.Module):
 
     @nn.compact
     def __call__(self, x):
-        N = self.lattice_size[0] * self.lattice_size[1]
         worker = MultiLayerPerceptron(
             hidden_alpha=self.hidden_alpha,
             activation=self.activation,

@@ -289,7 +289,7 @@ for i, size in enumerate(sizes):
 
         else:  # Training modulus and phase at the same time
 
-            total_epochs = training_setup["total_epochs"]
+            total_epochs = training_setup["setup"]["total_epochs"]
             # Callbacks
             if enable_keeper:
                 keeper = BestIterKeeper(
@@ -301,12 +301,15 @@ for i, size in enumerate(sizes):
             if enable_inline:
                 inline_plot = EnergyPlotter(H, N, E_ED=E_ED)
                 callbacks.append(inline_plot)
-            training_setup["total_epochs"] = total_epochs
+            training_setup["lr_schedules"][training_setup["lr_name"]][
+                "total_epochs"
+            ] = total_epochs
 
             ds_schedule = optax.linear_schedule(1e-2, 1e-4, total_epochs)
             SR = nk.optimizer.SR(diag_shift=ds_schedule)
             lr_schedule = scheduler_initializer(
-                "warmup_exponential_decay", training_setup
+                "warmup_exponential_decay",
+                training_setup["lr_schedules"][training_setup["lr_name"]],
             )
             optimizer = nk.optimizer.Sgd(learning_rate=lr_schedule)
             gs = nk.driver.VMC(

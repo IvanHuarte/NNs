@@ -6,13 +6,12 @@ import netket as nk
 
 def generate_training(setup):
 
-    lr_name = setup['lr_name']
-    training_setup = setup['setup']
-    lr_setup = setup['lr_schedules'][lr_name]
-    
+    lr_name = setup["lr_name"]
+    training_setup = setup["setup"]
+    lr_setup = setup["lr_schedules"][lr_name]
 
     if lr_name == "segment":
-        
+
         segments = []
         modes = []
         segments_raw, modes_raw, repeats_raw = (
@@ -20,19 +19,24 @@ def generate_training(setup):
             training_setup["mode"],
             training_setup["repeat_segment"],
         )
-        lr_raw = lr_setup["lr"]
 
+        lr_raw = lr_setup["lr"]
 
         for seg, mode, repeats in zip(segments_raw, modes_raw, repeats_raw):
             segments += [seg] * repeats
             modes += [mode] * repeats
 
-        lr_segments = [[lr_raw[i]]*len(segment_modes) for i, segment_modes in enumerate(modes)]
+        lr_segments = [
+            [lr_raw[i]] * len(segment_modes) for i, segment_modes in enumerate(modes)
+        ]
 
-        assert len(segments_raw) == len(modes_raw) == len(lr_segments),(
-                 f"Las listas de segmentos, modos y repeticiones deben tener la misma longitud"
-                 f",pero tienen longitudes {len(segments_raw)}, {len(modes_raw)} y {len(lr_segments)}"
-        )
+        # assert len(segments_raw) == len(modes_raw) == len(lr_segments),(
+        #          f"Las listas de segmentos, modos y repeticiones deben tener la misma longitud"
+        #          f",pero tienen longitudes {len(segments_raw)}, {len(modes_raw)} y {len(lr_segments)}"
+        # )
+        print(segments)
+        print(modes)
+        print(lr_segments)
 
         return segments, modes, lr_segments
 
