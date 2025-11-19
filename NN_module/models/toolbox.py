@@ -211,7 +211,7 @@ class DepthPointwiseConv(nn.Module):
             features=self.channels,
             kernel_size=(1, 1),
             strides=(1, 1),
-            padding="SAME",
+            padding="VALID",
             dtype=REAL_DTYPE,
             use_bias=False,
         )(x)
@@ -226,6 +226,7 @@ class MarshallSign(nn.Module):
         x: input array of shape (B,N)
     Returns:
         array of shape (B,) with the Marshall sign
+
     """
 
     lattice_size: Tuple
