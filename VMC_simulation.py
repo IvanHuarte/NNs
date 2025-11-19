@@ -161,6 +161,8 @@ for i, size in enumerate(sizes):
             E_ED = float(E_ED.squeeze(-1))
             print(f"Energy ED: {E_ED}")
 
+        sys.exit(0)
+
         ###################################################
 
         callback_artifacts = {}

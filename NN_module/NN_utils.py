@@ -328,6 +328,8 @@ def print_max_contributors(x, size, N_max=10):
     max_phs = ph[idx]
 
     for config, mod, phs in zip(max_configs, max_mods, max_phs):
+        tmagn = jnp.sum(config.flatten())
         print(f"Config: \n{config.reshape(size)}")
+        print(f"M = {tmagn}")
         print(f"\nModulus: {mod}")
         print(f"Phase: {phs}\n")

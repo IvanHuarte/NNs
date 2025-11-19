@@ -1,0 +1,142 @@
+import flax.linen as nn
+import jax
+import jax.numpy as jnp
+import jax.typing as jt
+from typing import Callable, Tuple
+
+from ..toolbox import (
+    MultiLayerPerceptron,
+    two_heads,
+    two_heads_phasors,
+    glu_phasor,
+    get_mask,
+)
+
+REAL_DTYPE = jnp.asarray(1.0).dtype
+
+
+class ConvBlock(nn.Module):
+    """A simple convolutional block with a first
+    It expects an input of shape x = (B,H,W,C)
+    """
+
+    M1_channels: int  # Features for convolution
+    M2_channels: int  # Features for transposed convolution
+    kernel: Tuple[int, int] = (3, 3)
+    window_pooling: int = 2
+    use_bias: bool = True
+    mask: str | None = None
+
+    @nn.compact
+    def __call__(self, x: jnp.ndarray) -> jnp.ndarray:
+
+        _, H, W, _ = x.shape
+
+        mask = get_mask(self.mask) if self.mask is not None else None
+
+        # M1 simple convolution
+        x = nn.Conv(
+            features=self.M1_channels,
+            kernel_size=self.kernel,
+            strides=(1, 1),
+            padding="CIRCULAR",
+            dtype=REAL_DTYPE,
+            use_bias=self.use_bias,
+            mask=mask,
+        )(x)
+
+        x.reshape(-1, H * W, self.M1_channels)
+
+        # Flattened max_pooling
+        x = jnp.swapaxes(1, 2)
+        x = nn.max_pool(
+            x,
+            window_shape=(self.window_pooling,),
+            strides=(self.window_pooling,),
+            padding="VALID",
+        )
+        x = jnp.swapaxes(1, 2)
+
+        # M2 transposed convolution
+        x = nn.ConvTranspose(
+            features=self.M2_channels,
+            kernel_size=(1,),
+            strides=(self.window_pooling,),
+            padding="CIRCULAR",
+            dtype=REAL_DTYPE,
+            use_bias=False,
+        )(x)
+
+        x = x.reshape(-1, H, W, self.M2_channels)
+
+        return x
+
+
+class CNNLiangWorker(nn.Module):
+    """A CNNLiang architecture following Liang 2021 model."""
+
+    lattice_size: Tuple[int, int]  # Size of the input image (height, width)
+
+    "CNNLiang parameters"
+    M1_channels: Tuple[int, ...]  # Features for convolution
+    M2_channels: Tuple[int, ...]  # Features for transposed convolution
+    kernel: Tuple[Tuple[int, ...]]  # Size of the convolutional filter
+    window_pooling: int = 2
+    use_bias: bool = True
+    mask: str | None = None
+
+    @nn.compact
+    def __call__(self, x: jnp.ndarray) -> jnp.ndarray:
+
+        x = x.reshape((-1, *self.lattice_size, 1))
+
+        # Entering convolutional blocks
+        for i in range(len(self.M1_channels)):
+
+            x = ConvBlock(
+                M1_channels=self.M1_channels[i],
+                M2_channels=self.M2_channels[i],
+                kernel=self.kernel[i],
+                window_pooling=self.window_pooling,
+                use_bias=self.use_bias,
+                mask=self.mask,
+            )(x)
+
+        # Apply product over 3 last indices
+        x = jnp.prod(x.reshape(x.shape[0], -1), axis=-1, keepdims=True)
+
+        return x
+
+
+class CNNLiang(nn.Module):
+
+    lattice_size: Tuple[int, int]  # Size of the input image (height, width)
+
+    "CNNLiang parameters"
+    M1_channels: Tuple[int, ...]  # Features for convolution
+    M2_channels: Tuple[int, ...]  # Features for transposed convolution
+    kernel: Tuple[Tuple[int, ...]]  # Size of the convolutional filter
+    window_pooling: int = 2
+    use_bias: bool = True
+    mask: str | None = None
+
+    "Symmetries"
+    symm_Z2: bool = False
+    trivial_Z2: bool = True
+
+    @nn.compact
+    def __call__(self, x: jt.ArrayLike) -> jt.ArrayLike:
+
+        worker = CNNLiangWorker(
+            lattice_size=self.lattice_size,
+            lattice_size=self.lattice_size,
+            M1_channels=self.M1_channels,
+            M2_channels=self.M2_channels,
+            kernel=self.kernel,
+            window_pooling=self.window_pooling,
+            use_bias=self.use_bias,
+            mask=self.mask,
+        )
+
+        output_x = worker(x)
+        return output_x
