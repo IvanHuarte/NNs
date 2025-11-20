@@ -161,7 +161,6 @@ for i, size in enumerate(sizes):
             E_ED = float(E_ED.squeeze(-1))
             print(f"Energy ED: {E_ED}")
 
-        sys.exit(0)
 
         ###################################################
 
@@ -175,7 +174,6 @@ for i, size in enumerate(sizes):
             nk.logging.RuntimeLog()
         )  # If instead of this logging you insert a string, it will be used as output prefix for a JSON file where the evolution of the energy at each epoch will be stored.
 
-        # Initialize vstate with parameters
         vstate = nk.vqs.MCState(
             sampler,
             model=model,
@@ -192,7 +190,7 @@ for i, size in enumerate(sizes):
             total_epochs = int(np.array([s for seg in segments for s in seg]).sum())
             training_setup["total_epochs"] = total_epochs
 
-            ds_schedule = jnp.linspace(1e-2, 1e-4, total_segments)
+            ds_schedule = jnp.linspace(1e-2, 1e-4, total_segments, dtype=jnp.float64)
 
             transformations = {
                 "train": optax.sgd(0.1),

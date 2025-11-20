@@ -5,6 +5,7 @@ from .Factories.Transversal import Transversal
 
 # Importation of single modules
 from .SingleModels.CNN import CNN
+from .SingleModels.CNNLiang import CNNLiang
 from .SingleModels.CvT import CvT
 from .SingleModels.CvTaps import CvTaps
 from .SingleModels.MLP import MLP
@@ -26,6 +27,7 @@ __all_factories__ = [
 
 __all_single__ = [
     "CNN",
+    "CNNLiang",
     "CvT",
     "CvTaps",
     "CNNPh",
@@ -49,6 +51,7 @@ REGISTRY_FACTORIES = {
 
 REGISTRY_SINGLE = {
     "CNN": CNN,
+    "CNNLiang": CNNLiang,
     "CvT": CvT,
     "CvTaps": CvTaps,
     "CNNPh": CNNPh,
@@ -69,6 +72,7 @@ REGISTRY = {None: None, **REGISTRY_SINGLE, **REGISTRY_FACTORIES}
 LATTICE_SIZE = {
     "lattice_size": [
         "CNN",
+        "CNNLiang",
         "CvT",
         "CvTaps",
         "CNNPh",

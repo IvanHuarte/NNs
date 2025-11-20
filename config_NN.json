@@ -1,7 +1,39 @@
 {
     "NN": {
         
-        "selection": "ViT2D_MLP",
+        "selection": "Experimental",
+
+        "Experimental":{
+
+            "module": "SplitTraining",
+            "setup":{
+
+                "modulus_setup":{
+                    "module":"CNNLiang",
+                    "setup":{
+                        "M1_channels": [12, 6, 6, 6, 6, 6],
+                        "M2_channels": [6, 6, 6, 6, 6, 1],
+                        "kernel": [[3, 3],[3, 3],[3, 3],[3, 3],[3, 3],[3, 3]],
+                        "window_pooling": 2,
+                        "use_bias": true,
+                        "mask": null
+                    }
+                },
+
+                "phase_setup":{
+                    "module":"MarshallSign",
+                    "setup":{
+                        "radians":true
+                    }
+                },
+
+                "symm_Z2": true,
+                "trivial_Z2": true,
+                "symm_2D": false,
+                "squeeze":true
+
+            }         
+        },
 
         "ViT2D_ViT2D":{
 
@@ -391,37 +423,7 @@
             }         
         },
 
-        "Experimental":{
 
-            "module": "SplitTraining",
-            "setup":{
-
-                "modulus_setup":{
-                    "module":"CvT",
-                    "setup":{
-                        "n_CP_blocks": [2, 2, 2, 1],
-                        "channels": [64, 32, 16, 8],
-                        "attn_heads": [4, 4, 4, 2],
-                        "kernel": [3, 3],
-                        "final_architecture": [128, 64, 5]
-                    }
-                },
-
-                "phase_setup":{
-                    "module":"CNNbinClsf",
-                    "setup":{
-                        "cnnclsf_channels": [64, 32],
-                        "marshall": true
-                    }
-                },
-
-                "symm_Z2": true,
-                "trivial_Z2": true,
-                "symm_2D": false,
-                "squeeze":true
-
-            }         
-        },
         
         "ViT": {
             "token_size": 2,

@@ -6,7 +6,10 @@ from typing import Callable, Sequence, Tuple
 REAL_DTYPE = jnp.float64
 
 
-def get_mask(name: bool = "Triangular") -> jnp.ndarray:
+def get_mask(name) -> jnp.ndarray:
+
+    if name is None:
+        return None
 
     if name == "Triangular":
         return jnp.array(
@@ -235,7 +238,7 @@ class MarshallSign(nn.Module):
     @nn.compact
     def __call__(self, x: jt.ArrayLike) -> jt.ArrayLike:
 
-        x = x.reshape(-1, *self.lattice_size)
+        x = x.reshape(-1, *self.lattice_size).astype(dtype=REAL_DTYPE)
 
         Lx, Ly = self.lattice_size
         xs = jnp.arange(Lx).reshape(-1, 1) + jnp.arange(Ly).reshape(1, -1)
