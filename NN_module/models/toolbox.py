@@ -238,7 +238,7 @@ class MarshallSign(nn.Module):
     @nn.compact
     def __call__(self, x: jt.ArrayLike) -> jt.ArrayLike:
 
-        x = x.reshape(-1, *self.lattice_size).astype(dtype=REAL_DTYPE)
+        x = x.reshape(-1, *self.lattice_size)
 
         Lx, Ly = self.lattice_size
         xs = jnp.arange(Lx).reshape(-1, 1) + jnp.arange(Ly).reshape(1, -1)

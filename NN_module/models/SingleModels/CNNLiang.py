@@ -1,5 +1,5 @@
 import flax.linen as nn
-import jax
+import netket as nk
 import jax.numpy as jnp
 import jax.typing as jt
 from typing import Tuple
@@ -55,6 +55,7 @@ class ConvBlock(nn.Module):
         )
         # print(f"xpool: {x.shape}")
 
+
         # M2 transposed convolution
         x = nn.ConvTranspose(
             features=self.M2_channels,
@@ -67,10 +68,10 @@ class ConvBlock(nn.Module):
         )(x)
 
         # print(f"xtrans: {x.shape}")
-
         x = x.reshape(-1, H, W, self.M2_channels)
 
         # print(f"xFIN: {x.shape}")
+        
 
         return x
 
@@ -91,7 +92,7 @@ class CNNLiang(nn.Module):
     @nn.compact
     def __call__(self, x: jnp.ndarray) -> jnp.ndarray:
 
-        x = x.reshape((-1, *self.lattice_size, 1)).astype(dtype=REAL_DTYPE)
+        x = x.reshape((-1, *self.lattice_size, 1))
 
         # Entering convolutional blocks
         for i in range(len(self.M1_channels)):
@@ -104,7 +105,6 @@ class CNNLiang(nn.Module):
                 use_bias=self.use_bias,
                 mask=self.mask
             )(x)
-            # print()
 
         # print(f"After all blocks: {x.shape}")
 

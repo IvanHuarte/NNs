@@ -69,6 +69,7 @@ def compare_params(old_params, new_params, atol=1e-13):
 
     print(f"Ha cambiado: (True) //  No ha cambiado: (False) \n\n")
     print(diffs)
+    print()
 
 
 def summarize_report(report):

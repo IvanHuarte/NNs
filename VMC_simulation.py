@@ -226,7 +226,7 @@ for i, size in enumerate(sizes):
                     print(
                         f"\nSegment {i+1} of {total_segments}......   lr: {lr:.4e}  ds: {ds_schedule[i]:.4e}\n"
                     )
-                    P0 = vstate.parameters
+                    # P0 = vstate.parameters
 
                     if mode == "M":
                         mode = "modulus"
@@ -283,9 +283,9 @@ for i, size in enumerate(sizes):
                     mean, std, psi = phase_stats_vstate(vstate)
                     print(f"VS phase: {mean} \u00b1 {std}  ({psi})")
 
-                    P1 = vstate.parameters
-                    print(compare_params(P0, P1))
-                    check_zero_grads(vstate, mask)
+                    # P1 = vstate.parameters
+                    # compare_params(P0, P1)
+                    # check_zero_grads(vstate, mask)
 
                     sys.exit(0)
 
