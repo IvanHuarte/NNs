@@ -101,6 +101,7 @@ def check_zero_grads(vstate, branch, rtol=1e-12, atol=1e-14):
     Returns:
         report: mismo pytree que params[branch], con info por tensor.
     """
+    print(vstate)
     params = vstate.parameters
     apply_fun = vstate._apply_fun
     s_batch = vstate.samples.reshape(-1, vstate.hilbert.size)

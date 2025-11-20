@@ -27,8 +27,8 @@ class ConvBlock(nn.Module):
 
         mask = get_mask(self.mask) if self.mask is not None else None
 
-        print(f"Intro ConvBlock")
-        print(f"xini: {x.shape}")
+        # print(f"Intro ConvBlock")
+        # print(f"xini: {x.shape}")
 
         # M1 simple convolution
         x = nn.Conv(
@@ -41,25 +41,19 @@ class ConvBlock(nn.Module):
             use_bias=self.use_bias,
             mask=mask,
         )(x)
-        print(f"xM1: {x.shape}")
+        # print(f"xM1: {x.shape}")
 
         x = x.reshape(-1, H * W, self.M1_channels)
-        print(f"xreshape: {x.shape}")
+        # print(f"xreshape: {x.shape}")
 
         # Flattened max_pooling
-        # x = jnp.swapaxes(x, 1, 2)
-        # print(f"xswap1: {x.shape}")
-
         x = nn.max_pool(
             x,
             window_shape=(self.window_pooling,),
             strides=(self.window_pooling,),
             padding="VALID",
         )
-        print(f"xpool: {x.shape}")
-
-        # x = jnp.swapaxes(x, 1, 2)
-        # print(f"xswap1: {x.shape}")
+        # print(f"xpool: {x.shape}")
 
         # M2 transposed convolution
         x = nn.ConvTranspose(
@@ -72,11 +66,11 @@ class ConvBlock(nn.Module):
             use_bias=False,
         )(x)
 
-        print(f"xtrans: {x.shape}")
+        # print(f"xtrans: {x.shape}")
 
         x = x.reshape(-1, H, W, self.M2_channels)
 
-        print(f"xFIN: {x.shape}")
+        # print(f"xFIN: {x.shape}")
 
         return x
 
@@ -110,14 +104,14 @@ class CNNLiang(nn.Module):
                 use_bias=self.use_bias,
                 mask=self.mask
             )(x)
-            print()
+            # print()
 
-        print(f"After all blocks: {x.shape}")
+        # print(f"After all blocks: {x.shape}")
 
         # Apply product over 3 last indices
         x = jnp.prod(x.reshape(x.shape[0], -1), axis=-1, keepdims=True)
 
-        print(f"After multiplying: {x.shape}")
+        # print(f"After multiplying: {x.shape}")
         
 
         return x
