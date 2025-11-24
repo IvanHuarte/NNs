@@ -1,9 +1,9 @@
 {
     "NN": {
         
-        "selection": "Experimental",
+        "selection": "Liang2021",
 
-        "Experimental":{
+        "Liang2021":{
 
             "module": "SplitTraining",
             "setup":{
@@ -421,84 +421,8 @@
                 "symm_2D": false,
                 "squeeze":true
             }         
-        },
-
-
-        
-        "ViT": {
-            "token_size": 2,
-            "embedding_d": 32,
-            "n_heads": 4,
-            "n_blocks": 2,
-            "n_ffn_layers": 2,
-            "final_architecture": "(5,)",
-            "is_complex": true,
-            "symm_Z2": true,
-            "trivial_Z2": true
-        },
-
-        "ViT_2D": {
-            "token_size": [2, 1],
-            "embedding_d": 32,
-            "n_heads": 4,
-            "n_blocks": 2,
-            "n_ffn_layers": 2,
-            "is_complex": true,
-            "final_architecture": "(5,)",
-            "symm_2D": true,
-            "symm_Z2": true,
-            "trivial_Z2": true
-        },
-
-        "CvT": {
-            "n_CP_blocks": [2],
-            "channels": [32],
-            "attn_heads": [4],
-            "kernel": [3, 1],
-            "final_architecture": "(128,5,)",
-            "two_heads": true,
-            "phasors":true,
-            "symm_Z2": false,
-            "trivial_Z2": true
-        },
-
-
-        "CvT3": {
-            "n_CP_blocks": [2],
-            "CTemb_channels": [32],
-            "CP_channels": [32],
-            "attn_heads": [4],
-            "kernel": [3, 3],
-            "final_architecture": "(128,5,)",
-            "two_heads": false,
-            "two_heads_sincos": false,
-            "symm_Z2": true,
-            "trivial_Z2": true,
-            "phasors": true
-        },
-
-        "CvTaps": {
-            "n_CP_blocks": [2],
-            "channels": [32],
-            "attn_heads": [4],
-            "strides": [[2,2]],
-            "kernel": [3, 3],
-            "final_architecture": "(128,5,)",
-            "two_heads": false,
-            "two_heads_sincos": true,
-            "phasors": false,
-            
-            "symm_Z2": true,
-            "trivial_Z2": true
         }
-
-
-
-
-
-
-
-
+        
 
     }
 }

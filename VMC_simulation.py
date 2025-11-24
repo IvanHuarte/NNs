@@ -18,7 +18,6 @@ print(jax.devices())
 import sys
 from pathlib import Path
 
-
 # Importar módulos necesarios
 from VA_project.initialize_model import ModelFactory
 from VA_project.engine.runners import Runner
@@ -215,7 +214,6 @@ for i, size in enumerate(sizes):
                 zip(segments, modes, lr_segments)
             ):
 
-                SR = nk.optimizer.SR(diag_shift=ds_schedule[i])
                 print(f"\nSegment:")
                 print(f"  Epochs: {segment}")
                 print(f"  Modes:  {seg_modes}")
@@ -265,11 +263,11 @@ for i, size in enumerate(sizes):
                         variables=variables,
                     )
 
-                    gs = nk.driver.VMC(
+                    gs = nk.driver.VMC_SR(
                         H,
                         optimizer,
                         variational_state=vstate,
-                        preconditioner=SR,
+                        diag_shift=ds_schedule[i]
                     )
 
                     print(f"\nTraining {mode} for {epochs} epochs...")

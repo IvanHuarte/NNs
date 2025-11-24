@@ -9,7 +9,7 @@ from .SingleModels.CNNLiang import CNNLiang
 from .SingleModels.CvT import CvT
 from .SingleModels.CvTaps import CvTaps
 from .SingleModels.MLP import MLP
-from .SingleModels.Phase import CNNPh, EDPPh, CNNClsf, CNNbinClsf
+from .SingleModels.Phase import CNNPh, EDPPh, CNNClsf, CNNbinClsf, CNNSzabo
 from .SingleModels.ViT2D import ViT2D
 from .SingleModels.ViT import ViT
 
@@ -34,6 +34,7 @@ __all_single__ = [
     "EDPPh",
     "CNNClsf",
     "CNNbinClsf",
+    "CNNSzabo",
     "MarshallSign",
     "MLP",
     "ViT2D",
@@ -58,6 +59,7 @@ REGISTRY_SINGLE = {
     "EDPPh": EDPPh,
     "CNNClsf": CNNClsf,
     "CNNbinClsf": CNNbinClsf,
+    "CNNSzabo": CNNSzabo,
     "MarshallSign": MarshallSign,
     "MLP": MLP,
     "ViT2D": ViT2D,
@@ -79,6 +81,7 @@ LATTICE_SIZE = {
         "EDPPh",
         "CNNClsf",
         "CNNbinClsf",
+        "CNNSzabo",
         "MarshallSign",
         "MLP",
         "ViT2D",

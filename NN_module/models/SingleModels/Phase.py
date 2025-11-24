@@ -12,6 +12,7 @@ class CNNPh(nn.Module):
 
     lattice_size: Tuple
     channels: int
+    use_bias: bool = False
 
     @nn.compact
     def __call__(self, x):
@@ -26,6 +27,8 @@ class CNNPh(nn.Module):
             padding="CIRCULAR",
             # mask=mask,
             dtype=REAL_DTYPE,
+            param_dtype=REAL_DTYPE,
+            use_bias=self.use_bias,
             kernel_init=jax.nn.initializers.lecun_normal(),
         )(x)
         x = x.reshape(-1, self.lattice_size[0] * self.lattice_size[1], x.shape[-1])
@@ -186,3 +189,33 @@ class CNNbinClsf(nn.Module):
         # print(f"finalx shape: {phase.shape}\n\n")
 
         return phase
+
+
+class CNNSzabo(nn.Module):
+
+    lattice_size: Tuple
+    channels: int
+    use_bias: bool = False
+
+    @nn.compact
+    def __call__(self, x):
+
+        kernel = (3, 3) if self.lattice_size[1] != 1 else (3, 1)
+        x = x.reshape(-1, *self.lattice_size, 1)
+
+        x = nn.Conv(
+            features=self.channels,
+            kernel_size=kernel,
+            strides=(1, 1),
+            padding="CIRCULAR",
+            # mask=mask,
+            dtype=REAL_DTYPE,
+            param_dtype=REAL_DTYPE,
+            use_bias=self.use_bias,
+            kernel_init=jax.nn.initializers.lecun_normal(),
+        )(x)
+        x = x.reshape(-1, self.lattice_size[0] * self.lattice_size[1] * x.shape[-1])
+        # x = nn.glu(x.mean(axis=1))  # Version 2
+        x = jnp.exp(1j * x).sum(axis=-1)
+
+        return jnp.angle(x)

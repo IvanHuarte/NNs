@@ -3,7 +3,7 @@ import jax
 import jax.typing as jt
 import jax.numpy as jnp
 from typing import Tuple, Any
-from netket.nn import log_cosh
+from netket.nn.activation import log_cosh
 
 from ..toolbox import (
     MultiLayerPerceptron,

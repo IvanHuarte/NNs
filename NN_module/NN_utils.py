@@ -135,13 +135,13 @@ def traslations_2D_scan(x: npt.ArrayLike, size: Tuple[int, int]) -> npt.ArrayLik
     def scan_and_roll_x(carry_x, _):
 
         def scan_and_roll_y(carry_y, _):
-            y = jnp.roll(carry_y, shift=1, axis=-1)
+            y = jnp.roll(carry_y, shift=-1, axis=-1)
             return y, y.reshape(-1, N)
 
         _, block_y = jax.lax.scan(scan_and_roll_y, carry_x, length=size[1])
         x = jnp.roll(carry_x, shift=1, axis=-2)
 
-        return x, block_y
+        return x, block_y[::-1]
 
     return jax.lax.scan(scan_and_roll_x, x, length=size[0])[1].reshape(-1, N).squeeze()
 
