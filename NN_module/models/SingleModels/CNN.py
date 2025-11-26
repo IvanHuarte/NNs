@@ -35,9 +35,14 @@ class ConvBlock(nn.Module):
             kernel_size=self.kernel,
             strides=self.strides,
             padding="CIRCULAR",
+            dtype=REAL_DTYPE,
+            param_dtype=REAL_DTYPE,
         )(x)
 
-        x = nn.LayerNorm(dtype=REAL_DTYPE)(x)
+        x = nn.LayerNorm(
+            dtype=REAL_DTYPE,
+            param_dtype=REAL_DTYPE,
+        )(x)
         x = self.activation(x)
         # print(f"Shape after ConvBlock: {x.shape}")
 
@@ -114,7 +119,12 @@ class CNNWorker(nn.Module):
             else:
                 x = x.mean(axis=1)
                 x = x.reshape((B, -1))
-                return nn.Dense(1)(MultiLayerPerceptron(self.final_architecture)(x))
+                x = nn.Dense(
+                        1,
+                        dtype=REAL_DTYPE,
+                        param_dtype=REAL_DTYPE
+                    )(MultiLayerPerceptron(self.final_architecture)(x))
+                return x
 
 
 class CNN_Z2(nn.Module):

@@ -36,7 +36,10 @@ class MultiLayerPerceptron(nn.Module):
             if w == 1:
                 normalizer = lambda x: x
             else:
-                normalizer = nn.LayerNorm(param_dtype=REAL_DTYPE)
+                normalizer = nn.LayerNorm(
+                    dtype=REAL_DTYPE,
+                    param_dtype=REAL_DTYPE
+                )
             x = self.activation_function(
                 normalizer(
                     nn.Dense(
@@ -135,7 +138,10 @@ class CoreBlock(nn.Module):
         head_size = embedding_d // self.n_heads
         # print(f"4:Embedding dimension: {embedding_d}  Head size: {head_size}")
         sa = MultiHeadPositionalAttention(self.n_heads, head_size)
-        x += sa(nn.LayerNorm(param_dtype=REAL_DTYPE)(x))
+        x += sa(nn.LayerNorm(
+            dtype=REAL_DTYPE,
+            param_dtype=REAL_DTYPE
+        )(x))
         # print(f"After attention: {x.shape}")
         ffn = MultiLayerPerceptron(
             [

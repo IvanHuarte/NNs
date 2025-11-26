@@ -62,6 +62,8 @@ class EDPPh(nn.Module):
         x = nn.Embed(
             N,
             self.channels,
+            dtype=REAL_DTYPE,
+            param_dtype=REAL_DTYPE,
         )(x_in)
         x = x.reshape(-1, *self.lattice_size, self.channels)
 
@@ -108,9 +110,13 @@ class CNNClsf(nn.Module):
                 padding="CIRCULAR",
                 # mask=mask,
                 dtype=REAL_DTYPE,
+                param_dtype=REAL_DTYPE,
                 kernel_init=jax.nn.initializers.lecun_normal(),
             )(x)
-            x = self.activation(nn.LayerNorm()(x))
+            x = self.activation(nn.LayerNorm(
+                dtype=REAL_DTYPE,
+                param_dtype=REAL_DTYPE
+            )(x))
 
         x = x.reshape(-1, self.lattice_size[0] * self.lattice_size[1], x.shape[-1])
         x = x.mean(axis=-1)
@@ -160,9 +166,14 @@ class CNNbinClsf(nn.Module):
                 padding="CIRCULAR",
                 # mask=mask,
                 dtype=REAL_DTYPE,
+                param_dtype=REAL_DTYPE,
                 kernel_init=jax.nn.initializers.lecun_normal(),
             )(x)
-            x = self.activation(nn.LayerNorm()(x))
+            x = self.activation(nn.LayerNorm(
+                    dtype=REAL_DTYPE,
+                    param_dtype=REAL_DTYPE
+                )(x)
+            )
 
         x = x.reshape(-1, self.lattice_size[0] * self.lattice_size[1], x.shape[-1])
         x = x.mean(axis=-1)
@@ -214,8 +225,13 @@ class CNNSzabo(nn.Module):
             use_bias=self.use_bias,
             kernel_init=jax.nn.initializers.lecun_normal(),
         )(x)
+        x = nn.LayerNorm(
+            dtype=REAL_DTYPE,
+            param_dtype=REAL_DTYPE
+        )(x)
+        x = nn.relu(x)
         x = x.reshape(-1, self.lattice_size[0] * self.lattice_size[1] * x.shape[-1])
-        # x = nn.glu(x.mean(axis=1))  # Version 2
-        x = jnp.exp(1j * x).sum(axis=-1)
+        x = nn.glu(x)  # Version 2
+        x = jnp.exp(1j*jnp.pi* x).sum(axis=-1, keepdims=True)
 
         return jnp.angle(x)

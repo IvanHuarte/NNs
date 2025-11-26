@@ -132,6 +132,7 @@ class ConvAPS(nn.Module):
             feature_group_count=self.feature_group_count,
             padding=self.padding,
             dtype=self.dtype,
+            param_dtype=self.dtype,
             use_bias=self.use_bias,
         )(x)
 
@@ -166,10 +167,14 @@ class DepthPointwiseConv(nn.Module):
             padding="CIRCULAR",
             # mask=mask,
             dtype=REAL_DTYPE,
+            param_dtype=REAL_DTYPE,
             use_bias=False,
         )(x)
         # Normalizacion
-        x = nn.LayerNorm()(x)
+        x = nn.LayerNorm(
+            dtype=REAL_DTYPE,
+            param_dtype=REAL_DTYPE
+        )(x)
 
         # Point-wise convolution
         x = nn.Conv(
@@ -178,6 +183,7 @@ class DepthPointwiseConv(nn.Module):
             strides=(1, 1),
             padding="SAME",
             dtype=REAL_DTYPE,
+            param_dtype=REAL_DTYPE,
             use_bias=False,
         )(x)
 
@@ -244,7 +250,10 @@ class ConvProjectionBlock(nn.Module):
             .reshape((B, Hq, Wq, self.channels))
         )
 
-        x = nn.LayerNorm(dtype=REAL_DTYPE)(x + attention)
+        x = nn.LayerNorm(
+            dtype=REAL_DTYPE,
+            param_dtype=REAL_DTYPE
+        )(x + attention)
 
         # MLP
         x_ffn = x.reshape((B, Nq, self.channels))  # Reshape to (B, Hq*Wq, channels)
@@ -252,7 +261,10 @@ class ConvProjectionBlock(nn.Module):
             layer_widths=tuple([x_ffn.shape[-1]] * self.n_mlp_layers),
         )(x_ffn)
         x_ffn = x_ffn.reshape((B, Hq, Wq, self.channels))
-        x_ffn = nn.LayerNorm(dtype=REAL_DTYPE)(x_ffn)
+        x_ffn = nn.LayerNorm(
+            dtype=REAL_DTYPE,
+            param_dtype=REAL_DTYPE
+        )(x_ffn)
 
         return x + x_ffn
 
@@ -297,7 +309,10 @@ class StageBlock(nn.Module):
             use_bias=False,
         )(x)
 
-        x = nn.LayerNorm(dtype=REAL_DTYPE)(x)
+        x = nn.LayerNorm(
+            dtype=REAL_DTYPE,
+            param_dtype=REAL_DTYPE
+        )(x)
         # print(f"After Conv embedding: {x.shape}")
         # Convolutional projection blocks
         for _ in range(self.n_CP_blocks):
@@ -390,7 +405,12 @@ class CvTapsWorker(nn.Module):
             else:
                 x = x.mean(axis=1)
                 x = x.reshape((B, -1))
-                return nn.Dense(1)(MultiLayerPerceptron(self.final_architecture)(x))
+                x = nn.Dense(
+                        1,
+                        dtype=REAL_DTYPE,
+                        param_dtype=REAL_DTYPE
+                    )(MultiLayerPerceptron(self.final_architecture)(x))
+                return x
 
 
 class CvTaps_Z2(nn.Module):

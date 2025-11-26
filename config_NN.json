@@ -1,7 +1,131 @@
 {
     "NN": {
         
-        "selection": "CNN_Carrete",
+        "selection": "CvT_Szabo",
+
+        "CNN_Szabo":{
+
+            "module": "SplitTraining",
+            "setup":{
+
+                "modulus_setup":{
+                    "module":"CNN",
+                    "setup":{
+                        "channels":[32, 16, 8, 4, 2],
+                        "strides":[[1,1],[1,1],[1,1],[1,1],[1,1]],
+                        "kernel":[3,3],
+                        "use_pooling":false,
+                        "pooling_strides":[[1,1],[1,1],[1,1],[1,1],[1,1]],
+                        "final_architecture":[5]
+                    }
+                },
+                    
+                "phase_setup":{
+                    "module":"CNNSzabo",
+                    "setup":{
+                        "channels": 50,
+                        "use_bias": true
+                    }
+                },
+                
+            "symm_Z2": true,
+            "trivial_Z2": true,
+            "symm_2D": false,
+            "squeeze":true
+            }
+        },
+
+        "CvT_Szabo":{
+
+            "module": "SplitTraining",
+            "setup":{
+
+                "modulus_setup":{
+                    "module":"CvT",
+                    "setup":{
+                        "n_CP_blocks": [1, 1, 1, 1, 1, 1],
+                        "channels": [16, 12, 8, 6, 4, 2],
+                        "attn_heads": [4, 2, 2, 1, 1, 1],
+                        "kernel": [3, 3],
+                        "final_architecture": [2, 1]
+                    }
+                },
+                    
+                "phase_setup":{
+                    "module":"CNNSzabo",
+                    "setup":{
+                        "channels": 50,
+                        "use_bias": true
+                    }
+                },
+                
+            "symm_Z2": true,
+            "trivial_Z2": true,
+            "symm_2D": false,
+            "squeeze":true
+            }
+        },
+
+        "MLP_Szabo":{
+
+            "module": "SplitTraining",
+            "setup":{
+
+                "modulus_setup":{
+                    "module":"MLP",
+                    "setup":{
+                        "hidden_alpha": [4, 8, 4, 2, 1],
+                        "activation": ["swish","swish","swish","swish","swish"],
+                        "final_architecture": [1]
+                    }
+                },
+                    
+                "phase_setup":{
+                    "module":"CNNSzabo",
+                    "setup":{
+                        "channels": 50,
+                        "use_bias": true
+                    }
+                },
+                
+            "symm_Z2": true,
+            "trivial_Z2": true,
+            "symm_2D": false,
+            "squeeze":true
+            }
+        },
+
+        "ViT2D_Szabo":{
+
+            "module": "SplitTraining",
+            "setup":{
+
+                "modulus_setup":{
+                    "module":"ViT2D",
+                    "setup": {
+                        "token_size": [2, 1],
+                        "embedding_d": 32,
+                        "n_heads": 4,
+                        "n_blocks": 2,
+                        "n_ffn_layers": 2,
+                        "final_architecture": [64, 5]
+                    }
+                },
+                
+                "phase_setup":{
+                    "module":"CNNSzabo",
+                    "setup":{
+                        "channels": 50,
+                        "use_bias": true
+                    }
+                },
+                
+            "symm_Z2": true,
+            "trivial_Z2": true,
+            "symm_2D": false,
+            "squeeze":true
+            }
+        },
 
         "CNN_Carrete":{
 

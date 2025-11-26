@@ -154,10 +154,7 @@ for i, size in enumerate(sizes):
 
         factory = FactoryBuilder(nn_model_setup, **{"lattice_size": size})
         model = factory.get_model()
-
-        nparams, nbytes = factory.get_params_info(model, N, show_info=True)
-        print(f"Total samples: {n_samples}")
-
+        nparams, nbytes = factory.get_params_info(model, N, show_info=False)
 
         sim_config = get_sim_config(
             {
@@ -172,6 +169,8 @@ for i, size in enumerate(sizes):
         # print_tree(sim_config, values=True)
 
         display_simulation_settings({**sim_config})
+        print(f"\nNN stats: {nparams} parameters ({nbytes/(1024**2)} MB)")
+        print(f"Total samples: {n_samples}\n")
 
         callback_artifacts = {}
         time_in = time.time()
@@ -294,7 +293,6 @@ for i, size in enumerate(sizes):
                     # compare_params(P0, P1)
                     # check_zero_grads(vstate, mask)
 
-                    sys.exit(0)
 
         else:  # Training modulus and phase at the same time
 

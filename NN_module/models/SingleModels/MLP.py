@@ -67,7 +67,12 @@ class MultiLayerPerceptron(nn.Module):
             else:
                 x = x.mean(axis=1)
                 x = x.reshape((B, -1))
-                return nn.Dense(1)(x)
+                x = nn.Dense(
+                    1,
+                    dtype=DTYPE,
+                    param_dtype=DTYPE
+                )(x)
+                return x
 
 
 class MLP_2D(nn.Module):
