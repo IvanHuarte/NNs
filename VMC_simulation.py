@@ -95,7 +95,6 @@ n_samples = (
     * sampler_setup["n_chains_per_rank"]
     * sampler_setup["n_ranks"]
 )
-print(f"Total samples: {n_samples}")
 
 ### MC sampling rules ###
 sampler_setup = config["sampler"]
@@ -138,16 +137,6 @@ for i, size in enumerate(sizes):
         cm_model_setup = model_factory.get_setup()
         cm_model_name = model_factory.name
 
-        sim_config = get_sim_config(
-            {
-                "SIM": config,
-                "CM": cm_model_setup,
-                "NN": {"name": nn_model_name, "setup": nn_model_setup},
-            }
-        )
-        # print_tree(sim_config, values=True)
-
-        display_simulation_settings({**sim_config})
 
         ## Update Hamiltonian
         cm_model = model_factory.get_model()
@@ -162,11 +151,30 @@ for i, size in enumerate(sizes):
 
         ###################################################
 
-        callback_artifacts = {}
-        time_in = time.time()
 
         factory = FactoryBuilder(nn_model_setup, **{"lattice_size": size})
         model = factory.get_model()
+
+        nparams, nbytes = factory.get_params_info(model, N, show_info=True)
+        print(f"Total samples: {n_samples}")
+
+
+        sim_config = get_sim_config(
+            {
+                "SIM": config,
+                "CM": cm_model_setup,
+                "NN": {"name": nn_model_name, 
+                       "n_params": nparams, 
+                       "nbytes": nbytes, 
+                       "setup": nn_model_setup},
+            }
+        )
+        # print_tree(sim_config, values=True)
+
+        display_simulation_settings({**sim_config})
+
+        callback_artifacts = {}
+        time_in = time.time()
 
         log = (
             nk.logging.RuntimeLog()

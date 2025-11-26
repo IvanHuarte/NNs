@@ -16,7 +16,7 @@
             "prules": [0.75, 0.25]
         },
         "n_ranks": 1,
-        "n_chains_per_rank": 16,
+        "n_chains_per_rank": 32,
         "n_samples_per_chain": 64,
         "chunk_sampler": null,
         "chunk_vstate": 512
