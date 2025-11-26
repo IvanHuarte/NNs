@@ -13,7 +13,7 @@ from .SingleModels.Phase import CNNPh, EDPPh, CNNClsf, CNNbinClsf, CNNSzabo
 from .SingleModels.ViT2D import ViT2D
 from .SingleModels.ViT import ViT
 
-from .toolbox import MarshallSign
+from .toolbox import MarshallSign, CarreteSign
 
 # Final Architecture modules
 
@@ -36,6 +36,7 @@ __all_single__ = [
     "CNNbinClsf",
     "CNNSzabo",
     "MarshallSign",
+    "CarreteSign",
     "MLP",
     "ViT2D",
     "ViT",
@@ -61,6 +62,7 @@ REGISTRY_SINGLE = {
     "CNNbinClsf": CNNbinClsf,
     "CNNSzabo": CNNSzabo,
     "MarshallSign": MarshallSign,
+    "CarreteSign": CarreteSign,
     "MLP": MLP,
     "ViT2D": ViT2D,
     "ViT": ViT,
@@ -83,6 +85,7 @@ LATTICE_SIZE = {
         "CNNbinClsf",
         "CNNSzabo",
         "MarshallSign",
+        "CarreteSign",
         "MLP",
         "ViT2D",
         "ViT",

@@ -39,21 +39,31 @@ def get_mask(name) -> jnp.ndarray:
             ]
         )
 
+
 def get_min_idx(x):
     """
-    Input: x=x(s_i) (s_i = +1,-1) of shape (B, N)  where B 
-    is the set of all traslation ireps and N is the 
+    Input: x=x(s_i) (s_i = +1,-1) of shape (B, N)  where B
+    is the set of all traslation ireps and N is the
     configuration dimension. Returns the anchor index as the
     minimum value calculated as the integer representation
     of each configuration in its bit form.
     """
-    bin_x = (-(x-1)/2).astype(jnp.int8)
+    bin_x = (-(x - 1) / 2).astype(jnp.int8)
     bin_x = bin_x.T[::-1].T
-    powers = jnp.tile(jnp.arange(x.shape[-1]), (x.shape[0],1))
+    powers = jnp.tile(jnp.arange(x.shape[-1]), (x.shape[0], 1))
     idx = jnp.sum(bin_x * 2**powers, axis=-1)
     min_idx = jnp.argmin(idx)
 
     return min_idx
+
+def batched_get_anchor(size, memory=True):
+    def core(_, x):
+        x = jnp.atleast_2d(x)   # (1, N)
+        x = traslations_2D(x, size, memory=memory)  # (N, N)
+        idx = get_min_idx(x)
+        return _, idx
+    
+    return core
 
 
 class MultiLayerPerceptron(nn.Module):
@@ -209,7 +219,7 @@ class DepthPointwiseConv(nn.Module):
 
         Ch_in = x.shape[-1]
 
-        mask = get_mask()
+        mask = get_mask("")
         mask = jnp.broadcast_to(mask[:, :, None, None], (*mask.shape, 1, Ch_in))
         if self.kernel[1] == 1:
             mask = None
@@ -221,7 +231,6 @@ class DepthPointwiseConv(nn.Module):
             feature_group_count=Ch_in,
             strides=(1, 1),
             padding="CIRCULAR",
-            # mask=mask,
             dtype=REAL_DTYPE,
             use_bias=False,
         )(x)
@@ -270,28 +279,49 @@ class MarshallSign(nn.Module):
         sign = sign.reshape(-1, 1)
 
         return sign
-    
+
+
 class CarreteSign(nn.Module):
 
     lattice_size: Tuple
+    save_mem: bool = True
 
     def setup(self):
-        
+
         self.size = self.lattice_size
         self.N = self.size[0] * self.size[1]
-        self.shifts = jnp.array(jnp.unravel_index(jnp.arange(self.N), self.lattice_size)).T
+        self.shifts = jnp.array(
+            jnp.unravel_index(jnp.arange(self.N), self.lattice_size)
+        ).T
+        self.mem = self.save_mem
 
     def __call__(self, x: jt.ArrayLike) -> jt.ArrayLike:
-        
-        x_irreps = traslations_2D(x, self.size, memory=False).transpose((1,0,2))
-        x_irreps = x_irreps
-        idx = jax.vmap(get_min_idx, in_axes=0)(x_irreps)
-        anchor = self.shifts[idx] 
+
+        B, N = x.shape
+
+        if self.save_mem:
+            idx = jax.lax.scan(
+                batched_get_anchor(self.size),
+                init=0, 
+                xs=x, 
+                length=x.shape[0]
+            )[1]
+            
+        else: 
+            x = traslations_2D(x, self.size, memory=True).reshape(
+                N, B, N
+            ).transpose((1, 0, 2))
+            idx = jax.vmap(get_min_idx, in_axes=0)(x)
+
+        anchor = self.shifts[idx]
 
         x = jnp.angle(
             jnp.exp(
-                -1j * jnp.pi * (anchor[:,0]/self.size[0]+anchor[:,1]/self.size[1])
-                )
+                -1j
+                * jnp.pi
+                * (anchor[:, 0] / self.size[0] + anchor[:, 1] / self.size[1])
             )
-        
+        ).reshape(B, 1)
+
+
         return x

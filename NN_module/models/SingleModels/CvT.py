@@ -112,7 +112,7 @@ class StageBlock(nn.Module):
         # print(f"Beginning Stage")
         # print(f"Input shape: {x.shape}")
 
-        mask = get_mask()
+        mask = get_mask("")
         mask = jnp.broadcast_to(
             mask[:, :, None, None], (*mask.shape, x.shape[-1], self.channels)
         )

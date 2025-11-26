@@ -160,7 +160,6 @@ for i, size in enumerate(sizes):
             E_ED = float(E_ED.squeeze(-1))
             print(f"Energy ED: {E_ED}")
 
-
         ###################################################
 
         callback_artifacts = {}
@@ -221,6 +220,8 @@ for i, size in enumerate(sizes):
 
                 for epochs, mode, lr in zip(segment, seg_modes, lr_segment):
 
+                    sr = nk.optimizer.SR(diag_shift=ds_schedule[i])
+
                     print(
                         f"\nSegment {i+1} of {total_segments}......   lr: {lr:.4e}  ds: {ds_schedule[i]:.4e}\n"
                     )
@@ -263,11 +264,11 @@ for i, size in enumerate(sizes):
                         variables=variables,
                     )
 
-                    gs = nk.driver.VMC_SR(
+                    gs = nk.driver.VMC(
                         H,
                         optimizer,
                         variational_state=vstate,
-                        diag_shift=ds_schedule[i]
+                        preconditioner=sr
                     )
 
                     print(f"\nTraining {mode} for {epochs} epochs...")
