@@ -1,9 +1,9 @@
 {
     "NN": {
         
-        "selection": "CNN_Szabo_0.5",
+        "selection": "ViT_SzaboMarshall",
 
-        "CNN_Szabo_0.5":{
+        "CNN_Szabo":{
 
             "module": "SplitTraining",
             "setup":{
@@ -26,6 +26,52 @@
                         "channels": 50,
                         "use_bias": true
                     }
+                },
+                
+            "symm_Z2": true,
+            "trivial_Z2": true,
+            "symm_2D": false,
+            "squeeze":true
+            }
+        },
+
+        "ViT_SzaboMarshall":{
+
+            "module": "SplitTraining",
+            "setup":{
+
+                "modulus_setup":{
+                    "module":"ViT2D",
+                    "setup": {
+                        "token_size": [2, 1],
+                        "embedding_d": 32,
+                        "n_heads": 4,
+                        "n_blocks": 2,
+                        "n_ffn_layers": 2,
+                        "final_architecture": [64, 5]
+                    }
+                },
+                    
+                "phase_setup":{
+                    "module": "Transversal",
+                    "setup":{
+                        "Trans_0":{
+                            "module":"CNNSzabo",
+                            "setup":{
+                                "channels": 50,
+                                "use_bias": true
+                            }
+                        },
+                        "Trans_1":{
+                            "module":"MarshallSign",
+                            "setup":{
+                                "radians":true
+                            }
+                        },
+                        
+                        "operation": "sum_angles"
+                    }
+                    
                 },
                 
             "symm_Z2": true,
