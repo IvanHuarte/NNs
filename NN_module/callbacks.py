@@ -2,8 +2,16 @@ import numpy as np
 import os
 import copy
 import numpy as np
+import matplotlib
 import matplotlib.pyplot as plt
 import matplotlib.transforms as mtransforms
+
+matplotlib.rcParams["toolbar"] = "None"  # ← DESACTIVA icono SVG corrupto
+matplotlib.rcParams["figure.raise_window"] = False
+import warnings
+
+warnings.filterwarnings("ignore", message="qt.svg")
+
 import flax
 import jax.numpy as jnp
 import numpy.typing as npt

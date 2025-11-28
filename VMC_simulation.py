@@ -8,6 +8,15 @@ import json
 import time
 import argparse
 import uuid
+import sys
+
+import matplotlib
+
+matplotlib.rcParams["toolbar"] = "None"  # ← SOLO ESTA LÍNEA
+import matplotlib.pyplot as plt
+
+plt.ion()
+
 
 # os.environ["XLA_PYTHON_CLIENT_PREALLOCATE"] = "false"
 jax.config.update("jax_enable_x64", True)
@@ -137,7 +146,6 @@ for i, size in enumerate(sizes):
         cm_model_setup = model_factory.get_setup()
         cm_model_name = model_factory.name
 
-
         ## Update Hamiltonian
         cm_model = model_factory.get_model()
         eng = Runner(cm_model.cm, S_operators=model_factory.S_operators)
@@ -151,7 +159,6 @@ for i, size in enumerate(sizes):
 
         ###################################################
 
-
         factory = FactoryBuilder(nn_model_setup, **{"lattice_size": size})
         model = factory.get_model()
         nparams, nbytes = factory.get_params_info(model, N, show_info=False)
@@ -160,10 +167,12 @@ for i, size in enumerate(sizes):
             {
                 "SIM": config,
                 "CM": cm_model_setup,
-                "NN": {"name": nn_model_name, 
-                       "n_params": nparams, 
-                       "nbytes": nbytes, 
-                       "setup": nn_model_setup},
+                "NN": {
+                    "name": nn_model_name,
+                    "n_params": nparams,
+                    "nbytes": nbytes,
+                    "setup": nn_model_setup,
+                },
             }
         )
         # print_tree(sim_config, values=True)
@@ -272,10 +281,7 @@ for i, size in enumerate(sizes):
                     )
 
                     gs = nk.driver.VMC(
-                        H,
-                        optimizer,
-                        variational_state=vstate,
-                        preconditioner=sr
+                        H, optimizer, variational_state=vstate, preconditioner=sr
                     )
 
                     print(f"\nTraining {mode} for {epochs} epochs...")
@@ -292,7 +298,6 @@ for i, size in enumerate(sizes):
                     # P1 = vstate.parameters
                     # compare_params(P0, P1)
                     # check_zero_grads(vstate, mask)
-
 
         else:  # Training modulus and phase at the same time
 

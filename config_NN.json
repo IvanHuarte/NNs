@@ -1,9 +1,9 @@
 {
     "NN": {
         
-        "selection": "CvT_Szabo",
+        "selection": "CNN_Szabo_0.5",
 
-        "CNN_Szabo":{
+        "CNN_Szabo_0.5":{
 
             "module": "SplitTraining",
             "setup":{
@@ -11,11 +11,11 @@
                 "modulus_setup":{
                     "module":"CNN",
                     "setup":{
-                        "channels":[32, 16, 8, 4, 2],
-                        "strides":[[1,1],[1,1],[1,1],[1,1],[1,1]],
+                        "channels":[ 16, 8, 4],
+                        "strides":[[1,1],[1,1],[1,1]],
                         "kernel":[3,3],
                         "use_pooling":false,
-                        "pooling_strides":[[1,1],[1,1],[1,1],[1,1],[1,1]],
+                        "pooling_strides":[[1,1],[1,1],[1,1]],
                         "final_architecture":[5]
                     }
                 },

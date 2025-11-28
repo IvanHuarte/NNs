@@ -1,11 +1,11 @@
 {
 
-   "write_folder_sim":"/home/ihuarte/Escritorio/Ivan/NNs/pruebas/",
+   "write_folder_sim":"/home/ihuarte/Escritorio/Ivan/NNs/pruebas_refinement/",
 
    "callback":{
         "keeper": true,
-        "inline":   false,
-        "modphase": false
+        "inline":   true,
+        "modphase": true
    },
 
     "explore_mode": true,
@@ -53,16 +53,10 @@
         "lr_name":"segment",
         "setup":{
             "segments":[
-                [500], 
-                [500],
-                [500], [500], [500], [500],     
-                [500]
+                [500],[300],[200],[800]
             ],
             "mode":[
-                ["P"], 
-                ["M"], 
-                ["B"], ["B"], ["B"], ["B"],
-                ["P"]
+                ["P"],["B"],["P"],["P"]
 
             ],
             "repeat_segment":[1,1,1,1,1,1,1,1,1,1,1]
@@ -77,10 +71,7 @@
             "segment":{
                 "lr":[
                     
-                    0.05, 
-                    0.01,
-                    0.01, 0.005, 0.0001, 0.00001,
-                    0.05
+                    0.05, 0.01, 0.05, 0.001
                     
                 ]
             }
