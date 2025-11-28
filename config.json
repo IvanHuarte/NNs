@@ -4,8 +4,8 @@
 
    "callback":{
         "keeper": true,
-        "inline":   false,
-        "modphase": false
+        "inline":   true,
+        "modphase": true
    },
 
     "explore_mode": true,
@@ -53,10 +53,10 @@
         "lr_name":"segment",
         "setup":{
             "segments":[
-                [500]
+                [2]
             ],
             "mode":[
-                ["M"]
+                ["B"]
 
             ],
             "repeat_segment":[1,1,1,1,1,1,1,1,1,1,1]
@@ -71,7 +71,7 @@
             "segment":{
                 "lr":[
                     
-                    0.05
+                    0.03
                     
                 ]
             }

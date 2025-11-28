@@ -214,7 +214,7 @@ for i, size in enumerate(sizes):
             # Callbacks
             if enable_keeper:
                 keeper = BestIterKeeper(
-                    total_epochs, H, N, baseline=1e-8, mode="best_energy"
+                    total_epochs, H, N, baseline=1e-8, mode="always"
                 )
                 callbacks.append(keeper.update)
             # keeper.filename = 'Somewhere' #It allows you to store the parameters of the model for the state with lowest energy found.
@@ -289,7 +289,7 @@ for i, size in enumerate(sizes):
                         n_iter=epochs,
                         out=log,
                         callback=callbacks,
-                        show_progress=True,
+                        show_progress=True
                     )
                     # vstate.sampler.reset(vstate.model.apply, vstate.variables["params"])
                     mean, std, psi = phase_stats_vstate(vstate)
@@ -372,7 +372,7 @@ for i, size in enumerate(sizes):
         results, mp_array_vs, mp_array_ED = measureNdump(keeper, time_exe, exact_diag)
 
         sim_config["SIM"]["sampler"]["nsamples"] = n_samples
-        sim_config["SIM"]["sampler"]["rng"] = vstate.sampler_state.rng.tolist()
+        sim_config["SIM"]["sampler"]["rng"] = list(vstate.sampler_state.rng)
 
         ## Save the results
         dump_setup = {
