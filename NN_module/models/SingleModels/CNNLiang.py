@@ -39,7 +39,7 @@ class ConvBlock(nn.Module):
             dtype=REAL_DTYPE,
             param_dtype=REAL_DTYPE,
             use_bias=self.use_bias,
-            mask=mask,
+            mask=mask
         )(x)
         # print(f"xM1: {x.shape}")
 
@@ -60,7 +60,6 @@ class ConvBlock(nn.Module):
         )
         # print(f"xpool: {x.shape}")
 
-
         # M2 transposed convolution
         x = nn.ConvTranspose(
             features=self.M2_channels,
@@ -71,18 +70,13 @@ class ConvBlock(nn.Module):
             param_dtype=REAL_DTYPE,
             use_bias=False,
         )(x)
-        x = nn.LayerNorm(
-            dtype=REAL_DTYPE,
-            param_dtype=REAL_DTYPE
-        )(x)
-
+        x = nn.relu(x)
 
         # print(f"xtrans: {x.shape}")
         x = x.reshape(-1, H, W, self.M2_channels)
 
         # print(f"xFIN: {x.shape}")
         
-
         return x
 
 
@@ -104,8 +98,9 @@ class CNNLiang(nn.Module):
 
         x = x.reshape((-1, *self.lattice_size, 1))
 
+        n_blocks = len(self.M1_channels)
         # Entering convolutional blocks
-        for i in range(len(self.M1_channels)):
+        for i in range(n_blocks):
 
             x = ConvBlock(
                 M1_channels=self.M1_channels[i],
@@ -117,9 +112,11 @@ class CNNLiang(nn.Module):
             )(x)
 
         # print(f"After all blocks: {x.shape}")
+        x = x.reshape(x.shape[0], -1)
 
         # Apply product over 3 last indices
-        x = jnp.prod(x.reshape(x.shape[0], -1), axis=-1, keepdims=True)
+        x = jnp.sum(x, axis=-1, keepdims=True)              # 83%
+        # x = jnp.mean(x)                                       # 53%  
 
         # print(f"After multiplying: {x.shape}")
         
