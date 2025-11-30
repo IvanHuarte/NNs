@@ -136,6 +136,7 @@ for i, size in enumerate(sizes):
 
     ###  Reseting Hilbert space object and the observables ###
     hi = nk.hilbert.Spin(s=1 / 2, N=N)
+    hi.lattice_size = size
 
     ## Reset sampler
     sampler = SamplerFactory(sampler_setup).get_sampler(hi)

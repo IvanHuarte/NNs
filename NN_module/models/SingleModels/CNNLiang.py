@@ -70,13 +70,10 @@ class ConvBlock(nn.Module):
             param_dtype=REAL_DTYPE,
             use_bias=False,
         )(x)
-        x = nn.relu(x)
-
-        # print(f"xtrans: {x.shape}")
+        # x = nn.sigmoid(x)
         x = x.reshape(-1, H, W, self.M2_channels)
+        x = nk.nn.log_cosh(x)
 
-        # print(f"xFIN: {x.shape}")
-        
         return x
 
 
@@ -115,8 +112,8 @@ class CNNLiang(nn.Module):
         x = x.reshape(x.shape[0], -1)
 
         # Apply product over 3 last indices
-        x = jnp.sum(x, axis=-1, keepdims=True)              # 83%
-        # x = jnp.mean(x)                                       # 53%  
+        x = jnp.sum(x, axis=-1, keepdims=True)              # 83%sigmoid | 
+        # x = jnp.mean(x)                                   # 53%  
 
         # print(f"After multiplying: {x.shape}")
         
