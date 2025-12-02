@@ -1,22 +1,11 @@
-import os
-import copy
-import json
-import ast
 import numpy as np
-import scipy as sp
-import matplotlib.pyplot as plt
-import flax
-import jax
 import jax.numpy as jnp
-import netket as nk
-import numpy.typing as npt
-from flax.serialization import to_bytes, from_bytes
-from typing import Optional
-from datetime import date
-from platform import architecture, python_version
 
-from .NN_utils import modphase
-from .observables import calc_all_observables_vs, calc_all_observables_ED
+from NN_module.observables import (
+    calc_all_observables_vs,
+    calc_all_observables_ED,
+    modphase,
+)
 
 
 def measureNdump(keeper, time_exe, exact_diag=False):

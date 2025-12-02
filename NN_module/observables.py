@@ -1,8 +1,15 @@
+import sys
+import itertools
+import jax.numpy as jnp
+import jax
+import netket as nk
 from netket.operator.spin import sigmaz
 import netket.experimental as nkx
 import numpy as np
 
+
 # Vstate calculations
+
 
 def renyi_vs(vstate):
     """
@@ -11,9 +18,10 @@ def renyi_vs(vstate):
     N = vstate.hilbert.size
     renyi = nkx.observable.Renyi2EntanglementEntropy(
         vstate.hilbert, np.arange(0, N / 2 + 1, dtype=int)
-    )   
+    )
     return vstate.expect(renyi).mean
-    
+
+
 def M_vs(vstate):
     """
     First magnetization momentum (Ferro)
@@ -22,33 +30,33 @@ def M_vs(vstate):
     magn = sum([sigmaz(vstate.hilbert, i) / N for i in range(N)])
     return vstate.expect(magn).mean.real
 
+
 def M2_vs(vstate):
     """
-    Second magnetization momentum (Ferro) 
+    Second magnetization momentum (Ferro)
     """
     N = vstate.hilbert.size
     magn2 = sum([sigmaz(vstate.hilbert, i) / N for i in range(N)])
     return vstate.expect(magn2 @ magn2).mean.real
+
 
 def Ms_vs(vstate):
     """
     First staggered magnetization momentum (AntiFerro)
     """
     N = vstate.hilbert.size
-    magn_s = sum(
-        [(-1) ** i * sigmaz(vstate.hilbert, i) / N for i in range(N)]
-    )
+    magn_s = sum([(-1) ** i * sigmaz(vstate.hilbert, i) / N for i in range(N)])
     return vstate.expect(magn_s).mean.real
+
 
 def Ms2_vs(vstate):
     """
     Second staggered magnetization momentum (AntiFerro)
     """
     N = vstate.hilbert.size
-    magn_s2 = sum(
-        [(-1) ** i * sigmaz(vstate.hilbert, i) / N for i in range(N)]
-    )
+    magn_s2 = sum([(-1) ** i * sigmaz(vstate.hilbert, i) / N for i in range(N)])
     return vstate.expect(magn_s2 @ magn_s2).mean.real
+
 
 def calc_all_observables_vs(vstate):
 
@@ -60,70 +68,264 @@ def calc_all_observables_vs(vstate):
 
     return float(S_renyi), float(m), float(ms), float(m2), float(ms2)
 
+
 # Exact Diagonalization calculations
 
+
 def compute_spin_matrices(N):
-    configs = np.arange(2**N)[:, None]          
-    bits = ((configs >> np.arange(N)[::-1]) & 1)
-    Sz = 0.5 - bits                              
-    return Sz  
+    configs = np.arange(2**N)[:, None]
+    bits = (configs >> np.arange(N)[::-1]) & 1
+    Sz = 0.5 - bits
+    return Sz
+
 
 def M_ED(state):
     """<M> magnetización media"""
     N = int(np.log2(len(state)))
     sigma_z = 2 * compute_spin_matrices(N)
-    probs = np.abs(state)**2
-    M_exp = np.sum(probs[:, None] * sigma_z, axis=0).mean()  
+    probs = np.abs(state) ** 2
+    M_exp = np.sum(probs[:, None] * sigma_z, axis=0).mean()
     return float(M_exp)
+
 
 def M2_ED(state):
     """<M^2> segundo momento de la magnetización uniforme"""
     N = int(np.log2(len(state)))
     sigma_z = 2 * compute_spin_matrices(N)
-    probs = np.abs(state)**2
+    probs = np.abs(state) ** 2
 
     # correladores S_i S_j
-    corr = (probs[:, None, None] * (sigma_z[:, :, None] * sigma_z[:, None, :])).sum(axis=0)
+    corr = (probs[:, None, None] * (sigma_z[:, :, None] * sigma_z[:, None, :])).sum(
+        axis=0
+    )
     M2_exp = corr.sum() / (N**2)
     return float(M2_exp)
+
 
 def Ms_ED(state):
     """<Ms> magnetización staggered media por sitio"""
     N = int(np.log2(len(state)))
     sigma_z = 2 * compute_spin_matrices(N)
-    staggered = (-1)**np.arange(N)
-    probs = np.abs(state)**2
+    staggered = (-1) ** np.arange(N)
+    probs = np.abs(state) ** 2
     Ms_exp = np.sum(probs[:, None] * (sigma_z * staggered), axis=0).mean()
     return float(Ms_exp)
+
 
 def Ms2_ED(state):
     """<Ms^2> segundo momento de la magnetización staggered"""
     N = int(np.log2(len(state)))
     sigma_z = 2 * compute_spin_matrices(N)
-    probs = np.abs(state)**2
-    staggered = (-1)**np.arange(N)
+    probs = np.abs(state) ** 2
+    staggered = (-1) ** np.arange(N)
 
     sigma_z_stag = sigma_z * staggered  # shape (2^N, N)
-    corr = (probs[:, None, None] * (sigma_z_stag[:, :, None] * sigma_z_stag[:, None, :])).sum(axis=0)
+    corr = (
+        probs[:, None, None] * (sigma_z_stag[:, :, None] * sigma_z_stag[:, None, :])
+    ).sum(axis=0)
     Ms2_exp = corr.sum() / (N**2)
     return float(Ms2_exp)
+
 
 def calc_all_observables_ED(state):
 
     N = int(np.log2(len(state)))
-    staggered = (-1)**np.arange(N)
+    staggered = (-1) ** np.arange(N)
 
     sigma_z = 2 * compute_spin_matrices(N)
-    probs = np.abs(state)**2
+    probs = np.abs(state) ** 2
 
     m = np.sum(probs[:, None] * sigma_z, axis=0).mean()
     ms = np.sum(probs[:, None] * (sigma_z * staggered), axis=0).mean()
 
-    corr = (probs[:, None, None] * (sigma_z[:, :, None] * sigma_z[:, None, :])).sum(axis=0)
+    corr = (probs[:, None, None] * (sigma_z[:, :, None] * sigma_z[:, None, :])).sum(
+        axis=0
+    )
     m2 = corr.sum() / (N**2)
-    
+
     sigma_z_stag = sigma_z * staggered
-    corr = (probs[:, None, None] * (sigma_z_stag[:, :, None] * sigma_z_stag[:, None, :])).sum(axis=0)
+    corr = (
+        probs[:, None, None] * (sigma_z_stag[:, :, None] * sigma_z_stag[:, None, :])
+    ).sum(axis=0)
     ms2 = corr.sum() / (N**2)
 
     return float(m), float(ms), float(m2), float(ms2)
+
+
+def phase_stats_vstate(vstate, eps=0.01):
+
+    samples = vstate.samples
+    flat_samples = samples.reshape(-1, samples.shape[-1])
+    logpsi = vstate.log_value(flat_samples)
+    phases = jnp.imag(logpsi)
+
+    mean = float(phases.mean(axis=0))
+    std = float(jnp.std(phases))
+    if std > eps:
+        psi = "complex"
+    else:
+        psi = "real"
+
+    return mean, std, psi
+
+
+def phase_stats_ED(x_ED, eps=0.1):
+
+    phases = jnp.angle(x_ED)
+
+    mean = float(phases.mean(axis=0)[0])
+    std = float(jnp.std(phases))
+    if std > eps:
+        psi = "complex"
+    else:
+        psi = "real"
+
+    return mean, std, psi
+
+
+def full_basis_state(x, hi_sub):
+    """
+    Recives a state `x` in a certain magnetization basis set by `hi_sub`, and
+    returns the computational (full) basis state order
+    """
+    hi_full = nk.hilbert.Spin(s=hi_sub._s, N=hi_sub.size, total_sz=None)
+    states_sub = hi_sub.all_states()
+    idx_map = hi_full.states_to_numbers(states_sub).reshape(x.shape)
+    x_full = jnp.zeros((hi_full.n_states), dtype=x.dtype)
+    x_full = x_full.at[idx_map].set(x)
+
+    return x_full
+
+
+def full2red_basis_idx(hi_sub, indices_full):
+    """
+    Recives indices in the full basis and returns the corresponding indices
+    in the reduced basis set by `hi_sub`
+    """
+    hi_full = nk.hilbert.Spin(s=hi_sub._s, N=hi_sub.size, total_sz=None)
+    states_sub = hi_sub.all_states()
+    idx_map = hi_full.states_to_numbers(states_sub)
+
+    inv_map = jnp.full((hi_full.n_states,), -1, dtype=jnp.int32)
+    inv_map = inv_map.at[idx_map].set(jnp.arange(hi_sub.n_states, dtype=jnp.int32))
+
+    indices_sub = inv_map[indices_full]
+
+    return indices_sub
+
+
+def modphase_extended(mod, phase, sigmas=1):
+    """
+    Calculates modulus and phase for a expanded hilbert vector. Returns also statics for both
+    modulus and phase and detects symmetry peaks for phase.
+
+    Input:
+        - x (ArrayLike) Wavefunction (C²)
+        - sigmas: Number of sigmas to establish the threshold for values considered peaks
+
+    Return:
+        - modulus
+        - phase
+        - stats: Statistics as the mean and standard deviation for modulus and phase. Phase
+                 also includes info about phase peaks. peaks:(angle, counts)
+    """
+    phase = (phase + jnp.pi) % (2 * jnp.pi) - jnp.pi  # Put on interval[-pi,pi)
+
+    mean_mod = mod.mean()
+    std_mod = mod.std()
+    mean_phase = phase.mean()
+    std_phase = phase.std()
+
+    if std_phase > 0.1:
+        psi = "complex"
+    else:
+        psi = "real"
+
+    stats = {
+        "type": psi,
+        "modulus": {"mean": float(mean_mod), "std": float(std_mod)},
+        "phase": {"mean": float(mean_phase), "std": float(std_phase)},
+    }
+
+    counts, values = jnp.histogram(phase, bins=1000000)
+    nonzero_mask = jnp.where(counts != 0.0)[0]
+    nonzero_counts, nonzero_values = counts[nonzero_mask], values[nonzero_mask]
+    mean = nonzero_counts.mean()
+    std = nonzero_counts.std()
+
+    if std > mean:
+
+        peaks_idx = jnp.where(nonzero_counts > mean + sigmas * std)
+        peaks_x = nonzero_values[peaks_idx]
+        counts_x = nonzero_counts[peaks_idx]
+
+        idx = jnp.argsort(peaks_x)
+        peaks = peaks_x[idx]
+        peak_counts = counts_x[idx]
+
+        stats["peaks"] = {
+            "values": [float(p) for p in peaks],
+            "counts": [float(pc) for pc in peak_counts],
+            "count_mean": float(mean),
+            "count_std": float(std),
+        }
+    else:
+        stats["peaks"] = None
+
+    mod_phase = np.array([mod, phase]).squeeze()
+
+    return mod_phase, stats
+
+
+def modphase(xvs):
+
+    if isinstance(xvs, (np.ndarray, jax.Array)):
+        # print("ED in modphase")
+        mod = jnp.abs(xvs)
+        phase = jnp.angle(xvs)
+        return modphase_extended(mod, phase)
+
+    elif isinstance(xvs, nk.vqs.VariationalState):
+        try:
+            # print("vstate in modphase")
+            x = xvs.to_array()
+            # if xvs.hilbert._total_sz is not None:
+            #     x = full_basis_state(x, xvs.hilbert)
+            mod = jnp.abs(x)
+            phase = jnp.angle(x)
+            return modphase_extended(mod, phase)
+
+        except (MemoryError, RuntimeError, ValueError) as error:
+            samples = xvs.samples
+            flat_samples = samples.reshape(-1, samples.shape[-1])
+            logpsi = xvs.log_value(flat_samples)
+
+            mod = jnp.exp(jnp.real(logpsi))
+            phase = jnp.imag(logpsi)
+            return modphase_extended(mod, phase)
+
+    else:
+        print(f"ERROR. Unknown input instance for vstate: {type(xvs)}")
+        sys.exit(1)
+
+
+def all_spin_configurations(N):
+    # Genera todas las combinaciones posibles de N spines con valores ±1
+    return jnp.array(list(itertools.product([-1, 1], repeat=N)))
+
+
+def print_max_contributors(x, size, N_max=10):
+    (mod, ph), _ = modphase(x)
+    configs = all_spin_configurations(size[0] * size[1])
+
+    idx = jnp.argsort(mod)[::-1][:N_max]
+    max_configs = configs[idx, :]
+    max_mods = mod[idx]
+    max_phs = ph[idx]
+
+    for config, mod, phs in zip(max_configs, max_mods, max_phs):
+        tmagn = jnp.sum(config.flatten())
+        print(f"Config: \n{config.reshape(size)}")
+        print(f"M = {tmagn}")
+        print(f"\nModulus: {mod}")
+        print(f"Phase: {phs}\n")

@@ -153,5 +153,4 @@ class SplitTraining(nn.Module):
 
         x = worker(x)
 
-
         return x

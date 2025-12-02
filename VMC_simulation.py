@@ -48,7 +48,8 @@ from NN_module.label_utils import (
     get_sim_config,
 )
 from NN_module.sim_utils import measureNdump
-from NN_module.NN_utils import scheduler_initializer, phase_stats_vstate
+from NN_module.observables import full_basis_state, phase_stats_vstate
+from NN_module.NN_utils import scheduler_initializer
 from NN_module.ST_utils import masked_optimizer, compare_params, check_zero_grads
 
 parser = argparse.ArgumentParser()
@@ -135,11 +136,8 @@ for i, size in enumerate(sizes):
     write_folder = write_folder_training + f"UUID_{sim_uuid}/"
 
     ###  Reseting Hilbert space object and the observables ###
-    hi = nk.hilbert.Spin(s=1 / 2, N=N)
-    hi.lattice_size = size
-
-    ## Reset sampler
-    sampler = SamplerFactory(sampler_setup).get_sampler(hi)
+    hi = nk.hilbert.Spin(s=1 / 2, N=N, total_sz=0)
+    print(hi.all_states().shape)
     model_factory = ModelFactory(size, config_cm)
 
     for params in model_factory.get_params():
@@ -150,11 +148,12 @@ for i, size in enumerate(sizes):
         ## Update Hamiltonian
         cm_model = model_factory.get_model()
         eng = Runner(cm_model.cm, S_operators=model_factory.S_operators)
-        H = eng.build_hamiltonian()
+        H = eng.build_hamiltonian(hi)
 
         if exact_diag:
             print("Running exact diagonalization...")
-            E_ED, x_ED = eng.exact_energy_lanczos(eigenstates=True)
+            E_ED, x_ED = eng.exact_energy_lanczos(hi, eigenstates=True)
+            # x_ED = full_basis_state(x_ED, hi) if hi._total_sz is not None else x_ED
             E_ED = float(E_ED.squeeze(-1))
             print(f"Energy ED: {E_ED}")
 
@@ -177,6 +176,9 @@ for i, size in enumerate(sizes):
             }
         )
         # print_tree(sim_config, values=True)
+
+        ## Reset sampler
+        sampler = SamplerFactory(sampler_setup, cm_model=cm_model).get_sampler(hi)
 
         display_simulation_settings({**sim_config})
         print(f"\nNN stats: {nparams} parameters ({nbytes/(1024**2)} MB)")
@@ -287,14 +289,12 @@ for i, size in enumerate(sizes):
 
                     print(f"\nTraining {mode} for {epochs} epochs...")
                     gs.run(
-                        n_iter=epochs,
-                        out=log,
-                        callback=callbacks,
-                        show_progress=True
+                        n_iter=epochs, out=log, callback=callbacks, show_progress=True
                     )
                     # vstate.sampler.reset(vstate.model.apply, vstate.variables["params"])
                     mean, std, psi = phase_stats_vstate(vstate)
                     print(f"VS phase: {mean} \u00b1 {std}  ({psi})")
+                    sys.exit(0)
 
                     # P1 = vstate.parameters
                     # compare_params(P0, P1)
@@ -373,7 +373,9 @@ for i, size in enumerate(sizes):
         results, mp_array_vs, mp_array_ED = measureNdump(keeper, time_exe, exact_diag)
 
         sim_config["SIM"]["sampler"]["nsamples"] = n_samples
-        sim_config["SIM"]["sampler"]["rng"] = jax.random.key_data(vstate.sampler_state.rng).tolist()
+        sim_config["SIM"]["sampler"]["rng"] = jax.random.key_data(
+            vstate.sampler_state.rng
+        ).tolist()
 
         ## Save the results
         dump_setup = {

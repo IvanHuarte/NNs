@@ -8,6 +8,7 @@ from ..toolbox import get_mask
 
 REAL_DTYPE = jnp.asarray(1.0).dtype
 
+
 class ConvBlock(nn.Module):
     """A simple convolutional block with a first
     It expects an input of shape x = (B,H,W,C)
@@ -39,7 +40,7 @@ class ConvBlock(nn.Module):
             dtype=REAL_DTYPE,
             param_dtype=REAL_DTYPE,
             use_bias=self.use_bias,
-            mask=mask
+            mask=mask,
         )(x)
         # print(f"xM1: {x.shape}")
 
@@ -70,9 +71,9 @@ class ConvBlock(nn.Module):
             param_dtype=REAL_DTYPE,
             use_bias=False,
         )(x)
-        # x = nn.sigmoid(x)
+        x = nn.relu(x)
         x = x.reshape(-1, H, W, self.M2_channels)
-        x = nk.nn.log_cosh(x)
+        # x = nn.sigmoid(x)
 
         return x
 
@@ -105,19 +106,16 @@ class CNNLiang(nn.Module):
                 kernel=self.kernel[i],
                 window_pooling=self.window_pooling,
                 use_bias=self.use_bias,
-                mask=self.mask
+                mask=self.mask,
             )(x)
 
         # print(f"After all blocks: {x.shape}")
         x = x.reshape(x.shape[0], -1)
 
         # Apply product over 3 last indices
-        x = jnp.sum(x, axis=-1, keepdims=True)              # 83%sigmoid | 
-        # x = jnp.mean(x)                                   # 53%  
+        x = jnp.sum(x, axis=-1, keepdims=True)  # 83%sigmoid |
+        # x = jnp.mean(x)                                   # 53%
 
         # print(f"After multiplying: {x.shape}")
-        
 
         return x
-
-
