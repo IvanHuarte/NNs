@@ -2,6 +2,9 @@ import numpy as np
 import jax
 import jax.numpy as jnp
 import netket as nk
+import os
+
+os.environ["NETKET_EXPERIMENTAL_FFT_AUTOCORRELATION"] = "1"
 
 
 ### Functions used in self.gradient_metrics ###
@@ -34,6 +37,175 @@ def extract_real_imag(tree):
     O_re = jax.tree_util.tree_map(get_real, tree)
     O_im = jax.tree_util.tree_map(get_imag, tree)
     return O_re, O_im
+
+
+def percentage_above_threshold(norms_tree, threshold):
+    """Calcula el porcentaje de gradientes por muestra que superan un umbral"""
+    pct_tree = jax.tree_util.tree_map(lambda x: jnp.mean(x > threshold), norms_tree)
+    total_pct = jax.tree_util.tree_reduce(lambda x, y: x + y, pct_tree) * 100
+    n_leaves = jax.tree_util.tree_structure(norms_tree).num_leaves
+    return total_pct / n_leaves
+
+
+def percentage_below_threshold(norms_tree, threshold):
+    """Calcula el porcentaje de gradientes por muestra que están por debajo de un umbral"""
+    pct_tree = jax.tree_util.tree_map(lambda x: jnp.mean(x < threshold), norms_tree)
+    total_pct = jax.tree_util.tree_reduce(lambda x, y: x + y, pct_tree) * 100
+    n_leaves = jax.tree_util.tree_structure(norms_tree).num_leaves
+    return total_pct / n_leaves
+
+
+def diagnose_metrics(self, metrics):
+    """
+    Analiza métricas y devuelve diagnóstico automático.
+
+    Args:
+        metrics: Diccionario de métricas de gradient_metrics, samples_autocorrelation, phase_stats
+
+    Returns:
+        dict: Diagnóstico por categoría con status y mensaje
+    """
+    diagnosis = {}
+
+    # 1. DIAGNOSIS GRADIENTS
+    grads = metrics["gradients"]
+
+    # Normas principales
+    norm_mean = grads["norm_per_sample"]["mean"]
+    norm_std = grads["norm_per_sample"]["std"]
+    global_norm = grads["global_norm"]
+
+    # Status normas
+    if norm_mean < 1e-3:
+        norm_status = "💚💚💚 CONVERGIDO"
+        norm_msg = "Gradientes muy pequeños → Buena convergencia"
+    elif norm_mean < 1:
+        norm_status = "✅ SANO"
+        norm_msg = "Gradientes normales → Entrenando bien"
+    elif norm_mean < 10:
+        norm_status = "⚠️ ALTO"
+        norm_msg = "Gradientes grandes → Monitorear LR 📊"
+    else:
+        norm_status = "🔴 EXPLOSIVO"
+        norm_msg = "Gradientes peligrosos → Reduce LR! 📉"
+
+    # Re/Im ratios
+    reim_global = (
+        grads["ReIm_norms"]["global"]["Re"] / grads["ReIm_norms"]["global"]["Im"]
+    )
+    mod_ratio = (
+        grads["ReIm_norms"]["ModulusNet"]["Re"]
+        / grads["ReIm_norms"]["ModulusNet"]["Im"]
+    )
+    phase_ratio = (
+        grads["ReIm_norms"]["PhaseNet"]["Im"] / grads["ReIm_norms"]["PhaseNet"]["Re"]
+    )
+
+    reim_status = "🟢" if 0.5 < reim_global < 5 else "🟡"
+    arch_status = (
+        "🟢"
+        if mod_ratio > 10 and phase_ratio > 10
+        else "🟡" if mod_ratio > 1 and phase_ratio > 1 else "🔴"
+    )
+
+    # Análisis distribución gradientes
+    intervals = grads["percentage_norm_intervals"]["log_intervals"]
+    percentages = grads["percentage_norm_intervals"]["percentages"]
+
+    grad_dist_status = "🟢"
+    grad_dist_msg = []
+    if percentages[0] > 20:  # >20% en <1e-4
+        grad_dist_msg.append("Muchas normas nulas → Posible saturación")
+        grad_dist_status = "🟡"
+    if percentages[-1] > 5:  # >5% en >1e3
+        grad_dist_msg.append("Gradientes explosivos detectados")
+        grad_dist_status = "🔴"
+    if sum(percentages[4:6]) > 70:  # >70% en 1-100
+        grad_dist_msg.append("Entrenando activamente")
+
+    diagnosis["gradients"] = {
+        "status": f"{norm_status} | ReIm:{reim_status} | Arch:{arch_status} | Dist:{grad_dist_status}",
+        "norm_per_sample": f"{norm_mean:.2e} ± {norm_std:.2e}",
+        "global_norm": f"{global_norm:.2e}",
+        "message": f"{norm_msg}. Re/Im global: {reim_global:.1f}. Arquitectura OK: {mod_ratio:.0f}/{phase_ratio:.0f}",
+        "distribution": {"status": grad_dist_status, "alerts": grad_dist_msg},
+    }
+
+    # 2. DIAGNOSIS SAMPLES (MCMC)
+    samples = metrics["samples"]
+    acc_rate = samples["acceptance"]
+    tau_corr = samples["tau_corr"]
+    ess_eff = samples["efficiency"]
+
+    mcmc_status = "🟢"
+    mcmc_alerts = []
+
+    if acc_rate < 0.3:
+        mcmc_status = "🟡"
+        mcmc_alerts.append("Acceptance baja → Aumenta step_size 📈")
+    elif acc_rate > 0.8:
+        mcmc_status = "🟡"
+        mcmc_alerts.append("Acceptance alta → Reduce step_size 📉")
+
+    if tau_corr > 20:
+        mcmc_status = "🔴"
+        mcmc_alerts.append("Alta autocorrelación → Sampler lento")
+    elif tau_corr > 10:
+        mcmc_status = "🟡"
+        mcmc_alerts.append("Autocorrelación moderada")
+
+    if ess_eff < 0.1:
+        mcmc_status = "🟡"
+        mcmc_alerts.append("Eficiencia baja")
+
+    diagnosis["samples"] = {
+        "status": mcmc_status,
+        "acceptance": f"{acc_rate:.1%}",
+        "tau_corr": f"{tau_corr:.1f}",
+        "ESS_eff": f"{ess_eff:.1%}",
+        "message": f"Sampler {'Excelente' if ess_eff>0.5 else 'Bueno' if ess_eff>0.2 else 'Mejorable'}. Alerts: {', '.join(mcmc_alerts)}",
+    }
+
+    # 3. DIAGNOSIS PHASE (Marshall)
+    phase = metrics["phase"]["phase"]
+    mean_phase = np.abs(phase["mean"])
+    std_phase = phase["std"]
+
+    phase_status = "🟢"
+    phase_msg = "Fase Marshall OK"
+
+    if mean_phase > 0.1:
+        phase_status = "🟡"
+        phase_msg = "Fase con sesgo → Revisa Marshall"
+    if std_phase > 2:
+        phase_status = "🟡"
+        phase_msg += " | Alta varianza de fase"
+
+    diagnosis["phase"] = {
+        "status": phase_status,
+        "mean_phase": f"{mean_phase:.2f}",
+        "std_phase": f"{std_phase:.2f}",
+        "message": phase_msg,
+    }
+
+    # 4. STATUS GENERAL
+    statuses = [d["status"][0] for d in diagnosis.values()]
+    overall_status = (
+        "🟢"
+        if all(s == "🟢" for s in statuses)
+        else "🟡" if "🔴" not in statuses else "🔴"
+    )
+
+    diagnosis["overall"] = {
+        "status": overall_status,
+        "message": (
+            "Simulación saludable"
+            if overall_status == "🟢"
+            else "Monitorear" if overall_status == "🟡" else "Intervenir"
+        ),
+    }
+
+    return diagnosis
 
 
 class SanityMonitor:
@@ -118,16 +290,124 @@ class SanityMonitor:
             },
         }
 
-        # % Explosivas
-        grad_norms_sample = tree_norm(O, axis=1)
-        explosive_pct = (
-            jax.tree_util.tree_reduce(
-                lambda x, y: x + y,
-                jax.tree_util.tree_map(lambda x: jnp.mean(x > 1e3), grad_norms_sample),
+        # Percentage of leaves in different norm intervals
+        threshold_points = jnp.logspace(-4, 3, num=8)
+        per_above = list(
+            map(
+                lambda threshold: percentage_above_threshold(
+                    grad_norms_per_sample, threshold
+                ),
+                threshold_points,
             )
-            * 100
         )
-        grad_metrics["explosive_pct"] = explosive_pct
+        per_below = [100 - per_above[0]]
+
+        percentaje_per_norm = per_below + [
+            per_above[i] - per_above[i + 1] for i in range(len(per_above) - 1)
+        ]
+
+        # PRINTS
+        print(f"⟨||∇logψ||⟩ = {mean_norm_sample} ± {total_norm_std:.2e}")
+        print(f"||∇global|| = {global_norm:.2e}")
+        print(f"Re/Im ratio: {O_real_norm/O_imag_norm:.2f}")
+        print(f"<1e-4: {100-per_above[0]:.3f}%\n")
+        for i in range(len(threshold_points)):
+            if i != len(threshold_points) - 1:
+                print(
+                    f"Interval {threshold_points[i]:.0e} <---> {threshold_points[i+1]:.0e}: {percentaje_per_norm[i+1]:.3f}%"
+                )
+                print()
+
+        grad_metrics["percentage_norm_intervals"] = {
+            "log_intervals": threshold_points,
+            "percentages": percentaje_per_norm,
+        }
+
+        return grad_metrics
+
+    def samples_autocorrelation(self, driver, vstate, samples):
+        """Compute autocorrelation time and the effective number of samples in the driver.
+
+        Args:
+            driver: The VMC driver.
+
+        Returns:
+            A dictionary containing the autocorrelation time statistics.
+             - acceptance: The acceptance rate of the sampler.
+             - tau_corr: The estimated autocorrelation time. If
+                         NETKET_EXPERIMENTAL_FFT_AUTOCORRELATION = "1",
+                         this is computed exactly by using FFT methods. Otherwise,
+                         the sum of correlation lags between samples is truncated.
+             - ESS: The effective sample size (ESS) calculated as N / (1 + 2 * tau_corr),
+                    where N is the total number of samples.
+             - efficiency: The sampling efficiency defined as ESS / N.
+        """
+
+        # Local energy (energy of each sample)
+        Eloc = vstate.local_estimators(driver._ham)
+        Eloc_flat = Eloc.flatten()
+        n_samples = Eloc_flat.shape[0]
+
+        stats = nk.stats.statistics(Eloc_flat)
+
+        if hasattr(stats, "tau_corr_max"):
+            tau_corr = (
+                stats.tau_corr_max
+                if not np.isnan(stats.tau_corr_max)
+                else stats.tau_corr
+            )
+        else:
+            tau_corr = stats.tau_corr
+
+        ESS = n_samples / (1 + 2 * tau_corr)
+        efficiency = ESS / n_samples
+
+        print("=== SAMPLES AUTOCORRELATION ===")
+        print(f"Samples: {samples.shape}")
+        print(f"τ_corr = {stats.tau_corr:.2f} ")
+        print(f"ESS (Neff) = {ESS:.0f}/{n_samples} ({efficiency:.2f})")
+
+        acceptance = driver.state.sampler_state.acceptance
+
+        acorr_metrics = {
+            "acceptance": acceptance,
+            "tau_corr": tau_corr,
+            "ESS": ESS,
+            "efficiency": efficiency,
+        }
+        return acorr_metrics
+
+    def phase_stats(self, params, apply_fun, s_batch):
+        """Compute relevant metrics of the phase of the wavefunction.
+
+        Args:
+            params: The parameters of the model.
+            apply_fun: The apply function of the model.
+            s_batch: A batch of samples.
+
+        Returns:
+            A dictionary containing the mean and standard deviation of the
+            phase values.
+        """
+
+        phase_metrics = {}
+
+        log_psi = apply_fun(params, s_batch)
+        phases = np.imag(log_psi)
+        exp_phases = jnp.exp(1j * phases)
+
+        mean_phase = jnp.mean(exp_phases)
+        std_phase = jnp.std(exp_phases)
+
+        phase_metrics["phase"] = {
+            "mean": mean_phase,
+            "std": std_phase,
+        }
+
+        # PRINTS
+        print(f"phase = {mean_phase:.2f} ± {std_phase:.2f}")
+
+        return phase_metrics
 
     def __call__(self, step, log_data, driver):
         """Monitor the sanity of the training by printing relevant metrics.

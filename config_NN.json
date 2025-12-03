@@ -1,7 +1,7 @@
 {
     "NN": {
         
-        "selection": "Liang_MLPMarshall",
+        "selection": "MLP_MLP",
 
         "Liang_MLPMarshall":{
 
@@ -482,8 +482,8 @@
                 "modulus_setup":{
                     "module":"MLP",
                     "setup":{
-                        "hidden_alpha": [4, 8, 4, 2, 1],
-                        "activation": ["swish","swish","swish","swish","swish"],
+                        "hidden_alpha": [4, 4, 2, 1],
+                        "activation": ["swish","swish","swish","swish"],
                         "final_architecture": [1]
                     }
                 },
@@ -494,8 +494,8 @@
                         "Trans_0":{
                             "module":"MLP",
                             "setup":{
-                                "hidden_alpha": [4, 4, 2, 1],
-                                "activation": ["swish","swish","swish","swish","swish"],
+                                "hidden_alpha": [4, 2, 1],
+                                "activation": ["swish","swish","swish"],
                                 "final_architecture": [1]
                             }
                         },

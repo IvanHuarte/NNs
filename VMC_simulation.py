@@ -12,12 +12,6 @@ import sys
 
 import matplotlib
 
-matplotlib.rcParams["toolbar"] = "None"  # ← SOLO ESTA LÍNEA
-import matplotlib.pyplot as plt
-
-plt.ion()
-
-
 # os.environ["XLA_PYTHON_CLIENT_PREALLOCATE"] = "false"
 jax.config.update("jax_enable_x64", True)
 jax.config.update("jax_platform_name", "gpu")
@@ -30,12 +24,12 @@ from pathlib import Path
 # Importar módulos necesarios
 from VA_project.initialize_model import ModelFactory
 from VA_project.engine.runners import Runner
-from NN_module.callbacks import (
-    BestIterKeeper,
-    EnergyPlotter,
-    ModPhasePlotter,
-    dump_callback,
-)
+from NN_module.callback.BestIterKeeper import BestIterKeeper
+from NN_module.callback.EnergyPlotter import EnergyPlotter
+from NN_module.callback.ModPhasePlotter import ModPhasePlotter
+from NN_module.callback.SanityMonitor import SanityMonitor
+from NN_module.callback.utils import dump_callback
+
 from NN_module.saveNload import save_results
 from NN_module.initialize_NN import FactoryBuilder, print_tree
 from NN_module.initialize_sampler import SamplerFactory
@@ -137,7 +131,6 @@ for i, size in enumerate(sizes):
 
     ###  Reseting Hilbert space object and the observables ###
     hi = nk.hilbert.Spin(s=1 / 2, N=N, total_sz=0)
-    print(hi.all_states().shape)
     model_factory = ModelFactory(size, config_cm)
 
     for params in model_factory.get_params():
