@@ -221,6 +221,8 @@ def sampling_autocorr_metrics(hamiltonian, vstate):
 
     acceptance = vstate.sampler_state.acceptance
 
+    print(f"Acceptance rate = {acceptance:.2f} ({type(acceptance)})\n")
+
     acorr_metrics = {
         "acceptance": acceptance,
         "tau_corr": tau_corr,
@@ -264,7 +266,7 @@ def phase_metrics(vstate):
     }
 
     # PRINTS
-    print(f"phase = {mean_phase:.2f} ± {std_phase:.2f}")
+    print(f"phase = {mean_phase_abs:.2f} ± {std_phase:.2f}")
 
     return phase_metrics
 
@@ -294,6 +296,7 @@ def calc_metrics(hamiltonian, vstate, setup_dict):
 
     for metric_name, to_compute in setup_dict.items():
 
+        print(metric_name)
         if metric_name not in metrics_dict:
             raise NotImplementedError(
                 f"Unknown metric '{metric_name}'. Must be one of {list(metrics_dict.keys())}."
@@ -305,5 +308,7 @@ def calc_metrics(hamiltonian, vstate, setup_dict):
                 metrics[metric_name] = metric_func(hamiltonian, vstate)
             else:
                 metrics[metric_name] = metric_func(vstate)
+
+    print(f"Metrics: {metrics}\n")
 
     return metrics

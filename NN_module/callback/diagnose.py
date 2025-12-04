@@ -29,7 +29,7 @@ def diagnose_gradients(metrics):
     diagnosis = {}
 
     # 1. DIAGNOSIS GRADIENTS
-    grads = metrics
+    grads = metrics["gradients"]
 
     ### 1.- Norm per sample diagnosis
     norm_mean = grads["norm_per_sample"]["mean"]
@@ -182,7 +182,8 @@ def diagnose_sampling(metrics):
 
     diagnosis = {}
 
-    samples = metrics["samples"]
+    samples = metrics["sampling"]
+
     acc_rate = samples["acceptance"]
     tau_corr = samples["tau_corr"]
     ess = samples["ESS"]
@@ -231,6 +232,7 @@ def diagnose_phase(metrics):
     diagnosis = {}
 
     phase = metrics["phase"]
+
     mean_phase_abs = phase["mean"]
     std_phase = phase["std"]
     label_phase_mean = f"|⟨e^(i·ϕ)⟩| = {mean_phase_abs:.3f}"
@@ -261,7 +263,11 @@ def diagnose_phase(metrics):
             "status": phase_mean_status,
             "message": phase_mean_msg,
         },
-        "std": {"status": phase_std_status, "message": phase_std_msg},
+        "std": {
+            "label": label_phase_std,
+            "status": phase_std_status,
+            "message": phase_std_msg,
+        },
     }
     return diagnosis
 
@@ -289,7 +295,7 @@ def diagnose_metrics(metrics):
     for metric_type in metrics.keys():
         if metric_type in diagnose_dict:
             diag_func = diagnose_dict[metric_type]
-            diag_result = diag_func(metrics[metric_type])
+            diag_result = diag_func(metrics)
             diagnosis[metric_type] = diag_result
         else:
             NotImplementedError(f"Diagno")
