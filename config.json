@@ -4,8 +4,24 @@
 
    "callback":{
         "keeper": true,
-        "inline":   true,
-        "modphase": true
+        "inline":   false,
+        "modphase": false,
+        "sanity": true,
+        "sanity_setup":{
+            "do_each": 10,
+            "metrics": {
+                "gradients": true,
+                "sampling": true,
+                "phase": true
+            },
+            "diagnose": {
+                "verbose": 0,
+                "nan_inf": true,
+                "grad_norm": true,
+                "out_of_bounds": true
+            }
+            
+        }
    },
 
     "explore_mode": true,

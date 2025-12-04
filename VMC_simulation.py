@@ -107,6 +107,7 @@ sampler_setup = config["sampler"]
 enable_keeper = config["callback"]["keeper"]
 enable_inline = config["callback"]["inline"]
 enable_modphase = config["callback"]["modphase"]
+enable_sanity = config["callback"]["sanity"]
 callbacks = []
 
 
@@ -220,6 +221,9 @@ for i, size in enumerate(sizes):
             if enable_modphase:
                 inline_modphase = ModPhasePlotter(sim_config, x_ED)
                 callbacks.append(inline_modphase)
+            if enable_sanity:
+                sanity_monitor = SanityMonitor(config["callback"]["sanity_setup"])
+                callbacks.append(sanity_monitor)
 
             for i, (segment, seg_modes, lr_segment) in enumerate(
                 zip(segments, modes, lr_segments)
