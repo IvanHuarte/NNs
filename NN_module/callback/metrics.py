@@ -4,6 +4,8 @@ import jax.numpy as jnp
 import netket as nk
 import os
 
+from NN_module.ST_utils import print_tree
+
 os.environ["NETKET_EXPERIMENTAL_FFT_AUTOCORRELATION"] = "1"
 
 
@@ -143,7 +145,7 @@ def gradient_metrics(vstate):
 
     ### 4.- Percentage of leaves in different norm intervals
     threshold_points = jnp.logspace(-4, 3, num=8)
-    per_above = list(
+    intermediate = list( # 1e-4 < x < 1e3
         map(
             lambda threshold: percentage_above_threshold(
                 grad_norms_per_sample, threshold
@@ -151,23 +153,13 @@ def gradient_metrics(vstate):
             threshold_points,
         )
     )
-    per_below = [100 - per_above[0]]
+    lower = [100 - intermediate[0]] # < 1e-4
+    upper = [intermediate[-1]]  # > 1e3
 
-    percentaje_per_norm = per_below + [
-        per_above[i] - per_above[i + 1] for i in range(len(per_above) - 1)
-    ]
+    percentaje_per_norm = lower + [
+        intermediate[i] - intermediate[i + 1] for i in range(len(intermediate) - 1)
+    ] + upper
 
-    # PRINTS
-    print(f"⟨||∇logψ||⟩ = {mean_norm_sample} ± {total_norm_std:.2e}")
-    print(f"||∇global|| = {global_norm:.2e}")
-    print(f"Re/Im ratio: {O_real_norm/O_imag_norm:.2f}")
-    print(f"<1e-4: {100-per_above[0]:.3f}%\n")
-    for i in range(len(threshold_points)):
-        if i != len(threshold_points) - 1:
-            print(
-                f"Interval {threshold_points[i]:.0e} <---> {threshold_points[i+1]:.0e}: {percentaje_per_norm[i+1]:.3f}%"
-            )
-            print()
 
     grad_metrics["percentage_norm_intervals"] = {
         "log_intervals": threshold_points,
@@ -214,14 +206,7 @@ def sampling_autocorr_metrics(hamiltonian, vstate):
     ESS = n_samples / (1 + 2 * tau_corr)
     efficiency = ESS / n_samples
 
-    print("=== SAMPLES AUTOCORRELATION ===")
-    print(f"Samples: {samples.shape}")
-    print(f"τ_corr = {stats.tau_corr:.2f} ")
-    print(f"ESS (Neff) = {ESS:.0f}/{n_samples} ({efficiency:.2f})")
-
     acceptance = vstate.sampler_state.acceptance
-
-    print(f"Acceptance rate = {acceptance:.2f} ({type(acceptance)})\n")
 
     acorr_metrics = {
         "acceptance": acceptance,
@@ -260,13 +245,10 @@ def phase_metrics(vstate):
     mean_phase_abs = jnp.abs(mean_phase)  # |⟨e^{iϕ}⟩|
     std_phase = jnp.std(exp_phases)
 
-    phase_metrics["phase"] = {
+    phase_metrics= {
         "mean": mean_phase_abs,
         "std": std_phase,
     }
-
-    # PRINTS
-    print(f"phase = {mean_phase_abs:.2f} ± {std_phase:.2f}")
 
     return phase_metrics
 
@@ -296,7 +278,6 @@ def calc_metrics(hamiltonian, vstate, setup_dict):
 
     for metric_name, to_compute in setup_dict.items():
 
-        print(metric_name)
         if metric_name not in metrics_dict:
             raise NotImplementedError(
                 f"Unknown metric '{metric_name}'. Must be one of {list(metrics_dict.keys())}."
@@ -308,7 +289,5 @@ def calc_metrics(hamiltonian, vstate, setup_dict):
                 metrics[metric_name] = metric_func(hamiltonian, vstate)
             else:
                 metrics[metric_name] = metric_func(vstate)
-
-    print(f"Metrics: {metrics}\n")
 
     return metrics

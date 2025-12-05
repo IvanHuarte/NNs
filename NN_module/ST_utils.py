@@ -4,6 +4,19 @@ import flax
 import optax
 
 
+def print_tree(tree, prefix="", values=False):
+    for key, val in tree.items():
+
+        if isinstance(val, dict):
+            print(prefix + str(key))
+            print_tree(val, prefix + "  ", values=values)
+        else:
+            if values:
+                print(prefix + f"{str(key)}: {str(val)}")
+            else:
+                print(prefix + str(key))
+
+
 def make_mask(params, predicate):
     """Genera una máscara con la misma estructura que `params`,
     donde se aplica `predicate(path)` a cada subárbol.

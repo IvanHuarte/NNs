@@ -6,6 +6,7 @@ import jax.numpy as jnp
 
 import NN_module.models
 from NN_module.models import REGISTRY, EXTERNAL_ARGS
+from NN_module.ST_utils import print_tree
 
 activation_dict = {
     "sigmoid": nn.sigmoid,
@@ -19,18 +20,6 @@ activation_dict = {
     "relu": nn.relu,
 }
 
-
-def print_tree(tree, prefix="", values=False):
-    for key, val in tree.items():
-
-        if isinstance(val, dict):
-            print(prefix + str(key))
-            print_tree(val, prefix + "  ", values=values)
-        else:
-            if values:
-                print(prefix + f"{str(key)}: {str(val)}")
-            else:
-                print(prefix + str(key))
 
 
 class FactoryBuilder:

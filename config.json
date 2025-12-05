@@ -8,21 +8,17 @@
         "modphase": false,
         "sanity": true,
         "sanity_setup":{
-            "do_each": 5,
+            "do_each": 50,
+            "mode": "rich",
+            "verbose": 3,
             "metrics": {
                 "gradients": true,
-                "sampling": true,
-                "phase": true
-            },
-            "diagnose": {
-                "verbose": 0,
-                "nan_inf": true,
-                "grad_norm": true,
-                "out_of_bounds": true
+                "sampling":  true,
+                "phase":     true
             }
-            
         }
-   },
+            
+    },
 
     "explore_mode": true,
 
@@ -69,7 +65,7 @@
         "lr_name":"segment",
         "setup":{
             "segments":[
-                [50]
+                [500]
             ],
             "mode":[
                 ["B"]

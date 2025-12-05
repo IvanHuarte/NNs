@@ -1,3 +1,6 @@
+from NN_module.ST_utils import print_tree
+
+
 def msg_reim_ratio(ratio, name):
     if name == "global":
         if 0.5 < ratio < 5:
@@ -38,23 +41,23 @@ def diagnose_gradients(metrics):
     # Mean
     label_mean = f"⟨||∇logψ||⟩_s = {norm_mean:.2e}"
     if norm_mean < 1e-3:
-        norm_status = "💚💚💚 CONVERGIDO"
-        norm_msg = "Gradientes muy pequeños → Buena convergencia"
+        norm_status = "💚💚💚"
+        norm_msg = "CONVERGIDO. Gradientes muy pequeños → Buena convergencia"
     elif norm_mean < 1:
-        norm_status = "✅ SANO"
-        norm_msg = "Gradientes normales → Entrenando bien"
+        norm_status = "✅"
+        norm_msg = "SANO. Gradientes normales → Entrenando bien"
     elif norm_mean < 10:
-        norm_status = "⚠️ ALTO"
-        norm_msg = "Gradientes grandes → Monitorear LR 📊"
+        norm_status = "⚠️"
+        norm_msg = "ALTO. Gradientes grandes → Monitorear LR 📊"
     elif norm_mean < 100:
-        norm_status = "⚠️ MUY ALTO"
-        norm_msg = "Gradientes muy grandes → Reducir un poco LR 📊"
+        norm_status = "⚠️⚠️"
+        norm_msg = " MUY ALTO. Gradientes muy grandes → Reducir un poco LR 📊"
     elif norm_mean > 100:
-        norm_status = "🔴 EXPLOSIVO"
-        norm_msg = "Gradientes peligrosos → Reduce LR! 📉"
+        norm_status = "🔴"
+        norm_msg = " EXPLOSIVO. Gradientes peligrosos → Reduce LR! 📉"
     else:
-        norm_status = "❓ DESCONOCIDO"
-        norm_msg = "Valor de gradientes inesperado → Revisa"
+        norm_status = "❓"
+        norm_msg = " DESCONOCIDO. Valor de gradientes inesperado → Revisa"
 
     # Std
     std_ratio = norm_std / norm_mean
@@ -66,7 +69,7 @@ def diagnose_gradients(metrics):
         std_status = "🟡"
         std_msg = f"Variabilidad moderada, posible sampling disbalanceado."
     elif std_ratio < 5:
-        std_status = "🟡⚠️"
+        std_status = "⚠️"
         std_msg = f"Alta variabilidad entre muestras, revisar sampler."
     else:
         std_status = "🔴"
@@ -88,7 +91,7 @@ def diagnose_gradients(metrics):
         global_status = "🟡"
         global_msg = f"Escala moderada, monitorear entrenamiento."
     elif global_norm < 100:
-        global_status = "🟡⚠️"
+        global_status = "⚠️"
         global_msg = f"Gradientes grandes, posible inestabilidad."
     elif global_norm >= 100:
         global_status = "🔴"
@@ -150,12 +153,13 @@ def diagnose_gradients(metrics):
     threshold_points = grads["percentage_norm_intervals"]["log_intervals"]
     percentages = grads["percentage_norm_intervals"]["percentages"]
 
-    label_percentages = [f"< 1e-4:                {percentages[0]:.3f}%"]
+    label_percentages = [f"    < 1e-04:        {percentages[0]:.3f} %"]
     for i in range(len(threshold_points)):
         if i != len(threshold_points) - 1:
             label_percentages.append(
-                f"Interval {threshold_points[i]:.0e} <--> {threshold_points[i+1]:.0e}: {percentages[i+1]:.3f}%"
+                f"{threshold_points[i]:.0e} <--> {threshold_points[i+1]:.0e}:   {percentages[i+1]:.3f} %"
             )
+    label_percentages.append(f"   > 1e+03:        {percentages[-1]:.3f} %")
 
     label_percentages = label_percentages[::-1]
 
@@ -171,6 +175,7 @@ def diagnose_gradients(metrics):
         grad_dist_msg = "Entrenando activamente"
 
     diagnosis["percentage_norm_intervals"] = {
+        "label": label_percentages,
         "status": grad_dist_status,
         "message": grad_dist_msg,
     }
@@ -217,6 +222,9 @@ def diagnose_sampling(metrics):
     if ess_eff < 0.1:
         esseff_status = "🟡"
         esseff_msg = "Eficiencia baja"
+    else:
+        esseff_status = "🟢"
+        esseff_msg = "Eficiencia aceptable"
 
     diagnosis = {
         "acceptance": {"label": label_accept, "status": acc_status, "message": acc_msg},
@@ -257,7 +265,7 @@ def diagnose_phase(metrics):
         phase_std_status = "🟢"
         phase_std_msg = "Varianza de fase aceptable"
 
-    diagnosis["phase"] = {
+    diagnosis = {
         "mean": {
             "label": label_phase_mean,
             "status": phase_mean_status,
@@ -298,13 +306,23 @@ def diagnose_metrics(metrics):
             diag_result = diag_func(metrics)
             diagnosis[metric_type] = diag_result
         else:
-            NotImplementedError(f"Diagno")
+            NotImplementedError(f"Diagnosis for metric '{metric_type}' not implemented.")
 
     # 4. GENERAL STATUS
-    statuses = [d["status"][0] for d in diagnosis.values()]
+    def recursive_extract_status(d):
+        """Extrae recursivamente los estados de un diccionario anidado."""
+        statuses = []
+        for key, value in d.items():
+            if isinstance(value, dict):
+                statuses.extend(recursive_extract_status(value))
+            elif key == "status":
+                statuses.append(d[key])
+        return statuses
+    
+    statuses = recursive_extract_status(diagnosis)
     overall_status = (
         "🟢"
-        if all(s == "🟢" for s in statuses)
+        if all(s in ["🟢","✅","💚💚💚"] for s in statuses)
         else "🟡" if "🔴" not in statuses else "🔴"
     )
 
@@ -316,5 +334,6 @@ def diagnose_metrics(metrics):
             else "Monitorear" if overall_status == "🟡" else "Intervenir"
         ),
     }
+
 
     return diagnosis
