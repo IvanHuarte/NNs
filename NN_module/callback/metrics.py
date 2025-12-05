@@ -1,8 +1,9 @@
+import os
+import warnings
 import numpy as np
 import jax
 import jax.numpy as jnp
 import netket as nk
-import os
 
 from NN_module.ST_utils import print_tree
 
@@ -108,25 +109,33 @@ def gradient_metrics(vstate):
 
     # In Modulus and Phase nets
     O_modulus = O["ModulusNet"]
-    O_phase = O["PhaseNet"]
     O_mod_re, O_mod_im = extract_real_imag(O_modulus)
-    O_ph_re, O_ph_im = extract_real_imag(O_phase)
     norms_mod_re = tree_norm(O_mod_re, axis=0)  # Normas por muestra
     norms_mod_im = tree_norm(O_mod_im, axis=0)
-    norms_ph_re = tree_norm(O_ph_re, axis=0)
-    norms_ph_im = tree_norm(O_ph_im, axis=0)
     O_mod_re_total = jax.tree_util.tree_reduce(
         lambda x, y: x + y, jax.tree_util.tree_map(jnp.mean, norms_mod_re)
     )
     O_mod_im_total = jax.tree_util.tree_reduce(
         lambda x, y: x + y, jax.tree_util.tree_map(jnp.mean, norms_mod_im)
     )
-    O_ph_re_total = jax.tree_util.tree_reduce(
-        lambda x, y: x + y, jax.tree_util.tree_map(jnp.mean, norms_ph_re)
-    )
-    O_ph_im_total = jax.tree_util.tree_reduce(
-        lambda x, y: x + y, jax.tree_util.tree_map(jnp.mean, norms_ph_im)
-    )
+
+    try:
+        O_phase = O["PhaseNet"]
+        O_ph_re, O_ph_im = extract_real_imag(O_phase)
+        norms_ph_re = tree_norm(O_ph_re, axis=0)
+        norms_ph_im = tree_norm(O_ph_im, axis=0)
+        O_ph_re_total = jax.tree_util.tree_reduce(
+            lambda x, y: x + y, jax.tree_util.tree_map(jnp.mean, norms_ph_re)
+        )
+        O_ph_im_total = jax.tree_util.tree_reduce(
+            lambda x, y: x + y, jax.tree_util.tree_map(jnp.mean, norms_ph_im)
+        )
+    except KeyError:
+        O_ph_re_total, O_ph_im_total = jnp.nan, jnp.nan
+        warnings.warn("PhaseNet not present in architecture", UserWarning)
+        
+    except (ValueError, TypeError, MemoryError, RuntimeError) as e:
+        raise e
 
     grad_metrics["ReIm_norms"] = {
         "global": {

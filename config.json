@@ -8,7 +8,7 @@
         "modphase": false,
         "sanity": true,
         "sanity_setup":{
-            "do_each": 50,
+            "do_each": 5,
             "mode": "rich",
             "verbose": 3,
             "metrics": {
@@ -83,7 +83,7 @@
             "segment":{
                 "lr":[
                     
-                    0.02
+                    0.5
                     
                 ]
             }

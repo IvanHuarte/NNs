@@ -116,6 +116,7 @@ class ConvAPS(nn.Module):
     feature_group_count: int = 1
     padding: str = "SAME"
     dtype: Any = REAL_DTYPE
+    param_dtype: Any = REAL_DTYPE
     use_bias: bool = False
 
     @nn.compact
@@ -153,10 +154,10 @@ class DepthPointwiseConv(nn.Module):
 
         Ch_in = x.shape[-1]
 
-        mask = get_mask()
-        mask = jnp.broadcast_to(mask[:, :, None, None], (*mask.shape, 1, Ch_in))
-        if self.kernel[1] == 1:
-            mask = None
+        # mask = get_mask()
+        # mask = jnp.broadcast_to(mask[:, :, None, None], (*mask.shape, 1, Ch_in))
+        # if self.kernel[1] == 1:
+        #     mask = None
 
         # Depth-wise convolution (Aplica mascara adyacente a cada canal)
         x = ConvAPS(
@@ -291,12 +292,12 @@ class StageBlock(nn.Module):
         # print(f"Beginning Stage")
         # print(f"Input shape: {x.shape}")
 
-        mask = get_mask()
-        mask = jnp.broadcast_to(
-            mask[:, :, None, None], (*mask.shape, x.shape[-1], self.channels)
-        )
-        if self.kernel[1] == 1:
-            mask = None
+        # mask = get_mask()
+        # mask = jnp.broadcast_to(
+        #     mask[:, :, None, None], (*mask.shape, x.shape[-1], self.channels)
+        # )
+        # if self.kernel[1] == 1:
+        #     mask = None
 
         # Convolutional token embedding
         x = ConvAPS(

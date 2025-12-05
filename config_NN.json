@@ -1,7 +1,7 @@
 {
     "NN": {
         
-        "selection": "MLP_MLP",
+        "selection": "MarshallModulus",
 
         "Liang_MLPMarshall":{
 
@@ -26,8 +26,8 @@
                         "Trans_0":{
                             "module":"MLP",
                             "setup":{
-                                "hidden_alpha": [8, 4, 2, 1],
-                                "activation": ["swish","swish","swish","swish"],
+                                "hidden_alpha": [1],
+                                "activation": ["swish"],
                                 "final_architecture": [1]
                             }
                         },
@@ -518,12 +518,12 @@
                 "modulus_setup":{
                     "module":"CvTaps",
                     "setup":{
-                        "n_CP_blocks": [2, 2],
-                        "channels": [64, 32],
-                        "attn_heads": [4, 4],
-                        "strides": [[2,2], [1,1]],
+                        "n_CP_blocks": [1, 1],
+                        "channels": [20, 10],
+                        "attn_heads": [2, 2],
+                        "strides": [[1,1], [1,1]],
                         "kernel": [3, 3],
-                        "final_architecture": [128, 5]
+                        "final_architecture": [64, 5]
                     }
                 },
                 "phase_setup":{

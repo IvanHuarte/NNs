@@ -61,7 +61,7 @@ def diagnose_gradients(metrics):
 
     # Std
     std_ratio = norm_std / norm_mean
-    label_std = f"σ[||∇logψ||] = {norm_std:.2e}  (σ/μ={std_ratio:.2f})"
+    label_std = f"σ[||∇logψ||]_s = {norm_std:.2e}  (σ/μ={std_ratio:.2f})"
     if std_ratio < 1:
         std_status = "🟢"
         std_msg = f"Variabilidad normal entre muestras."
