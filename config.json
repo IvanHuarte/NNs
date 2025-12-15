@@ -10,7 +10,7 @@
         "sanity_setup":{
             "do_each": 5,
             "mode": "rich",
-            "verbose": 3,
+            "verbose": 100,
             "metrics": {
                 "gradients": true,
                 "sampling":  true,
@@ -65,7 +65,7 @@
         "lr_name":"segment",
         "setup":{
             "segments":[
-                [500]
+                [10000]
             ],
             "mode":[
                 ["B"]
@@ -83,7 +83,7 @@
             "segment":{
                 "lr":[
                     
-                    0.5
+                    0.001
                     
                 ]
             }

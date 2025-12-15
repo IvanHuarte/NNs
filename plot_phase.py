@@ -15,7 +15,7 @@ from pathlib import Path
 
 from NN_module.saveNload import load_vstate
 from NN_module.label_utils import get_filenames_from_settings
-from NN_module.NN_utils import modphase_extended
+from NN_module.observables import modphase_extended
 from NN_module.correlations import correlations_ED, correlations_vstate
 
 # Añadir el directorio chebyoxa al path

@@ -133,7 +133,7 @@ def gradient_metrics(vstate):
     except KeyError:
         O_ph_re_total, O_ph_im_total = jnp.nan, jnp.nan
         warnings.warn("PhaseNet not present in architecture", UserWarning)
-        
+
     except (ValueError, TypeError, MemoryError, RuntimeError) as e:
         raise e
 
@@ -154,7 +154,7 @@ def gradient_metrics(vstate):
 
     ### 4.- Percentage of leaves in different norm intervals
     threshold_points = jnp.logspace(-4, 3, num=8)
-    intermediate = list( # 1e-4 < x < 1e3
+    intermediate = list(  # 1e-4 < x < 1e3
         map(
             lambda threshold: percentage_above_threshold(
                 grad_norms_per_sample, threshold
@@ -162,13 +162,14 @@ def gradient_metrics(vstate):
             threshold_points,
         )
     )
-    lower = [100 - intermediate[0]] # < 1e-4
+    lower = [100 - intermediate[0]]  # < 1e-4
     upper = [intermediate[-1]]  # > 1e3
 
-    percentaje_per_norm = lower + [
-        intermediate[i] - intermediate[i + 1] for i in range(len(intermediate) - 1)
-    ] + upper
-
+    percentaje_per_norm = (
+        lower
+        + [intermediate[i] - intermediate[i + 1] for i in range(len(intermediate) - 1)]
+        + upper
+    )
 
     grad_metrics["percentage_norm_intervals"] = {
         "log_intervals": threshold_points,
@@ -227,7 +228,7 @@ def sampling_autocorr_metrics(hamiltonian, vstate):
     return acorr_metrics
 
 
-def phase_metrics(vstate):
+def phase_metrics(vstate, q_max=4):
     """Compute relevant metrics of the phase of the wavefunction.
 
     Args:
@@ -248,16 +249,21 @@ def phase_metrics(vstate):
 
     log_psi = apply_fun(vstate.variables, samples)
     phases = np.imag(log_psi)
-    exp_phases = jnp.exp(1j * phases)
 
-    mean_phase = jnp.mean(exp_phases)  # ⟨e^{iϕ}⟩
-    mean_phase_abs = jnp.abs(mean_phase)  # |⟨e^{iϕ}⟩|
-    std_phase = jnp.std(exp_phases)
+    exps = jnp.arange(1, q_max + 1)[:, None]
+    phases = jnp.tile(phases, (q_max, 1))
 
-    phase_metrics= {
-        "mean": mean_phase_abs,
-        "std": std_phase,
-    }
+    q_phases = jnp.exp(1j * exps * phases)
+
+    mean_qphase = jnp.abs(jnp.mean(q_phases, axis=-1))  # |⟨e^{qiϕ}⟩|
+    std_qphase = jnp.std(q_phases, axis=-1)
+
+    q_dict = {}
+
+    for i in range(1, q_max + 1):
+        q_dict[f"q = {i}"] = {"mean": mean_qphase[i - 1], "std": std_qphase[i - 1]}
+
+    phase_metrics = {**q_dict}
 
     return phase_metrics
 

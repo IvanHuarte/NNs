@@ -214,7 +214,6 @@ for i, size in enumerate(sizes):
                     total_epochs, H, N, baseline=1e-8, mode="always"
                 )
                 callbacks.append(keeper.update)
-            # keeper.filename = 'Somewhere' #It allows you to store the parameters of the model for the state with lowest energy found.
             if enable_inline:
                 inline_energy = EnergyPlotter(H, N, E_ED=E_ED)
                 callbacks.append(inline_energy)

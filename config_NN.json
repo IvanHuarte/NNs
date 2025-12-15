@@ -1,7 +1,38 @@
 {
     "NN": {
         
-        "selection": "MarshallModulus",
+        "selection": "ViT2D_Marshall",
+
+        "ViT2D_Marshall":{
+
+            "module": "SplitTraining",
+            "setup":{
+
+                "modulus_setup":{
+                    "module":"ViT2D",
+                    "setup": {
+                        "token_size": [2, 1],
+                        "embedding_d": 32,
+                        "n_heads": 2,
+                        "n_blocks": 1,
+                        "n_ffn_layers": 1,
+                        "final_architecture": [64, 5]
+                    }
+                },
+                
+                "phase_setup":{
+                    "module":"MarshallSign",
+                    "setup":{
+                        "radians":true
+                    }
+                },
+                
+                "symm_Z2": true,
+                "trivial_Z2": true,
+                "symm_2D": false,
+                "squeeze":true
+            }         
+        },
 
         "Liang_MLPMarshall":{
 
@@ -348,6 +379,8 @@
                 "squeeze":true
             }         
         },
+
+
 
         
         "ViT2D_MLP":{

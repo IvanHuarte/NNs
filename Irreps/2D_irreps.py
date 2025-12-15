@@ -1,4 +1,6 @@
-# %%
+#!/home/ihuarte/miniconda3/envs/conda_env/bin/python
+
+#  %%
 import enum
 
 import jax
@@ -7,7 +9,7 @@ import jax.numpy as jnp
 import jax.numpy.linalg as jla
 import jax.typing
 import netket as nk
-import numpy as onp
+import numpy as np
 import numpy.linalg
 import scipy as sp
 import scipy.linalg
@@ -31,11 +33,11 @@ class Z2_Irrep(enum.Enum):
 edges = []
 for i_a in range(N_A):
     for j_a in range(N_B):
-        center = onp.ravel_multi_index((i_a, j_a), (N_A, N_B))
-        right_1 = onp.ravel_multi_index(((i_a + 1) % N_A, j_a), (N_A, N_B))
-        right_2 = onp.ravel_multi_index(((i_a + 2) % N_A, j_a), (N_A, N_B))
-        up_1 = onp.ravel_multi_index((i_a, (j_a + 1) % N_B), (N_A, N_B))
-        up_2 = onp.ravel_multi_index((i_a, (j_a + 2) % N_B), (N_A, N_B))
+        center = np.ravel_multi_index((i_a, j_a), (N_A, N_B))
+        right_1 = np.ravel_multi_index(((i_a + 1) % N_A, j_a), (N_A, N_B))
+        right_2 = np.ravel_multi_index(((i_a + 2) % N_A, j_a), (N_A, N_B))
+        up_1 = np.ravel_multi_index((i_a, (j_a + 1) % N_B), (N_A, N_B))
+        up_2 = np.ravel_multi_index((i_a, (j_a + 2) % N_B), (N_A, N_B))
         edges.append([center, right_1, 0])
         edges.append([center, right_2, 1])
         edges.append([center, up_1, 0])
@@ -126,8 +128,8 @@ print("TOTAL:", sum(bases[irrep].shape[1] for irrep in bases))
 
 # %%
 # Build the joint basis.
-adapted_basis = onp.concatenate(list(bases.values()), axis=1)
-print("RANK OF THE BASIS MATRIX:", onp.linalg.matrix_rank(adapted_basis))
+adapted_basis = np.concatenate(list(bases.values()), axis=1)
+print("RANK OF THE BASIS MATRIX:", np.linalg.matrix_rank(adapted_basis))
 
 # %%
 # Transform the Hamiltonian to the symmetry-adapted basis.
@@ -135,7 +137,7 @@ adapted_matrix = adapted_basis.conj().T @ hamiltonian_matrix @ adapted_basis
 
 # %%
 # Visually check if the matrix is block-diagonal.
-abs_matrix = onp.abs(adapted_matrix)
+abs_matrix = np.abs(adapted_matrix)
 
 plt.matshow(abs_matrix)
 plt.colorbar()
@@ -157,8 +159,8 @@ plt.figure(figsize=(20, 20))
 
 eigvals = {}
 
-global_min = onp.inf
-global_max = -onp.inf
+global_min = np.inf
+global_max = -np.inf
 for i_z2_irrep, z2_irrep in enumerate(Z2_Irrep):
     plt.subplot(1, 2, i_z2_irrep + 1)
     for q_a in range(N_A):

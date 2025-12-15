@@ -239,44 +239,47 @@ def diagnose_phase(metrics):
 
     diagnosis = {}
 
-    phase = metrics["phase"]
+    phase_main = metrics["phase"]
 
-    mean_phase_abs = phase["mean"]
-    std_phase = phase["std"]
-    label_phase_mean = f"|⟨e^(i·ϕ)⟩| = {mean_phase_abs:.3f}"
-    label_phase_std = f"σ[e^(i·ϕ)] = {std_phase:.3f}"
+    for q, (key, value) in enumerate(phase_main.items()):
 
-    # 3. DIAGNOSIS PHASE
+        mean_phase_abs = value["mean"]
+        std_phase = value["std"]
 
-    if mean_phase_abs > 0.8:
-        phase_mean_status = "🟢"
-        phase_mean_msg = "Fase estable → Sin phase problem"
-    elif mean_phase_abs > 0.3:
-        phase_mean_status = "🟡"
-        phase_mean_msg = "Phase problem moderado → Monitorear"
-    else:
-        phase_mean_status = "🔴"
-        phase_mean_msg = "🔴 GRAVE phase problem → Revisa ansatz"
+        label_phase_mean = f"{mean_phase_abs:.3f}"
+        label_phase_std = f"{std_phase:.3f}"
 
-    if std_phase > 3:
-        phase_std_status = "🟡"
-        phase_std_msg = "Alta varianza de fase"
-    else:
-        phase_std_status = "🟢"
-        phase_std_msg = "Varianza de fase aceptable"
+        # 3. DIAGNOSIS PHASE
 
-    diagnosis = {
-        "mean": {
-            "label": label_phase_mean,
-            "status": phase_mean_status,
-            "message": phase_mean_msg,
-        },
-        "std": {
-            "label": label_phase_std,
-            "status": phase_std_status,
-            "message": phase_std_msg,
-        },
-    }
+        if mean_phase_abs > 0.8:
+            phase_mean_status = "🟢"
+            phase_mean_msg = "Estructura detectada"
+        elif mean_phase_abs > 0.3:
+            phase_mean_status = "🟡"
+            phase_mean_msg = "Moderado. ¿Esta en combinacion con otros?"
+        else:
+            phase_mean_status = "🔴"
+            phase_mean_msg = "Armonico nulo"
+
+        if std_phase > 3:
+            phase_std_status = "🟡"
+            phase_std_msg = "Alta varianza de fase"
+        else:
+            phase_std_status = "🟢"
+            phase_std_msg = "Varianza de fase aceptable"
+
+        diagnosis[key] = {
+            "mean": {
+                "label": label_phase_mean,
+                "status": phase_mean_status,
+                "message": phase_mean_msg,
+            },
+            "std": {
+                "label": label_phase_std,
+                "status": phase_std_status,
+                "message": phase_std_msg,
+            },
+        }
     return diagnosis
 
 
@@ -306,7 +309,9 @@ def diagnose_metrics(metrics):
             diag_result = diag_func(metrics)
             diagnosis[metric_type] = diag_result
         else:
-            NotImplementedError(f"Diagnosis for metric '{metric_type}' not implemented.")
+            NotImplementedError(
+                f"Diagnosis for metric '{metric_type}' not implemented."
+            )
 
     # 4. GENERAL STATUS
     def recursive_extract_status(d):
@@ -318,11 +323,11 @@ def diagnose_metrics(metrics):
             elif key == "status":
                 statuses.append(d[key])
         return statuses
-    
+
     statuses = recursive_extract_status(diagnosis)
     overall_status = (
         "🟢"
-        if all(s in ["🟢","✅","💚💚💚"] for s in statuses)
+        if all(s in ["🟢", "✅", "💚💚💚"] for s in statuses)
         else "🟡" if "🔴" not in statuses else "🔴"
     )
 
@@ -334,6 +339,5 @@ def diagnose_metrics(metrics):
             else "Monitorear" if overall_status == "🟡" else "Intervenir"
         ),
     }
-
 
     return diagnosis
