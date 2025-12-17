@@ -78,6 +78,7 @@ def display_phase(data, verbose, message_counter):
     return table, message_counter
 
 
+
 def display_diagnosis_sanity_monitor(diagnosis: dict, verbose: int = 3) -> None:
     """
     Displays a beautiful, organized sanity monitor for VMC quantum simulation diagnostics.

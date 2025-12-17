@@ -131,7 +131,7 @@ for i, size in enumerate(sizes):
     write_folder = write_folder_training + f"UUID_{sim_uuid}/"
 
     ###  Reseting Hilbert space object and the observables ###
-    hi = nk.hilbert.Spin(s=1 / 2, N=N, total_sz=0)
+    hi = nk.hilbert.Spin(s=1 / 2, N=N, total_sz=None)
     model_factory = ModelFactory(size, config_cm)
 
     for params in model_factory.get_params():

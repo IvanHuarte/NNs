@@ -24,7 +24,7 @@
 
     "sampler":{
         "sampler":{
-            "rules": ["ExchangeJ1J2"],
+            "rules": ["LocalRule"],
             "prules": [0.75, 0.25]
         },
         "n_ranks": 1,
