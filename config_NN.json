@@ -1,7 +1,74 @@
 {
     "NN": {
         
-        "selection": "ViT2D_Marshall",
+        "selection": "ViT2D_Szabo",
+
+
+        
+        "ViT2D_MLP":{
+
+            "module": "SplitTraining",
+            "setup":{
+
+                "modulus_setup":{
+                    "module":"ViT2D",
+                    "setup": {
+                        "token_size": [2, 1],
+                        "embedding_d": 64,
+                        "n_heads": 4,
+                        "n_blocks": 2,
+                        "n_ffn_layers": 2,
+                        "final_architecture": [64, 5]
+                    }
+                },
+                
+                "phase_setup":{
+                    "module":"MLP",
+                    "setup":{
+                        "hidden_alpha": [8, 4, 2, 1],
+                        "activation": ["swish","swish","swish","swish"],
+                        "final_architecture": [1]
+                    }
+                },
+                
+            "symm_Z2": true,
+            "trivial_Z2": true,
+            "symm_2D": false,
+            "squeeze":true
+            }
+        },
+
+        "ViT2D_Szabo":{
+
+            "module": "SplitTraining",
+            "setup":{
+
+                "modulus_setup":{
+                    "module":"ViT2D",
+                    "setup": {
+                        "token_size": [2, 1],
+                        "embedding_d": 32,
+                        "n_heads": 2,
+                        "n_blocks": 1,
+                        "n_ffn_layers": 1,
+                        "final_architecture": [64, 5]
+                    }
+                },
+                
+                "phase_setup":{
+                    "module":"CNNSzabo",
+                    "setup":{
+                        "channels": 50,
+                        "use_bias": true
+                    }
+                },
+                
+            "symm_Z2": true,
+            "trivial_Z2": true,
+            "symm_2D": false,
+            "squeeze":true
+            }
+        },
 
         "ViT2D_Marshall":{
 
@@ -79,25 +146,6 @@
 
             }         
         },
-
-        "module": "Transversal",
-                    "setup":{
-                        "Trans_0":{
-                            "module":"MLP",
-                            "setup":{
-                                "hidden_alpha": [8, 4, 2, 1],
-                                "activation": ["swish","swish","swish","swish"],
-                                "final_architecture": [1]
-                            }
-                        },
-                        "Trans_1":{
-                            "module":"MarshallSign",
-                            "setup":{
-                                "radians":true
-                            }
-                        },
-                        "operation": "sum_angles"                    
-                    },
 
         "CNN_Szabo":{
 
@@ -237,37 +285,6 @@
             }
         },
 
-        "ViT2D_Szabo":{
-
-            "module": "SplitTraining",
-            "setup":{
-
-                "modulus_setup":{
-                    "module":"ViT2D",
-                    "setup": {
-                        "token_size": [2, 1],
-                        "embedding_d": 32,
-                        "n_heads": 4,
-                        "n_blocks": 2,
-                        "n_ffn_layers": 2,
-                        "final_architecture": [64, 5]
-                    }
-                },
-                
-                "phase_setup":{
-                    "module":"CNNSzabo",
-                    "setup":{
-                        "channels": 50,
-                        "use_bias": true
-                    }
-                },
-                
-            "symm_Z2": true,
-            "trivial_Z2": true,
-            "symm_2D": false,
-            "squeeze":true
-            }
-        },
 
         "CNN_Carrete":{
 
@@ -380,41 +397,6 @@
             }         
         },
 
-
-
-        
-        "ViT2D_MLP":{
-
-            "module": "SplitTraining",
-            "setup":{
-
-                "modulus_setup":{
-                    "module":"ViT2D",
-                    "setup": {
-                        "token_size": [2, 1],
-                        "embedding_d": 64,
-                        "n_heads": 4,
-                        "n_blocks": 2,
-                        "n_ffn_layers": 2,
-                        "final_architecture": [64, 5]
-                    }
-                },
-                
-                "phase_setup":{
-                    "module":"MLP",
-                    "setup":{
-                        "hidden_alpha": [8, 4, 2, 1],
-                        "activation": ["swish","swish","swish","swish"],
-                        "final_architecture": [1]
-                    }
-                },
-                
-            "symm_Z2": true,
-            "trivial_Z2": true,
-            "symm_2D": false,
-            "squeeze":true
-            }
-        },
 
         "CvTaps_MLP":{
 
