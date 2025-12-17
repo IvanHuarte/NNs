@@ -290,7 +290,6 @@ for i, size in enumerate(sizes):
                     # vstate.sampler.reset(vstate.model.apply, vstate.variables["params"])
                     mean, std, psi = phase_stats_vstate(vstate)
                     print(f"VS phase: {mean} \u00b1 {std}  ({psi})")
-                    sys.exit(0)
 
                     # P1 = vstate.parameters
                     # compare_params(P0, P1)
