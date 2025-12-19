@@ -25,7 +25,7 @@
                 "phase_setup":{
                     "module":"MLP",
                     "setup":{
-                        "hidden_alpha": [8, 4, 2, 1],
+                        "hidden_alpha": [4, 2, 2, 1],
                         "activation": ["swish","swish","swish","swish"],
                         "final_architecture": [1]
                     }

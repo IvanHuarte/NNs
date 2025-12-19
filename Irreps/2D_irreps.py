@@ -87,7 +87,6 @@ inversion_matrix = create_permutation_matrix(lambda x: -x)
 # %%
 # Extract the symmetry-adapted bases for each irrep.
 
-
 def create_projector(q_a: int, q_b: int, z2_irrep: Z2_Irrep):
     "Create an unnormalized projection operator for a given irrep."
     if q_a < 0 or q_a >= N_A or q_b < 0 or q_b >= N_B:

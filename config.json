@@ -5,7 +5,7 @@
    "callback":{
         "keeper": true,
         "inline":   false,
-        "modphase": false,
+        "modphase": true,
         "sanity": true,
         "sanity_setup":{
             "do_each": 500,
@@ -83,7 +83,7 @@
             "segment":{
                 "lr":[
                     
-                    0.1, 0.01
+                    0.05, 0.01
                     
                 ]
             }
