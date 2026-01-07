@@ -65,7 +65,7 @@
         "lr_name":"segment",
         "setup":{
             "segments":[
-                [2000],[3000]
+                [200],[300]
             ],
             "mode":[
                 ["P"],["B"]
