@@ -35,18 +35,41 @@ for i_a in range(N_A):
     for j_a in range(N_B):
         center = np.ravel_multi_index((i_a, j_a), (N_A, N_B))
         right_1 = np.ravel_multi_index(((i_a + 1) % N_A, j_a), (N_A, N_B))
-        right_2 = np.ravel_multi_index(((i_a + 2) % N_A, j_a), (N_A, N_B))
+        up_right_2 = np.ravel_multi_index(((i_a + 1) % N_A, (j_a + 1) % N_B), (N_A, N_B))
         up_1 = np.ravel_multi_index((i_a, (j_a + 1) % N_B), (N_A, N_B))
-        up_2 = np.ravel_multi_index((i_a, (j_a + 2) % N_B), (N_A, N_B))
+        down_right_2 = np.ravel_multi_index(((i_a + 1) % N_A, (j_a - 1) % N_B), (N_A, N_B))
         edges.append([center, right_1, 0])
-        edges.append([center, right_2, 1])
+        edges.append([center, up_right_2, 1])
         edges.append([center, up_1, 0])
-        edges.append([center, up_2, 1])
+        edges.append([center, down_right_2, 1])
 graph = nk.graph.Graph(edges=edges)
+
 
 # %%
 hilbert = nk.hilbert.Spin(s=0.5, N=graph.n_nodes)
 hamiltonian = nk.operator.Heisenberg(hilbert=hilbert, graph=graph, J=JS)
+
+#%%
+from VA_project.model.model import J1J2Square
+from VA_project.engine.runners import Runner
+config = {
+    "Traslation":{
+        "on": True,
+        "subgroup":[0,1]
+    },
+    "Z2":{
+        "on":True
+    }
+}
+
+dict((k, v) for k, v in config["Traslation"].items() if k not in ['on', 'subgroup'])
+
+size = [3,3]
+N = int(jnp.prod(jnp.array(size)))
+J1 = 1.0 ; J2 = 0.5
+j1j2 = J1J2Square(size, J1, J2, bc='periodic', order='default_2')
+hilbert = nk.hilbert.Spin(s=1 / 2, N=N, total_sz=None)
+hamiltonian = Runner(j1j2.cm, S_operators=True).build_hamiltonian(hilbert)
 
 # %%
 hamiltonian_matrix = hamiltonian.to_dense()

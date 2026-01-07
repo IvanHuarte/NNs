@@ -15,6 +15,7 @@ def _all_idx_combinations(N: List):
 class SymmGroup():
 
     def __init__(self, setup, **kwargs):
+
         
         self.group, self.group_label = self._initialize_symmetries(setup, **kwargs)
 
