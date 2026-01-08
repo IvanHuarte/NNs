@@ -5,7 +5,7 @@
    "callback":{
         "keeper": true,
         "inline":   false,
-        "modphase": false,
+        "modphase": true,
         "sanity": true,
         "sanity_setup":{
             "do_each": 500,
@@ -65,13 +65,13 @@
         "lr_name":"segment",
         "setup":{
             "segments":[
-                [200],[300]
+                [300],[50,50]
             ],
             "mode":[
-                ["P"],["B"]
+                ["P"],["M", "P"]
 
             ],
-            "repeat_segment":[1,1,1,1,1,1,1,1,1,1,1]
+            "repeat_segment":[1,5,1,1,1,1,1,1,1,1,1]
         },
 
         "lr_schedules":{
@@ -83,7 +83,7 @@
             "segment":{
                 "lr":[
                     
-                    0.05, 0.01
+                    0.1, 0.01, 0.005, 0.001, 0.0005, 0.0001
                     
                 ]
             }

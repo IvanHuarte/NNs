@@ -1,7 +1,7 @@
 {
     "NN": {
         
-        "selection": "ViT2D_MLP",
+        "selection": "ViT2D_Szabo",
 
 
         
@@ -34,8 +34,8 @@
             "symm_Z2": true,
             "trivial_Z2": true,
             "symm_2D": true,
-            "irrep": [0, 0],
-            "use_anchor": false,
+            "irrep": [2, 2],
+            "use_anchor": true,
             "squeeze":true
             }
         },
@@ -49,8 +49,8 @@
                     "module":"ViT2D",
                     "setup": {
                         "token_size": [2, 1],
-                        "embedding_d": 32,
-                        "n_heads": 2,
+                        "embedding_d": 64,
+                        "n_heads": 4,
                         "n_blocks": 1,
                         "n_ffn_layers": 1,
                         "final_architecture": [64, 5]
@@ -67,7 +67,9 @@
                 
             "symm_Z2": true,
             "trivial_Z2": true,
-            "symm_2D": false,
+            "symm_2D": true,
+            "irrep": [0, 0],
+            "use_anchor": true,
             "squeeze":true
             }
         },
@@ -96,10 +98,12 @@
                     }
                 },
                 
-                "symm_Z2": true,
-                "trivial_Z2": true,
-                "symm_2D": false,
-                "squeeze":true
+            "symm_Z2": true,
+            "trivial_Z2": true,
+            "symm_2D": true,
+            "irrep": [0, 0],
+            "use_anchor": true,
+            "squeeze":true
             }         
         },
 
