@@ -4,6 +4,8 @@ import jax.typing as jt
 import jax.numpy as jnp
 from typing import Callable, Sequence, Tuple
 
+from matplotlib.pylab import size
+
 from NN_module.NN_utils import traslations_2D
 
 REAL_DTYPE = jnp.float64
@@ -56,13 +58,14 @@ def get_min_idx(x):
 
     return min_idx
 
+
 def batched_get_anchor(size, memory=True):
     def core(_, x):
-        x = jnp.atleast_2d(x)   # (1, N)
+        x = jnp.atleast_2d(x)  # (1, N)
         x = traslations_2D(x, size, memory=memory)  # (N, N)
         idx = get_min_idx(x)
         return _, idx
-    
+
     return core
 
 
@@ -285,6 +288,7 @@ class CarreteSign(nn.Module):
 
     lattice_size: Tuple
     save_mem: bool = True
+    irrep: Tuple[int] = (0, 0)
 
     def setup(self):
 
@@ -301,27 +305,48 @@ class CarreteSign(nn.Module):
 
         if self.save_mem:
             idx = jax.lax.scan(
-                batched_get_anchor(self.size),
-                init=0, 
-                xs=x, 
-                length=x.shape[0]
+                batched_get_anchor(self.size), init=0, xs=x, length=x.shape[0]
             )[1]
-            
-        else: 
-            x = traslations_2D(x, self.size, memory=True).reshape(
-                N, B, N
-            ).transpose((1, 0, 2))
+
+        else:
+            x = (
+                traslations_2D(x, self.size, memory=True)
+                .reshape(N, B, N)
+                .transpose((1, 0, 2))
+            )
             idx = jax.vmap(get_min_idx, in_axes=0)(x)
 
         anchor = self.shifts[idx]
 
-        x = jnp.angle(
-            jnp.exp(
-                -1j
-                * jnp.pi
-                * (anchor[:, 0] / self.size[0] + anchor[:, 1] / self.size[1])
+        return x, anchor
+
+
+class AddPhase(nn.Module):
+    """Adds a phase according to a given irrep for 2D lattices.
+
+    Args:
+        x: input array of shape (B,)
+        anchors: array of shape (B, 2) with the anchor points
+        irrep: Tuple (q_1, q_2) representing the irrep.
+    Returns:
+        array of shape (B,) with the added phase
+    """
+
+    lattice_size: Tuple[int, int]
+    irrep: Tuple[int, int]
+
+    @nn.compact
+    def __call__(self, x: jt.ArrayLike, anchors: jt.ArrayLike) -> jt.ArrayLike:
+
+        phase = (
+            2
+            * jnp.pi
+            * (
+                self.irrep[0] * anchors[:, 0] / self.lattice_size[0]
+                + self.irrep[1] * anchors[:, 1] / self.lattice_size[1]
             )
-        ).reshape(B, 1)
+        )[:, None]
 
+        new_phase = (x.imag + phase + jnp.pi) % (2 * jnp.pi) - jnp.pi
 
-        return x
+        return (x.real + 1j * new_phase).astype(x.dtype)

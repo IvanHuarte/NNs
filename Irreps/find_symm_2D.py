@@ -22,7 +22,6 @@ import seaborn as sns
 cmap = colors.LinearSegmentedColormap.from_list(
     "Spectral_soft", sns.color_palette("Spectral", 256, desat=0.7)
 )
-print(matplotlib.get_backend())
 
 matplotlib.rcParams["font.size"] = 12
 
@@ -193,14 +192,14 @@ for size in sizes:
         fig1.canvas.mpl_connect("key_press_event", on_key)
         fig2.canvas.mpl_connect("key_press_event", on_key)
 
-        X1, Y1 = 2000, 100
+        X1, Y1 = 1900, 200
         X2, Y2 = 0, 0
 
         manager = fig1.canvas.manager
         geom = manager.window.geometry()
         _, _, dx, dy = geom.getRect()
         print(dx, dy)
-        manager.window.setGeometry(X1, Y1, dx, dy)
+        manager.window.setGeometry(X1, Y1, int(1.5 * dx), int(1.5 * dy))
 
         manager = fig2.canvas.manager
         geom = manager.window.geometry()

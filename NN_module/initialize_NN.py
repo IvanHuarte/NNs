@@ -21,7 +21,6 @@ activation_dict = {
 }
 
 
-
 class FactoryBuilder:
 
     def __init__(self, setup, **kwargs):
@@ -127,10 +126,15 @@ class FactoryBuilder:
         setup = setup["setup"]
         clss = self.get_model_class(module_name)
 
+        lattice_size = setup["lattice_size"] if "symm_2D" in setup else None
+
         symm_Z2 = setup["symm_Z2"] if "symm_Z2" in setup else False
         trivial_Z2 = setup["trivial_Z2"] if "trivial_Z2" in setup else False
+
         symm_2D = setup["symm_2D"] if "symm_2D" in setup else False
-        lattice_size = setup["lattice_size"] if "symm_2D" in setup else None
+        irrep = setup["irrep"] if "irrep" in setup else (0, 0)
+        use_anchor = setup["use_anchor"] if "use_anchor" in setup else False
+
         squeeze = jnp.squeeze if "squeeze" in setup else lambda x: x
 
         if module_name == "SplitTraining":
@@ -143,6 +147,8 @@ class FactoryBuilder:
                 symm_Z2=symm_Z2,
                 trivial_Z2=trivial_Z2,
                 symm_2D=symm_2D,
+                irrep=irrep,
+                use_anchor=use_anchor,
                 lattice_size=lattice_size,
                 squeeze=squeeze,
             )

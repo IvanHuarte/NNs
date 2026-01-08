@@ -1,7 +1,7 @@
 {
     "NN": {
         
-        "selection": "ViT2D_Szabo",
+        "selection": "ViT2D_MLP",
 
 
         
@@ -33,7 +33,9 @@
                 
             "symm_Z2": true,
             "trivial_Z2": true,
-            "symm_2D": false,
+            "symm_2D": true,
+            "irrep": [0, 0],
+            "use_anchor": true,
             "squeeze":true
             }
         },
