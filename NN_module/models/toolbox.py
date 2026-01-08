@@ -345,7 +345,7 @@ class AddPhase(nn.Module):
                 self.irrep[0] * anchors[:, 0] / self.lattice_size[0]
                 + self.irrep[1] * anchors[:, 1] / self.lattice_size[1]
             )
-        )[:, None]
+        )
 
         new_phase = (x.imag + phase + jnp.pi) % (2 * jnp.pi) - jnp.pi
 

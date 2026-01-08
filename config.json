@@ -5,7 +5,7 @@
    "callback":{
         "keeper": true,
         "inline":   false,
-        "modphase": true,
+        "modphase": false,
         "sanity": true,
         "sanity_setup":{
             "do_each": 500,

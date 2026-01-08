@@ -35,7 +35,7 @@
             "trivial_Z2": true,
             "symm_2D": true,
             "irrep": [0, 0],
-            "use_anchor": true,
+            "use_anchor": false,
             "squeeze":true
             }
         },

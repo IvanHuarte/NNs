@@ -72,12 +72,16 @@ class SplitTraining_2D(nn.Module):
         traslational_x = traslations_2D(
             x, size=self.lattice_size, token_size=self.token_size, memory=False
         )
+    
+        ffw = jax.vmap(worker, in_axes=0)(traslational_x).T
 
-        ffw = jax.vmap(worker, in_axes=0)(traslational_x)
+        x = ffw * characters
 
-        symm_x = ffw * characters
+        x = jnp.atleast_1d(
+            x.mean(axis=-1)
+        )
 
-        return symm_x.mean(axis=0)
+        return x
 
 
 class SplitTraining_2DAnchor(nn.Module):
@@ -92,7 +96,6 @@ class SplitTraining_2DAnchor(nn.Module):
 
     @nn.compact
     def __call__(self, x):
-        print("x_ini", x.shape)
 
         worker = SplitTraining_Worker(
             ModulusNet=self.ModulusNet, PhaseNet=self.PhaseNet, squeeze=self.squeeze
@@ -100,15 +103,11 @@ class SplitTraining_2DAnchor(nn.Module):
 
         # 2D traslational anchoring
         x, anchors = CarreteSign(lattice_size=self.lattice_size, irrep=self.irrep)(x)
-        print("x_anchor", x.shape)
 
         x = jnp.atleast_1d(worker(x))
 
-        print("x_ffw", x.shape)
-
         # Add phase according to the irrep and the anchor
         x = AddPhase(lattice_size=self.lattice_size, irrep=self.irrep)(x, anchors)
-        print("x_sum", x.shape, "\n")
 
         return x
 
