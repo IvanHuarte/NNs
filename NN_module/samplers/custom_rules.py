@@ -6,11 +6,7 @@ from netket.utils.types import PyTree, PRNGKeyT
 from netket.utils.struct import dataclass
 from netket.hilbert.random import flip_state
 from netket.utils import struct
-from frozendict import frozendict
 from typing import Tuple, override
-
-from setuptools import setup
-
 
 @dataclass
 class InvertMagnetization(MetropolisRule):
@@ -74,8 +70,8 @@ class Exchange(MetropolisRule):
 
     neighbors: jax.typing.ArrayLike
     nn_max: int
-    nn_dim: Tuple[int, ...]
-    
+    nn_dim: jax.typing.ArrayLike
+    sigma: float = 0.9 # parameter to adjust neighbor selection
 
     @override
     def random_state(
@@ -101,24 +97,18 @@ class Exchange(MetropolisRule):
         N = sampler.hilbert.size
 
         # Select one spin per sample
-        sigma = 0.9
-        n_samples = 3
-
-        # Select one spin per sample
         s0 = jax.random.randint(key1, shape=(n_samples,), minval=0, maxval=N)
 
-        nn_rand = jnp.abs(sigma * jax.random.normal(key2, shape=(n_samples,))).astype(jnp.int32)
+        # Select one neighbor group per sample (NN/NN2,... etc.)
+        nn_rand = jnp.abs(self.sigma * jax.random.normal(key2, shape=(n_samples,))).astype(jnp.int32)
         nn_rand = jnp.where(nn_rand < self.nn_max, nn_rand, self.nn_max - 1)
 
-        keys = jax.random.split(key3, self.nn_max)
-        nn_at_rand = jnp.stack(
-            [
-                jax.random.randint(k, shape=(n_samples,), minval=0, maxval=self.nn_dim[i])
-                for i, k in enumerate(keys)
-            ],
-            axis=1
-        )
-        nn_at_rand = nn_at_rand[jnp.arange(n_samples), nn_rand]
+        # Select one neighbor within the group per sample
+        keys = jax.random.split(key3, n_samples)
+
+        single_rand = lambda k, nn: jax.random.randint(k, (), 0, self.nn_dim[nn])
+        nn_at_rand = jax.vmap(single_rand)(keys, nn_rand)
+
         s1 = self.neighbors[s0, nn_rand, nn_at_rand]
 
         # Swap s0 and s1 values in each sample

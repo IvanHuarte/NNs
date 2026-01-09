@@ -172,6 +172,7 @@ for i, size in enumerate(sizes):
         # print_tree(sim_config, values=True)
 
         ## Reset sampler
+        print("Initializing sampler...")
         sampler = SamplerFactory(sampler_setup, cm_model=cm_model).get_sampler(hi)
 
         display_simulation_settings({**sim_config})
@@ -184,7 +185,7 @@ for i, size in enumerate(sizes):
         log = (
             nk.logging.RuntimeLog()
         )  # If instead of this logging you insert a string, it will be used as output prefix for a JSON file where the evolution of the energy at each epoch will be stored.
-
+        print("Initializing VMC state...")
         vstate = nk.vqs.MCState(
             sampler,
             model=model,
@@ -269,23 +270,23 @@ for i, size in enumerate(sizes):
                         vstate.parameters, transformations, mode=mask
                     )
 
-                    # vstate = nk.vqs.MCState(
-                    #     sampler,
-                    #     sampler_seed=vstate.sampler_state.rng,
-                    #     model=model,
-                    #     n_samples=n_samples,
-                    #     n_discard_per_chain=0,
-                    #     chunk_size=sampler_setup["chunk_vstate"],
-                    #     variables=variables,
-                    # )
                     vstate = nk.vqs.MCState(
                         sampler,
+                        sampler_seed=vstate.sampler_state.rng,
                         model=model,
                         n_samples=n_samples,
-                        n_discard_per_chain=200,  
+                        n_discard_per_chain=0,
                         chunk_size=sampler_setup["chunk_vstate"],
                         variables=variables,
                     )
+                    # vstate = nk.vqs.MCState(
+                    #     sampler,
+                    #     model=model,
+                    #     n_samples=n_samples,
+                    #     n_discard_per_chain=200,  
+                    #     chunk_size=sampler_setup["chunk_vstate"],
+                    #     variables=variables,
+                    # )
 
                     gs = nk.driver.VMC(
                         H, optimizer, variational_state=vstate, preconditioner=sr

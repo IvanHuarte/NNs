@@ -9,7 +9,7 @@ def get_neighbor_array(neighbors_dict):
     nn_dim = [len(neighbor) for neighbor in neighbors_dict[0]]
     max_per_shell = max(nn_dim)
 
-    neighbors_array = -jnp.ones((N, nn_max, max_per_shell), dtype=jnp.int32)
+    neighbors_array = -jnp.ones((N, nn_max, max_per_shell), dtype=jnp.int64)
 
     for i in range(N):
         for s in range(nn_max):
@@ -58,12 +58,13 @@ class SamplerFactory:
                     J2_nn=J2_nn,
                 )
             elif rule_name == "Exchange":
-                neighbors_dict = self.kwargs["neighbors_dict"]
+                cm_model = self.kwargs["cm_model"]
+                neighbors_dict = cm_model.cm.lattice.neighbors
                 neighbors_array, nn_max, nn_dim = get_neighbor_array(neighbors_dict)
                 init_rule = raw_rule(
                     neighbors=neighbors_array,
-                    nn_max=nn_max,
-                    nn_dim=nn_dim,
+                    nn_max=int(nn_max),
+                    nn_dim=jnp.array(nn_dim, dtype=jnp.int32),
                 )
 
             else:
