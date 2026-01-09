@@ -1,9 +1,40 @@
 {
     "NN": {
         
-        "selection": "ViT2D_Szabo",
+        "selection": "CNN_Marshall",
 
+        "CNN_Marshall":{
 
+            "module": "SplitTraining",
+            "setup":{
+
+                "modulus_setup":{
+                    "module":"CNN",
+                    "setup":{
+                        "channels":[32, 16, 8, 4],
+                        "strides":[[1,1],[1,1],[1,1],[1,1]],
+                        "kernel":[3,3],
+                        "use_pooling":false,
+                        "pooling_strides":[[1,1],[1,1],[1,1],[1,1]],
+                        "final_architecture":[1]
+                    }
+                },
+                    
+                "phase_setup":{
+                    "module":"MarshallSign",
+                    "setup":{
+                        "radians":true
+                    }
+                },
+                
+            "symm_Z2": true,
+            "trivial_Z2": true,
+            "symm_2D": false,
+            "irrep": [2, 2],
+            "use_anchor": true,
+            "squeeze":true
+            }
+        },
         
         "ViT2D_MLP":{
 
