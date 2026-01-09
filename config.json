@@ -8,8 +8,8 @@
         "modphase": true,
         "sanity": true,
         "sanity_setup":{
-            "do_each": 500,
-            "mode": "rich",
+            "do_each": 100,
+            "mode": "simple",
             "verbose": 3,
             "metrics": {
                 "gradients": true,
@@ -24,8 +24,8 @@
 
     "sampler":{
         "sampler":{
-            "rules": ["LocalRule", "InvertMagnetization"],
-            "prules": [0.75, 0.25]
+            "rules": ["LocalRule", "Exchange"],
+            "prules": [0.6, 0.4]
         },
         "n_ranks": 1,
         "n_chains_per_rank": 32,
@@ -65,13 +65,13 @@
         "lr_name":"segment",
         "setup":{
             "segments":[
-                [300],[50,50]
+                [500]
             ],
             "mode":[
-                ["P"],["M", "P"]
+                ["B"]
 
             ],
-            "repeat_segment":[1,5,1,1,1,1,1,1,1,1,1]
+            "repeat_segment":[1,1,1,1,1,1,1,1,1,1,1]
         },
 
         "lr_schedules":{
@@ -83,7 +83,7 @@
             "segment":{
                 "lr":[
                     
-                    0.1, 0.01, 0.005, 0.001, 0.0005, 0.0001
+                    0.01
                     
                 ]
             }

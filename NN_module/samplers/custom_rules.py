@@ -6,8 +6,8 @@ from netket.utils.types import PyTree, PRNGKeyT
 from netket.utils.struct import dataclass
 from netket.hilbert.random import flip_state
 from netket.utils import struct
-
-from typing import override
+from frozendict import frozendict
+from typing import Tuple, override
 
 from setuptools import setup
 
@@ -67,6 +67,72 @@ class LocalRule_Z2(MetropolisRule):
         σp = σp.at[:, 0].set(1)
 
         return σp, None
+
+
+@struct.dataclass
+class Exchange(MetropolisRule):
+
+    neighbors: jax.typing.ArrayLike
+    nn_max: int
+    nn_dim: Tuple[int, ...]
+    
+
+    @override
+    def random_state(
+        self,
+        sampler: "sampler.MetropolisSampler",  # noqa: F821
+        machine: nn.Module,
+        params: PyTree,
+        sampler_state: "sampler.SamplerState",  # noqa: F821
+        key: PRNGKeyT,
+    ):
+
+        raw_samples = sampler.hilbert.random_state(
+            key, size=sampler.n_batches, dtype=sampler.dtype
+        )
+        return raw_samples
+
+    @override
+    def transition(self, sampler, machine, parameters, state, key, σ):
+
+        (key1, key2, key3) = jax.random.split(key, (3,))
+
+        n_samples = σ.shape[0]
+        N = sampler.hilbert.size
+
+        # Select one spin per sample
+        sigma = 0.9
+        n_samples = 3
+
+        # Select one spin per sample
+        s0 = jax.random.randint(key1, shape=(n_samples,), minval=0, maxval=N)
+
+        nn_rand = jnp.abs(sigma * jax.random.normal(key2, shape=(n_samples,))).astype(jnp.int32)
+        nn_rand = jnp.where(nn_rand < self.nn_max, nn_rand, self.nn_max - 1)
+
+        keys = jax.random.split(key3, self.nn_max)
+        nn_at_rand = jnp.stack(
+            [
+                jax.random.randint(k, shape=(n_samples,), minval=0, maxval=self.nn_dim[i])
+                for i, k in enumerate(keys)
+            ],
+            axis=1
+        )
+        nn_at_rand = nn_at_rand[jnp.arange(n_samples), nn_rand]
+        s1 = self.neighbors[s0, nn_rand, nn_at_rand]
+
+        # Swap s0 and s1 values in each sample
+        mask_s0 = jnp.arange(N) == s0[:, None]
+        mask_s1 = jnp.arange(N) == s1[:, None]
+
+        vals_0 = jnp.take_along_axis(σ, indices=s0[:, None], axis=-1)
+        vals_1 = jnp.take_along_axis(σ, indices=s1[:, None], axis=-1)
+
+        σ_new = jnp.where(mask_s0, vals_1, jnp.where(mask_s1, vals_0, σ)).astype(
+            jnp.int8
+        )
+
+        return σ_new, None
 
 
 @struct.dataclass

@@ -3,6 +3,22 @@ import jax.numpy as jnp
 from netket.sampler.rules import MultipleRules
 from netket.sampler import MetropolisSampler
 
+def get_neighbor_array(neighbors_dict):
+    N = len(neighbors_dict)
+    nn_max = len(neighbors_dict[0])
+    nn_dim = [len(neighbor) for neighbor in neighbors_dict[0]]
+    max_per_shell = max(nn_dim)
+
+    neighbors_array = -jnp.ones((N, nn_max, max_per_shell), dtype=jnp.int32)
+
+    for i in range(N):
+        for s in range(nn_max):
+            neigh = neighbors_dict[i][s]
+            neighbors_array = neighbors_array.at[i, s, :len(neigh)].set(
+                jnp.array(neigh)
+            )
+    return neighbors_array, nn_max, nn_dim
+
 
 class SamplerFactory:
 
@@ -40,6 +56,14 @@ class SamplerFactory:
                     J2=cm_model.J2,
                     J1_nn=J1_nn,
                     J2_nn=J2_nn,
+                )
+            elif rule_name == "Exchange":
+                neighbors_dict = self.kwargs["neighbors_dict"]
+                neighbors_array, nn_max, nn_dim = get_neighbor_array(neighbors_dict)
+                init_rule = raw_rule(
+                    neighbors=neighbors_array,
+                    nn_max=nn_max,
+                    nn_dim=nn_dim,
                 )
 
             else:
