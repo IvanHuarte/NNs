@@ -222,10 +222,10 @@ class CNNSzabo(nn.Module):
             use_bias=self.use_bias,
             kernel_init=jax.nn.initializers.lecun_normal(),
         )(x)
-        x = nn.LayerNorm(dtype=REAL_DTYPE, param_dtype=REAL_DTYPE)(x)
-        x = nn.relu(x)
+        # x = nn.LayerNorm(dtype=REAL_DTYPE, param_dtype=REAL_DTYPE)(x)
+        # x = nn.relu(x)
         x = x.reshape(-1, self.lattice_size[0] * self.lattice_size[1] * x.shape[-1])
-        x = nn.glu(x)  # Version 2
+        # x = nn.glu(x)  # Version 2
         x = jnp.exp(1j * jnp.pi * x).sum(axis=-1, keepdims=True)
 
         return jnp.angle(x)

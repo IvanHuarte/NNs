@@ -27,20 +27,20 @@ from pathlib import Path
 from VA_project.initialize_model import ModelFactory
 from VA_project.engine.runners import Runner
 
-from NN_module.callbacks import (
-    BestIterKeeper,
-    EnergyPlotter,
-    ModPhasePlotter,
-    dump_callback,
-)
+from NN_module.callback.BestIterKeeper import BestIterKeeper
+from NN_module.callback.EnergyPlotter import EnergyPlotter
+from NN_module.callback.ModPhasePlotter import ModPhasePlotter
+from NN_module.callback.SanityMonitor import SanityMonitor
+    
+from NN_module.callback.utils import dump_callback
 
-from NN_module.initialize_NN import FactoryBuilder
 from NN_module.saveNload import save_results
 from NN_module.schedules import generate_training
 from NN_module.label_utils import get_filenames_from_settings
 
 from NN_module.sim_utils import measureNdump
-from NN_module.NN_utils import scheduler_initializer, phase_stats_vstate
+from NN_module.NN_utils import scheduler_initializer
+from NN_module.observables import phase_stats_vstate
 from NN_module.ST_utils import masked_optimizer
 
 parser = argparse.ArgumentParser()
@@ -101,6 +101,7 @@ training_setup = config[training_name]
 enable_keeper = config["callback"]["keeper"]
 enable_inline = config["callback"]["inline"]
 enable_modphase = config["callback"]["modphase"]
+enable_sanity = config["callback"]["sanity"]
 callbacks = []
 
 
@@ -169,6 +170,9 @@ if split_training:  # Alternated training between modulus and phase
         "train": optax.sgd(0.1),
         "freeze": optax.set_to_zero(),
     }
+    print(f"Total epochs: {total_epochs} type: {type(total_epochs)}")
+    print(f"H: {H} ({type(H)})")
+    print(f"N: {N} ({type(N)})")
 
     # Callbacks
     if enable_keeper:
@@ -188,6 +192,9 @@ if split_training:  # Alternated training between modulus and phase
     if enable_modphase:
         inline_modphase = ModPhasePlotter(artifact, x_ED)
         callbacks.append(inline_modphase)
+    if enable_sanity:   
+        sanity_monitor = SanityMonitor(config["callback"]["sanity_setup"])
+        callbacks.append(sanity_monitor)
 
     for i, (segment, seg_modes, lr_segment) in enumerate(
         zip(segments, modes, lr_segments)
@@ -255,6 +262,11 @@ if split_training:  # Alternated training between modulus and phase
                 variational_state=vstate,
                 preconditioner=SR,
             )
+
+            import gc
+            gc.collect()
+            jax.clear_caches()
+
 
             print(f"\nTraining {mode} for {epochs} epochs...")
             gs.run(

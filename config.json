@@ -1,6 +1,6 @@
 {
 
-   "write_folder_sim":"/home/ihuarte/Escritorio/Ivan/NNs/pruebas/",
+   "write_folder_sim":"/home/ihuarte/Escritorio/Ivan/NNs/new_pruebas/",
 
    "callback":{
         "keeper": true,
@@ -8,7 +8,7 @@
         "modphase": true,
         "sanity": true,
         "sanity_setup":{
-            "do_each": 100,
+            "do_each": 50,
             "mode": "simple",
             "verbose": 3,
             "metrics": {
@@ -65,10 +65,10 @@
         "lr_name":"segment",
         "setup":{
             "segments":[
-                [500, 1000, 1000, 500]
+                [500]
             ],
             "mode":[
-                ["B"],["B"],["B"],["B"]
+                ["B"]
 
             ],
             "repeat_segment":[1,1,1,1,1,1,1,1,1,1,1]
@@ -83,7 +83,7 @@
             "segment":{
                 "lr":[
                     
-                     0.01,0.005,0.001,0.02
+                     0.005
                     
                 ]
             }

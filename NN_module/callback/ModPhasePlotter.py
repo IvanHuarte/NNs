@@ -97,6 +97,8 @@ class ModPhasePlotter:
             self.ax[2].set_xlabel(r"$C_i$")
             self.ax[2].set_ylabel(r"$Phase \;ED$")
             self.ax[2].set_ylim(-np.pi - 0.1, np.pi + 0.1)
+            self.ax[2].set_xlim(0, len(phase_ED))
+
             self.ax[2].set_yticks([-np.pi, -np.pi / 2, 0, np.pi / 2, np.pi])
             self.ax[2].set_yticklabels(
                 [r"$-\pi$", r"$-\pi/2$", r"$0$", r"$\pi/2$", r"$\pi$"]

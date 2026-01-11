@@ -11,6 +11,7 @@ from datetime import date
 from platform import architecture, python_version
 from pathlib import Path
 
+from VA_project.initialize_model import ModelFactory
 from .initialize_NN import FactoryBuilder
 from .initialize_sampler import SamplerFactory
 
@@ -123,6 +124,7 @@ def load_vstate(setup, tree_data=False):
     size = setup["CM"]["size"]
     N = int(np.prod(size))
     # print(setup["NN"])
+    cm_model = ModelFactory.init(setup["CM"]).get_model()
 
     model = FactoryBuilder(
         setup["NN"]["setup"], **{"lattice_size": setup["CM"]["size"]}
@@ -136,7 +138,7 @@ def load_vstate(setup, tree_data=False):
     dummy_params = model.init(rng, jnp.ones((1, N)))
 
     # Initialize sampler
-    sampler = SamplerFactory(setup["SIM"]["sampler"]).get_sampler(hi)
+    sampler = SamplerFactory(setup["SIM"]["sampler"], cm_model=cm_model).get_sampler(hi)
 
     # Load parameters and initialize vstate
     n_samples = (

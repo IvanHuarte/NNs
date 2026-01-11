@@ -1,7 +1,42 @@
 {
     "NN": {
         
-        "selection": "CNN_Marshall",
+        "selection": "CNN_Szabo",
+
+
+        "CNN_Szabo":{
+
+            "module": "SplitTraining",
+            "setup":{
+
+                "modulus_setup":{
+                    "module":"CNN",
+                    "setup":{
+                        "channels":[32, 16, 8, 4],
+                        "strides":[[1,1],[1,1],[1,1],[1,1]],
+                        "kernel":[3,3],
+                        "use_pooling":false,
+                        "pooling_strides":[[1,1],[1,1],[1,1],[1,1]],
+                        "final_architecture":[1]
+                    }
+                },
+                    
+                "phase_setup":{
+                    "module":"CNNSzabo",
+                    "setup":{
+                        "channels": 50,
+                        "use_bias": true
+                    }
+                },
+                
+            "symm_Z2": true,
+            "trivial_Z2": true,
+            "symm_2D": false,
+            "irrep": [2, 2],
+            "use_anchor": true,
+            "squeeze":true
+            }
+        },
 
         "CNN_Marshall":{
 
@@ -21,9 +56,10 @@
                 },
                     
                 "phase_setup":{
-                    "module":"MarshallSign",
+                    "module":"CNNSzabo",
                     "setup":{
-                        "radians":true
+                        "channels": 50,
+                        "use_bias": true
                     }
                 },
                 
@@ -182,38 +218,6 @@
                 "squeeze":true
 
             }         
-        },
-
-        "CNN_Szabo":{
-
-            "module": "SplitTraining",
-            "setup":{
-
-                "modulus_setup":{
-                    "module":"CNN",
-                    "setup":{
-                        "channels":[ 16, 8, 4],
-                        "strides":[[1,1],[1,1],[1,1]],
-                        "kernel":[3,3],
-                        "use_pooling":false,
-                        "pooling_strides":[[1,1],[1,1],[1,1]],
-                        "final_architecture":[5]
-                    }
-                },
-                    
-                "phase_setup":{
-                    "module":"CNNSzabo",
-                    "setup":{
-                        "channels": 50,
-                        "use_bias": true
-                    }
-                },
-                
-            "symm_Z2": true,
-            "trivial_Z2": true,
-            "symm_2D": false,
-            "squeeze":true
-            }
         },
 
         "ViT_SzaboMarshall":{
