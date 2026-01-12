@@ -210,10 +210,7 @@ for i, size in enumerate(sizes):
             }
 
             # Callbacks
-            print(f"Total epochs: {total_epochs} type: {type(total_epochs)}")
-            print(f"H: {H} ({type(H)})")
-            print(f"N: {N} ({type(N)})")
-            
+
             if enable_keeper:
                 keeper = BestIterKeeper(
                     total_epochs, H, N, baseline=1e-8, mode="always"
@@ -287,7 +284,7 @@ for i, size in enumerate(sizes):
                     #     sampler,
                     #     model=model,
                     #     n_samples=n_samples,
-                    #     n_discard_per_chain=200,  
+                    #     n_discard_per_chain=200,
                     #     chunk_size=sampler_setup["chunk_vstate"],
                     #     variables=variables,
                     # )
