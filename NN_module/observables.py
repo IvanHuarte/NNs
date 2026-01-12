@@ -314,7 +314,7 @@ def all_spin_configurations(N):
     return jnp.array(list(itertools.product([-1, 1], repeat=N)))
 
 
-def print_max_contributors(x, size, N_max=10):
+def print_max_contributors(x, size, N_max=10, return_states=False):
     (mod, ph), _ = modphase(x)
     configs = all_spin_configurations(size[0] * size[1])
 
@@ -329,3 +329,6 @@ def print_max_contributors(x, size, N_max=10):
         print(f"M = {tmagn}")
         print(f"\nModulus: {mod}")
         print(f"Phase: {phs}\n")
+
+    if return_states:
+        return max_configs

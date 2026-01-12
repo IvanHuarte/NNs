@@ -4,6 +4,39 @@
         "selection": "CNN_Szabo",
 
 
+        "CvT_Szabo":{
+
+            "module": "SplitTraining",
+            "setup":{
+
+                "modulus_setup":{
+                    "module":"CvT",
+                    "setup":{
+                        "n_CP_blocks": [1, 1],
+                        "channels": [64, 32],
+                        "attn_heads": [4, 4],
+                        "kernel": [3, 3],
+                        "final_architecture": [1]
+                    }
+                },
+                    
+                "phase_setup":{
+                    "module":"CNNSzabo",
+                    "setup":{
+                        "channels": 50,
+                        "use_bias": true
+                    }
+                },
+                
+            "symm_Z2": true,
+            "trivial_Z2": true,
+            "symm_2D": false,
+            "irrep": [2, 2],
+            "use_anchor": true,
+            "squeeze":true
+            }
+        },
+
         "CNN_Szabo":{
 
             "module": "SplitTraining",
@@ -25,7 +58,7 @@
                     "module":"CNNSzabo",
                     "setup":{
                         "channels": 50,
-                        "use_bias": true
+                        "use_bias": false
                     }
                 },
                 
@@ -266,36 +299,6 @@
             }
         },
 
-        "CvT_Szabo":{
-
-            "module": "SplitTraining",
-            "setup":{
-
-                "modulus_setup":{
-                    "module":"CvT",
-                    "setup":{
-                        "n_CP_blocks": [1, 1, 1, 1, 1, 1],
-                        "channels": [16, 12, 8, 6, 4, 2],
-                        "attn_heads": [4, 2, 2, 1, 1, 1],
-                        "kernel": [3, 3],
-                        "final_architecture": [2, 1]
-                    }
-                },
-                    
-                "phase_setup":{
-                    "module":"CNNSzabo",
-                    "setup":{
-                        "channels": 50,
-                        "use_bias": true
-                    }
-                },
-                
-            "symm_Z2": true,
-            "trivial_Z2": true,
-            "symm_2D": false,
-            "squeeze":true
-            }
-        },
 
         "MLP_Szabo":{
 

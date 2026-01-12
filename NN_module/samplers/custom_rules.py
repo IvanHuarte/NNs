@@ -8,6 +8,7 @@ from netket.hilbert.random import flip_state
 from netket.utils import struct
 from typing import Tuple, override
 
+
 @dataclass
 class InvertMagnetization(MetropolisRule):
     """Monte Carlo mutation rule that inverts all the spins.
@@ -71,7 +72,7 @@ class Exchange(MetropolisRule):
     neighbors: jax.typing.ArrayLike
     nn_max: int
     nn_dim: jax.typing.ArrayLike
-    sigma: float = 0.9 # parameter to adjust neighbor selection
+    sigma: float = 0.7  # parameter to adjust neighbor selection
 
     @override
     def random_state(
@@ -100,7 +101,9 @@ class Exchange(MetropolisRule):
         s0 = jax.random.randint(key1, shape=(n_samples,), minval=0, maxval=N)
 
         # Select one neighbor group per sample (NN/NN2,... etc.)
-        nn_rand = jnp.abs(self.sigma * jax.random.normal(key2, shape=(n_samples,))).astype(jnp.int32)
+        nn_rand = jnp.abs(
+            self.sigma * jax.random.normal(key2, shape=(n_samples,))
+        ).astype(jnp.int32)
         nn_rand = jnp.where(nn_rand < self.nn_max, nn_rand, self.nn_max - 1)
 
         # Select one neighbor within the group per sample

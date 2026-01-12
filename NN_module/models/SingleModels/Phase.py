@@ -222,16 +222,10 @@ class CNNSzabo(nn.Module):
             use_bias=self.use_bias,
             kernel_init=jax.nn.initializers.lecun_normal(),
         )(x)
-        # x = nn.LayerNorm(dtype=REAL_DTYPE, param_dtype=REAL_DTYPE)(x)
-        # x = nn.glu(x)
-        # x = x.reshape(-1, self.lattice_size[0] * self.lattice_size[1] * x.shape[-1])
-        # x = jnp.exp(1j * jnp.pi * x).sum(axis=-1, keepdims=True)
-
         x = nn.LayerNorm(dtype=REAL_DTYPE, param_dtype=REAL_DTYPE)(x)
-        x = nn.glu(jnp.exp(1j * jnp.pi * x))
-        x = x.reshape(
-            -1, self.lattice_size[0] * self.lattice_size[1] * x.shape[-1]
-        ).sum(axis=-1, keepdims=True)
+        x = nn.swish(x)
+        x = x.reshape(-1, self.lattice_size[0] * self.lattice_size[1] * x.shape[-1])
+        x = jnp.exp(-1j * jnp.pi * x).sum(axis=-1, keepdims=True)
 
         return jnp.angle(x)
 
@@ -264,6 +258,6 @@ class CNNSzabo(nn.Module):
 #             x = nn.relu(x)
 #         x = x.reshape(-1, self.lattice_size[0] * self.lattice_size[1] * x.shape[-1])
 #         x = nn.glu(x)
-#         x = jnp.exp(1j * jnp.pi * x).sum(axis=-1, keepdims=True)
+#         x = jnp.exp(-1j * jnp.pi * x).sum(axis=-1, keepdims=True)
 
 #         return jnp.angle(x)

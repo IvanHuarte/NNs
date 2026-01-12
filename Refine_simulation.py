@@ -31,7 +31,7 @@ from NN_module.callback.BestIterKeeper import BestIterKeeper
 from NN_module.callback.EnergyPlotter import EnergyPlotter
 from NN_module.callback.ModPhasePlotter import ModPhasePlotter
 from NN_module.callback.SanityMonitor import SanityMonitor
-    
+
 from NN_module.callback.utils import dump_callback
 
 from NN_module.saveNload import save_results
@@ -122,6 +122,7 @@ H = eng.build_hamiltonian()
 
 print(f"Loading vstate")
 vstate = load_vstate(artifact)
+sys.exit(0)
 # for i in range(1000):
 #     print(f"Recalentando samples: {i}")
 #     vstate.sample()
@@ -192,7 +193,7 @@ if split_training:  # Alternated training between modulus and phase
     if enable_modphase:
         inline_modphase = ModPhasePlotter(artifact, x_ED)
         callbacks.append(inline_modphase)
-    if enable_sanity:   
+    if enable_sanity:
         sanity_monitor = SanityMonitor(config["callback"]["sanity_setup"])
         callbacks.append(sanity_monitor)
 
@@ -264,9 +265,9 @@ if split_training:  # Alternated training between modulus and phase
             )
 
             import gc
+
             gc.collect()
             jax.clear_caches()
-
 
             print(f"\nTraining {mode} for {epochs} epochs...")
             gs.run(

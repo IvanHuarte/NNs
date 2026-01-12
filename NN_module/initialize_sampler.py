@@ -3,6 +3,7 @@ import jax.numpy as jnp
 from netket.sampler.rules import MultipleRules
 from netket.sampler import MetropolisSampler
 
+
 def get_neighbor_array(neighbors_dict):
     N = len(neighbors_dict)
     nn_max = len(neighbors_dict[0])
@@ -14,7 +15,7 @@ def get_neighbor_array(neighbors_dict):
     for i in range(N):
         for s in range(nn_max):
             neigh = neighbors_dict[i][s]
-            neighbors_array = neighbors_array.at[i, s, :len(neigh)].set(
+            neighbors_array = neighbors_array.at[i, s, : len(neigh)].set(
                 jnp.array(neigh)
             )
     return neighbors_array, nn_max, nn_dim
