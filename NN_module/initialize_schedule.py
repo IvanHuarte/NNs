@@ -1,12 +1,6 @@
-import os
-import warnings
-import numpy as np
-import jax
 import jax.numpy as jnp
-import netket as nk
 import ast
 
-import NN_module.schedule
 from NN_module.schedule import SCHEDULES
 
 
@@ -61,7 +55,8 @@ class Schedule:
             ):
 
                 for k, (seg, mode, lr) in enumerate(zip(era_seg, era_mode, era_lr)):
-
-                    lr_period, period_info = self.generate_period(seg, mode, lr)
-                    periods[0].append(lr_period)
-                    periods[1].append(period_info)
+                    
+                    yield self.generate_period(seg, mode, lr)
+                    # lr_period, period_info = self.generate_period(seg, mode, lr)
+                    # periods[0].append(lr_period)
+                    # periods[1].append(period_info)
