@@ -58,14 +58,14 @@
                     "module":"CNNSzabo",
                     "setup":{
                         "channels": 50,
-                        "use_bias": false
+                        "use_bias": true
                     }
                 },
                 
             "symm_Z2": true,
             "trivial_Z2": true,
             "symm_2D": false,
-            "irrep": [2, 2],
+            "irrep": [2,2],
             "use_anchor": true,
             "squeeze":true
             }

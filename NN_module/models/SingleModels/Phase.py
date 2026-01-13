@@ -92,7 +92,6 @@ class CNNClsf(nn.Module):
     lattice_size: Tuple
     channels: Tuple
     n_classes: int = 2
-    marshall: bool = False
     activation: Callable = nn.swish
 
     @nn.compact
@@ -129,15 +128,6 @@ class CNNClsf(nn.Module):
             jnp.array([jnp.pi], dtype=REAL_DTYPE),
         )[:, None]
         print(f"phase shape: {phase.shape}")
-
-        # Marshall sign rule bias
-        if self.marshall:
-            bias_mars = MarshallSign(lattice_size=self.lattice_size, radians=True)(x_in)
-            print(f"bias shape: {bias_mars.shape}")
-            phase += bias_mars
-            print(f"phase shape: {phase.shape}\n\n")
-
-            phase = (phase + jnp.pi) % (2 * jnp.pi) - jnp.pi
 
         return phase
 
@@ -199,6 +189,36 @@ class CNNbinClsf(nn.Module):
         return phase
 
 
+# class CNNSzabo(nn.Module):
+
+#     lattice_size: Tuple
+#     channels: int
+#     use_bias: bool = False
+
+#     @nn.compact
+#     def __call__(self, x):
+
+#         kernel = (3, 3) if self.lattice_size[1] != 1 else (3, 1)
+#         x = x.reshape(-1, *self.lattice_size, 1)
+
+#         x = nn.Conv(
+#             features=self.channels,
+#             kernel_size=kernel,
+#             strides=(1, 1),
+#             padding="CIRCULAR",
+#             # mask=mask,
+#             dtype=REAL_DTYPE,
+#             param_dtype=REAL_DTYPE,
+#             use_bias=self.use_bias,
+#             # kernel_init=jax.nn.initializers.lecun_normal(),
+#         )(x)
+#         x = nn.LayerNorm(dtype=REAL_DTYPE, param_dtype=REAL_DTYPE)(x)
+#         x = x.reshape(x.shape[0], -1)
+#         # x = jnp.exp(1j * jnp.pi * x).sum(axis=-1, keepdims=True)
+
+#         return x.sum(axis=-1, keepdims=True)
+
+
 class CNNSzabo(nn.Module):
 
     lattice_size: Tuple
@@ -216,16 +236,20 @@ class CNNSzabo(nn.Module):
             kernel_size=kernel,
             strides=(1, 1),
             padding="CIRCULAR",
-            # mask=mask,
             dtype=REAL_DTYPE,
             param_dtype=REAL_DTYPE,
             use_bias=self.use_bias,
-            kernel_init=jax.nn.initializers.lecun_normal(),
+            kernel_init=jax.nn.initializers.normal(stddev=1e-3),
+            bias_init=jax.nn.initializers.zeros,
         )(x)
-        x = nn.LayerNorm(dtype=REAL_DTYPE, param_dtype=REAL_DTYPE)(x)
-        x = nn.swish(x)
-        x = x.reshape(-1, self.lattice_size[0] * self.lattice_size[1] * x.shape[-1])
-        x = jnp.exp(-1j * jnp.pi * x).sum(axis=-1, keepdims=True)
+        # x = nn.LayerNorm(dtype=REAL_DTYPE, param_dtype=REAL_DTYPE)(x)
+        x = x.reshape(x.shape[0], -1)
+        z = jnp.exp(1j * x)
+
+        jax.debug.print("R: {}", jnp.abs(jnp.sum(z)) / z.size)
+        jax.debug.print("Var: {}", jnp.var(x))
+
+        x = z.sum(axis=-1, keepdims=True)
 
         return jnp.angle(x)
 
@@ -257,7 +281,7 @@ class CNNSzabo(nn.Module):
 #             x = nn.LayerNorm(dtype=REAL_DTYPE, param_dtype=REAL_DTYPE)(x)
 #             x = nn.relu(x)
 #         x = x.reshape(-1, self.lattice_size[0] * self.lattice_size[1] * x.shape[-1])
-#         x = nn.glu(x)
+# x = nn.glu(x)
 #         x = jnp.exp(-1j * jnp.pi * x).sum(axis=-1, keepdims=True)
 
 #         return jnp.angle(x)
