@@ -1,7 +1,12 @@
+import jax
 import jax.numpy as jnp
+import optax
 import ast
 
+
 from NN_module.schedule import SCHEDULES
+from NN_module.schedule.utils import schedule_from_array, masked_optimizer
+from NN_module.ST_utils import print_tree
 
 
 class Schedule:
@@ -14,6 +19,24 @@ class Schedule:
         self.repeat = setup["repeat"]
         self.rescale = setup["rescale"]
 
+        self._initialize()
+
+    def _initialize(self):
+
+        # Repeat substructures
+        for target, n_repeat in self.repeat:
+            E = int(target[1])
+            e = int(target[3])
+            [self.segments[E].insert(e, self.segments[E][e]) for _ in range(n_repeat)]
+            [self.modes[E].insert(e, self.modes[E][e]) for _ in range(n_repeat)]
+            [self.lr_struct[E].insert(e, self.lr_struct[E][e]) for _ in range(n_repeat)]
+
+        flat_segments = jnp.array(
+            [period for eon in self.segments for era in eon for period in era]
+        )
+        self.total_epochs = int(flat_segments.sum())
+        self.total_segments = flat_segments.shape[0]
+
     def period_from_string(self, segment, lr_instruction):
         schedule_name, str_args = lr_instruction.split("(")
         schedule = SCHEDULES[schedule_name]
@@ -24,39 +47,83 @@ class Schedule:
 
     def generate_period(self, segment, mode, lr_instruction):
 
-        if len(lr_instruction) > 1:
+        if isinstance(lr_instruction, (list, tuple)):
             period = []
             info = []
             assert mode == "B", f"2 or more lr instructions, but mode is {mode}"
-            period.append(
-                self.generate_period(segment, mode, lr_ins) for lr_ins in lr_instruction
-            )
+            for lr_ins in lr_instruction:
+                nruter = self.generate_period(segment, mode, lr_ins)
+                period.append(nruter[0])
+                info.append(nruter[1])
 
-        if isinstance(lr_instruction, int):
+        elif isinstance(lr_instruction, (int, float)):
             period = jnp.array([lr_instruction] * segment)
             info = (segment, mode, lr_instruction)
 
         elif isinstance(lr_instruction, str):
-            period = self.period_from_string(segment, mode, lr_instruction)
+            period = self.period_from_string(segment, lr_instruction)
             info = (segment, mode, lr_instruction)
+
+        else:
+            raise TypeError(f"Unsupported lr_instruction: {lr_instruction}")
 
         return period, info
 
-    def build_schedule(self):
+    def schedule_generator(self):
 
-        periods = []
+        for eon_seg, eon_mode, eon_lr in zip(self.segments, self.modes, self.lr_struct):
 
-        for i, (eon_seg, eon_mode, eon_lr) in enumerate(
-            zip(self.segments, self.modes, self.lr_struct)
-        ):
+            for era_seg, era_mode, era_lr in zip(eon_seg, eon_mode, eon_lr):
 
-            for j, (era_seg, era_mode, era_lr) in enumerate(
-                zip(eon_seg, eon_mode, eon_lr)
-            ):
+                for seg, mode, lr in zip(era_seg, era_mode, era_lr):
+                    period_array, info = self.generate_period(seg, mode, lr)
+                    if not isinstance(period_array, list):
+                        period_array = [period_array]
+                        info = [info]
+                    period_array = [array * self.rescale for array in period_array]
+                    info = [
+                        (
+                            (*inf, f"rescale={self.rescale:.2f}")
+                            if self.rescale != 1.0
+                            else inf
+                        )
+                        for inf in info
+                    ]
+                    yield period_array, info
 
-                for k, (seg, mode, lr) in enumerate(zip(era_seg, era_mode, era_lr)):
-                    
-                    yield self.generate_period(seg, mode, lr)
-                    # lr_period, period_info = self.generate_period(seg, mode, lr)
-                    # periods[0].append(lr_period)
-                    # periods[1].append(period_info)
+    def schedule(self, return_array=False):
+
+        for period_array, info in self.schedule_generator():
+
+            if return_array:
+                yield period_array, info
+                continue
+
+            if isinstance(period_array, (list, tuple)):
+                period_func = [schedule_from_array(x) for x in period_array]
+
+            yield period_func, info
+
+    def transform_optimizer(self, params, optimizer, lr_func, info):
+        mode = info[0][1]
+
+        if len(lr_func) < 2:
+            transformation = {
+                "freeze": optax.set_to_zero(),
+                "train": optimizer(lr_func[0]),
+                "train_modulus": optimizer(lr_func[0]),
+                "train_phase": optimizer(lr_func[0]),
+            }
+        else:
+            transformation = {
+                "freeze": optax.set_to_zero(),
+                "train": optimizer(lr_func[0]),
+                "train_modulus": optimizer(lr_func[0]),
+                "train_phase": optimizer(lr_func[1]),
+            }
+
+        trans_tree = masked_optimizer(params, mode=mode)
+        trans_optimizer = optax.multi_transform(transformation, trans_tree)
+        print(print_tree(trans_tree, values=True))
+
+        return trans_optimizer

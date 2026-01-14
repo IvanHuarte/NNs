@@ -33,6 +33,7 @@ from NN_module.callback.utils import dump_callback
 from NN_module.saveNload import save_results
 from NN_module.initialize_NN import FactoryBuilder, print_tree
 from NN_module.initialize_sampler import SamplerFactory
+from NN_module.initialize_schedule import Schedule
 from NN_module.schedules import generate_training
 from NN_module.label_utils import (
     get_filenames_from_settings,
@@ -44,7 +45,7 @@ from NN_module.label_utils import (
 from NN_module.sim_utils import measureNdump
 from NN_module.observables import full_basis_state, phase_stats_vstate
 from NN_module.NN_utils import scheduler_initializer
-from NN_module.ST_utils import masked_optimizer, compare_params, check_zero_grads
+from NN_module.ST_utils import compare_params
 
 parser = argparse.ArgumentParser()
 parser.add_argument(
@@ -199,7 +200,7 @@ for i, size in enumerate(sizes):
             segments, modes, lr_segments = generate_training(training_setup)
 
             total_segments = len(segments)
-            total_epochs = int(np.array([s for seg in segments for s in seg]).sum())
+            total_epochs = int(np.array([s for eon in segments for s in seg]).sum())
             training_setup["total_epochs"] = total_epochs
 
             ds_schedule = jnp.linspace(1e-2, 1e-4, total_segments, dtype=jnp.float64)
