@@ -1,4 +1,3 @@
-import jax
 import jax.numpy as jnp
 import optax
 import ast
@@ -13,8 +12,8 @@ class Schedule:
 
     def __init__(self, setup):
 
-        self.segments = setup["segments"]
-        self.modes = setup["modes"]
+        self.epochs_struct = setup["epochs_struct"]
+        self.modes_struct = setup["modes_struct"]
         self.lr_struct = setup["lr_struct"]
         self.repeat = setup["repeat"]
         self.rescale = setup["rescale"]
@@ -27,42 +26,48 @@ class Schedule:
         for target, n_repeat in self.repeat:
             E = int(target[1])
             e = int(target[3])
-            [self.segments[E].insert(e, self.segments[E][e]) for _ in range(n_repeat)]
-            [self.modes[E].insert(e, self.modes[E][e]) for _ in range(n_repeat)]
+            [
+                self.epochs_struct[E].insert(e, self.epochs_struct[E][e])
+                for _ in range(n_repeat)
+            ]
+            [
+                self.modes_struct[E].insert(e, self.modes_struct[E][e])
+                for _ in range(n_repeat)
+            ]
             [self.lr_struct[E].insert(e, self.lr_struct[E][e]) for _ in range(n_repeat)]
 
-        flat_segments = jnp.array(
-            [period for eon in self.segments for era in eon for period in era]
+        flat_epochs = jnp.array(
+            [period for eon in self.epochs_struct for era in eon for period in era]
         )
-        self.total_epochs = int(flat_segments.sum())
-        self.total_segments = flat_segments.shape[0]
+        self.total_epochs = int(flat_epochs.sum())
+        self.total_periods = flat_epochs.shape[0]
 
-    def period_from_string(self, segment, lr_instruction):
+    def period_from_string(self, epochs, lr_instruction):
         schedule_name, str_args = lr_instruction.split("(")
         schedule = SCHEDULES[schedule_name]
         args = ast.literal_eval("(" + str_args)
 
-        period = schedule(segment, *args)
+        period = schedule(epochs, *args)
         return period
 
-    def generate_period(self, segment, mode, lr_instruction):
+    def generate_period(self, epochs, mode, lr_instruction):
 
         if isinstance(lr_instruction, (list, tuple)):
             period = []
             info = []
             assert mode == "B", f"2 or more lr instructions, but mode is {mode}"
             for lr_ins in lr_instruction:
-                nruter = self.generate_period(segment, mode, lr_ins)
+                nruter = self.generate_period(epochs, mode, lr_ins)
                 period.append(nruter[0])
                 info.append(nruter[1])
 
         elif isinstance(lr_instruction, (int, float)):
-            period = jnp.array([lr_instruction] * segment)
-            info = (segment, mode, lr_instruction)
+            period = jnp.array([lr_instruction] * epochs)
+            info = (epochs, mode, lr_instruction)
 
         elif isinstance(lr_instruction, str):
-            period = self.period_from_string(segment, lr_instruction)
-            info = (segment, mode, lr_instruction)
+            period = self.period_from_string(epochs, lr_instruction)
+            info = (epochs, mode, lr_instruction)
 
         else:
             raise TypeError(f"Unsupported lr_instruction: {lr_instruction}")
@@ -71,7 +76,9 @@ class Schedule:
 
     def schedule_generator(self):
 
-        for eon_seg, eon_mode, eon_lr in zip(self.segments, self.modes, self.lr_struct):
+        for eon_seg, eon_mode, eon_lr in zip(
+            self.epochs_struct, self.modes_struct, self.lr_struct
+        ):
 
             for era_seg, era_mode, era_lr in zip(eon_seg, eon_mode, eon_lr):
 
@@ -83,12 +90,13 @@ class Schedule:
                     period_array = [array * self.rescale for array in period_array]
                     info = [
                         (
-                            (*inf, f"rescale={self.rescale:.2f}")
+                            (*inf, f"rescaled by {self.rescale:.2f}")
                             if self.rescale != 1.0
                             else inf
                         )
                         for inf in info
                     ]
+                    print(info)
                     yield period_array, info
 
     def schedule(self, return_array=False):

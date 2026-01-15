@@ -22,19 +22,11 @@ def get_sim_config(configurations, **kwargs):
 
     split_training = sim["split_training"]
     training_name = "ST_schedule" if split_training else "normal_schedule"
-    lr_name = sim[training_name]["lr_name"]
-    training_setup = sim[training_name]["setup"]
-    lr_schedule_setup = sim[training_name]["lr_schedules"][lr_name]
+    schedule_setup = sim[training_name]
 
     cleaned["SIM"]["sampler"] = sim["sampler"]
     cleaned["SIM"]["split_training"] = split_training
-    cleaned["SIM"]["schedule"] = {}
-    cleaned["SIM"]["schedule"]["split_training"] = True
-    cleaned["SIM"]["schedule"]["setup"] = training_setup
-
-    cleaned["SIM"]["schedule"]["lr_schedule"] = {}
-    cleaned["SIM"]["schedule"]["lr_schedule"]["name"] = lr_name
-    cleaned["SIM"]["schedule"]["lr_schedule"]["setup"] = lr_schedule_setup
+    cleaned["SIM"]["schedule"] = {**schedule_setup}
 
     # Coupling model
     cleaned["CM"] = cm
@@ -528,22 +520,3 @@ def get_filenames_from_settings(cm_setup, nn_setup, sim_uuid=None, **kwargs):
     )
 
     return sim_label, ED_label, json_label, title_label_callback
-
-
-def get_ST_folder(split_training, setup):
-
-    if split_training:
-        setup = setup["setup"]
-        label = "ST"
-
-        s, m, r = setup.values()
-        for seg, mode, repeats in zip(s, m, r):
-            label += "_"
-            for s, m in zip(seg, mode):
-                label += f"{s}{m}"
-            label += f"x{repeats}"
-
-    else:
-        label = "Both"
-
-    return label

@@ -34,14 +34,13 @@ from NN_module.saveNload import save_results
 from NN_module.initialize_NN import FactoryBuilder, print_tree
 from NN_module.initialize_sampler import SamplerFactory
 from NN_module.initialize_schedule import Schedule
-from NN_module.schedules import generate_training
 from NN_module.label_utils import (
     get_filenames_from_settings,
     get_write_folder_from_model,
     display_simulation_settings,
-    get_ST_folder,
     get_sim_config,
 )
+from NN_module.schedule.utils import get_schedule_label
 from NN_module.sim_utils import measureNdump
 from NN_module.observables import full_basis_state, phase_stats_vstate
 from NN_module.NN_utils import scheduler_initializer
@@ -91,9 +90,9 @@ sizes = config_cm["sizes"]
 # Simulation settings
 split_training = config["split_training"]
 training_name = "ST_schedule" if split_training else "normal_schedule"
-lr_name = config[training_name]["lr_name"]
-training_setup = config[training_name]
+schedule_setup = config[training_name]
 
+### MC sampling rules ###
 sampler_setup = config["sampler"]
 n_samples = (
     sampler_setup["n_samples_per_chain"]
@@ -101,16 +100,12 @@ n_samples = (
     * sampler_setup["n_ranks"]
 )
 
-### MC sampling rules ###
-sampler_setup = config["sampler"]
-
 ### Callbacks
 enable_keeper = config["callback"]["keeper"]
 enable_inline = config["callback"]["inline"]
 enable_modphase = config["callback"]["modphase"]
 enable_sanity = config["callback"]["sanity"]
 callbacks = []
-
 
 write = get_write_folder_from_model({**config, **config_cm, **config_nn})
 
@@ -124,7 +119,7 @@ for i, size in enumerate(sizes):
 
     write_folder_size = write + f"Size_{size[0]}x{size[1]}/"
 
-    training_folder = get_ST_folder(split_training, training_setup)
+    training_folder = get_schedule_label(split_training, schedule_setup)
 
     write_folder_training = write_folder_size + f"{training_folder}/"
 
@@ -197,21 +192,15 @@ for i, size in enumerate(sizes):
 
         if split_training:  # Alternated training between modulus and phase
 
-            segments, modes, lr_segments = generate_training(training_setup)
+            # SplitTraining Schedule
+            schedule = Schedule(schedule_setup)
+            total_periods = schedule.total_periods
+            total_epochs = schedule.total_epochs
+            schedule_setup["total_epochs"] = total_epochs
 
-            total_segments = len(segments)
-            total_epochs = int(np.array([s for eon in segments for s in seg]).sum())
-            training_setup["total_epochs"] = total_epochs
-
-            ds_schedule = jnp.linspace(1e-2, 1e-4, total_segments, dtype=jnp.float64)
-
-            transformations = {
-                "train": optax.sgd(0.1),
-                "freeze": optax.set_to_zero(),
-            }
+            ds_schedule = jnp.linspace(1e-2, 1e-4, total_periods, dtype=jnp.float64)
 
             # Callbacks
-
             if enable_keeper:
                 keeper = BestIterKeeper(
                     total_epochs, H, N, baseline=1e-8, mode="always"
@@ -227,88 +216,65 @@ for i, size in enumerate(sizes):
                 sanity_monitor = SanityMonitor(config["callback"]["sanity_setup"])
                 callbacks.append(sanity_monitor)
 
-            for i, (segment, seg_modes, lr_segment) in enumerate(
-                zip(segments, modes, lr_segments)
-            ):
+            for i, (lr_period, info) in enumerate(schedule.schedule()):
+                print(lr_period)
+                print(f"info: {info}")
 
-                print(f"\nSegment:")
-                print(f"  Epochs: {segment}")
-                print(f"  Modes:  {seg_modes}")
-                print(f"  LRs:    {lr_segment}")
+                epochs = info[0][0]
+                mode = info[0][1]
+                lr_string = ""
+                for inf in info:
+                    lr_string += f"{inf[2]}  "
 
-                for epochs, mode, lr in zip(segment, seg_modes, lr_segment):
+                rescaled = "" if len(info) < 4 else info[3]
+                print(f"\nPeriod {i + 1} / {total_periods}:")
+                print(f"Training {mode} for {epochs} epochs")
+                print(f"LR: {lr_string}  ({rescaled})")
 
-                    sr = nk.optimizer.SR(diag_shift=ds_schedule[i])
+                print(f"Diagonal shift: {ds_schedule[i]:.4e}\n")
+                sr = nk.optimizer.SR(diag_shift=ds_schedule[i])
 
-                    print(
-                        f"\nSegment {i+1} of {total_segments}......   lr: {lr:.4e}  ds: {ds_schedule[i]:.4e}\n"
-                    )
-                    # P0 = vstate.parameters
+                variables = vstate.variables
+                sampler = vstate.sampler
+                optimizer = schedule.transform_optimizer(
+                    vstate.parameters, optax.sgd, lr_period, info
+                )
 
-                    if mode == "M":
-                        mode = "modulus"
-                        mask = "phase"
-                        transformations["train"] = optax.sgd(learning_rate=lr)
+                # vstate = nk.vqs.MCState(
+                #     sampler,
+                #     sampler_seed=vstate.sampler_state.rng,
+                #     model=model,
+                #     n_samples=n_samples,
+                #     n_discard_per_chain=0,
+                #     chunk_size=sampler_setup["chunk_vstate"],
+                #     variables=variables,
+                # )
+                vstate = nk.vqs.MCState(
+                    sampler,
+                    model=model,
+                    n_samples=n_samples,
+                    n_discard_per_chain=200,
+                    chunk_size=sampler_setup["chunk_vstate"],
+                    variables=variables,
+                )
 
-                    elif mode == "P":
-                        mode = "phase"
-                        mask = "modulus"
-                        transformations["train"] = optax.sgd(learning_rate=lr)
+                gs = nk.driver.VMC(
+                    H, optimizer, variational_state=vstate, preconditioner=sr
+                )
 
-                    elif mode == "B":
-                        mode = "both"
-                        mask = None
-                        transformations["train"] = optax.sgd(learning_rate=lr)
+                print(f"\nTraining {mode} for {epochs} epochs...")
+                gs.run(n_iter=epochs, out=log, callback=callbacks, show_progress=True)
+                # vstate.sampler.reset(vstate.model.apply, vstate.variables["params"])
+                mean, std, psi = phase_stats_vstate(vstate)
+                print(f"VS phase: {mean} \u00b1 {std}  ({psi})")
 
-                    else:
-                        raise ValueError(
-                            f"Invalid training mode: {mode}."
-                            f"'M' for modulus, 'P' for phase and 'B' for both"
-                        )
-
-                    variables = vstate.variables
-                    sampler = vstate.sampler
-                    optimizer = masked_optimizer(
-                        vstate.parameters, transformations, mode=mask
-                    )
-
-                    # vstate = nk.vqs.MCState(
-                    #     sampler,
-                    #     sampler_seed=vstate.sampler_state.rng,
-                    #     model=model,
-                    #     n_samples=n_samples,
-                    #     n_discard_per_chain=0,
-                    #     chunk_size=sampler_setup["chunk_vstate"],
-                    #     variables=variables,
-                    # )
-                    vstate = nk.vqs.MCState(
-                        sampler,
-                        model=model,
-                        n_samples=n_samples,
-                        n_discard_per_chain=200,
-                        chunk_size=sampler_setup["chunk_vstate"],
-                        variables=variables,
-                    )
-
-                    gs = nk.driver.VMC(
-                        H, optimizer, variational_state=vstate, preconditioner=sr
-                    )
-
-                    print(f"\nTraining {mode} for {epochs} epochs...")
-                    gs.run(
-                        n_iter=epochs, out=log, callback=callbacks, show_progress=True
-                    )
-                    # vstate.sampler.reset(vstate.model.apply, vstate.variables["params"])
-                    mean, std, psi = phase_stats_vstate(vstate)
-                    print(f"VS phase: {mean} \u00b1 {std}  ({psi})")
-
-                    # P1 = vstate.parameters
-                    # compare_params(P0, P1)
-                    # check_zero_grads(vstate, mask)
+                # P1 = vstate.parameters
+                # compare_params(P0, P1)
+                # check_zero_grads(vstate, mask)
 
         else:  # Training modulus and phase at the same time
 
-            total_epochs = training_setup["setup"]["total_epochs"]
+            total_epochs = schedule_setup["setup"]["total_epochs"]
             # Callbacks
             if enable_keeper:
                 keeper = BestIterKeeper(
@@ -320,7 +286,7 @@ for i, size in enumerate(sizes):
             if enable_inline:
                 inline_plot = EnergyPlotter(H, N, E_ED=E_ED)
                 callbacks.append(inline_plot)
-            training_setup["lr_schedules"][training_setup["lr_name"]][
+            schedule_setup["lr_schedules"][schedule_setup["lr_name"]][
                 "total_epochs"
             ] = total_epochs
 
@@ -328,7 +294,7 @@ for i, size in enumerate(sizes):
             SR = nk.optimizer.SR(diag_shift=ds_schedule)
             lr_schedule = scheduler_initializer(
                 "warmup_exponential_decay",
-                training_setup["lr_schedules"][training_setup["lr_name"]],
+                schedule_setup["lr_schedules"][schedule_setup["lr_name"]],
             )
             optimizer = nk.optimizer.Sgd(learning_rate=lr_schedule)
             gs = nk.driver.VMC(
@@ -366,11 +332,7 @@ for i, size in enumerate(sizes):
             "sim_label": sim_label,
             "title_label_callback": title_label_callback,
             "best_step": keeper.best_step,
-            "training_setup": {
-                "lr_name": lr_name,
-                **training_setup["setup"],
-                **training_setup["lr_schedules"][lr_name],
-            },
+            "schedule_setup": {**schedule_setup},
         }
 
         callback_artifacts = dump_callback(log, callback_args)

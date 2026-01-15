@@ -246,8 +246,8 @@ class CNNSzabo(nn.Module):
         x = x.reshape(x.shape[0], -1)
         z = jnp.exp(1j * x)
 
-        jax.debug.print("R: {}", jnp.abs(jnp.sum(z)) / z.size)
-        jax.debug.print("Var: {}", jnp.var(x))
+        # jax.debug.print("R: {}", jnp.abs(jnp.sum(z)) / z.size)
+        # jax.debug.print("Var: {}", jnp.var(x))
 
         x = z.sum(axis=-1, keepdims=True)
 
