@@ -12,6 +12,7 @@ from .SingleModels.MLP import MLP
 from .SingleModels.Phase import CNNPh, EDPPh, CNNClsf, CNNbinClsf, CNNSzabo
 from .SingleModels.ViT2D import ViT2D
 from .SingleModels.ViT import ViT
+from .SingleModels.Factorized_ansatz import Factorized
 
 from .toolbox import MarshallSign, CarreteSign
 
@@ -40,6 +41,7 @@ __all_single__ = [
     "MLP",
     "ViT2D",
     "ViT",
+    "Factorized"
 ]
 
 __all__ = __all_factories__ + __all_single__
@@ -66,6 +68,7 @@ REGISTRY_SINGLE = {
     "MLP": MLP,
     "ViT2D": ViT2D,
     "ViT": ViT,
+    "Factorized": Factorized
 }
 
 REGISTRY = {None: None, **REGISTRY_SINGLE, **REGISTRY_FACTORIES}
@@ -89,6 +92,7 @@ LATTICE_SIZE = {
         "MLP",
         "ViT2D",
         "ViT",
+        "Factorized"
     ]
 }
 

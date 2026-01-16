@@ -10,43 +10,55 @@ import warnings
 warnings.filterwarnings("ignore", message="qt.svg")
 
 
-def plot_training_setup(ax, setup):
-    segments = []
-    modes = []
-    lr_schedule = []
-    s, m, r, lr_sch = (
-        setup["segments"],
-        setup["mode"],
-        setup["repeat_segment"],
-        setup["lr"],
+def plot_schedule_setup(ax, setup):
+
+    epochs, modes, lr_ins, rescale = (
+        setup["epochs"],
+        setup["modes"],
+        setup["lr_instructions"],
+        setup["rescale"],
     )
 
-    for seg, mode, repeats, lrsch in zip(s, m, r, lr_sch):
-        segments += [seg] * repeats
-        modes += [mode] * repeats
-        lr_schedule += [lrsch] * repeats
-
-    total_epochs = int(np.array([s for seg in segments for s in seg]).sum())
+    total_epochs = int(np.array([epo for epo in epochs]).sum())
+    ins_th = total_epochs//15
 
     cum_epoch = 0
-    for i, (segment, seg_modes, lr) in enumerate(zip(segments, modes, lr_schedule)):
+    for i, (epo, mode, lr) in enumerate(zip(epochs, modes, lr_ins)):
 
         if i != 0:
             ax.axvline(cum_epoch, color="grey", linestyle="--", alpha=0.5)
+        
+        period_label = f"{''.join(mode)}"
+        if epo > ins_th:
+            for l in lr:
+                period_label += f"\n{l}"
 
         ax.text(
-            cum_epoch + segment[0] / 2,
-            0.7,
-            f"{''.join(seg_modes)}\n{lr}",
+            cum_epoch + epo / 2,
+            0.85 + 0.05 * (-1)**i,
+            period_label,
             horizontalalignment="center",
             verticalalignment="center",
-            fontsize=10,
+            fontsize=8,
             color="black",
             transform=ax.get_xaxis_transform(),
         )
 
-        cum_epoch += segment[0]
 
+        cum_epoch += epo
+
+    if rescale != 1.0:
+        ax.text(
+            0.5,
+            0.95,
+            f"Rescaled by {rescale}",
+            horizontalalignment="center",
+            verticalalignment="center",
+            fontsize=10,
+            color="black",
+            transform=ax.transAxes,
+
+        )
 
 def dump_callback(logger, settings, write=False):
 
@@ -57,7 +69,7 @@ def dump_callback(logger, settings, write=False):
     sim_label = settings["sim_label"]
     title_label_callback = settings["title_label_callback"]
     best_step = settings["best_step"]
-    training_setup = settings["training_setup"]
+    schedule_setup = settings["schedule_setup"]
 
     N = int(np.prod(settings["size"]))
 
@@ -77,7 +89,7 @@ def dump_callback(logger, settings, write=False):
     vscore = N * var / (E_hist**2)
     # vs_min = np.round(np.log10(np.min(vscore)))-1
 
-    setup_sim = f"E_best: {E_best:.4f}\nlr:{training_setup['lr_name']} \ntime_exe: {time_exe:.2f}"
+    setup_sim = f"E_best: {E_best:.4f}\ntime_exe: {time_exe:.2f}"
     if hasattr(logger, "E_ED"):
         setup_sim = f"E_ED: {E_gr:.4f}\n" + setup_sim
 
@@ -109,7 +121,7 @@ def dump_callback(logger, settings, write=False):
 
     ax[0].text(
         0.9,
-        0.75,
+        0.9,
         setup_sim,
         transform=ax[0].transAxes,
         fontsize=10,
@@ -119,8 +131,7 @@ def dump_callback(logger, settings, write=False):
         bbox=dict(boxstyle="round", facecolor="white", alpha=0.7),
     )
     # Plotting training setup
-    if training_setup["lr_name"] == "segment":
-        plot_training_setup(ax[0], training_setup)
+    plot_schedule_setup(ax[0], schedule_setup)
 
     ax[0].legend()
     ax[0].set_xlabel("Iteration")

@@ -14,34 +14,14 @@ def make_mask(params, predicate):
 
     return apply_mask(params)
 
-def mask_branch(name):
+def mask_branch(modes):
     def _callable(path, leaf):
-        pass
+        return next((m for m in modes if m in path), 'freeze')
     
     return _callable
 
 
-def mask_modulus(path, leaf):
-    return "freeze" if "ModulusNet" in path else "train_phase"
-
-
-def mask_phase(path, leaf):
-    return "freeze" if "PhaseNet" in path else "train_modulus"
-
-
-def mask_both(path, leaf):
-    return "freeze"
-
-
-def train_both(path, leaf):
-    return (
-        "train_modulus"
-        if "ModulusNet" in path
-        else "train_phase" if "PhaseNet" in path else "train"
-    )
-
-
-def masked_optimizer(params, mode=None):
+def masked_optimizer(params, modes):
     """Genera una máscara universal para `params` basada en el modo.
 
     Args:
@@ -53,17 +33,6 @@ def masked_optimizer(params, mode=None):
 
     """
 
-    if mode == "B":
-        trans_tree = flax.traverse_util.path_aware_map(train_both, params)
-    elif mode == "P":
-        trans_tree = flax.traverse_util.path_aware_map(mask_modulus, params)
-    elif mode == "M":
-        trans_tree = flax.traverse_util.path_aware_map(mask_phase, params)
-    elif mode == None:
-        trans_tree = flax.traverse_util.path_aware_map(mask_both, params)
-    else:
-        raise ValueError(
-            f"Unknown mode: {mode}. Must be 'modulus', 'phase' or None (for both)."
-        )
+    trans_tree = flax.traverse_util.path_aware_map(mask_branch(modes), params)
 
     return trans_tree

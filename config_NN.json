@@ -1,7 +1,42 @@
 {
     "NN": {
         
-        "selection": "CNN_Szabo",
+        "selection": "Factorized_CNN",
+
+        "Factorized_CNN":{
+
+            "module": "Transversal",
+            "setup":{
+
+                "Trans_0":{
+                    "module":"Factorized",
+                    "setup":{
+                        "site_dependent": true,
+                        "complex": true
+                    }
+                },
+
+                "Trans_1":{
+                    "module":"CNN",
+                    "setup":{
+                        "channels":[32, 16, 8, 4],
+                        "strides":[[1,1],[1,1],[1,1],[1,1]],
+                        "kernel":[3,3],
+                        "use_pooling":false,
+                        "pooling_strides":[[1,1],[1,1],[1,1],[1,1]],
+                        "final_architecture":[1]
+                    }
+                },
+            "operation": "sum",
+                
+            "symm_Z2": false,
+            "trivial_Z2": true,
+            "symm_2D": false,
+            "irrep": [2, 2],
+            "use_anchor": true,
+            "squeeze":true
+            }         
+        },
 
 
         "CvT_Szabo":{

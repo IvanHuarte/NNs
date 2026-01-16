@@ -193,7 +193,7 @@ for i, size in enumerate(sizes):
         if split_training:  # Alternated training between modulus and phase
 
             # SplitTraining Schedule
-            schedule = Schedule(schedule_setup)
+            schedule = Schedule(schedule_setup, model)
             total_periods = schedule.total_periods
             total_epochs = schedule.total_epochs
             schedule_setup["total_epochs"] = total_epochs
@@ -217,7 +217,6 @@ for i, size in enumerate(sizes):
                 callbacks.append(sanity_monitor)
 
             for i, (lr_period, info) in enumerate(schedule.schedule()):
-                print(lr_period)
                 print(f"info: {info}")
 
                 epochs = info[0][0]
@@ -237,26 +236,26 @@ for i, size in enumerate(sizes):
                 variables = vstate.variables
                 sampler = vstate.sampler
                 optimizer = schedule.transform_optimizer(
-                    vstate.parameters, optax.sgd, lr_period, info
+                    vstate.parameters, optax.sgd, info, lr_period
                 )
 
-                # vstate = nk.vqs.MCState(
-                #     sampler,
-                #     sampler_seed=vstate.sampler_state.rng,
-                #     model=model,
-                #     n_samples=n_samples,
-                #     n_discard_per_chain=0,
-                #     chunk_size=sampler_setup["chunk_vstate"],
-                #     variables=variables,
-                # )
                 vstate = nk.vqs.MCState(
                     sampler,
+                    sampler_seed=vstate.sampler_state.rng,
                     model=model,
                     n_samples=n_samples,
-                    n_discard_per_chain=200,
+                    n_discard_per_chain=0,
                     chunk_size=sampler_setup["chunk_vstate"],
                     variables=variables,
                 )
+                # vstate = nk.vqs.MCState(
+                #     sampler,
+                #     model=model,
+                #     n_samples=n_samples,
+                #     n_discard_per_chain=500,
+                #     chunk_size=sampler_setup["chunk_vstate"],
+                #     variables=variables,
+                # )
 
                 gs = nk.driver.VMC(
                     H, optimizer, variational_state=vstate, preconditioner=sr
@@ -332,7 +331,7 @@ for i, size in enumerate(sizes):
             "sim_label": sim_label,
             "title_label_callback": title_label_callback,
             "best_step": keeper.best_step,
-            "schedule_setup": {**schedule_setup},
+            "schedule_setup": schedule.flat_setup(),
         }
 
         callback_artifacts = dump_callback(log, callback_args)

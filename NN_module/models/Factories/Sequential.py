@@ -4,6 +4,7 @@ import flax.linen as nn
 from typing import Tuple, Callable
 
 from NN_module.NN_utils import traslations_2D
+from NN_module.models.toolbox import CarreteSign, AddPhase
 
 
 class Sequential_Worker(nn.Module):
@@ -37,45 +38,111 @@ class Sequential_2D(nn.Module):
 
     Seq: Tuple[nn.Module, ...]
     End: nn.Module
-    squeeze: Callable = lambda x: x
-
+    
     lattice_size: Tuple[int, int] = None
+    token_size: Tuple[int, int] = None
+    irrep: Tuple[int] = (0, 0)  # Tuple (q_1, q_2) representing the irrep.
+
+    squeeze: Callable = lambda x: x
 
     @nn.compact
     def __call__(self, x):
 
         worker = Sequential_Worker(Seq=self.Seq, End=self.End, squeeze=self.squeeze)
 
-        # 2D traslation
-        traslational_x = traslations_2D(
-            x, size=self.lattice_size, token_size=None, memory=False
+        na, nb = jnp.unravel_index(
+            jnp.arange(self.lattice_size[0] * self.lattice_size[1]), self.lattice_size
         )
 
-        return jax.vmap(worker, in_axes=0)(traslational_x).mean(axis=0)
+        characters = jnp.exp(
+            2j
+            * jnp.pi
+            * (
+                self.irrep[0] * na / self.lattice_size[0]
+                + self.irrep[1] * nb / self.lattice_size[1]
+            )
+        )
 
+        # 2D traslation
+        traslational_x = traslations_2D(
+            x, size=self.lattice_size, token_size=self.token_size, memory=False
+        )
+    
+        ffw = jax.vmap(worker, in_axes=0)(traslational_x).T
+
+        x = ffw * characters
+
+        x = jnp.atleast_1d(
+            x.mean(axis=-1)
+        )
+
+        return x
+
+
+class Sequential_2DAnchor(nn.Module):
+
+    Seq: Tuple[nn.Module, ...]
+    End: nn.Module
+
+    lattice_size: Tuple[int, int] = None
+    irrep: Tuple[int] = (0, 0)  # Tuple (q_1, q_2) representing the irrep.
+
+    squeeze: Callable = lambda x: x
+
+    @nn.compact
+    def __call__(self, x):
+
+        worker = Sequential_Worker(Seq=self.Seq, End=self.End, squeeze=self.squeeze)
+
+        # 2D traslational anchoring
+        x, anchors = CarreteSign(lattice_size=self.lattice_size, irrep=self.irrep)(x)
+
+        x = jnp.atleast_1d(worker(x))
+
+        # Add phase according to the irrep and the anchor
+        x = AddPhase(lattice_size=self.lattice_size, irrep=self.irrep)(x, anchors)
+
+        return x
 
 class Sequential_Z2(nn.Module):
 
     Seq: Tuple[nn.Module, ...]
     End: nn.Module | None
-    squeeze: Callable = lambda x: x
-
+ 
     lattice_size: Tuple[int, int] = None
+    token_size: Tuple[int, int] = None
 
     "Symmetries"
     symm_2D: bool = False
+    irrep: Tuple[int] = (0, 0)  # Tuple (q_1, q_2) representing the irrep.
+    use_anchor: bool = False
+
     trivial_Z2: bool = False
+
+    squeeze: Callable = lambda x: x
 
     @nn.compact
     def __call__(self, x):
 
         if self.symm_2D:
-            worker = Sequential_2D(
-                Seq=self.Seq,
-                End=self.End,
-                lattice_size=self.lattice_size,
-                squeeze=self.squeeze,
-            )
+            if self.use_anchor:
+                worker = Sequential_2DAnchor(
+                    Seq=self.Seq,
+                    End=self.End,
+                    lattice_size=self.lattice_size,
+                    irrep=self.irrep,
+                    squeeze=self.squeeze,
+                )
+            
+            else:    
+                worker = Sequential_2D(
+                    Seq=self.Seq,
+                    End=self.End,
+                    lattice_size=self.lattice_size,
+                    token_size=self.token_size,
+                    irrep=self.irrep,
+                    squeeze=self.squeeze,
+                )
         else:
             worker = Sequential_Worker(Seq=self.Seq, End=self.End)
 
@@ -103,15 +170,20 @@ class Sequential(nn.Module):
 
     Seq: Tuple[nn.Module, ...]
     End: nn.Module | None
-    squeeze: Callable = lambda x: x
 
     "Symmetries"
-    symm_Z2: bool = False
     symm_2D: bool = False
+    irrep: Tuple[int] = (0, 0)  # Tuple (q_1, q_2) representing the irrep.
+    use_anchor: bool = False
+
+    symm_Z2: bool = False
     trivial_Z2: bool = True
 
     "Needed for performing 2D traslation symmetries"
     lattice_size: Tuple[int, int] = None
+    token_size: Tuple[int, int] = None
+
+    squeeze: Callable = lambda x: x
 
     @nn.compact
     def __call__(self, x: jnp.ndarray) -> jnp.ndarray:
@@ -122,16 +194,30 @@ class Sequential(nn.Module):
                 End=self.End,
                 trivial_Z2=self.trivial_Z2,
                 symm_2D=self.symm_2D,
-                lattice_size=self.lattice_size,
+                irrep=self.irrep,
+                use_anchor=self.use_anchor,
+                token_size=self.token_size,
                 squeeze=self.squeeze,
             )
         elif self.symm_2D:
-            worker = Sequential_2D(
-                Seq=self.Seq,
-                End=self.End,
-                lattice_size=self.lattice_size,
-                squeeze=self.squeeze,
-            )
+            if self.use_anchor:
+                worker = Sequential_2DAnchor(
+                    Seq=self.Seq,
+                    End=self.End,
+                    lattice_size=self.lattice_size,
+                    irrep=self.irrep,
+                    squeeze=self.squeeze
+                )
+            
+            else:
+                worker = Sequential_2D(
+                    Seq=self.Seq,
+                    End=self.End,
+                    lattice_size=self.lattice_size,
+                    token_size=self.token_size,
+                    irrep=self.irrep,
+                    squeeze=self.squeeze
+                )
         else:
             worker = Sequential_Worker(Seq=self.Seq, End=self.End, squeeze=self.squeeze)
 

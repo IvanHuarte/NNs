@@ -1,16 +1,23 @@
 import jax.numpy as jnp
 import optax
+import flax.linen as nn
 import ast
 
 
 from NN_module.schedule import SCHEDULES
-from NN_module.schedule.utils import schedule_from_array, masked_optimizer
+from NN_module.schedule.masks import masked_optimizer
+from NN_module.schedule.transformations import transformation_dictionary
+from NN_module.schedule.utils import schedule_from_array, decode_arch_labels
 from NN_module.ST_utils import print_tree
 
 
 class Schedule:
 
-    def __init__(self, setup):
+    def __init__(self, setup, NN_model):
+        
+        self.arch_name = type(NN_model).__name__
+        self.subarch_names = self.subarch_struct(NN_model, self.arch_name)
+        print(self.subarch_names)
 
         self.epochs_struct = setup["epochs_struct"]
         self.modes_struct = setup["modes_struct"]
@@ -19,6 +26,27 @@ class Schedule:
         self.rescale = setup["rescale"]
 
         self._initialize()
+    
+    def subarch_struct(self, NN_model, arch_name):
+
+        if arch_name == "SplitTraining":
+            subarch_names = [
+                name for name in NN_model.__dict__.keys() if isinstance(
+                    NN_model.__dict__[name], nn.Module
+                )
+            ]
+        elif arch_name == "Sequential":
+            modules = NN_model.__dict__["Seq"]
+            subarch_names = [
+                f"Seq_{i}" for i in range(len(modules))
+            ]
+            subarch_names += ["End"]
+        elif arch_name == "Transversal":
+            modules = NN_model.__dict__["Trans"]
+            subarch_names = [
+                f"Trans_{i}" for i in range(len(modules))
+            ]
+        return subarch_names
 
     def _initialize(self):
 
@@ -41,6 +69,29 @@ class Schedule:
         )
         self.total_epochs = int(flat_epochs.sum())
         self.total_periods = flat_epochs.shape[0]
+    
+    def flat_setup(self):
+        nruter = {}
+        epochs = [] ; modes = [] ; lr_instructions = []
+        for eon_epo, eon_mode, eon_lr in zip(
+            self.epochs_struct, self.modes_struct, self.lr_struct
+        ):
+            for era_epo, era_mode, era_lr in zip(eon_epo, eon_mode, eon_lr):
+                for epo, mode, lr in zip(era_epo, era_mode, era_lr):
+                    
+                    mode = [
+                        self.subarch_names[idx] if isinstance(idx, int) else "A" for idx in mode 
+                    ]
+                    epochs.append(epo)
+                    modes.append(mode)
+                    lr_instructions.append(lr)
+
+        nruter['epochs'] = epochs
+        nruter['modes'] = modes
+        nruter['lr_instructions'] = lr_instructions
+        nruter['rescale'] = self.rescale
+        
+        return nruter
 
     def period_from_string(self, epochs, lr_instruction):
         schedule_name, str_args = lr_instruction.split("(")
@@ -55,9 +106,8 @@ class Schedule:
         if isinstance(lr_instruction, (list, tuple)):
             period = []
             info = []
-            assert mode == "B", f"2 or more lr instructions, but mode is {mode}"
-            for lr_ins in lr_instruction:
-                nruter = self.generate_period(epochs, mode, lr_ins)
+            for lr_ins, mod in zip(lr_instruction, mode):
+                nruter = self.generate_period(epochs, mod, lr_ins)
                 period.append(nruter[0])
                 info.append(nruter[1])
 
@@ -76,14 +126,15 @@ class Schedule:
 
     def schedule_generator(self):
 
-        for eon_seg, eon_mode, eon_lr in zip(
+        for eon_epo, eon_mode, eon_lr in zip(
             self.epochs_struct, self.modes_struct, self.lr_struct
         ):
 
-            for era_seg, era_mode, era_lr in zip(eon_seg, eon_mode, eon_lr):
+            for era_epo, era_mode, era_lr in zip(eon_epo, eon_mode, eon_lr):
 
-                for seg, mode, lr in zip(era_seg, era_mode, era_lr):
-                    period_array, info = self.generate_period(seg, mode, lr)
+                for epo, mode, lr in zip(era_epo, era_mode, era_lr):
+                    mode, lr = decode_arch_labels(self.subarch_names, mode, lr)
+                    period_array, info = self.generate_period(epo, mode, lr)
                     if not isinstance(period_array, list):
                         period_array = [period_array]
                         info = [info]
@@ -96,7 +147,6 @@ class Schedule:
                         )
                         for inf in info
                     ]
-                    print(info)
                     yield period_array, info
 
     def schedule(self, return_array=False):
@@ -112,25 +162,13 @@ class Schedule:
 
             yield period_func, info
 
-    def transform_optimizer(self, params, optimizer, mode, lr_func):
+    def transform_optimizer(self, params, optimizer, info, lr_func):
 
-        if len(lr_func) < 2:
-            transformation = {
-                "freeze": optax.set_to_zero(),
-                "train": optimizer(lr_func[0]),
-                "train_modulus": optimizer(lr_func[0]),
-                "train_phase": optimizer(lr_func[0]),
-            }
-        else:
-            transformation = {
-                "freeze": optax.set_to_zero(),
-                "train": optimizer(lr_func[0]),
-                "train_modulus": optimizer(lr_func[0]),
-                "train_phase": optimizer(lr_func[1]),
-            }
+        modes = [inf[1] for inf in info]
 
-        trans_tree = masked_optimizer(params, mode=mode)
-        trans_optimizer = optax.multi_transform(transformation, trans_tree)
+        trans_dict = transformation_dictionary(optimizer, modes, lr_func)
+        trans_tree = masked_optimizer(params, modes)
+        trans_optimizer = optax.multi_transform(trans_dict, trans_tree)
         print(print_tree(trans_tree, values=True))
 
         return trans_optimizer
