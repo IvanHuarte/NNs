@@ -6,7 +6,7 @@
         "keeper": true,
         "inline":   false,
         "modphase": true,
-        "sanity": true,
+        "sanity": false,
         "sanity_setup":{
             "do_each": 100,
             "mode": "simple",
@@ -64,19 +64,19 @@
     "ST_schedule":{
         "epochs_struct":[
             [ 
-                [100, 200, 500]
+                [100, 200, 200, 1000]
             ]
         ],
 
         "modes_struct":[
             [ 
-                [[0], [0], ["A"]]
+                [[0], [0], ["A"], ["A"]]
             ]
         ],
         "lr_struct":[
 
             [  
-                [["lin(0.00001,0.01)"], ["exp(0.01,0.0001"], [0.001,0.005]]
+                [["lin(0.001,0.05)"], ["exp(0.05,0.0001)"], [0.005, "lin(0.0001, 0.05)"], [0.005, "exp(0.05, 0.0001)"]]
             ]
         ],
         "repeat":[],

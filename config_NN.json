@@ -17,14 +17,28 @@
                 },
 
                 "Trans_1":{
-                    "module":"CNN",
+                    "module": "SplitTraining",
                     "setup":{
-                        "channels":[32, 16, 8, 4],
-                        "strides":[[1,1],[1,1],[1,1],[1,1]],
-                        "kernel":[3,3],
-                        "use_pooling":false,
-                        "pooling_strides":[[1,1],[1,1],[1,1],[1,1]],
-                        "final_architecture":[1]
+
+                        "modulus_setup":{
+                            "module":"CNN",
+                            "setup":{
+                                "channels":[32, 16, 8, 4],
+                                "strides":[[1,1],[1,1],[1,1],[1,1]],
+                                "kernel":[3,3],
+                                "use_pooling":false,
+                                "pooling_strides":[[1,1],[1,1],[1,1],[1,1]],
+                                "final_architecture":[1]
+                            }
+                        },
+                            
+                        "phase_setup":{
+                            "module":"CNNSzabo",
+                            "setup":{
+                                "channels": 50,
+                                "use_bias": true
+                            }
+                        }
                     }
                 },
             "operation": "sum",
