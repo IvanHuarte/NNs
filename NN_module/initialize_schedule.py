@@ -112,8 +112,7 @@ class Schedule:
 
             yield period_func, info
 
-    def transform_optimizer(self, params, optimizer, lr_func, info):
-        mode = info[0][1]
+    def transform_optimizer(self, params, optimizer, mode, lr_func):
 
         if len(lr_func) < 2:
             transformation = {
