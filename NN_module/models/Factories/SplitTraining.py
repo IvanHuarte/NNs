@@ -33,6 +33,7 @@ class SplitTraining_Worker(nn.Module):
 
         # print(f"Modulus: {log_modulus.shape}")
         # print(f"Phase: {phase.shape}")
+        # print(self.squeeze)
 
         return self.squeeze(log_modulus + 1j * phase)
 

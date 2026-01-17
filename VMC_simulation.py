@@ -239,23 +239,24 @@ for i, size in enumerate(sizes):
                     vstate.parameters, optax.sgd, info, lr_period
                 )
 
-                vstate = nk.vqs.MCState(
-                    sampler,
-                    sampler_seed=vstate.sampler_state.rng,
-                    model=model,
-                    n_samples=n_samples,
-                    n_discard_per_chain=0,
-                    chunk_size=sampler_setup["chunk_vstate"],
-                    variables=variables,
-                )
                 # vstate = nk.vqs.MCState(
                 #     sampler,
+                #     sampler_seed=vstate.sampler_state.rng,
                 #     model=model,
                 #     n_samples=n_samples,
-                #     n_discard_per_chain=500,
+                #     n_discard_per_chain=0,
                 #     chunk_size=sampler_setup["chunk_vstate"],
                 #     variables=variables,
                 # )
+                if i != 0:
+                    vstate = nk.vqs.MCState(
+                        sampler,
+                        model=model,
+                        n_samples=n_samples,
+                        n_discard_per_chain=500,
+                        chunk_size=sampler_setup["chunk_vstate"],
+                        variables=variables,
+                    )
 
                 gs = nk.driver.VMC(
                     H, optimizer, variational_state=vstate, preconditioner=sr

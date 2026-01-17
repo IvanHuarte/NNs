@@ -169,6 +169,6 @@ class Schedule:
         trans_dict = transformation_dictionary(optimizer, modes, lr_func)
         trans_tree = masked_optimizer(params, modes)
         trans_optimizer = optax.multi_transform(trans_dict, trans_tree)
-        print(print_tree(trans_tree, values=True))
+        # print(print_tree(trans_tree, values=True))
 
         return trans_optimizer

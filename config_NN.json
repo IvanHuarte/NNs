@@ -1,7 +1,41 @@
 {
     "NN": {
         
-        "selection": "Factorized_CNN",
+        "selection": "Liang_Marshall",
+
+
+        "Liang_Marshall":{
+
+            "module": "SplitTraining",
+            "setup":{
+
+                "modulus_setup":{
+                    "module":"CNNLiang",
+                    "setup":{
+                        "M1_channels": [12, 6, 6, 6, 6, 6],
+                        "M2_channels": [6, 6, 6, 6, 6, 1],
+                        "kernel": [[3, 3],[3, 3],[3, 3],[3, 3],[3, 3],[3, 3]],
+                        "window_pooling": 2,
+                        "use_bias": false,
+                        "mask": null
+                    }
+                },
+
+                "phase_setup":{
+                    "module":"MarshallSign",
+                    "setup":{
+                        "radians":true
+                    }
+                
+                },
+            "symm_Z2": true,
+            "trivial_Z2": true,
+            "symm_2D": false,
+            "irrep": [2, 2],
+            "use_anchor": true,
+            "squeeze":true         
+            }
+        },
 
         "Factorized_CNN":{
 

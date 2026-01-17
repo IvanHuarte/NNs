@@ -71,7 +71,7 @@ class ConvBlock(nn.Module):
             param_dtype=REAL_DTYPE,
             use_bias=False,
         )(x)
-        x = nn.relu(x)
+        # x = nn.relu(x)
         x = x.reshape(-1, H, W, self.M2_channels)
         # x = nn.sigmoid(x)
 
