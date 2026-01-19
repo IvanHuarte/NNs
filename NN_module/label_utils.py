@@ -451,11 +451,12 @@ def get_filenames_from_settings(cm_setup, nn_setup, sim_uuid=None, **kwargs):
 
     model_label = cm_name + "_" + nn_name
     size = cm_setup["size"]
+    print(cm_setup)
 
     if cm_name == "Oxalate":
-        strength = cm_setup["params"]["strength"]
-        theta = cm_setup["params"]["theta"]
-        phi = cm_setup["params"]["phi"]
+        strength = cm_setup["params"]["couplings"][0]
+        theta = cm_setup["params"]["couplings"][1]
+        phi = cm_setup["params"]["couplings"][2]
         cparams = f"_strength_{strength}_theta_{theta}_phi_{phi}"
         call_params = r"$a = %.1f$  $\theta = %.1f$  $\phi = %.1f$" % (
             strength,
