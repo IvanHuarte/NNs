@@ -19,7 +19,7 @@ class MultiLayerPerceptron(nn.Module):
     hidden_alpha: int | Tuple[int, ...] = None
     activation: Callable | Tuple[Callable, ...] = None
     final_architecture: Tuple[int, ...] | None = None
-    param_dtype: Any = CDTYPE
+    param_dtype: Any = DTYPE
 
     two_heads: bool = False
     phasors: bool = False

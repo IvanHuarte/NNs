@@ -12,12 +12,12 @@
 
 
     "CM": {
-            "selection": "LRSquare",
+            "selection": "Oxalate",
 
             "Oxalate":{
                 "strength": 0.2,
-                "theta_list":[ 9.0, 54.0, 54.0, 54.0, 90.0],
-                "phi_list":[ 72.0, 0.0, 216.0, 315.0, 115.2]
+                "theta_list":[ 9.0],
+                "phi_list":[ 72.0]
             },
 
             "LRChain":{

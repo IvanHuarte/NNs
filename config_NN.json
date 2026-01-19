@@ -1,7 +1,42 @@
 {
     "NN": {
         
-        "selection": "Factorized_CNN",
+        "selection": "Liang_MLP",
+
+        "Liang_MLP":{
+
+            "module": "SplitTraining",
+            "setup":{
+
+                "modulus_setup":{
+                    "module":"CNNLiang",
+                    "setup":{
+                        "M1_channels": [12, 6, 6, 6, 6, 6],
+                        "M2_channels": [6, 6, 6, 6, 6, 1],
+                        "kernel": [[3, 3],[3, 3],[3, 3],[3, 3],[3, 3],[3, 3]],
+                        "window_pooling": 2,
+                        "use_bias": false,
+                        "mask": null
+                    }
+                },
+
+                "phase_setup":{
+                    "module":"MLP",
+                    "setup":{
+                        "hidden_alpha": [4, 2, 1],
+                        "activation": ["swish", "swish", "swish"],
+                        "final_architecture": [1]
+                    }
+                
+                },
+            "symm_Z2": true,
+            "trivial_Z2": true,
+            "symm_2D": true,
+            "irrep": [0, 0],
+            "use_anchor": true,
+            "squeeze":true         
+            }
+        },
 
 
         "Liang_Marshall":{
@@ -37,7 +72,7 @@
             }
         },
 
-        "Factorized_CNN":{
+        "Factorized_MLP":{
 
             "module": "Transversal",
             "setup":{
