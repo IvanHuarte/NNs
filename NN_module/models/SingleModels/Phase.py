@@ -239,17 +239,14 @@ class CNNSzabo(nn.Module):
             dtype=REAL_DTYPE,
             param_dtype=REAL_DTYPE,
             use_bias=self.use_bias,
-            kernel_init=jax.nn.initializers.normal(stddev=1e-3),
+            kernel_init=jax.nn.initializers.lecun_normal(),
             bias_init=jax.nn.initializers.zeros,
         )(x)
         x = nn.LayerNorm(dtype=REAL_DTYPE, param_dtype=REAL_DTYPE)(x)
         x = x.reshape(x.shape[0], -1)
-        z = jnp.exp(1j * x)
+        x = jnp.exp(1j *jnp.pi * x)
 
-        # jax.debug.print("R: {}", jnp.abs(jnp.sum(z)) / z.size)
-        # jax.debug.print("Var: {}", jnp.var(x))
-
-        x = z.sum(axis=-1, keepdims=True)
+        x = x.sum(axis=-1, keepdims=True)
 
         return jnp.angle(x)
 
