@@ -5,8 +5,8 @@
    "callback":{
         "keeper": true,
         "inline":   false,
-        "modphase": false,
-        "sanity": true,
+        "modphase": true,
+        "sanity": false,
         "sanity_setup":{
             "do_each": 100,
             "mode": "simple",
@@ -25,7 +25,7 @@
     "sampler":{
         "sampler":{
             "rules": ["LocalRule", "Exchange"],
-            "prules": [0.2, 0.8]
+            "prules": [0.9, 0.1]
         },
         "n_ranks": 1,
         "n_chains_per_rank": 32,
@@ -76,11 +76,11 @@
         "lr_struct":[
 
             [  
-                [["lin(0.001,0.01)"], [0.01], [0.005]]
+                [["lin(0.0001,0.01)", 0.000001], ["exp(0.01,0.001)", "lin(0.0001, 0.01)"], [0.00001, 0.01]]
             ]
         ],
         "repeat":[],
-        "rescale": 0.5
+        "rescale": 1.0
 }
 
 }

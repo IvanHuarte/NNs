@@ -1,6 +1,6 @@
 import flax.linen as nn
 import jax.numpy as jnp
-
+from typing import Callable
 
 class Factorized(nn.Module):
     """
@@ -32,6 +32,8 @@ class Factorized(nn.Module):
     site_dependent: bool = False
     complex: bool = True
     dtype: jnp.dtype = jnp.float64
+    init_kernel: Callable = nn.initializers.lecun_normal()
+
 
     @nn.compact
     def __call__(self, x):
@@ -40,7 +42,7 @@ class Factorized(nn.Module):
 
         # Amplitude parameters
         lam_shape = (L,) if self.site_dependent else (1,)
-        lam = self.param("lambda", nn.initializers.normal(), lam_shape, self.dtype)
+        lam = self.param("lambda", nn.initializers.normal(stddev=1e-2), lam_shape, self.dtype)
 
         p = nn.log_sigmoid(x * lam)
         real_part = 0.5 * jnp.sum(p, axis=-1)
@@ -51,7 +53,7 @@ class Factorized(nn.Module):
 
         # Phase parameters
         phi_shape = (L,) if self.site_dependent else (1,)
-        phi = self.param("phi", nn.initializers.normal(), phi_shape, self.dtype)
+        phi = self.param("phi", nn.initializers.normal(stddev=1e-2), phi_shape, self.dtype)
         theta = 2.0 * jnp.pi * nn.sigmoid(phi)
 
         imag_part = jnp.sum(theta * (x == 1), axis=-1)

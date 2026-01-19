@@ -153,7 +153,7 @@ class two_heads(nn.Module):
         log_modulus = nn.Dense(1)(MultiLayerPerceptron(self.final_architecture)(x))
         phase = nn.Dense(1)(MultiLayerPerceptron(self.final_architecture)(x))
 
-        return (log_modulus + 1j * phase).astype(jnp.complex128).squeeze()
+        return (log_modulus + 1j * phase).astype(jnp.complex128)
 
 
 class two_heads_sincos(nn.Module):

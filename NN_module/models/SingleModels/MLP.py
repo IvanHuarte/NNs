@@ -11,7 +11,7 @@ from ..toolbox import (
 from NN_module.NN_utils import traslations_2D
 
 DTYPE = jnp.float64
-
+CDTYPE = jnp.complex128
 
 class MultiLayerPerceptron(nn.Module):
     """A simple multi-layer perceptron."""

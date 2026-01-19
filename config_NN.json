@@ -1,7 +1,7 @@
 {
     "NN": {
         
-        "selection": "Liang_Marshall",
+        "selection": "Factorized_Liang",
 
 
         "Liang_Marshall":{
@@ -37,7 +37,7 @@
             }
         },
 
-        "Factorized_CNN":{
+        "Factorized_Liang":{
 
             "module": "Transversal",
             "setup":{
@@ -51,29 +51,31 @@
                 },
 
                 "Trans_1":{
-                    "module": "SplitTraining",
-                    "setup":{
+                     "module": "SplitTraining",
+                        "setup":{
 
-                        "modulus_setup":{
-                            "module":"CNN",
-                            "setup":{
-                                "channels":[32, 16, 8, 4],
-                                "strides":[[1,1],[1,1],[1,1],[1,1]],
-                                "kernel":[3,3],
-                                "use_pooling":false,
-                                "pooling_strides":[[1,1],[1,1],[1,1],[1,1]],
-                                "final_architecture":[1]
-                            }
-                        },
-                            
-                        "phase_setup":{
-                            "module":"CNNSzabo",
-                            "setup":{
-                                "channels": 50,
-                                "use_bias": true
+                            "modulus_setup":{
+                                "module":"CNNLiang",
+                                "setup":{
+                                    "M1_channels": [12, 6, 6, 6, 6, 6],
+                                    "M2_channels": [6, 6, 6, 6, 6, 1],
+                                    "kernel": [[3, 3],[3, 3],[3, 3],[3, 3],[3, 3],[3, 3]],
+                                    "window_pooling": 2,
+                                    "use_bias": false,
+                                    "mask": null
+                                }
+                            },
+
+                            "phase_setup":{
+                                "module":"MLP",
+                                "setup":{
+                                    "hidden_alpha": [2,1],
+                                    "activation": ["swish", "swish"],
+                                    "final_architecture": [1]
+                                }
                             }
                         }
-                    }
+                
                 },
             "operation": "sum",
                 
@@ -83,8 +85,8 @@
             "irrep": [2, 2],
             "use_anchor": true,
             "squeeze":true
-            }         
-        },
+            }
+        },   
 
 
         "CvT_Szabo":{

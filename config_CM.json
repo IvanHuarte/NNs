@@ -12,7 +12,7 @@
 
 
     "CM": {
-            "selection": "J1J2Square",
+            "selection": "LRSquare",
 
             "Oxalate":{
                 "strength": 0.2,
@@ -32,7 +32,7 @@
             },
 
             "LRSquare":{
-                "J_list": [-6.0, -2.0, 0.0],
+                "J_list": [ -2.0, 0.0],
                 "alpha_list": [2.5],
                 "fields": [1.0, 0.0],
                 "ops": [["Y","Z"],["ZZ"]]
