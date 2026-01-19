@@ -44,10 +44,10 @@ class ConvBlock(nn.Module):
         )(x)
         # print(f"xM1: {x.shape}")
 
-        x = nn.LayerNorm(
-            dtype=REAL_DTYPE,
-            param_dtype=REAL_DTYPE,
-        )(x)
+        #x = nn.LayerNorm(
+        #    dtype=REAL_DTYPE,
+        #    param_dtype=REAL_DTYPE,
+        #)(x)
 
         x = x.reshape(-1, H * W, self.M1_channels)
         # print(f"xreshape: {x.shape}")

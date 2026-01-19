@@ -5,7 +5,7 @@
    "callback":{
         "keeper": true,
         "inline":   false,
-        "modphase": true,
+        "modphase": false,
         "sanity": true,
         "sanity_setup":{
             "do_each": 100,
@@ -76,11 +76,11 @@
         "lr_struct":[
 
             [  
-                [["lin(0.001,0.01)"], [0.01], [0.001]]
+                [["lin(0.001,0.01)"], [0.01], [0.005]]
             ]
         ],
         "repeat":[],
-        "rescale": 1.0
+        "rescale": 0.5
 }
 
 }
