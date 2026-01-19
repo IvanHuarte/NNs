@@ -203,7 +203,7 @@ for i, size in enumerate(sizes):
             # Callbacks
             if enable_keeper:
                 keeper = BestIterKeeper(
-                    total_epochs, H, N, baseline=1e-8, mode="always"
+                    total_epochs, H, N, baseline=1e-8, mode="best_energy"
                 )
                 callbacks.append(keeper.update)
             if enable_inline:
