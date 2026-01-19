@@ -1,7 +1,7 @@
 {
     "NN": {
         
-        "selection": "Liang_MLP",
+        "selection": "CvT_Szabo",
         
 
         "CvT_Szabo":{
@@ -12,9 +12,9 @@
                 "modulus_setup":{
                     "module":"CvT",
                     "setup":{
-                        "n_CP_blocks": [1, 1],
-                        "channels": [64, 32],
-                        "attn_heads": [4, 4],
+                        "n_CP_blocks": [1],
+                        "channels": [32],
+                        "attn_heads": [4],
                         "kernel": [3, 3],
                         "final_architecture": [1]
                     }
@@ -23,7 +23,7 @@
                 "phase_setup":{
                     "module":"CNNSzabo",
                     "setup":{
-                        "channels": 50,
+                        "channels": 40,
                         "use_bias": true
                     }
                 },

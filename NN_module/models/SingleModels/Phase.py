@@ -242,7 +242,7 @@ class CNNSzabo(nn.Module):
             kernel_init=jax.nn.initializers.normal(stddev=1e-3),
             bias_init=jax.nn.initializers.zeros,
         )(x)
-        # x = nn.LayerNorm(dtype=REAL_DTYPE, param_dtype=REAL_DTYPE)(x)
+        x = nn.LayerNorm(dtype=REAL_DTYPE, param_dtype=REAL_DTYPE)(x)
         x = x.reshape(x.shape[0], -1)
         z = jnp.exp(1j * x)
 

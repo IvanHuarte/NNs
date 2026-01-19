@@ -451,7 +451,6 @@ def get_filenames_from_settings(cm_setup, nn_setup, sim_uuid=None, **kwargs):
 
     model_label = cm_name + "_" + nn_name
     size = cm_setup["size"]
-    print(cm_setup)
 
     if cm_name == "Oxalate":
         strength = cm_setup["params"]["couplings"][0]
