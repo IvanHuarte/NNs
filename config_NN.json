@@ -1,7 +1,7 @@
 {
     "NN": {
         
-        "selection": "Factorized_Liang",
+        "selection": "Factorized_CNN",
 
 
         "Liang_Marshall":{
@@ -37,7 +37,7 @@
             }
         },
 
-        "Factorized_Liang":{
+        "Factorized_CNN":{
 
             "module": "Transversal",
             "setup":{
@@ -51,31 +51,14 @@
                 },
 
                 "Trans_1":{
-                     "module": "SplitTraining",
-                        "setup":{
+                    "module":"MLP",
+                    "setup":{
+                        "hidden_alpha": [ 2, 1],
+                        "activation": ["selu","selu"],
+                        "final_architecture": [1]
+                    }
+            
 
-                            "modulus_setup":{
-                                "module":"CNNLiang",
-                                "setup":{
-                                    "M1_channels": [12, 6, 6, 6, 6, 6],
-                                    "M2_channels": [6, 6, 6, 6, 6, 1],
-                                    "kernel": [[3, 3],[3, 3],[3, 3],[3, 3],[3, 3],[3, 3]],
-                                    "window_pooling": 2,
-                                    "use_bias": false,
-                                    "mask": null
-                                }
-                            },
-
-                            "phase_setup":{
-                                "module":"MLP",
-                                "setup":{
-                                    "hidden_alpha": [2,1],
-                                    "activation": ["swish", "swish"],
-                                    "final_architecture": [1]
-                                }
-                            }
-                        }
-                
                 },
             "operation": "sum",
                 
