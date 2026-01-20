@@ -4,7 +4,7 @@
 
    "callback":{
         "keeper": true,
-        "inline":   false,
+        "inline":   true,
         "modphase": true,
         "sanity": false,
         "sanity_setup":{
@@ -24,8 +24,8 @@
 
     "sampler":{
         "sampler":{
-            "rules": ["LocalRule", "InvertMagnetization"],
-            "prules": [0.8, 0.2]
+            "rules": ["LocalRule", "Exchange", "InvertMagnetization"],
+            "prules": [0.2, 0.7, 0.1]
         },
         "n_ranks": 1,
         "n_chains_per_rank": 32,
@@ -39,23 +39,24 @@
     "ST_schedule":{
         "epochs_struct":[
             [ 
-                [50], [300], [1000], [500]
+                [1000]
+            
             ]
         ],
 
         "modes_struct":[
             [ 
-                [["A"]], [[1]], ["A"], ["A"]
+                [["A"]]
             ]
         ],
         "lr_struct":[
 
             [  
-                [[0.01]], [[0.1]], [["exp(0.1, 0.0001)", "exp(0.4, 0.0005)"]], [[0.0001]]
+                [[0.01]]
             ]
         ],
         "repeat":[],
-        "rescale": 0.5
+        "rescale": 1.0
 }
 
 }

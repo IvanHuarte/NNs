@@ -2,14 +2,18 @@ import numpy as np
 import jax.numpy as jnp
 
 import matplotlib
+
+matplotlib.use("Qt5Agg")
 import matplotlib.pyplot as plt
 import matplotlib.transforms as mtransforms
 
-matplotlib.rcParams["toolbar"] = "None"  # ← DESACTIVA icono SVG corrupto
-matplotlib.rcParams["figure.raise_window"] = False
-import warnings
+# matplotlib.rcParams["toolbar"] = "None"  # ← DESACTIVA icono SVG corrupto
+# matplotlib.rcParams["figure.raise_window"] = False
+# import warnings
 
-warnings.filterwarnings("ignore", message="qt.svg")
+# warnings.filterwarnings("ignore", message="qt.svg")
+
+print(matplotlib.get_backend())
 
 
 from NN_module.observables import full2red_basis_idx, modphase
@@ -21,7 +25,7 @@ class ModPhasePlotter:
     Dynamic callback for plotting modulus and phase in each iteration
     """
 
-    def __init__(self, sim_config, x_ED=None, plot_each=5):
+    def __init__(self, sim_config, x_ED=None, plot_each=10):
         self.plot_each = plot_each
         self.sim_config = sim_config
         self.x_ED = x_ED

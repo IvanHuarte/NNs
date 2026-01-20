@@ -118,7 +118,7 @@ def print_tree_keys(obj, indent=0):
             print_tree_keys(item, indent + 1)
 
 
-def load_vstate(setup, tree_data=False):
+def load_vstate(setup, only_parameters, tree_data=False):
 
     # Initialize model
     size = setup["CM"]["size"]

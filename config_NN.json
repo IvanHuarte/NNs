@@ -1,8 +1,111 @@
 {
     "NN": {
         
-        "selection": "CNN_Szabo",
+        "selection": "Factorized_CvT_Szabo",
 
+        "Jastrow":{
+            "module": "Transversal",
+            "setup":{
+                "Trans_0":{
+                    "module": "Jastrow_wrap",
+                    "setup":{}
+                },
+                "Trans_1":{
+                    "module": "SplitTraining",
+                    "setup":{
+            
+                        "modulus_setup":{
+                            "module":"ViT2D",
+                            "setup": {
+                                "token_size": [2, 1],
+                                "embedding_d": 32,
+                                "n_heads": 2,
+                                "n_blocks": 2,
+                                "n_ffn_layers": 1,
+                                "final_architecture": [5]
+                            }
+                        },
+                    
+                        "phase_setup":{
+                            "module":"CNNSzabo",
+                            "setup":{
+                                "channels": 40,
+                                "use_bias": true
+                            }
+                        }
+                    }
+                },
+
+                "operation": "sum",
+
+                "symm_Z2": false,
+                "trivial_Z2": true,
+                "symm_2D": false,
+                "irrep": [0, 0],
+                "use_anchor": true,
+                "squeeze":true
+            }
+        },
+
+
+        "Factorized_CvT_Szabo":{
+
+            "module": "Transversal",
+            "setup":{
+
+                "Trans_0":{
+                    "module":"Factorized",
+                    "setup":{
+                        "site_dependent": true,
+                        "complex": true
+                    }
+                },
+
+            "operation": "None",
+                
+            "symm_Z2": true,
+            "trivial_Z2": true,
+            "symm_2D": false,
+            "irrep": [0, 0],
+            "use_anchor": false,
+            "squeeze":true
+            }
+        },   
+
+
+        "ViT2D_Szabo":{
+    
+            "module": "SplitTraining",
+            "setup":{
+    
+                "modulus_setup":{
+                    "module":"ViT2D",
+                    "setup": {
+                        "token_size": [2, 1],
+                        "embedding_d": 32,
+                        "n_heads": 2,
+                        "n_blocks": 2,
+                        "n_ffn_layers": 1,
+                        "final_architecture": [5]
+                    }
+                },
+                
+                "phase_setup":{
+                    "module":"CNNSzabo",
+                    "setup":{
+                        "channels": 40,
+                        "use_bias": true
+                    }
+                },
+                
+            "symm_Z2": false,
+            "trivial_Z2": true,
+            "symm_2D": false,
+            "irrep": [0, 0],
+            "use_anchor": true,
+            "squeeze":true
+            }
+        },
 
         "CNN_Szabo":{
 
@@ -138,40 +241,6 @@
                 "squeeze":true
                 }
             },
-        
-        "ViT2D_Szabo":{
-    
-            "module": "SplitTraining",
-            "setup":{
-    
-                "modulus_setup":{
-                    "module":"ViT2D",
-                    "setup": {
-                        "token_size": [2, 1],
-                        "embedding_d": 64,
-                        "n_heads": 4,
-                        "n_blocks": 2,
-                        "n_ffn_layers": 2,
-                        "final_architecture": [64, 5]
-                    }
-                },
-                
-                "phase_setup":{
-                    "module":"CNNSzabo",
-                    "setup":{
-                        "channels": 60,
-                        "use_bias": true
-                    }
-                },
-                
-            "symm_Z2": true,
-            "trivial_Z2": true,
-            "symm_2D": true,
-            "irrep": [0, 0],
-            "use_anchor": true,
-            "squeeze":true
-            }
-        },
 
         "Liang_MLP":{
 
@@ -241,40 +310,6 @@
             "squeeze":true         
             }
         },
-
-        "Factorized_MLP":{
-
-            "module": "Transversal",
-            "setup":{
-
-                "Trans_0":{
-                    "module":"Factorized",
-                    "setup":{
-                        "site_dependent": true,
-                        "complex": true
-                    }
-                },
-
-                "Trans_1":{
-                    "module":"MLP",
-                    "setup":{
-                        "hidden_alpha": [ 2, 1],
-                        "activation": ["selu","selu"],
-                        "final_architecture": [1]
-                    }
-            
-
-                },
-            "operation": "sum",
-                
-            "symm_Z2": false,
-            "trivial_Z2": true,
-            "symm_2D": false,
-            "irrep": [2, 2],
-            "use_anchor": true,
-            "squeeze":true
-            }
-        },   
 
         "CNN_Marshall":{
 

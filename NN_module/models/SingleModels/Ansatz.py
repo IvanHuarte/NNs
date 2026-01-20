@@ -2,6 +2,19 @@ import flax.linen as nn
 import jax.numpy as jnp
 from typing import Callable
 
+from netket.models.jastrow import Jastrow
+
+
+class Jastrow_wrap(nn.Module):
+
+    @nn.compact
+    def __call__(self, x):
+
+        x = jnp.atleast_2d(Jastrow()(x)).T
+
+        return x
+
+
 class Factorized(nn.Module):
     """
     General factorized ansatz with optional site-dependent parameters, i.e.
@@ -28,12 +41,12 @@ class Factorized(nn.Module):
       - site_dependent=True : independent λ_i, φ_i per site
       - complex_wavefunction / positive control whether phase is used.
     """
+
     lattice_size: tuple
     site_dependent: bool = False
     complex: bool = True
     dtype: jnp.dtype = jnp.float64
     init_kernel: Callable = nn.initializers.lecun_normal()
-
 
     @nn.compact
     def __call__(self, x):
@@ -42,20 +55,34 @@ class Factorized(nn.Module):
 
         # Amplitude parameters
         lam_shape = (L,) if self.site_dependent else (1,)
-        lam = self.param("lambda", nn.initializers.normal(stddev=1e-2), lam_shape, self.dtype)
+        lam = self.param(
+            "lambda", nn.initializers.normal(stddev=1e-1), lam_shape, self.dtype
+        )
 
         p = nn.log_sigmoid(x * lam)
-        real_part = 0.5 * jnp.sum(p, axis=-1)
+        real_part = jnp.array([0.5])
 
         # No phase
         if not self.complex:
             return real_part
 
         # Phase parameters
-        phi_shape = (L,) if self.site_dependent else (1,)
-        phi = self.param("phi", nn.initializers.normal(stddev=1e-2), phi_shape, self.dtype)
-        theta = 2.0 * jnp.pi * nn.sigmoid(phi)
+        # phi_params = self.param(
+        #     "phi", nn.initializers.normal(stddev=1e-1), (2,), self.dtype
+        # )
+        # i, j = jnp.unravel_index(jnp.arange(L), self.lattice_size)
+        # phi = phi_params[(i + j) % 2]
+        # theta = jnp.pi * nn.sigmoid(phi)
 
+        # phi_params = self.param(
+        #     "phi", nn.initializers.normal(stddev=1e-1), (2,), self.dtype
+        # )
+        # phi_shape = (L,) if self.site_dependent else (1,)
+        # imag_part = jnp.sum(theta * (x == 1), axis=-1)
+
+        phi_shape = (L,) if self.site_dependent else (1,)
+        phi = self.param("phi", nn.initializers.normal(), phi_shape, self.dtype)
+        theta = jnp.pi * nn.sigmoid(phi)
         imag_part = jnp.sum(theta * (x == 1), axis=-1)
 
         z = real_part.astype(jnp.complex128) + 1j * imag_part.astype(jnp.complex128)

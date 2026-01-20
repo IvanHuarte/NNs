@@ -24,6 +24,7 @@ from pathlib import Path
 
 
 # Importar módulos necesarios
+from NN_module.initialize_NN import FactoryBuilder
 from VA_project.initialize_model import ModelFactory
 from VA_project.engine.runners import Runner
 
@@ -35,13 +36,12 @@ from NN_module.callback.SanityMonitor import SanityMonitor
 from NN_module.callback.utils import dump_callback
 
 from NN_module.saveNload import save_results
-from NN_module.schedules import generate_training
-from NN_module.label_utils import get_filenames_from_settings
+from NN_module.initialize_schedule import Schedule
+from NN_module.label_utils import get_filenames_from_settings, get_sim_config
 
 from NN_module.sim_utils import measureNdump
 from NN_module.NN_utils import scheduler_initializer
 from NN_module.observables import phase_stats_vstate
-from NN_module.ST_utils import masked_optimizer
 
 parser = argparse.ArgumentParser()
 parser.add_argument(
@@ -94,8 +94,7 @@ with open("refinement.json", "r") as f:
 # Simulation settings
 split_training = config["split_training"]
 training_name = "ST_schedule" if split_training else "normal_schedule"
-lr_name = config[training_name]["lr_name"]
-training_setup = config[training_name]
+schedule_setup = config[training_name]
 
 ### Callbacks
 enable_keeper = config["callback"]["keeper"]
@@ -121,15 +120,28 @@ H = eng.build_hamiltonian()
 # artifact["NN"]["setup"]["setup"]["phase_setup"]["setup"].pop("Trans_1")
 
 print(f"Loading vstate")
-vstate = load_vstate(artifact)
-sys.exit(0)
-# for i in range(1000):
-#     print(f"Recalentando samples: {i}")
-#     vstate.sample()
-# factory = FactoryBuilder(artifact["NN"]["setup"], **{"lattice_size": size})
-# model = factory.get_model()
+vstate = load_vstate(artifact, only_parameters=True)
+# sys.exit(0)
+nn_model = vstate.model
 
 print(vstate.model)
+
+
+### MC sampling rules ###
+sampler_setup = config["sampler"]
+n_samples = (
+    sampler_setup["n_samples_per_chain"]
+    * sampler_setup["n_chains_per_rank"]
+    * sampler_setup["n_ranks"]
+)
+
+
+### Callbacks
+enable_keeper = config["callback"]["keeper"]
+enable_inline = config["callback"]["inline"]
+enable_modphase = config["callback"]["modphase"]
+enable_sanity = config["callback"]["sanity"]
+callbacks = []
 
 
 # Get exact diag energy, in the case.
@@ -143,12 +155,22 @@ else:
     x_ED = None
     exact_diag = False
 
-n_samples = (
-    artifact["SIM"]["sampler"]["n_samples_per_chain"]
-    * artifact["SIM"]["sampler"]["n_chains_per_rank"]
-    * artifact["SIM"]["sampler"]["n_ranks"]
+# Build a simulation_config
+factory = FactoryBuilder(nn_model_setup, **{"lattice_size": size})
+model = factory.get_model()
+nparams, nbytes = factory.get_params_info(nn_model, N, show_info=False)
+sim_config = get_sim_config(
+    {
+        "SIM": config,
+        "CM": cm_model_setup,
+        "NN": {
+            "name": nn_model_name,
+            "n_params": nparams,
+            "nbytes": nbytes,
+            "setup": nn_model_setup,
+        },
+    }
 )
-
 
 callback_artifacts = {}
 time_in = time.time()
@@ -159,132 +181,95 @@ log = (
 
 if split_training:  # Alternated training between modulus and phase
 
-    segments, modes, lr_segments = generate_training(training_setup)
+    # SplitTraining Schedule
+    schedule = Schedule(schedule_setup, nn_model)
+    total_periods = schedule.total_periods
+    total_epochs = schedule.total_epochs
+    schedule_setup["total_epochs"] = total_epochs
 
-    total_segments = len(segments)
-    total_epochs = int(np.array([s for seg in segments for s in seg]).sum())
-    training_setup["total_epochs"] = total_epochs
-
-    ds_schedule = jnp.linspace(1e-2, 1e-4, total_segments)
-
-    transformations = {
-        "train": optax.sgd(0.1),
-        "freeze": optax.set_to_zero(),
-    }
-    print(f"Total epochs: {total_epochs} type: {type(total_epochs)}")
-    print(f"H: {H} ({type(H)})")
-    print(f"N: {N} ({type(N)})")
+    ds_schedule = jnp.linspace(1e-2, 1e-4, total_periods, dtype=jnp.float64)
 
     # Callbacks
     if enable_keeper:
         keeper = BestIterKeeper(total_epochs, H, N, baseline=1e-8, mode="always")
         callbacks.append(keeper.update)
-    # keeper.filename = 'Somewhere' #It allows you to store the parameters of the model for the state with lowest energy found.
     if enable_inline:
-        inline_energy = EnergyPlotter(
-            H,
-            N,
-            artifact["results"]["E_best"],
-            artifact["results"]["E_ED"],
-            artifact["results"]["vscore"],
-            artifact["results"]["error"],
-        )
+        inline_energy = EnergyPlotter(H, N, E_ED=E_ED)
         callbacks.append(inline_energy)
     if enable_modphase:
-        inline_modphase = ModPhasePlotter(artifact, x_ED)
+        inline_modphase = ModPhasePlotter(sim_config, x_ED)
         callbacks.append(inline_modphase)
     if enable_sanity:
         sanity_monitor = SanityMonitor(config["callback"]["sanity_setup"])
         callbacks.append(sanity_monitor)
 
-    for i, (segment, seg_modes, lr_segment) in enumerate(
-        zip(segments, modes, lr_segments)
-    ):
-        print(f"\nSegment:")
-        print(f"  Epochs: {segment}")
-        print(f"  Modes:  {seg_modes}")
-        print(f"  LRs:    {lr_segment}")
+    for i, (lr_period, info) in enumerate(schedule.schedule()):
+        print(f"info: {info}")
 
-        SR = nk.optimizer.SR(diag_shift=ds_schedule[i])
+        epochs = info[0][0]
+        mode = info[0][1]
+        lr_string = ""
+        for inf in info:
+            lr_string += f"{inf[2]}  "
 
-        for epochs, mode, lr in zip(segment, seg_modes, lr_segment):
+        rescaled = "" if len(info) < 4 else info[3]
+        print(f"\nPeriod {i + 1} / {total_periods}:")
+        print(f"Training {mode} for {epochs} epochs")
+        print(f"LR: {lr_string}  ({rescaled})")
 
-            print(
-                f"\nSegment {i+1} of {total_segments}......   lr: {lr:.4f}  ds: {ds_schedule[i]:.4f}\n"
+        print(f"Diagonal shift: {ds_schedule[i]:.4e}\n")
+
+        variables = vstate.variables
+        sampler = vstate.sampler
+        optimizer = schedule.transform_optimizer(
+            vstate.parameters, optax.sgd, info, lr_period
+        )
+
+        # vstate = nk.vqs.MCState(
+        #     sampler,
+        #     sampler_seed=vstate.sampler_state.rng,
+        #     model=model,
+        #     n_samples=n_samples,
+        #     n_discard_per_chain=0,
+        #     chunk_size=sampler_setup["chunk_vstate"],
+        #     variables=variables,
+        # )
+        if i != 0:
+            vstate = nk.vqs.MCState(
+                sampler,
+                model=model,
+                n_samples=n_samples,
+                n_discard_per_chain=500,
+                chunk_size=sampler_setup["chunk_vstate"],
+                variables=variables,
             )
-            # P0 = vstate.parameters
+        holo = nk.utils.is_probably_holomorphic(
+            vstate._apply_fun,
+            vstate.parameters,
+            vstate.samples,
+            model_state=vstate.model_state,
+        )
+        sr = nk.optimizer.SR(diag_shift=ds_schedule[i], holomorphic=False)
+        gs = nk.driver.VMC(H, optimizer, variational_state=vstate, preconditioner=sr)
 
-            if mode == "M":
-                mode = "modulus"
-                mask = "phase"
-                transformations["train"] = optax.sgd(learning_rate=lr)
+        print(f"\nTraining {mode} for {epochs} epochs...")
+        gs.run(
+            n_iter=epochs,
+            out=log,
+            callback=callbacks,
+            show_progress=True,
+        )
+        # vstate.sampler.reset(vstate.model.apply, vstate.variables["params"])
+        mean, std, psi = phase_stats_vstate(vstate)
+        print(f"VS phase: {mean} \u00b1 {std}  ({psi})")
 
-            elif mode == "P":
-                mode = "phase"
-                mask = "modulus"
-                transformations["train"] = optax.sgd(learning_rate=lr)
-
-            elif mode == "B":
-                mode = "both"
-                mask = None
-                transformations["train"] = optax.sgd(learning_rate=lr)
-
-            else:
-                raise ValueError(
-                    f"Invalid training mode: {mode}."
-                    f"'M' for modulus and 'P' for phase"
-                )
-
-            variables = vstate.variables
-            sampler = vstate.sampler
-            optimizer = masked_optimizer(vstate.parameters, transformations, mode=mask)
-
-            initial_samples = vstate.sampler.init_state(
-                vstate._apply_fun, vstate.variables
-            )
-            vstate.sampler.reset(
-                vstate._apply_fun, vstate.variables, state=initial_samples
-            )
-
-            # vstate = nk.vqs.MCState(
-            #     sampler,
-            #     sampler_seed=vstate.sampler_state.rng,
-            #     model=vstate.model,
-            #     n_samples=n_samples,
-            #     # n_samples=artifact["SIM"]["sampler"]["n_samples"],
-            #     n_discard_per_chain=0,
-            #     chunk_size=artifact["SIM"]["sampler"]["chunk_vstate"],
-            #     variables=variables,
-            # )
-
-            gs = nk.driver.VMC(
-                H,
-                optimizer,
-                variational_state=vstate,
-                preconditioner=SR,
-            )
-
-            import gc
-
-            gc.collect()
-            jax.clear_caches()
-
-            print(f"\nTraining {mode} for {epochs} epochs...")
-            gs.run(
-                n_iter=epochs,
-                out=log,
-                callback=callbacks,
-                show_progress=True,
-            )
-            mean, std, psi = phase_stats_vstate(vstate)
-            print(f"VS phase: {mean} \u00b1 {std}  ({psi})")
-            # P1 = vstate.parameters
-            # print(compare_params(P0, P1))
-            # check_zero_grads(vstate, mask)
+        # P1 = vstate.parameters
+        # compare_params(P0, P1)
+        # check_zero_grads(vstate, mask)
 else:
 
     # Training modulus and phase at the same time
-    total_epochs = training_setup["total_epochs"]
+    total_epochs = schedule_setup["total_epochs"]
     # Callbacks
     if enable_keeper:
         keeper = BestIterKeeper(total_epochs, H, N, baseline=1e-8, mode="best_energy")
@@ -294,11 +279,11 @@ else:
     if enable_inline:
         inline_plot = EnergyPlotter(H, N, E_ED=E_ED)
         callbacks.append(inline_plot)
-    training_setup["total_epochs"] = total_epochs
+    schedule_setup["total_epochs"] = total_epochs
 
     ds_schedule = optax.linear_schedule(1e-2, 1e-4, total_epochs)
     SR = nk.optimizer.SR(diag_shift=ds_schedule)
-    lr_schedule = scheduler_initializer("warmup_exponential_decay", training_setup)
+    lr_schedule = scheduler_initializer("warmup_exponential_decay", schedule_setup)
     optimizer = nk.optimizer.Sgd(learning_rate=lr_schedule)
     gs = nk.driver.VMC(H, optimizer, variational_state=vstate, preconditioner=SR).run(
         n_iter=total_epochs,
@@ -332,10 +317,10 @@ dump_setup = {
     "sim_label": sim_label,
     "title_label_callback": title_label_callback,
     "best_step": keeper.best_step,
-    "training_setup": {
+    "schedule_setup": {
         "lr_name": lr_name,
-        **training_setup["setup"],
-        **training_setup["lr_schedules"][lr_name],
+        **schedule_setup["setup"],
+        **schedule_setup["lr_schedules"][lr_name],
     },
 }
 callback_artifacts = dump_callback(log, dump_setup)
@@ -346,10 +331,10 @@ results, mp_array_vs, mp_array_ED = measureNdump(keeper, time_exe, exact_diag)
 # Save the results
 artifact["SIM"]["sampler"]["rng"] = vstate.sampler_state.rng.tolist()
 artifact["SIM"]["schedule"]["lr_schedule"]["name"] = lr_name
-artifact["SIM"]["schedule"]["lr_schedule"]["setup"] = training_setup["lr_schedules"][
+artifact["SIM"]["schedule"]["lr_schedule"]["setup"] = schedule_setup["lr_schedules"][
     lr_name
 ]
-artifact["SIM"]["schedule"]["setup"] = training_setup
+artifact["SIM"]["schedule"]["setup"] = schedule_setup
 
 artifact["results"] = results
 

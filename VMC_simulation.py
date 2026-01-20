@@ -203,13 +203,14 @@ for i, size in enumerate(sizes):
             # Callbacks
             if enable_keeper:
                 keeper = BestIterKeeper(
-                    total_epochs, H, N, baseline=1e-8, mode="best_energy"
+                    total_epochs, H, N, baseline=1e-8, mode="always"
                 )
                 callbacks.append(keeper.update)
             if enable_inline:
                 inline_energy = EnergyPlotter(H, N, E_ED=E_ED)
                 callbacks.append(inline_energy)
             if enable_modphase:
+                print(f"Adding Modphase")
                 inline_modphase = ModPhasePlotter(sim_config, x_ED)
                 callbacks.append(inline_modphase)
             if enable_sanity:
@@ -231,7 +232,6 @@ for i, size in enumerate(sizes):
                 print(f"LR: {lr_string}  ({rescaled})")
 
                 print(f"Diagonal shift: {ds_schedule[i]:.4e}\n")
-                sr = nk.optimizer.SR(diag_shift=ds_schedule[i])
 
                 variables = vstate.variables
                 sampler = vstate.sampler
@@ -257,13 +257,24 @@ for i, size in enumerate(sizes):
                         chunk_size=sampler_setup["chunk_vstate"],
                         variables=variables,
                     )
-
+                holo = nk.utils.is_probably_holomorphic(
+                    vstate._apply_fun,
+                    vstate.parameters,
+                    vstate.samples,
+                    model_state=vstate.model_state,
+                )
+                sr = nk.optimizer.SR(diag_shift=ds_schedule[i], holomorphic=False)
                 gs = nk.driver.VMC(
                     H, optimizer, variational_state=vstate, preconditioner=sr
                 )
 
                 print(f"\nTraining {mode} for {epochs} epochs...")
-                gs.run(n_iter=epochs, out=log, callback=callbacks, show_progress=True)
+                gs.run(
+                    n_iter=epochs,
+                    out=log,
+                    callback=callbacks,
+                    show_progress=True,
+                )
                 # vstate.sampler.reset(vstate.model.apply, vstate.variables["params"])
                 mean, std, psi = phase_stats_vstate(vstate)
                 print(f"VS phase: {mean} \u00b1 {std}  ({psi})")

@@ -15,7 +15,11 @@ def get_schedule_label(split_training, setup):
     else:
         label = "Both"
 
+    for char in ["[", "]", "'", '"']:
+        label = label.replace(char, "") if char != "[" else label.replace("[", "-")
+
     return label
+
 
 def all_submodules(submodules, lr):
 
@@ -25,15 +29,17 @@ def all_submodules(submodules, lr):
     if len(lr) == 1:
         print(submodules)
         return lr * len(submodules)
-    
+
+
 def some_submodules(submodules, mode, lr):
     mode = [submodules[idx] for idx in mode]
     if len(lr) == 1:
         lr = lr * len(mode)
     else:
         assert len(lr) == len(mode)
-    
+
     return mode, lr
+
 
 def decode_arch_labels(submodules, mode, lr):
     assert isinstance(mode, (list, tuple))
@@ -48,7 +54,7 @@ def decode_arch_labels(submodules, mode, lr):
         mode, lr = some_submodules(submodules, mode, lr)
 
     return mode, lr
-    
+
 
 def schedule_from_array(x):
     def schedule_fun(step):
@@ -56,18 +62,18 @@ def schedule_from_array(x):
 
     return schedule_fun
 
+
 def arch_recognizer(params):
     labels = list(params.keys())
 
-    if all(key in ['ModulusNet', 'PhaseNet'] for key in labels):
+    if all(key in ["ModulusNet", "PhaseNet"] for key in labels):
         return "SplitTraining"
-    
-    elif all('Seq' in key or 'End' in key for key in labels):
+
+    elif all("Seq" in key or "End" in key for key in labels):
         return "Sequential"
-    
-    elif all('Trans' in key for key in labels):
+
+    elif all("Trans" in key for key in labels):
         return "Transversal"
-    
+
     else:
         raise NotImplementedError(f"There is no mask for this architecture: {labels}")
-    

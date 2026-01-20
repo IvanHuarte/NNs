@@ -6,6 +6,7 @@ from typing import Tuple, AnyStr, Callable
 from NN_module.NN_utils import traslations_2D
 from NN_module.models.toolbox import CarreteSign, AddPhase
 
+
 def final_ensemble(ensem_mode: AnyStr = "sum") -> Callable:
 
     # Operation selection
@@ -32,6 +33,13 @@ def final_ensemble(ensem_mode: AnyStr = "sum") -> Callable:
             return x.astype(jnp.complex128)
 
         return fun
+
+    elif "None":
+
+        def lambda_wrap(x, axis=0, keepdims=True):
+            return x
+
+        return lambda_wrap
 
     else:
         raise ValueError(f"Ensemble mode {ensem_mode} not recognized.")
@@ -115,14 +123,12 @@ class Transversal_2D(nn.Module):
         traslational_x = traslations_2D(
             x, size=self.lattice_size, token_size=self.token_size, memory=False
         )
-    
+
         ffw = jax.vmap(worker, in_axes=0)(traslational_x).T
 
         x = ffw * characters
 
-        x = jnp.atleast_1d(
-            x.mean(axis=-1)
-        )
+        x = jnp.atleast_1d(x.mean(axis=-1))
 
         return x
 
@@ -190,7 +196,7 @@ class Transversal_Z2(nn.Module):
                     irrep=self.irrep,
                     squeeze=self.squeeze,
                 )
-            
+
             else:
                 worker = Transversal_2D(
                     Trans=self.Trans,
@@ -275,7 +281,7 @@ class Transversal(nn.Module):
                     irrep=self.irrep,
                     squeeze=self.squeeze,
                 )
-            
+
             else:
                 worker = Transversal_2D(
                     Trans=self.Trans,
