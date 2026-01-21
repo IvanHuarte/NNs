@@ -4,41 +4,45 @@ import flax.linen as nn
 from typing import Tuple, Callable
 
 from NN_module.NN_utils import traslations_2D
-from NN_module.models.toolbox import CarreteSign, AddPhase
+from NN_module.NN.toolbox import CarreteSign, AddPhase
 
 
-class Sequential_Worker(nn.Module):
+class SplitTraining_Worker(nn.Module):
     """
-    Flax module to train module and phase separately
+    Flax module to train modulus and phase separately
     """
 
-    Seq: Tuple[nn.Module, ...]
-    End: nn.Module | None
+    ModulusNet: nn.Module
+    PhaseNet: nn.Module
 
     squeeze: Callable = lambda x: x
 
     def setup(self):
-
-        self.seq = self.Seq
-        self.end = self.End if (isinstance(self.End, nn.Module)) else lambda x: x
+        self.Modulus_model = self.ModulusNet
+        self.Phase_model = self.PhaseNet
 
     def __call__(self, x: jnp.ndarray) -> jnp.ndarray:
 
         x = jnp.atleast_2d(x)
 
-        for module in self.seq:
-            x = module(x)
+        # print(f"Modulus")
+        log_modulus = self.Modulus_model(x)
 
-        x = self.end(x)
+        # print(f"Phase")
+        phase = self.Phase_model(x)
 
-        return self.squeeze(x)
+        # print(f"Modulus: {log_modulus.shape}")
+        # print(f"Phase: {phase.shape}")
+        # print(self.squeeze)
+
+        return self.squeeze(log_modulus + 1j * phase)
 
 
-class Sequential_2D(nn.Module):
+class SplitTraining_2D(nn.Module):
 
-    Seq: Tuple[nn.Module, ...]
-    End: nn.Module
-    
+    ModulusNet: nn.Module
+    PhaseNet: nn.Module
+
     lattice_size: Tuple[int, int] = None
     token_size: Tuple[int, int] = None
     irrep: Tuple[int] = (0, 0)  # Tuple (q_1, q_2) representing the irrep.
@@ -48,7 +52,9 @@ class Sequential_2D(nn.Module):
     @nn.compact
     def __call__(self, x):
 
-        worker = Sequential_Worker(Seq=self.Seq, End=self.End, squeeze=self.squeeze)
+        worker = SplitTraining_Worker(
+            ModulusNet=self.ModulusNet, PhaseNet=self.PhaseNet, squeeze=self.squeeze
+        )
 
         na, nb = jnp.unravel_index(
             jnp.arange(self.lattice_size[0] * self.lattice_size[1]), self.lattice_size
@@ -67,22 +73,20 @@ class Sequential_2D(nn.Module):
         traslational_x = traslations_2D(
             x, size=self.lattice_size, token_size=self.token_size, memory=False
         )
-    
+
         ffw = jax.vmap(worker, in_axes=0)(traslational_x).T
 
         x = ffw * characters
 
-        x = jnp.atleast_1d(
-            x.mean(axis=-1)
-        )
+        x = jnp.atleast_1d(x.mean(axis=-1))
 
         return x
 
 
-class Sequential_2DAnchor(nn.Module):
+class SplitTraining_2DAnchor(nn.Module):
 
-    Seq: Tuple[nn.Module, ...]
-    End: nn.Module
+    ModulusNet: nn.Module
+    PhaseNet: nn.Module
 
     lattice_size: Tuple[int, int] = None
     irrep: Tuple[int] = (0, 0)  # Tuple (q_1, q_2) representing the irrep.
@@ -92,7 +96,9 @@ class Sequential_2DAnchor(nn.Module):
     @nn.compact
     def __call__(self, x):
 
-        worker = Sequential_Worker(Seq=self.Seq, End=self.End, squeeze=self.squeeze)
+        worker = SplitTraining_Worker(
+            ModulusNet=self.ModulusNet, PhaseNet=self.PhaseNet, squeeze=self.squeeze
+        )
 
         # 2D traslational anchoring
         x, anchors = CarreteSign(lattice_size=self.lattice_size, irrep=self.irrep)(x)
@@ -104,11 +110,12 @@ class Sequential_2DAnchor(nn.Module):
 
         return x
 
-class Sequential_Z2(nn.Module):
 
-    Seq: Tuple[nn.Module, ...]
-    End: nn.Module | None
- 
+class SplitTraining_Z2(nn.Module):
+
+    ModulusNet: nn.Module
+    PhaseNet: nn.Module
+
     lattice_size: Tuple[int, int] = None
     token_size: Tuple[int, int] = None
 
@@ -126,25 +133,26 @@ class Sequential_Z2(nn.Module):
 
         if self.symm_2D:
             if self.use_anchor:
-                worker = Sequential_2DAnchor(
-                    Seq=self.Seq,
-                    End=self.End,
+                worker = SplitTraining_2DAnchor(
+                    ModulusNet=self.ModulusNet,
+                    PhaseNet=self.PhaseNet,
                     lattice_size=self.lattice_size,
                     irrep=self.irrep,
                     squeeze=self.squeeze,
                 )
-            
-            else:    
-                worker = Sequential_2D(
-                    Seq=self.Seq,
-                    End=self.End,
+            else:
+                worker = SplitTraining_2D(
+                    ModulusNet=self.ModulusNet,
+                    PhaseNet=self.PhaseNet,
                     lattice_size=self.lattice_size,
                     token_size=self.token_size,
                     irrep=self.irrep,
                     squeeze=self.squeeze,
                 )
         else:
-            worker = Sequential_Worker(Seq=self.Seq, End=self.End)
+            worker = SplitTraining_Worker(
+                ModulusNet=self.ModulusNet, PhaseNet=self.PhaseNet, squeeze=self.squeeze
+            )
 
         output_x = jnp.atleast_1d(worker(x))
         output_inv_x = jnp.atleast_1d(worker(-x))
@@ -161,15 +169,13 @@ class Sequential_Z2(nn.Module):
             return res
 
 
-class Sequential(nn.Module):
+class SplitTraining(nn.Module):
     """
-    Flax module to have a general model (Seq) which carries and trains
-    global information of the system and ending up with an ending model
-    which carries the dimensional reduction and/or modulus-phase spliting.
+    Flax module to train modulus and phase separately
     """
 
-    Seq: Tuple[nn.Module, ...]
-    End: nn.Module | None
+    ModulusNet: nn.Module
+    PhaseNet: nn.Module
 
     "Symmetries"
     symm_2D: bool = False
@@ -189,9 +195,10 @@ class Sequential(nn.Module):
     def __call__(self, x: jnp.ndarray) -> jnp.ndarray:
 
         if self.symm_Z2:
-            worker = Sequential_Z2(
-                Seq=self.Seq,
-                End=self.End,
+            worker = SplitTraining_Z2(
+                lattice_size=self.lattice_size,
+                ModulusNet=self.ModulusNet,
+                PhaseNet=self.PhaseNet,
                 trivial_Z2=self.trivial_Z2,
                 symm_2D=self.symm_2D,
                 irrep=self.irrep,
@@ -201,25 +208,26 @@ class Sequential(nn.Module):
             )
         elif self.symm_2D:
             if self.use_anchor:
-                worker = Sequential_2DAnchor(
-                    Seq=self.Seq,
-                    End=self.End,
+                worker = SplitTraining_2DAnchor(
+                    ModulusNet=self.ModulusNet,
+                    PhaseNet=self.PhaseNet,
                     lattice_size=self.lattice_size,
                     irrep=self.irrep,
-                    squeeze=self.squeeze
+                    squeeze=self.squeeze,
                 )
-            
             else:
-                worker = Sequential_2D(
-                    Seq=self.Seq,
-                    End=self.End,
+                worker = SplitTraining_2D(
+                    ModulusNet=self.ModulusNet,
+                    PhaseNet=self.PhaseNet,
                     lattice_size=self.lattice_size,
                     token_size=self.token_size,
                     irrep=self.irrep,
-                    squeeze=self.squeeze
+                    squeeze=self.squeeze,
                 )
         else:
-            worker = Sequential_Worker(Seq=self.Seq, End=self.End, squeeze=self.squeeze)
+            worker = SplitTraining_Worker(
+                ModulusNet=self.ModulusNet, PhaseNet=self.PhaseNet, squeeze=self.squeeze
+            )
 
         x = worker(x)
 

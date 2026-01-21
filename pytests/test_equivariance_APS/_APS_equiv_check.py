@@ -1,6 +1,7 @@
 import jax
 import jax.numpy as jnp
-from NN_module.models.CvTaps import get_maxnorm_indices
+from NN_module.NN.SingleModels.CvTaps import get_maxnorm_indices
+
 
 def APS_equiv_check(x0, params, model, atol=1e-5, v=0):
 
@@ -13,10 +14,12 @@ def APS_equiv_check(x0, params, model, atol=1e-5, v=0):
     y0, P0 = model.apply(params, x0, return_shifts=True)
 
     B1, H1, W1, C1 = y0.shape
-    stride=tuple([H0 // H1, W0 // W1])
+    stride = tuple([H0 // H1, W0 // W1])
 
     assert B0 == B1, f"Batch dimension must be equal before and after ffn....strange"
-    shifts_lat1 = jnp.array([(i*stride[0], j*stride[1]) for i in range(H1) for j in range(W1)])
+    shifts_lat1 = jnp.array(
+        [(i * stride[0], j * stride[1]) for i in range(H1) for j in range(W1)]
+    )
 
     y_check_list = jnp.array(
         [jnp.roll(y0, shift, axis=(1, 2)) for shift in shifts_lat1]
@@ -44,5 +47,3 @@ def APS_equiv_check(x0, params, model, atol=1e-5, v=0):
         print("✅ El modelo es equivariante!")
     else:
         print("❌ Alguna operación rompe la equivarianza")
-
-

@@ -3,7 +3,7 @@ import jax
 import jax.typing as jt
 import jax.numpy as jnp
 from typing import Tuple, Callable
-from NN_module.models.toolbox import DepthPointwiseConv, MarshallSign
+from NN_module.NN.toolbox import DepthPointwiseConv, MarshallSign
 
 REAL_DTYPE = jnp.float64
 
@@ -244,7 +244,7 @@ class CNNSzabo(nn.Module):
         )(x)
         x = nn.LayerNorm(dtype=REAL_DTYPE, param_dtype=REAL_DTYPE)(x)
         x = x.reshape(x.shape[0], -1)
-        x = jnp.exp(1j *jnp.pi * x)
+        x = jnp.exp(1j * jnp.pi * x)
 
         x = x.sum(axis=-1, keepdims=True)
 

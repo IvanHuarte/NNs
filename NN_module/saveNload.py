@@ -12,8 +12,8 @@ from platform import architecture, python_version
 from pathlib import Path
 
 from VA_project.initialize_model import ModelFactory
-from .initialize_NN import FactoryBuilder
-from .initialize_sampler import SamplerFactory
+from .NN.NN import FactoryBuilder
+from .sampler.sampler import SamplerFactory
 
 
 def save_results(

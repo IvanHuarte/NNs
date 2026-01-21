@@ -1,94 +1,43 @@
 import jax
 import jax.numpy as jnp
 import flax.linen as nn
-from typing import Tuple, AnyStr, Callable
+from typing import Tuple, Callable
 
 from NN_module.NN_utils import traslations_2D
-from NN_module.models.toolbox import CarreteSign, AddPhase
+from NN_module.NN.toolbox import CarreteSign, AddPhase
 
 
-def final_ensemble(ensem_mode: AnyStr = "sum") -> Callable:
-
-    # Operation selection
-    if ensem_mode == "sum":
-        return jnp.sum
-    elif ensem_mode == "sum_angles":
-
-        def fun(x, axis=0, keepdims=True):
-            x = jnp.sum(x, axis=axis, keepdims=keepdims)
-            x = (x + jnp.pi) % (2 * jnp.pi) - jnp.pi
-            return x
-
-        return fun
-
-    elif ensem_mode == "product":
-        return jnp.prod
-
-    elif ensem_mode == "mean":
-        return jnp.mean
-    elif ensem_mode == "modulus_marshall":
-
-        def fun(x, axis=0, keepdims=True):
-            x = jnp.log(x[1] * jnp.exp(x[0]))
-            return x.astype(jnp.complex128)
-
-        return fun
-
-    elif "None":
-
-        def lambda_wrap(x, axis=0, keepdims=True):
-            return x
-
-        return lambda_wrap
-
-    else:
-        raise ValueError(f"Ensemble mode {ensem_mode} not recognized.")
-
-
-class Transversal_Worker(nn.Module):
+class Sequential_Worker(nn.Module):
     """
     Flax module to train module and phase separately
     """
 
-    Trans: Tuple[nn.Module, ...]
-    operation: str = "sum"
-    post_norm: bool = False
+    Seq: Tuple[nn.Module, ...]
+    End: nn.Module | None
 
     squeeze: Callable = lambda x: x
 
-    @nn.compact
+    def setup(self):
+
+        self.seq = self.Seq
+        self.end = self.End if (isinstance(self.End, nn.Module)) else lambda x: x
+
     def __call__(self, x: jnp.ndarray) -> jnp.ndarray:
 
         x = jnp.atleast_2d(x)
 
-        B = x.shape[0]
-        # print(f"x_in: {x.shape}")
+        for module in self.seq:
+            x = module(x)
 
-        x = jnp.stack([module(x) for module in self.Trans], axis=0)
-        # print(f"res: {x.shape}")
+        x = self.end(x)
 
-        # Norm
-        if self.post_norm:
-            x = nn.LayerNorm()(x.swapaxes(0, -1)).swapaxes(0, -1)
-
-        # print(f"x_norm: {x.shape}")
-
-        x = final_ensemble(ensem_mode=self.operation)(x, axis=0, keepdims=True)
-        # jax.debug.print("x_after: {} \n\n", x)
-
-        # print(f"final_ensemble: {x}")
-        x = jnp.atleast_2d(x).reshape(B, *x.shape[2:])
-
-        # print(f"x_group: {x.shape}")
-        # print(f"\n")
         return self.squeeze(x)
 
 
-class Transversal_2D(nn.Module):
+class Sequential_2D(nn.Module):
 
-    Trans: Tuple[nn.Module, ...]
-    operation: str = "sum"
-    post_norm: bool = False
+    Seq: Tuple[nn.Module, ...]
+    End: nn.Module
 
     lattice_size: Tuple[int, int] = None
     token_size: Tuple[int, int] = None
@@ -99,12 +48,7 @@ class Transversal_2D(nn.Module):
     @nn.compact
     def __call__(self, x):
 
-        worker = Transversal_Worker(
-            Trans=self.Trans,
-            operation=self.operation,
-            post_norm=self.post_norm,
-            squeeze=self.squeeze,
-        )
+        worker = Sequential_Worker(Seq=self.Seq, End=self.End, squeeze=self.squeeze)
 
         na, nb = jnp.unravel_index(
             jnp.arange(self.lattice_size[0] * self.lattice_size[1]), self.lattice_size
@@ -133,11 +77,10 @@ class Transversal_2D(nn.Module):
         return x
 
 
-class Transversal_2DAnchor(nn.Module):
+class Sequential_2DAnchor(nn.Module):
 
-    Trans: Tuple[nn.Module, ...]
-    operation: str = "sum"
-    post_norm: bool = False
+    Seq: Tuple[nn.Module, ...]
+    End: nn.Module
 
     lattice_size: Tuple[int, int] = None
     irrep: Tuple[int] = (0, 0)  # Tuple (q_1, q_2) representing the irrep.
@@ -147,12 +90,7 @@ class Transversal_2DAnchor(nn.Module):
     @nn.compact
     def __call__(self, x):
 
-        worker = Transversal_Worker(
-            Trans=self.Trans,
-            operation=self.operation,
-            post_norm=self.post_norm,
-            squeeze=self.squeeze,
-        )
+        worker = Sequential_Worker(Seq=self.Seq, End=self.End, squeeze=self.squeeze)
 
         # 2D traslational anchoring
         x, anchors = CarreteSign(lattice_size=self.lattice_size, irrep=self.irrep)(x)
@@ -165,11 +103,10 @@ class Transversal_2DAnchor(nn.Module):
         return x
 
 
-class Transversal_Z2(nn.Module):
+class Sequential_Z2(nn.Module):
 
-    Trans: Tuple[nn.Module, ...]
-    operation: str = "sum"
-    post_norm: bool = False
+    Seq: Tuple[nn.Module, ...]
+    End: nn.Module | None
 
     lattice_size: Tuple[int, int] = None
     token_size: Tuple[int, int] = None
@@ -188,32 +125,25 @@ class Transversal_Z2(nn.Module):
 
         if self.symm_2D:
             if self.use_anchor:
-                worker = Transversal_2DAnchor(
-                    Trans=self.Trans,
-                    operation=self.operation,
-                    post_norm=self.post_norm,
+                worker = Sequential_2DAnchor(
+                    Seq=self.Seq,
+                    End=self.End,
                     lattice_size=self.lattice_size,
                     irrep=self.irrep,
                     squeeze=self.squeeze,
                 )
 
             else:
-                worker = Transversal_2D(
-                    Trans=self.Trans,
-                    operation=self.operation,
-                    post_norm=self.post_norm,
+                worker = Sequential_2D(
+                    Seq=self.Seq,
+                    End=self.End,
                     lattice_size=self.lattice_size,
                     token_size=self.token_size,
                     irrep=self.irrep,
                     squeeze=self.squeeze,
                 )
         else:
-            worker = Transversal_Worker(
-                Trans=self.Trans,
-                operation=self.operation,
-                post_norm=self.post_norm,
-                squeeze=self.squeeze,
-            )
+            worker = Sequential_Worker(Seq=self.Seq, End=self.End)
 
         output_x = jnp.atleast_1d(worker(x))
         output_inv_x = jnp.atleast_1d(worker(-x))
@@ -230,16 +160,15 @@ class Transversal_Z2(nn.Module):
             return res
 
 
-class Transversal(nn.Module):
+class Sequential(nn.Module):
     """
-    Flax module to have a general model (Trans) which carries and trains
+    Flax module to have a general model (Seq) which carries and trains
     global information of the system and ending up with an ending model
     which carries the dimensional reduction and/or modulus-phase spliting.
     """
 
-    Trans: Tuple[nn.Module, ...]
-    operation: str = "sum"
-    post_norm: bool = False
+    Seq: Tuple[nn.Module, ...]
+    End: nn.Module | None
 
     "Symmetries"
     symm_2D: bool = False
@@ -259,11 +188,9 @@ class Transversal(nn.Module):
     def __call__(self, x: jnp.ndarray) -> jnp.ndarray:
 
         if self.symm_Z2:
-            worker = Transversal_Z2(
-                lattice_size=self.lattice_size,
-                Trans=self.Trans,
-                operation=self.operation,
-                post_norm=self.post_norm,
+            worker = Sequential_Z2(
+                Seq=self.Seq,
+                End=self.End,
                 trivial_Z2=self.trivial_Z2,
                 symm_2D=self.symm_2D,
                 irrep=self.irrep,
@@ -271,34 +198,27 @@ class Transversal(nn.Module):
                 token_size=self.token_size,
                 squeeze=self.squeeze,
             )
-        if self.symm_2D:
+        elif self.symm_2D:
             if self.use_anchor:
-                worker = Transversal_2DAnchor(
-                    Trans=self.Trans,
-                    operation=self.operation,
-                    post_norm=self.post_norm,
+                worker = Sequential_2DAnchor(
+                    Seq=self.Seq,
+                    End=self.End,
                     lattice_size=self.lattice_size,
                     irrep=self.irrep,
                     squeeze=self.squeeze,
                 )
 
             else:
-                worker = Transversal_2D(
-                    Trans=self.Trans,
-                    operation=self.operation,
-                    post_norm=self.post_norm,
+                worker = Sequential_2D(
+                    Seq=self.Seq,
+                    End=self.End,
                     lattice_size=self.lattice_size,
                     token_size=self.token_size,
                     irrep=self.irrep,
                     squeeze=self.squeeze,
                 )
         else:
-            worker = Transversal_Worker(
-                Trans=self.Trans,
-                operation=self.operation,
-                post_norm=self.post_norm,
-                squeeze=self.squeeze,
-            )
+            worker = Sequential_Worker(Seq=self.Seq, End=self.End, squeeze=self.squeeze)
 
         x = worker(x)
 

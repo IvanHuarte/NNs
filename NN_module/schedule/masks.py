@@ -1,3 +1,4 @@
+import jax
 import flax
 
 
@@ -14,14 +15,26 @@ def make_mask(params, predicate):
 
     return apply_mask(params)
 
-def mask_branch(modes):
+
+def is_subsequence(a, b):
+    it = iter(b)
+    return all(x in it for x in a)
+
+
+def mask_branch(mode_paths, path2code):
     def _callable(path, leaf):
-        return next((m for m in modes if m in path), 'freeze')
-    
+        m = next(
+            (mod_path for mod_path in mode_paths if is_subsequence(m, path)), "freeze"
+        )
+
     return _callable
 
 
-def masked_optimizer(params, modes):
+def init_mask(path, leaf):
+    return "-1"
+
+
+def masked_optimizer(params, mode_paths, path2code):
     """Genera una máscara universal para `params` basada en el modo.
 
     Args:
@@ -33,6 +46,12 @@ def masked_optimizer(params, modes):
 
     """
 
-    trans_tree = flax.traverse_util.path_aware_map(mask_branch(modes), params)
+    init_tree = flax.traverse_util.path_aware_map(init_mask, params)
+
+    trans_tree = flax.traverse_util.path_aware_map(
+        mask_branch(mode_paths, path2code), params
+    )
+
+    assert jax.tree_util.tree_map(lambda leaf: leaf != "-1", trans_tree).all()
 
     return trans_tree

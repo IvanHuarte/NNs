@@ -6,8 +6,8 @@ from rich.panel import Panel
 from rich.text import Text
 from rich.table import Table
 
-import NN_module.models
-from NN_module.models import __all_single__, __all_factories__
+import NN_module.NN
+from NN_module.NN import __all_single__, __all_factories__
 
 
 def get_sim_config(configurations, **kwargs):
@@ -20,12 +20,9 @@ def get_sim_config(configurations, **kwargs):
     # Simulation
     cleaned["SIM"] = {}
 
-    split_training = sim["split_training"]
-    training_name = "ST_schedule" if split_training else "normal_schedule"
-    schedule_setup = sim[training_name]
+    schedule_setup = sim["schedule"]["learning_rate"]
 
     cleaned["SIM"]["sampler"] = sim["sampler"]
-    cleaned["SIM"]["split_training"] = split_training
     cleaned["SIM"]["schedule"] = {**schedule_setup}
 
     # Coupling model

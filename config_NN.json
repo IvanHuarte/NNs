@@ -60,8 +60,28 @@
                         "complex": true
                     }
                 },
-
-            "operation": "None",
+		"Trans_1":{
+		    "module": "SplitTraining",
+		    "setup":{
+		        "modulus_setup":{
+			   "module":"CvT",			                 "setup":{
+				"n_CP_blocks":[2],
+				"channels": [32],
+				"attn_heads":[4],
+				"kernel": [3, 3],
+				"final_architecture": [1]
+			   }
+			},
+	       		"phase_setup":{
+			    "module":"CNNSzabo",
+			    "setup":{
+				"channels": 40,
+				"use_bias": true
+			    }
+			}
+		    }
+		},
+            "operation": "sum",
                 
             "symm_Z2": true,
             "trivial_Z2": true,

@@ -4,8 +4,8 @@ from flax import traverse_util
 import jax
 import jax.numpy as jnp
 
-import NN_module.models
-from NN_module.models import REGISTRY, EXTERNAL_ARGS
+import NN_module.NN
+from NN_module.NN import REGISTRY, EXTERNAL_ARGS
 from NN_module.ST_utils import print_tree
 
 activation_dict = {

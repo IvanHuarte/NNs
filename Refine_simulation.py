@@ -24,7 +24,7 @@ from pathlib import Path
 
 
 # Importar módulos necesarios
-from NN_module.initialize_NN import FactoryBuilder
+from NN_module.NN.NN import FactoryBuilder
 from VA_project.initialize_model import ModelFactory
 from VA_project.engine.runners import Runner
 
@@ -36,7 +36,7 @@ from NN_module.callback.SanityMonitor import SanityMonitor
 from NN_module.callback.utils import dump_callback
 
 from NN_module.saveNload import save_results
-from NN_module.initialize_schedule import Schedule
+from NN_module.schedule.schedule import Schedule
 from NN_module.label_utils import get_filenames_from_settings, get_sim_config
 
 from NN_module.sim_utils import measureNdump

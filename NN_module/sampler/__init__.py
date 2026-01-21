@@ -1,13 +1,19 @@
-from NN_module.samplers.custom_rules import (
+from NN_module.sampler.custom_rules import (
     LocalRule_Z2,
     InvertMagnetization,
     ExchangeJ1J2,
-    Exchange
+    Exchange,
 )
 
 from netket.sampler.rules import LocalRule
 
-__all__ = ["LocalRule", "LocalRule_Z2", "InvertMagnetization", "ExchangeJ1J2", "Exchange"]
+__all__ = [
+    "LocalRule",
+    "LocalRule_Z2",
+    "InvertMagnetization",
+    "ExchangeJ1J2",
+    "Exchange",
+]
 
 RULES = {
     "LocalRule": LocalRule,

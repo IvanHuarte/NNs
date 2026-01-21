@@ -4,6 +4,7 @@ import jax.numpy as jnp
 import matplotlib
 
 matplotlib.use("Qt5Agg")
+
 import matplotlib.pyplot as plt
 import matplotlib.transforms as mtransforms
 
@@ -12,9 +13,6 @@ import matplotlib.transforms as mtransforms
 # import warnings
 
 # warnings.filterwarnings("ignore", message="qt.svg")
-
-print(matplotlib.get_backend())
-
 
 from NN_module.observables import full2red_basis_idx, modphase
 from NN_module.label_utils import get_filenames_from_settings

@@ -31,9 +31,9 @@ from NN_module.callback.SanityMonitor import SanityMonitor
 from NN_module.callback.utils import dump_callback
 
 from NN_module.saveNload import save_results
-from NN_module.initialize_NN import FactoryBuilder, print_tree
-from NN_module.initialize_sampler import SamplerFactory
-from NN_module.initialize_schedule import Schedule
+from NN_module.NN.NN import FactoryBuilder, print_tree
+from NN_module.sampler.sampler import SamplerFactory
+from NN_module.schedule.schedule import Schedule
 from NN_module.label_utils import (
     get_filenames_from_settings,
     get_write_folder_from_model,
@@ -43,7 +43,6 @@ from NN_module.label_utils import (
 from NN_module.schedule.utils import get_schedule_label
 from NN_module.sim_utils import measureNdump
 from NN_module.observables import full_basis_state, phase_stats_vstate
-from NN_module.NN_utils import scheduler_initializer
 from NN_module.ST_utils import compare_params
 
 parser = argparse.ArgumentParser()
@@ -88,9 +87,7 @@ model_label = cm_model_name + "_" + nn_model_name
 sizes = config_cm["sizes"]
 
 # Simulation settings
-split_training = config["split_training"]
-training_name = "ST_schedule" if split_training else "normal_schedule"
-schedule_setup = config[training_name]
+schedule_setup = config["schedule"]["learning_rate"]
 
 ### MC sampling rules ###
 sampler_setup = config["sampler"]
@@ -119,7 +116,7 @@ for i, size in enumerate(sizes):
 
     write_folder_size = write + f"Size_{size[0]}x{size[1]}/"
 
-    training_folder = get_schedule_label(split_training, schedule_setup)
+    training_folder = get_schedule_label(schedule_setup)
 
     write_folder_training = write_folder_size + f"{training_folder}/"
 
@@ -189,133 +186,97 @@ for i, size in enumerate(sizes):
             n_discard_per_chain=0,
             chunk_size=sampler_setup["chunk_vstate"],
         )
+        sys.exit(0)
 
-        if split_training:  # Alternated training between modulus and phase
+        # SplitTraining Schedule
+        schedule = Schedule(schedule_setup, model)
+        total_periods = schedule.total_periods
+        total_epochs = schedule.total_epochs
+        schedule_setup["total_epochs"] = total_epochs
 
-            # SplitTraining Schedule
-            schedule = Schedule(schedule_setup, model)
-            total_periods = schedule.total_periods
-            total_epochs = schedule.total_epochs
-            schedule_setup["total_epochs"] = total_epochs
+        ds_schedule = jnp.linspace(1e-2, 1e-4, total_periods, dtype=jnp.float64)
 
-            ds_schedule = jnp.linspace(1e-2, 1e-4, total_periods, dtype=jnp.float64)
+        # Callbacks
+        if enable_keeper:
+            keeper = BestIterKeeper(total_epochs, H, N, baseline=1e-8, mode="always")
+            callbacks.append(keeper.update)
+        if enable_inline:
+            inline_energy = EnergyPlotter(H, N, E_ED=E_ED)
+            callbacks.append(inline_energy)
+        if enable_modphase:
+            print(f"Adding Modphase")
+            inline_modphase = ModPhasePlotter(sim_config, x_ED)
+            callbacks.append(inline_modphase)
+        if enable_sanity:
+            sanity_monitor = SanityMonitor(config["callback"]["sanity_setup"])
+            callbacks.append(sanity_monitor)
 
-            # Callbacks
-            if enable_keeper:
-                keeper = BestIterKeeper(
-                    total_epochs, H, N, baseline=1e-8, mode="always"
-                )
-                callbacks.append(keeper.update)
-            if enable_inline:
-                inline_energy = EnergyPlotter(H, N, E_ED=E_ED)
-                callbacks.append(inline_energy)
-            if enable_modphase:
-                print(f"Adding Modphase")
-                inline_modphase = ModPhasePlotter(sim_config, x_ED)
-                callbacks.append(inline_modphase)
-            if enable_sanity:
-                sanity_monitor = SanityMonitor(config["callback"]["sanity_setup"])
-                callbacks.append(sanity_monitor)
+        for i, (lr_period, info) in enumerate(schedule.schedule()):
+            print(f"info: {info}")
 
-            for i, (lr_period, info) in enumerate(schedule.schedule()):
-                print(f"info: {info}")
+            epochs = info[0][0]
+            mode = info[0][1]
+            lr_string = ""
+            for inf in info:
+                lr_string += f"{inf[2]}  "
 
-                epochs = info[0][0]
-                mode = info[0][1]
-                lr_string = ""
-                for inf in info:
-                    lr_string += f"{inf[2]}  "
+            rescaled = "" if len(info) < 4 else info[3]
+            print(f"\nPeriod {i + 1} / {total_periods}:")
+            print(f"Training {mode} for {epochs} epochs")
+            print(f"LR: {lr_string}  ({rescaled})")
 
-                rescaled = "" if len(info) < 4 else info[3]
-                print(f"\nPeriod {i + 1} / {total_periods}:")
-                print(f"Training {mode} for {epochs} epochs")
-                print(f"LR: {lr_string}  ({rescaled})")
+            print(f"Diagonal shift: {ds_schedule[i]:.4e}\n")
 
-                print(f"Diagonal shift: {ds_schedule[i]:.4e}\n")
-
-                variables = vstate.variables
-                sampler = vstate.sampler
-                optimizer = schedule.transform_optimizer(
-                    vstate.parameters, optax.sgd, info, lr_period
-                )
-
-                # vstate = nk.vqs.MCState(
-                #     sampler,
-                #     sampler_seed=vstate.sampler_state.rng,
-                #     model=model,
-                #     n_samples=n_samples,
-                #     n_discard_per_chain=0,
-                #     chunk_size=sampler_setup["chunk_vstate"],
-                #     variables=variables,
-                # )
-                if i != 0:
-                    vstate = nk.vqs.MCState(
-                        sampler,
-                        model=model,
-                        n_samples=n_samples,
-                        n_discard_per_chain=500,
-                        chunk_size=sampler_setup["chunk_vstate"],
-                        variables=variables,
-                    )
-                holo = nk.utils.is_probably_holomorphic(
-                    vstate._apply_fun,
-                    vstate.parameters,
-                    vstate.samples,
-                    model_state=vstate.model_state,
-                )
-                sr = nk.optimizer.SR(diag_shift=ds_schedule[i], holomorphic=False)
-                gs = nk.driver.VMC(
-                    H, optimizer, variational_state=vstate, preconditioner=sr
-                )
-
-                print(f"\nTraining {mode} for {epochs} epochs...")
-                gs.run(
-                    n_iter=epochs,
-                    out=log,
-                    callback=callbacks,
-                    show_progress=True,
-                )
-                # vstate.sampler.reset(vstate.model.apply, vstate.variables["params"])
-                mean, std, psi = phase_stats_vstate(vstate)
-                print(f"VS phase: {mean} \u00b1 {std}  ({psi})")
-
-                # P1 = vstate.parameters
-                # compare_params(P0, P1)
-                # check_zero_grads(vstate, mask)
-
-        else:  # Training modulus and phase at the same time
-
-            total_epochs = schedule_setup["setup"]["total_epochs"]
-            # Callbacks
-            if enable_keeper:
-                keeper = BestIterKeeper(
-                    total_epochs, H, N, baseline=1e-8, mode="best_energy"
-                )
-                callbacks.append(keeper.update)
-            # keeper.filename = 'Somewhere' #It allows you to store the parameters of the model for the state with lowest energy found.
-
-            if enable_inline:
-                inline_plot = EnergyPlotter(H, N, E_ED=E_ED)
-                callbacks.append(inline_plot)
-            schedule_setup["lr_schedules"][schedule_setup["lr_name"]][
-                "total_epochs"
-            ] = total_epochs
-
-            ds_schedule = optax.linear_schedule(1e-2, 1e-4, total_epochs)
-            SR = nk.optimizer.SR(diag_shift=ds_schedule)
-            lr_schedule = scheduler_initializer(
-                "warmup_exponential_decay",
-                schedule_setup["lr_schedules"][schedule_setup["lr_name"]],
+            variables = vstate.variables
+            sampler = vstate.sampler
+            optimizer = schedule.transform_optimizer(
+                vstate.parameters, optax.sgd, info, lr_period
             )
-            optimizer = nk.optimizer.Sgd(learning_rate=lr_schedule)
+            sys.exit(0)
+
+            # vstate = nk.vqs.MCState(
+            #     sampler,
+            #     sampler_seed=vstate.sampler_state.rng,
+            #     model=model,
+            #     n_samples=n_samples,
+            #     n_discard_per_chain=0,
+            #     chunk_size=sampler_setup["chunk_vstate"],
+            #     variables=variables,
+            # )
+            if i != 0:
+                vstate = nk.vqs.MCState(
+                    sampler,
+                    model=model,
+                    n_samples=n_samples,
+                    n_discard_per_chain=500,
+                    chunk_size=sampler_setup["chunk_vstate"],
+                    variables=variables,
+                )
+            holo = nk.utils.is_probably_holomorphic(
+                vstate._apply_fun,
+                vstate.parameters,
+                vstate.samples,
+                model_state=vstate.model_state,
+            )
+            sr = nk.optimizer.SR(diag_shift=ds_schedule[i], holomorphic=False)
             gs = nk.driver.VMC(
-                H, optimizer, variational_state=vstate, preconditioner=SR
-            ).run(
-                n_iter=total_epochs,
+                H, optimizer, variational_state=vstate, preconditioner=sr
+            )
+
+            print(f"\nTraining {mode} for {epochs} epochs...")
+            gs.run(
+                n_iter=epochs,
                 out=log,
                 callback=callbacks,
                 show_progress=True,
             )
+            # vstate.sampler.reset(vstate.model.apply, vstate.variables["params"])
+            mean, std, psi = phase_stats_vstate(vstate)
+            print(f"VS phase: {mean} \u00b1 {std}  ({psi})")
+
+            # P1 = vstate.parameters
+            # compare_params(P0, P1)
+            # check_zero_grads(vstate, mask)
 
         time_out = time.time()
         time_exe = time_out - time_in

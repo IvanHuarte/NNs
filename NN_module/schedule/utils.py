@@ -1,19 +1,19 @@
-def get_schedule_label(split_training, setup):
+import jax
+import flax
+from NN_module.ST_utils import print_tree
 
-    if split_training:
-        label = "ST"
 
-        epo_st = setup["epochs_struct"]
-        mod_st = setup["modes_struct"]
-        epo_st = [period for eon in epo_st for era in eon for period in era]
-        mod_st = [period for eon in mod_st for era in eon for period in era]
+def get_schedule_label(setup):
 
-        for epoch, modes in zip(epo_st, mod_st):
-            label += "_"
-            label += f"{epoch}{modes}"
+    epo_st = setup["epochs_struct"]
+    mod_st = setup["modes_struct"]
+    epo_st = [period for eon in epo_st for era in eon for period in era]
+    mod_st = [period for eon in mod_st for era in eon for period in era]
 
-    else:
-        label = "Both"
+    label = "ST"
+    for epoch, modes in zip(epo_st, mod_st):
+        label += "_"
+        label += f"{epoch}{modes}"
 
     for char in ["[", "]", "'", '"']:
         label = label.replace(char, "") if char != "[" else label.replace("[", "-")
@@ -21,14 +21,64 @@ def get_schedule_label(split_training, setup):
     return label
 
 
+##########################################
+# ENCODE THE ARCH INTO INT-STRINGS
+##########################################
+
+
+def get_code_dict(node, idx=""):
+    nruter = {}
+
+    subnodes_names = node.node_data()[1]
+    subnodes = node.children()
+
+    for i, (k, v) in enumerate(zip(subnodes_names, subnodes)):
+
+        if not v.children():
+            nruter[k] = idx + str(i)
+
+        else:
+            nruter[k] = get_code_dict(v, idx + str(i))
+
+    return nruter
+
+
+def get_submodules_dict(params, print_struct):
+
+    struct = jax.tree_util.tree_structure(params)
+
+    code_dict = get_code_dict(struct)
+    if print_struct:
+        print_tree(code_dict, values=True)
+
+    code_dict = flax.traverse_util.flatten_dict(code_dict)
+
+    tmp = {}
+
+    for k, v in code_dict.items():
+        for i in range(len(k)):
+            tmp[k[: i + 1]] = v[: i + 1]
+
+    code_to_path = {}
+    for k, v in tmp.items():
+        code_to_path[v] = k
+
+    return code_to_path
+
+
+##########################################
+# FUNCTIONS FOR DECODE MODES INTO PATHS
+# AND MATCH LR-MODES LENGHT
+##########################################
+
+
 def all_submodules(submodules, lr):
+
+    if len(lr) == 1:
+        return lr * len(submodules)
 
     if len(submodules) == len(lr):
         return lr
-
-    if len(lr) == 1:
-        print(submodules)
-        return lr * len(submodules)
 
 
 def some_submodules(submodules, mode, lr):
@@ -56,24 +106,13 @@ def decode_arch_labels(submodules, mode, lr):
     return mode, lr
 
 
+#################################################
+# WRAPPER WHICH CONVERTS AN ARRAY INTO CALLABLE
+#################################################
+
+
 def schedule_from_array(x):
     def schedule_fun(step):
         return x[step]
 
     return schedule_fun
-
-
-def arch_recognizer(params):
-    labels = list(params.keys())
-
-    if all(key in ["ModulusNet", "PhaseNet"] for key in labels):
-        return "SplitTraining"
-
-    elif all("Seq" in key or "End" in key for key in labels):
-        return "Sequential"
-
-    elif all("Trans" in key for key in labels):
-        return "Transversal"
-
-    else:
-        raise NotImplementedError(f"There is no mask for this architecture: {labels}")

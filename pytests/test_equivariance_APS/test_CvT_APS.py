@@ -5,15 +5,15 @@ import sys
 import os
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../")))
-from NN_module.models.CvTaps import ConvAPS
+from NN_module.NN.CvTaps import ConvAPS
 from pytests.test_equivariance_APS._APS_equiv_check import APS_equiv_check
 
 equivariance_test = APS_equiv_check
 
 key = jax.random.PRNGKey(int(time()))
 
-lattice_size = (8,8)
-strides = (2,2)
+lattice_size = (8, 8)
+strides = (2, 2)
 
 C_in = 6
 C_out = 6

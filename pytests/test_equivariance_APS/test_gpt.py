@@ -6,11 +6,14 @@ import sys
 import os
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../")))
-from NN_module.models.CvTaps import ConvAPS
+from NN_module.NN.SingleModels.CvTaps import ConvAPS
 from pytests.test_equivariance_APS._APS_equiv_check import APS_equiv_check
 
 
-from NN_module.models.CvTaps import Conv_APS, APS_equivariance_adapter  # ajusta import
+from NN_module.NN.SingleModels.CvTaps import (
+    Conv_APS,
+    APS_equivariance_adapter,
+)  # ajusta import
 
 
 def polyphase_argmax(x, stride):
@@ -23,7 +26,7 @@ def polyphase_argmax(x, stride):
     norms = []
     for p in range(s_h):
         for q in range(s_w):
-            comp = x[:, p::s_h, q::s_w, :]   # polifase
+            comp = x[:, p::s_h, q::s_w, :]  # polifase
             n = jnp.sum(jnp.square(comp))
             norms.append(n)
     norms = jnp.array(norms)
@@ -91,8 +94,12 @@ def test_debug_equivariance():
                 ok = False
                 print("❌ FALLA para shift=", shift)
                 print("  pX,qX:", (int(pX), int(qX)), " pGX,qGX:", (int(pGX), int(qGX)))
-                print("  g' (h,w):", (int(gprime_h), int(gprime_w)),
-                      " divisible_by_stride:", divisible)
+                print(
+                    "  g' (h,w):",
+                    (int(gprime_h), int(gprime_w)),
+                    " divisible_by_stride:",
+                    divisible,
+                )
                 print("  out_shift en salida:", out_shift)
                 print("  max abs diff:", float(jnp.max(jnp.abs(y_expected - y_roll))))
                 print("---")

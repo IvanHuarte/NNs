@@ -1,7 +1,3 @@
-from .schedule import linear, exponential
+from .schedule_functions import linear, exponential
 
-SCHEDULES = {
-    "lin": linear,
-    "exp": exponential
-}
-
+SCHEDULES = {"lin": linear, "exp": exponential}

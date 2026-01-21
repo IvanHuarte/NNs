@@ -18,6 +18,8 @@ def measureNdump(keeper, time_exe, exact_diag=False):
     E_best = float(keeper.best_state_energy)
     vscore = float(keeper.best_state_vscore)
 
+    N = vstate.hilbert.size
+
     modphase_results = {}
     if exact_diag:
         error = float(np.abs(E_best - E_ED) / np.abs(E_ED))
@@ -42,6 +44,7 @@ def measureNdump(keeper, time_exe, exact_diag=False):
     fidelity = None
     try:
         fidelity = float(jnp.abs(jnp.vdot(vstate.to_array(), x_ED.squeeze())))
+        fidelity_per_site = jnp.exp(jnp.log(fidelity) / N)
         print(f"Fidelity: {fidelity:.3e}")
     except (MemoryError, RuntimeError, ValueError):
         print(f"Failed fidelity calculation due to memory allocation error")
@@ -70,6 +73,7 @@ def measureNdump(keeper, time_exe, exact_diag=False):
         "time_exe": time_exe,
         "modphase": modphase_results,
         "fidelity": fidelity,
+        "fidelity_per_site": fidelity_per_site,
         "S_renyi": S_renyi,
         "m": m,
         "ms": ms,
