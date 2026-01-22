@@ -1,27 +1,14 @@
 from frozendict import deepfreeze
 import flax.linen as nn
-from flax import traverse_util
 import jax
 import jax.numpy as jnp
 
-import NN_module.NN
-from NN_module.NN import REGISTRY, EXTERNAL_ARGS
+from NN_module.NN import REGISTRY
+from NN_module.NN.utils import preprocess_setup, insert_external_kwargs
 from NN_module.ST_utils import print_tree
 
-activation_dict = {
-    "sigmoid": nn.sigmoid,
-    "tanh": nn.tanh,
-    "softmax": nn.softmax,
-    "gelu": nn.gelu,
-    "swish": nn.swish,
-    "selu": nn.selu,
-    "elu": nn.elu,
-    "softplus": nn.softplus,
-    "relu": nn.relu,
-}
 
-
-class FactoryBuilder:
+class NeuralNetwork:
 
     def __init__(self, setup, **kwargs):
         """
@@ -43,9 +30,9 @@ class FactoryBuilder:
 
         extra_args = kwargs
 
-        setup = self.insert_external_kwargs(setup, extra_args)
-        self.setup = deepfreeze(self.preprocess_setup(setup))
-        self.model = self.build_module(self.setup, extra_args)
+        setup = insert_external_kwargs(setup, extra_args)
+        self.setup = preprocess_setup(setup)
+        self.model = self.build_module(deepfreeze(self.setup), extra_args)
 
     def get_model(self):
         return self.model
@@ -67,58 +54,6 @@ class FactoryBuilder:
     def print_setup(self, values=True):
         print_tree(self.setup, values=values)
         print("\n")
-
-    def recursive_list_to_tuple(self, target):
-
-        out = []
-        if all(isinstance(element, list) for element in target):
-            for element in target:
-                out.append(self.recursive_list_to_tuple(element))
-        else:
-            return tuple(target)
-        return tuple(out)
-
-    def insert_external_kwargs(self, setup: dict, external_args: dict):
-        """
-        To add some arguments (e.g. lattice_size) which are needed but not
-        native in NN configurations or changes during simulations.
-        """
-
-        # Add lattice_size to modules which natively need spatial info and/or
-        # is necesary to perform 2D traslational symmetries
-        if "module" in setup.keys() and "setup" in setup.keys():
-            for k, v in external_args.items():
-                if setup["module"] in EXTERNAL_ARGS[k]:
-                    setup["setup"][k] = v
-
-        if "symm_2D" in setup:
-            setup["lattice_size"] = external_args["lattice_size"]
-
-        for _, val in setup.items():
-            if isinstance(val, dict):
-                self.insert_external_kwargs(val, external_args)
-
-        return setup
-
-    def preprocess_setup(self, setup: dict) -> dict:
-
-        clean_setup = {}
-
-        for k, v in setup.items():
-
-            if isinstance(v, dict):
-                v = self.preprocess_setup(v)
-
-            elif isinstance(v, list):
-                v = self.recursive_list_to_tuple(v)
-
-            elif "activation" in k:
-                if all([type(act) in [str, int] for act in v]):
-                    v = tuple([activation_dict[act] if act != 0 else 0 for act in v])
-
-            clean_setup[k] = v
-
-        return clean_setup
 
     def build_module(self, setup, extra_args):
 
@@ -200,76 +135,3 @@ class FactoryBuilder:
 
         else:
             return clss(**setup)
-
-
-# def preprocess_setup(setup: dict) -> dict:
-
-#     clean_setup = {}
-
-#     for k, v in setup.items():
-
-#         if isinstance(v, dict):
-#             v = preprocess_setup(v)
-
-#         elif isinstance(v, list):
-#             v = recursive_list_to_tuple(v)
-
-#         elif "activation" in k:
-#             if all([type(act) in [str, int] for act in v]):
-#                 v = tuple([activation_dict[act] if act != 0 else 0 for act in v])
-
-#         clean_setup[k] = v
-
-#     return clean_setup
-
-
-# def init_model_auto(model_setup):
-
-#     model_class = get_model_class(model_setup["path"])
-#     adapted_setup = preprocess_setup(model_setup["setup"])
-
-#     return model_class(**adapted_setup)
-
-
-# def init_model(name, model_setup, split_training=True):
-
-#     if split_training:
-
-#         model_setup["modulus_setup"]["setup"]["name"] = "modulus"
-#         model_setup["phase_setup"]["setup"]["name"] = "phase"
-
-#         model_setup["modulus_setup"]["setup"]["lattice_size"] = model_setup[
-#             "lattice_size"
-#         ]
-#         model_setup["phase_setup"]["setup"]["lattice_size"] = model_setup[
-#             "lattice_size"
-#         ]
-
-#         lattice_size = (
-#             tuple(model_setup["lattice_size"]) if model_setup["symm_2D"] else None
-#         )
-#         token_size = (
-#             tuple(model_setup["modulus_setup"]["setup"]["token_size"])
-#             if "ViT" in name
-#             else None
-#         )
-
-#         # model_setup = preprocess_setup(model_setup)
-
-#         modulus_clss = get_model_class(model_setup["modulus_setup"]["path"])
-#         phase_clss = get_model_class(model_setup["phase_setup"]["path"])
-
-#         frozen_modulus_setup = deepfreeze(model_setup["modulus_setup"]["setup"])
-#         frozen_phase_setup = deepfreeze(model_setup["phase_setup"]["setup"])
-
-#         return SplitTraining(
-#             modulus_clss=modulus_clss,
-#             phase_clss=phase_clss,
-#             modulus_setup=frozen_modulus_setup,
-#             phase_setup=frozen_phase_setup,
-#             symm_2D=False,
-#             symm_Z2=model_setup["symm_Z2"],
-#             trivial_Z2=model_setup["trivial_Z2"],
-#             lattice_size=lattice_size,
-#             token_size=token_size,
-#         )

@@ -1,5 +1,9 @@
 import jax
+import jax.numpy as jnp
 import flax
+import ast
+
+from NN_module.schedule import SCHEDULES
 from NN_module.ST_utils import print_tree
 
 
@@ -93,17 +97,53 @@ def some_submodules(submodules, mode, lr):
 
 def decode_arch_labels(submodules, mode, lr):
     assert isinstance(mode, (list, tuple))
+    print(f"submod: {submodules}, modes: {mode}, lr:{lr}")
 
     if mode[0] == "A":
         assert len(mode) == 1
-        mode = submodules
-        lr = all_submodules(submodules, lr)
+        mode = [mod for k, mod in submodules.items() if len(k) == 1]
+        lr = all_submodules(mode, lr)
 
     else:
         assert len(mode) == len(lr)
         mode, lr = some_submodules(submodules, mode, lr)
 
+    print(f"submod: {submodules}, modes: {mode}, lr:{lr}")
+
     return mode, lr
+
+
+def period_from_string(epochs, lr_instruction):
+    schedule_name, str_args = lr_instruction.split("(")
+    schedule = SCHEDULES[schedule_name]
+    args = ast.literal_eval("(" + str_args)
+
+    period = schedule(epochs, *args)
+    return period
+
+
+def generate_period(epochs, mode, lr_instruction):
+
+    if isinstance(lr_instruction, (list, tuple)):
+        period = []
+        info = []
+        for lr_ins, mod in zip(lr_instruction, mode):
+            nruter = generate_period(epochs, mod, lr_ins)
+            period.append(nruter[0])
+            info.append(nruter[1])
+
+    elif isinstance(lr_instruction, (int, float)):
+        period = jnp.array([lr_instruction] * epochs)
+        info = (epochs, mode, lr_instruction)
+
+    elif isinstance(lr_instruction, str):
+        period = period_from_string(epochs, lr_instruction)
+        info = (epochs, mode, lr_instruction)
+
+    else:
+        raise TypeError(f"Unsupported lr_instruction: {lr_instruction}")
+
+    return period, info
 
 
 #################################################

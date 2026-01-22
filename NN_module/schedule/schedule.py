@@ -1,10 +1,7 @@
 import jax.numpy as jnp
 import optax
 import flax.linen as nn
-import ast
 
-
-from NN_module.schedule import SCHEDULES
 from NN_module.schedule.masks import masked_optimizer
 from NN_module.schedule.transformations import transformation_dictionary
 from NN_module.schedule.utils import (
@@ -41,6 +38,9 @@ class Schedule:
         print(self.path2code, "\n")
 
     def update_subarch_struct(self, NN_params):
+        """
+        Necesario cambiarlo si se cambia la arquitectura
+        """
 
         codes = [
             code
@@ -49,12 +49,18 @@ class Schedule:
             for per_m in era_m
             for code in per_m
         ]
-
+        # Create all path codes of architecture
         submod_dict = get_submodules_dict(NN_params, self.print_arch)
-
+        # Conserve only those which appear in the simulation
         self.code2path = {}
         for code in codes:
-            self.code2path[code] = submod_dict[code]
+            if code == "A":
+                main_branches = dict(
+                    [(k, v) for k, v in submod_dict.items() if len(k) == 1]
+                )
+                self.code2path.update(**main_branches)
+            else:
+                self.code2path[code] = submod_dict[code]
 
         self.path2code = dict([(v, k) for k, v in self.code2path.items()])
 
@@ -106,37 +112,6 @@ class Schedule:
 
         return nruter
 
-    def period_from_string(self, epochs, lr_instruction):
-        schedule_name, str_args = lr_instruction.split("(")
-        schedule = SCHEDULES[schedule_name]
-        args = ast.literal_eval("(" + str_args)
-
-        period = schedule(epochs, *args)
-        return period
-
-    def generate_period(self, epochs, mode, lr_instruction):
-
-        if isinstance(lr_instruction, (list, tuple)):
-            period = []
-            info = []
-            for lr_ins, mod in zip(lr_instruction, mode):
-                nruter = self.generate_period(epochs, mod, lr_ins)
-                period.append(nruter[0])
-                info.append(nruter[1])
-
-        elif isinstance(lr_instruction, (int, float)):
-            period = jnp.array([lr_instruction] * epochs)
-            info = (epochs, mode, lr_instruction)
-
-        elif isinstance(lr_instruction, str):
-            period = self.period_from_string(epochs, lr_instruction)
-            info = (epochs, mode, lr_instruction)
-
-        else:
-            raise TypeError(f"Unsupported lr_instruction: {lr_instruction}")
-
-        return period, info
-
     def schedule_generator(self):
 
         for eon_epo, eon_mode, eon_lr in zip(
@@ -144,8 +119,9 @@ class Schedule:
         ):
             for era_epo, era_mode, era_lr in zip(eon_epo, eon_mode, eon_lr):
                 for epo, mode, lr in zip(era_epo, era_mode, era_lr):
-
+                    print(f"Mode: {mode} LR: {lr}")
                     mode, lr = decode_arch_labels(self.code2path, mode, lr)
+                    print(f"Mode: {mode} LR: {lr}")
                     period_array, info = self.generate_period(epo, mode, lr)
                     if not isinstance(period_array, list):
                         period_array = [period_array]

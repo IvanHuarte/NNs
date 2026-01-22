@@ -2,36 +2,35 @@ import jax
 import flax
 
 
-def make_mask(params, predicate):
-    """Genera una máscara con la misma estructura que `params`,
-    donde se aplica `predicate(path)` a cada subárbol.
-    """
-
-    def apply_mask(tree, path=()):
-        if isinstance(tree, dict):
-            return {k: apply_mask(v, path + (k,)) for k, v in tree.items()}
-        else:
-            return predicate(path)
-
-    return apply_mask(params)
-
-
 def is_subsequence(a, b):
-    it = iter(b)
-    return all(x in it for x in a)
+    n, m = len(a), len(b)
+    for i in range(m - n + 1):
+        if b[i : i + n] == a:
+            return True
+    return False
 
 
-def mask_branch(mode_paths, path2code):
+def train_branches(mode_paths, path2code):
     def _callable(path, leaf):
         m = next(
-            (mod_path for mod_path in mode_paths if is_subsequence(m, path)), "freeze"
+            (
+                f"train_{path2code[mod_path]}"
+                for mod_path in mode_paths
+                if is_subsequence(mod_path, path)
+            ),
+            "freeze",
         )
+        return m
 
     return _callable
 
 
 def init_mask(path, leaf):
     return "-1"
+
+
+def merge_trees(leaf_1, leaf_2):
+    return leaf_1 if leaf_1 is not None else leaf_2 if leaf_2 is not None else None
 
 
 def masked_optimizer(params, mode_paths, path2code):
@@ -46,12 +45,22 @@ def masked_optimizer(params, mode_paths, path2code):
 
     """
 
-    init_tree = flax.traverse_util.path_aware_map(init_mask, params)
+    # init_tree = flax.traverse_util.path_aware_map(init_mask, params)
+    print(mode_paths)
 
-    trans_tree = flax.traverse_util.path_aware_map(
-        mask_branch(mode_paths, path2code), params
+    train_tree = flax.traverse_util.path_aware_map(
+        train_branches(mode_paths, path2code), params
     )
 
-    assert jax.tree_util.tree_map(lambda leaf: leaf != "-1", trans_tree).all()
+    # jax.tree_util.tree_map(merge_trees, init_tree, train_tree)
+    # TODO
+    # Explict masking of a branch
+    # trans_tree = flax.traverse_util.path_aware_map(
+    #     mask_branch(mask_paths, path2code), train_tree
+    # )
 
-    return trans_tree
+    assert jax.tree_util.tree_reduce(
+        lambda a, b: a & b,
+        jax.tree_util.tree_map(lambda leaf: leaf != "-1", train_tree),
+    )
+    return train_tree
