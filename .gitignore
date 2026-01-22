@@ -35,3 +35,4 @@ env/
 !config.json
 !config_CM.json
 !config_NN.json
+!refinement.json

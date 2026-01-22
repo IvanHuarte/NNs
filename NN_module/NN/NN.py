@@ -73,8 +73,8 @@ class NeuralNetwork:
         squeeze = jnp.squeeze if "squeeze" in setup else lambda x: x
 
         if module_name == "SplitTraining":
-            modulus = self.build_module(setup["modulus_setup"], extra_args)
-            phase = self.build_module(setup["phase_setup"], extra_args)
+            modulus = self.build_module(setup["modulus"], extra_args)
+            phase = self.build_module(setup["phase"], extra_args)
 
             return clss(
                 ModulusNet=modulus,

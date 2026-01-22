@@ -1,0 +1,61 @@
+{
+
+
+   "callback":{
+        "keeper": true,
+        "inline":   false,
+        "modphase": false,
+        "sanity": false,
+        "sanity_setup":{
+            "do_each": 100,
+            "mode": "simple",
+            "verbose": 3,
+            "metrics": {
+                "gradients": true,
+                "sampling":  true,
+                "phase":     true
+            }
+        }
+            
+    },
+
+    "explore_mode": true,
+
+    "sampler":{
+        "sampler":{
+            "rules": ["LocalRule", "InvertMagnetization"],
+            "prules": [0.7, 0.3]
+        },
+        "n_ranks": 1,
+        "n_chains_per_rank": 32,
+        "n_samples_per_chain": 64,
+        "chunk_sampler": null,
+        "chunk_vstate": 512
+    },
+
+    "split_training": true,
+
+    "ST_schedule":{
+        "epochs_struct":[
+            [ 
+                [1500]
+            
+            ]
+        ],
+
+        "modes_struct":[
+            [ 
+                [["A"]]
+            ]
+        ],
+        "lr_struct":[
+
+            [  
+                [[0.0005]]
+            ]
+        ],
+        "repeat":[],
+        "rescale": 1.0
+    }
+
+}
