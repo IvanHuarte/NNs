@@ -13,7 +13,7 @@ from NN_module.NN_utils import traslations_2D
 DTYPE = jnp.float64
 CDTYPE = jnp.complex128
 
-class MultiLayerPerceptron(nn.Module):
+class MLPWorker(nn.Module):
     """A simple multi-layer perceptron."""
 
     hidden_alpha: int | Tuple[int, ...] = None
@@ -89,7 +89,7 @@ class MLP_2D(nn.Module):
 
     @nn.compact
     def __call__(self, x):
-        worker = MultiLayerPerceptron(
+        worker = MLPWorker(
             hidden_alpha=self.hidden_alpha,
             activation=self.activation,
             param_dtype=self.param_dtype,
@@ -127,7 +127,7 @@ class MLP_Z2(nn.Module):
             )
 
         else:
-            worker = MultiLayerPerceptron(
+            worker = MLPWorker(
                 hidden_alpha=self.hidden_alpha,
                 activation=self.activation,
                 param_dtype=self.param_dtype,
@@ -190,7 +190,7 @@ class MLP(nn.Module):
             )
 
         else:
-            worker = MultiLayerPerceptron(
+            worker = MLPWorker(
                 hidden_alpha=self.hidden_alpha,
                 activation=self.activation,
                 param_dtype=self.param_dtype,

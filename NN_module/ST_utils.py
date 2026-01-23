@@ -6,7 +6,7 @@ def print_tree(tree, prefix="", values=False):
 
         if isinstance(val, dict):
             print(prefix + str(key))
-            print_tree(val, prefix + "  ", values=values)
+            print_tree(val, prefix + "   ", values=values)
         else:
             if values:
                 print(prefix + f"{str(key)}: {str(val)}")

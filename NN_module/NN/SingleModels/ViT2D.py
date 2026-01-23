@@ -231,7 +231,7 @@ class ViT2DWorker(nn.Module):
                 return x
 
 
-class TokenizeViT2D(nn.Module):
+class ViT2DTokenize(nn.Module):
     """Flax module wrapping `ViT2DWorker` and enforcing Z2 and 2D-traslational invariance.
 
     This is achieved by averaging the result of `ViT2DWorker` over all
@@ -324,7 +324,7 @@ class ViT2D_2D(nn.Module):
     def __call__(self, x):
         # print(f"Input shape: {x.shape}")
 
-        worker = TokenizeViT2D(
+        worker = ViT2DTokenize(
             token_size=self.token_size,
             embedding_d=self.embedding_d,
             n_heads=self.n_heads,
@@ -385,7 +385,7 @@ class ViT2D_Z2(nn.Module):
             )
 
         else:
-            worker = TokenizeViT2D(
+            worker = ViT2DTokenize(
                 token_size=self.token_size,
                 embedding_d=self.embedding_d,
                 n_heads=self.n_heads,
@@ -456,7 +456,7 @@ class ViT2D(nn.Module):
                 phasors=self.phasors,
             )
         else:
-            worker = TokenizeViT2D(
+            worker = ViT2DTokenize(
                 self.lattice_size,
                 self.token_size,
                 self.embedding_d,

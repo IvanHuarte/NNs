@@ -99,3 +99,15 @@ LATTICE_SIZE = {
 }
 
 EXTERNAL_ARGS = {**LATTICE_SIZE}
+
+
+# Tags used in configurations
+factory_submodule_dict = {
+    "SplitTraining": ["modulus", "phase"],
+    "Sequential": "Seq",
+    "Transversal": "Trans",
+}
+
+factory_submodule_tags = [
+    "ModulusNet", "PhaseNet", "Seq", "End", "Trans"
+]

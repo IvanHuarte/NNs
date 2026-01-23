@@ -3,26 +3,19 @@
     "selection": "prueba",
 
     "prueba":{
-        "model_0": {
+        "stage_0": {
             "SplitTraining":{
                 "Transversal":{
+                    "ViT2D":{},
                     "CNN":{},
                     "CvT":{},
                     "operation":"sum"
                 },
-                "Sequential":{
-                    "CNNSzabo":{},
-                    "Sequential":{
-                        "CvT":{},
-                        "ViT2D": {},
-                        "MLP": {}
-                    }
-                }
-                
+                "MLP":{}
             }
         },
 
-        "model_1": {
+        "stage_1": {
             
         }
 

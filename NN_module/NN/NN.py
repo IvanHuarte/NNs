@@ -8,7 +8,7 @@ from NN_module.NN.utils import preprocess_setup, insert_external_kwargs
 from NN_module.ST_utils import print_tree
 
 
-class NeuralNetwork:
+class NeuralNetwork():
 
     def __init__(self, setup, **kwargs):
         """
@@ -93,14 +93,14 @@ class NeuralNetwork:
                 [
                     self.build_module(seq_setup, extra_args)
                     for name, seq_setup in setup.items()
-                    if name != "Ending"
+                    if name != "End"
                 ]
             )
-            ending_module = self.build_module(setup["Ending"], extra_args)
+            end_module = self.build_module(setup["End"], extra_args)
 
             return clss(
                 Seq=seq_module,
-                End=ending_module,
+                End=end_module,
                 symm_Z2=symm_Z2,
                 trivial_Z2=trivial_Z2,
                 symm_2D=symm_2D,

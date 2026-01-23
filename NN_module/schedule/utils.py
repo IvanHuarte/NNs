@@ -26,51 +26,6 @@ def get_schedule_label(setup):
 
 
 ##########################################
-# ENCODE THE ARCH INTO INT-STRINGS
-##########################################
-
-
-def get_code_dict(node, idx=""):
-    nruter = {}
-
-    subnodes_names = node.node_data()[1]
-    subnodes = node.children()
-
-    for i, (k, v) in enumerate(zip(subnodes_names, subnodes)):
-
-        if not v.children():
-            nruter[k] = idx + str(i)
-
-        else:
-            nruter[k] = get_code_dict(v, idx + str(i))
-
-    return nruter
-
-
-def get_submodules_dict(params, print_struct):
-
-    struct = jax.tree_util.tree_structure(params)
-
-    code_dict = get_code_dict(struct)
-    if print_struct:
-        print_tree(code_dict, values=True)
-
-    code_dict = flax.traverse_util.flatten_dict(code_dict)
-
-    tmp = {}
-
-    for k, v in code_dict.items():
-        for i in range(len(k)):
-            tmp[k[: i + 1]] = v[: i + 1]
-
-    code_to_path = {}
-    for k, v in tmp.items():
-        code_to_path[v] = k
-
-    return code_to_path
-
-
-##########################################
 # FUNCTIONS FOR DECODE MODES INTO PATHS
 # AND MATCH LR-MODES LENGHT
 ##########################################

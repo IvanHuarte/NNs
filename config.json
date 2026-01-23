@@ -33,7 +33,6 @@
     },
 
     "schedule":{
-        "print_arch": true,
 
         "learning_rate":{
             "epochs_struct":[

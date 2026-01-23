@@ -9,7 +9,7 @@ from ..toolbox import get_mask
 REAL_DTYPE = jnp.asarray(1.0).dtype
 
 
-class ConvBlock(nn.Module):
+class CNNLiangWorkerBlock(nn.Module):
     """A simple convolutional block with a first
     It expects an input of shape x = (B,H,W,C)
     """
@@ -28,7 +28,7 @@ class ConvBlock(nn.Module):
 
         mask = get_mask(self.mask) if self.mask is not None else None
 
-        # print(f"Intro ConvBlock")
+        # print(f"Intro CNNLiangWorkerBlock")
         # print(f"xini: {x.shape}")
 
         # M1 simple convolution
@@ -100,7 +100,7 @@ class CNNLiang(nn.Module):
         # Entering convolutional blocks
         for i in range(n_blocks):
 
-            x = ConvBlock(
+            x = CNNLiangWorkerBlock(
                 M1_channels=self.M1_channels[i],
                 M2_channels=self.M2_channels[i],
                 kernel=self.kernel[i],

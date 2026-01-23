@@ -270,7 +270,7 @@ class ConvProjectionBlock(nn.Module):
         return x + x_ffn
 
 
-class StageBlock(nn.Module):
+class CvTapsWorkerStage(nn.Module):
     """
     Implementation of a stage block for CvT.
     It consists of a convolutional token embedding followed by multiple
@@ -373,7 +373,7 @@ class CvTapsWorker(nn.Module):
         B = x.shape[0]
         for i in range(n_stages):
 
-            x = StageBlock(
+            x = CvTapsWorkerStage(
                 n_CP_blocks=self.n_CP_blocks[i],
                 channels=self.channels[i],
                 n_heads=self.attn_heads[i],
