@@ -1,0 +1,98 @@
+{
+
+
+    "symm_wrappers":{
+
+        "symm_Z2": false,
+        "trivial_Z2": true,
+        "symm_2D": false,
+        "irrep": [0, 0],
+        "use_anchor": true,
+        "squeeze":true
+    },
+    
+    
+    "storage":{
+ 
+        "MLP":{
+            "hidden_alpha": [4, 2, 1],
+            "activation": ["swish","swish","swish"],
+            "final_architecture": [1]
+        },
+        
+        "ViT2D":{
+            "token_size": [2, 1],
+            "embedding_d": 32,
+            "n_heads": 2,
+            "n_blocks": 2,
+            "n_ffn_layers": 1,
+            "final_architecture": [5]
+        },
+        
+        "CvT":{
+            "n_CP_blocks":[2],
+            "channels": [32],
+            "attn_heads":[4],
+            "kernel": [3, 3],
+            "final_architecture": [1]
+        },
+        
+        "CvTaps":{
+            "n_CP_blocks": [2, 2, 2],
+            "channels": [64, 32, 16],
+            "attn_heads": [4, 4, 4],
+            "strides": [[2,2], [1,1], [1,1]],
+            "kernel": [3, 3],
+            "final_architecture": [128, 5]
+        },
+        "CNN":{
+            "channels":[32, 16, 8, 4],
+            "strides":[[1,1],[1,1],[1,1],[1,1]],
+            "kernel":[3,3],
+            "use_pooling":false,
+            "pooling_strides":[[1,1],[1,1],[1,1],[1,1]],
+            "final_architecture":[1]
+        },
+        
+        "CNNLiang":{
+            "M1_channels": [20, 10, 10, 10, 10, 10],
+            "M2_channels": [10, 10, 10, 10, 10, 1],
+            "kernel": [[3, 3],[3, 3],[3, 3],[3, 3],[3, 3],[3, 3]],
+            "window_pooling": 2,
+            "use_bias": false,
+            "mask": null
+        },
+        
+        
+        
+        "CNNSzabo":{
+            "channels": 40,
+            "use_bias": true
+        },
+        
+        "CNNbinClsf":{
+            "channels": [64, 32],
+            "marshall": true,
+            "pooling": false
+            
+        },
+        
+        
+        
+        
+        "MarshallSign":{
+            "radians":true
+        },
+        
+        "Jastrow_wrap": {},
+        
+        "Factorized":{
+            "site_dependent": true,
+            "complex": true
+        }
+        
+        
+}
+    
+
+}

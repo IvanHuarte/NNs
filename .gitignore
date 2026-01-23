@@ -34,5 +34,7 @@ env/
 #Excepciones
 !config.json
 !config_CM.json
-!config_NN.json
+!config_Hydra.json
+!config_Hydra_NN.json
+
 !refinement.json
