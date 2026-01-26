@@ -21,5 +21,5 @@ def compare_params(old_params, new_params, atol=1e-13):
     diffs = jax.tree_util.tree_map(compare_fn, old_params, new_params)
 
     print(f"Ha cambiado: (True) //  No ha cambiado: (False) \n\n")
-    print(diffs)
+    print_tree(diffs, values=True)
     print("\n")

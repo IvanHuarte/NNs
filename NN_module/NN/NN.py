@@ -8,7 +8,7 @@ from NN_module.NN.utils import preprocess_setup, insert_external_kwargs
 from NN_module.ST_utils import print_tree
 
 
-class NeuralNetwork():
+class NeuralNetwork:
 
     def __init__(self, setup, **kwargs):
         """
@@ -28,17 +28,18 @@ class NeuralNetwork():
         the NN architecture via `build_module`
         """
 
-        extra_args = kwargs
-
-        setup = insert_external_kwargs(setup, extra_args)
-        self.setup = preprocess_setup(setup)
-        self.model = self.build_module(deepfreeze(self.setup), extra_args)
+        self.initialize_from_setup(setup, kwargs)
 
     def get_model(self):
         return self.model
 
     def get_model_class(self, module_name):
         return REGISTRY[module_name]
+
+    def initialize_from_setup(self, setup, external_args):
+        setup = insert_external_kwargs(setup, external_args)
+        self.setup = preprocess_setup(setup)
+        self.model = self.build_module(deepfreeze(self.setup), external_args)
 
     def get_params_info(self, model, N, show_info=False):
         variables = model.init(jax.random.PRNGKey(0), jnp.ones((1, N)))
@@ -55,7 +56,7 @@ class NeuralNetwork():
         print_tree(self.setup, values=values)
         print("\n")
 
-    def build_module(self, setup, extra_args):
+    def build_module(self, setup, external_args):
 
         module_name = setup["module"]
         setup = setup["setup"]
@@ -73,8 +74,8 @@ class NeuralNetwork():
         squeeze = jnp.squeeze if "squeeze" in setup else lambda x: x
 
         if module_name == "SplitTraining":
-            modulus = self.build_module(setup["modulus"], extra_args)
-            phase = self.build_module(setup["phase"], extra_args)
+            modulus = self.build_module(setup["modulus"], external_args)
+            phase = self.build_module(setup["phase"], external_args)
 
             return clss(
                 ModulusNet=modulus,
@@ -91,16 +92,16 @@ class NeuralNetwork():
         elif module_name == "Sequential":
             seq_module = tuple(
                 [
-                    self.build_module(seq_setup, extra_args)
+                    self.build_module(seq_setup, external_args)
                     for name, seq_setup in setup.items()
-                    if name != "End"
+                    if name != "ZZ"
                 ]
             )
-            end_module = self.build_module(setup["End"], extra_args)
+            ZZ_module = self.build_module(setup["ZZ"], external_args)
 
             return clss(
                 Seq=seq_module,
-                End=end_module,
+                ZZ=ZZ_module,
                 symm_Z2=symm_Z2,
                 trivial_Z2=trivial_Z2,
                 symm_2D=symm_2D,
@@ -111,7 +112,7 @@ class NeuralNetwork():
         elif module_name == "Transversal":
             trans_module = tuple(
                 [
-                    self.build_module(trans_setup, extra_args)
+                    self.build_module(trans_setup, external_args)
                     for trans_setup in setup.values()
                     if isinstance(trans_setup, dict)
                 ]

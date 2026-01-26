@@ -4,18 +4,34 @@
 
     "prueba":{
         "stage_0": {
-            "SplitTraining":{
-                "Transversal":{
-                    "ViT2D":{},
-                    "CNN":{},
-                    "CvT":{},
-                    "operation":"sum"
-                },
-                "MLP":{}
-            }
+            "template": {
+               "SplitTraining":{
+                   "MLP":{},
+                   "CNN":{}
+                }
+            },
+            "save": "stage_0"
         },
 
         "stage_1": {
+            "template": {
+
+                "SplitTraining":{
+                    "Transversal":{
+                        "ViT2D":{},
+                        "MLP":{}
+                    },
+                    "Sequential":{
+                        "CNN":{},
+                        "CvT":{}
+                    }
+                }
+            },
+            "save": "stage_1",
+            "load": [
+                ["stage_0", "0", "01"],
+                ["stage_0", "1", "10"]
+            ]
             
         }
 

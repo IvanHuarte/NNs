@@ -108,6 +108,4 @@ factory_submodule_dict = {
     "Transversal": "Trans",
 }
 
-factory_submodule_tags = [
-    "ModulusNet", "PhaseNet", "Seq", "End", "Trans"
-]
+factory_submodule_tags = ["ModulusNet", "PhaseNet", "Seq", "ZZ", "Trans"]

@@ -13,14 +13,14 @@ class Sequential_Worker(nn.Module):
     """
 
     Seq: Tuple[nn.Module, ...]
-    End: nn.Module | None
+    ZZ: nn.Module | None
 
     squeeze: Callable = lambda x: x
 
     def setup(self):
 
         self.seq = self.Seq
-        self.end = self.End if (isinstance(self.End, nn.Module)) else lambda x: x
+        self.end = self.ZZ if (isinstance(self.ZZ, nn.Module)) else lambda x: x
 
     def __call__(self, x: jnp.ndarray) -> jnp.ndarray:
 
@@ -37,7 +37,7 @@ class Sequential_Worker(nn.Module):
 class Sequential_2D(nn.Module):
 
     Seq: Tuple[nn.Module, ...]
-    End: nn.Module
+    ZZ: nn.Module
 
     lattice_size: Tuple[int, int] = None
     token_size: Tuple[int, int] = None
@@ -48,7 +48,7 @@ class Sequential_2D(nn.Module):
     @nn.compact
     def __call__(self, x):
 
-        worker = Sequential_Worker(Seq=self.Seq, End=self.End, squeeze=self.squeeze)
+        worker = Sequential_Worker(Seq=self.Seq, ZZ=self.ZZ, squeeze=self.squeeze)
 
         na, nb = jnp.unravel_index(
             jnp.arange(self.lattice_size[0] * self.lattice_size[1]), self.lattice_size
@@ -80,7 +80,7 @@ class Sequential_2D(nn.Module):
 class Sequential_2DAnchor(nn.Module):
 
     Seq: Tuple[nn.Module, ...]
-    End: nn.Module
+    ZZ: nn.Module
 
     lattice_size: Tuple[int, int] = None
     irrep: Tuple[int] = (0, 0)  # Tuple (q_1, q_2) representing the irrep.
@@ -90,7 +90,7 @@ class Sequential_2DAnchor(nn.Module):
     @nn.compact
     def __call__(self, x):
 
-        worker = Sequential_Worker(Seq=self.Seq, End=self.End, squeeze=self.squeeze)
+        worker = Sequential_Worker(Seq=self.Seq, ZZ=self.ZZ, squeeze=self.squeeze)
 
         # 2D traslational anchoring
         x, anchors = CarreteSign(lattice_size=self.lattice_size, irrep=self.irrep)(x)
@@ -106,7 +106,7 @@ class Sequential_2DAnchor(nn.Module):
 class Sequential_Z2(nn.Module):
 
     Seq: Tuple[nn.Module, ...]
-    End: nn.Module | None
+    ZZ: nn.Module | None
 
     lattice_size: Tuple[int, int] = None
     token_size: Tuple[int, int] = None
@@ -127,7 +127,7 @@ class Sequential_Z2(nn.Module):
             if self.use_anchor:
                 worker = Sequential_2DAnchor(
                     Seq=self.Seq,
-                    End=self.End,
+                    ZZ=self.ZZ,
                     lattice_size=self.lattice_size,
                     irrep=self.irrep,
                     squeeze=self.squeeze,
@@ -136,14 +136,14 @@ class Sequential_Z2(nn.Module):
             else:
                 worker = Sequential_2D(
                     Seq=self.Seq,
-                    End=self.End,
+                    ZZ=self.ZZ,
                     lattice_size=self.lattice_size,
                     token_size=self.token_size,
                     irrep=self.irrep,
                     squeeze=self.squeeze,
                 )
         else:
-            worker = Sequential_Worker(Seq=self.Seq, End=self.End)
+            worker = Sequential_Worker(Seq=self.Seq, ZZ=self.ZZ)
 
         output_x = jnp.atleast_1d(worker(x))
         output_inv_x = jnp.atleast_1d(worker(-x))
@@ -168,7 +168,7 @@ class Sequential(nn.Module):
     """
 
     Seq: Tuple[nn.Module, ...]
-    End: nn.Module | None
+    ZZ: nn.Module | None
 
     "Symmetries"
     symm_2D: bool = False
@@ -190,7 +190,7 @@ class Sequential(nn.Module):
         if self.symm_Z2:
             worker = Sequential_Z2(
                 Seq=self.Seq,
-                End=self.End,
+                ZZ=self.ZZ,
                 trivial_Z2=self.trivial_Z2,
                 symm_2D=self.symm_2D,
                 irrep=self.irrep,
@@ -202,7 +202,7 @@ class Sequential(nn.Module):
             if self.use_anchor:
                 worker = Sequential_2DAnchor(
                     Seq=self.Seq,
-                    End=self.End,
+                    ZZ=self.ZZ,
                     lattice_size=self.lattice_size,
                     irrep=self.irrep,
                     squeeze=self.squeeze,
@@ -211,14 +211,14 @@ class Sequential(nn.Module):
             else:
                 worker = Sequential_2D(
                     Seq=self.Seq,
-                    End=self.End,
+                    ZZ=self.ZZ,
                     lattice_size=self.lattice_size,
                     token_size=self.token_size,
                     irrep=self.irrep,
                     squeeze=self.squeeze,
                 )
         else:
-            worker = Sequential_Worker(Seq=self.Seq, End=self.End, squeeze=self.squeeze)
+            worker = Sequential_Worker(Seq=self.Seq, ZZ=self.ZZ, squeeze=self.squeeze)
 
         x = worker(x)
 
