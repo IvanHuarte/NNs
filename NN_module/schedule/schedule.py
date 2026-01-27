@@ -7,14 +7,17 @@ from NN_module.schedule.transformations import transformation_dictionary
 from NN_module.schedule.utils import (
     schedule_from_array,
     decode_arch_labels,
-    get_submodules_dict,
+    eon_change,
+    generate_period,
 )
 from NN_module.ST_utils import print_tree
 
 
 class Schedule:
 
-    def __init__(self, setup, NN_params):
+    def __init__(self, setup, code2path):
+
+        self.eon = 0
 
         self.print_arch = setup["print_arch"]
 
@@ -33,36 +36,31 @@ class Schedule:
         sampler_evol = setup["sampler"]
 
         self._initialize()
-        self.update_subarch_struct(NN_params)
-        print(self.code2path, "\n")
-        print(self.path2code, "\n")
+        self.update_eon_code2path(code2path)
 
-    def update_subarch_struct(self, NN_params):
+    def update_eon_code2path(self, code2path):
         """
-        Necesario cambiarlo si se cambia la arquitectura
+        Update eon_code2path and eon_path2code when the architecture changes.
         """
+        eon_m = self.modes_struct[self.eon]
 
-        codes = [
-            code
-            for eon_m in self.modes_struct
-            for era_m in eon_m
-            for per_m in era_m
-            for code in per_m
-        ]
-        # Create all path codes of architecture
-        submod_dict = get_submodules_dict(NN_params, self.print_arch)
-        # Conserve only those which appear in the simulation
-        self.code2path = {}
+        codes = [code for era_m in eon_m for per_m in era_m for code in per_m]
+
+        # From code2path Conserve only those which appear in the simulation
+        self.eon_code2path = {}
         for code in codes:
             if code == "A":
                 main_branches = dict(
-                    [(k, v) for k, v in submod_dict.items() if len(k) == 1]
+                    [(k, v) for k, v in code2path.items() if len(k) == 1]
                 )
-                self.code2path.update(**main_branches)
+                self.eon_code2path.update(**main_branches)
             else:
-                self.code2path[code] = submod_dict[code]
+                self.eon_code2path[code] = code2path[code]
 
-        self.path2code = dict([(v, k) for k, v in self.code2path.items()])
+        self.eon_path2code = dict([(v, k) for k, v in self.eon_code2path.items()])
+
+        print(self.eon_code2path, "\n")
+        print(self.eon_path2code, "\n")
 
     def _initialize(self):
 
@@ -98,7 +96,7 @@ class Schedule:
                 for epo, mode, lr in zip(era_epo, era_mode, era_lr):
 
                     mode = [
-                        self.code2path[idx] if isinstance(idx, int) else "A"
+                        self.eon_code2path[idx] if isinstance(idx, int) else "A"
                         for idx in mode
                     ]
                     epochs.append(epo)
@@ -114,15 +112,24 @@ class Schedule:
 
     def schedule_generator(self):
 
-        for eon_epo, eon_mode, eon_lr in zip(
-            self.epochs_struct, self.modes_struct, self.lr_struct
+        n_eons = len(self.epochs_struct)
+
+        for i_eon, (eon_epo, eon_mode, eon_lr) in enumerate(
+            zip(self.epochs_struct, self.modes_struct, self.lr_struct)
         ):
-            for era_epo, era_mode, era_lr in zip(eon_epo, eon_mode, eon_lr):
-                for epo, mode, lr in zip(era_epo, era_mode, era_lr):
+            n_eras = len(eon_epo)
+
+            for i_era, (era_epo, era_mode, era_lr) in enumerate(
+                zip(eon_epo, eon_mode, eon_lr)
+            ):
+                n_pers = len(era_epo)
+
+                for i_per, (epo, mode, lr) in enumerate(zip(era_epo, era_mode, era_lr)):
+
                     print(f"Mode: {mode} LR: {lr}")
-                    mode, lr = decode_arch_labels(self.code2path, mode, lr)
+                    mode, lr = decode_arch_labels(self.eon_code2path, mode, lr)
                     print(f"Mode: {mode} LR: {lr}")
-                    period_array, info = self.generate_period(epo, mode, lr)
+                    period_array, info = generate_period(epo, mode, lr)
                     if not isinstance(period_array, list):
                         period_array = [period_array]
                         info = [info]
@@ -135,7 +142,8 @@ class Schedule:
                         )
                         for inf in info
                     ]
-                    yield period_array, info
+                    change = eon_change(i_eon, i_era, i_per, n_eons, n_eras, n_pers)
+                    yield period_array, info, change
 
     def schedule(self, return_array=False):
 
@@ -153,10 +161,10 @@ class Schedule:
     def transform_optimizer(self, params, optimizer, info, lr_func):
 
         modes_path = [inf[1] for inf in info]
-        modes_code = [self.path2code[path] for path in modes_path]
+        modes_code = [self.eon_path2code[path] for path in modes_path]
 
         trans_dict = transformation_dictionary(optimizer, modes_code, lr_func)
-        trans_tree = masked_optimizer(params, modes_path, self.path2code)
+        trans_tree = masked_optimizer(params, modes_path, self.eon_path2code)
         trans_optimizer = optax.multi_transform(trans_dict, trans_tree)
         # print(print_tree(trans_tree, values=True))
 

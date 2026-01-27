@@ -4,8 +4,17 @@
 
    "callback":{
         "keeper": true,
-        "inline":   true,
+        "keeper_setup":{
+            "baseline": 1e-8,
+            "mode": "always"
+        },
+
+        "energy_plot":   true,
+        
         "modphase": true,
+        "modphase_setup": {
+
+        },
         "sanity": false,
         "sanity_setup":{
             "do_each": 100,
@@ -57,9 +66,7 @@
             "rescale": 1.0
         },
         
-        "architecture":{
-            
-        },
+        "arch_evol": ["E0e0"],
         "sampler":{
 
         }

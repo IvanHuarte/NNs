@@ -10,7 +10,7 @@
                    "CNN":{}
                 }
             },
-            "save": "stage_0"
+            "save_as": "stage_0"
         },
 
         "stage_1": {
@@ -27,7 +27,8 @@
                     }
                 }
             },
-            "save": "stage_1",
+            "save_as": "stage_1",
+            "change_attr":[],
             "load": [
                 ["stage_0", "0", "01"],
                 ["stage_0", "1", "10"]

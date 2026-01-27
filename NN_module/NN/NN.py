@@ -9,37 +9,70 @@ from NN_module.ST_utils import print_tree
 
 
 class NeuralNetwork:
+    """
+    Generic neural network builder based on a declarative configuration tree.
+
+    This class constructs an arbitrary Flax neural network architecture
+    from a nested configuration dictionary ("setup"), which fully encodes
+    the model topology and hyperparameters.
+
+    The class is intentionally *stateless* beyond:
+        - self.setup : the processed configuration tree
+        - self.model : the instantiated Flax module
+
+    It is designed to be re-initializable with a new setup at any time,
+    enabling dynamic architecture changes (e.g. for neural architecture
+    search or curriculum learning).
+    """
 
     def __init__(self, setup, **kwargs):
         """
-        Class for automatically build an arbitry network architecture
-        based only on a configuration dictionary. It can use either
-        simple modules and factories, being the latests flux information
-        organizers.
-        __init__:
-            -setup:(dict) Pytree dictionary which contains all NN
-                    architecture information.
-            -kwargs:(dict) External arguments needed by modules
+        Build a neural network from a configuration tree.
 
-        First, it inserts recursively the kwargs in required setup sites
-        via `insert_external_kwargs`. Next, it performs a prepocessing in
-        the setup data (`preprocess_setup`) and then `deepfreeze` it to
-        build an inmmutable and hashable dictionary. Finally, it builds
-        the NN architecture via `build_module`
+        Parameters
+        ----------
+        setup : dict (pytree)
+            Nested dictionary encoding the full network architecture.
+            Each node must contain a "module" key and a "setup" sub-dictionary.
+
+        **kwargs : dict
+            External arguments required by some modules
+            (e.g. lattice_size, symmetry flags, etc).
+            These are automatically injected into the setup tree.
         """
 
         self.initialize_from_setup(setup, kwargs)
+
+    def initialize_from_setup(self, setup, external_args):
+        """
+        (Re)initialize the network from a setup configuration.
+
+        This method fully rebuilds the internal model, and can be safely
+        called multiple times on the same object to change the architecture.
+
+        Steps:
+            1. Inject external arguments into the setup tree.
+            2. Preprocess and normalize the setup structure.
+            3. Freeze the setup (hashable & immutable).
+            4. Recursively build the Flax module tree.
+
+        Parameters
+        ----------
+        setup : dict (pytree)
+            Configuration tree describing the architecture.
+
+        external_args : dict
+            External parameters to be propagated into the setup.
+        """
+        setup = insert_external_kwargs(setup, external_args)
+        self.setup = preprocess_setup(setup)
+        self.model = self.build_module(deepfreeze(self.setup), external_args)
 
     def get_model(self):
         return self.model
 
     def get_model_class(self, module_name):
         return REGISTRY[module_name]
-
-    def initialize_from_setup(self, setup, external_args):
-        setup = insert_external_kwargs(setup, external_args)
-        self.setup = preprocess_setup(setup)
-        self.model = self.build_module(deepfreeze(self.setup), external_args)
 
     def get_params_info(self, model, N, show_info=False):
         variables = model.init(jax.random.PRNGKey(0), jnp.ones((1, N)))
@@ -57,6 +90,32 @@ class NeuralNetwork:
         print("\n")
 
     def build_module(self, setup, external_args):
+        """
+        Recursively construct a Flax module from a setup subtree.
+
+        This function interprets the declarative setup format and maps it
+        to actual Flax modules using the global REGISTRY.
+
+        Supported high-level structural modules:
+            - SplitTraining
+            - Sequential
+            - Transversal
+
+        Leaf nodes are assumed to be standard Flax modules.
+
+        Parameters
+        ----------
+        setup : dict
+            Single node of the setup tree (must contain "module" and "setup").
+
+        external_args : dict
+            External arguments propagated to all modules.
+
+        Returns
+        -------
+        flax.linen.Module
+            Instantiated Flax module corresponding to this subtree.
+        """
 
         module_name = setup["module"]
         setup = setup["setup"]

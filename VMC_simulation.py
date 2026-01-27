@@ -10,8 +10,6 @@ import argparse
 import uuid
 import sys
 
-import matplotlib
-
 # os.environ["XLA_PYTHON_CLIENT_PREALLOCATE"] = "false"
 jax.config.update("jax_enable_x64", True)
 jax.config.update("jax_platform_name", "gpu")
@@ -24,14 +22,11 @@ from pathlib import Path
 # Importar módulos necesarios
 from VA_project.initialize_model import ModelFactory
 from VA_project.engine.runners import Runner
-from NN_module.callback.BestIterKeeper import BestIterKeeper
-from NN_module.callback.EnergyPlotter import EnergyPlotter
-from NN_module.callback.ModPhasePlotter import ModPhasePlotter
-from NN_module.callback.SanityMonitor import SanityMonitor
+from NN_module.callback import Callback
 from NN_module.callback.utils import dump_callback
 
 from NN_module.saveNload import save_results
-from NN_module.NN.NN import FactoryBuilder, print_tree
+from NN_module.NN.Hydra import Hydra
 from NN_module.sampler.sampler import SamplerFactory
 from NN_module.schedule.schedule import Schedule
 from NN_module.label_utils import (
@@ -60,7 +55,8 @@ if args.config is None:
     args.config = [
         "/home/ihuarte/Escritorio/Ivan/NNs/config.json",
         "/home/ihuarte/Escritorio/Ivan/NNs/config_CM.json",
-        "/home/ihuarte/Escritorio/Ivan/NNs/config_NN.json",
+        "/home/ihuarte/Escritorio/Ivan/NNs/config_Hydra.json",
+        "/home/ihuarte/Escritorio/Ivan/NNs/config_Hydra_NN.json",
     ]
 configurations = args.config
 
@@ -74,15 +70,19 @@ with open(configurations[0], "r") as f:
 with open(configurations[1], "r") as f:
     config_cm = json.load(f)
 with open(configurations[2], "r") as f:
-    config_nn = json.load(f)
+    config_hydra = json.load(f)
+with open(configurations[3], "r") as f:
+    config_hydra_nn = json.load(f)
+
+config_nn = config_hydra + config_hydra_nn
 
 cm_model_name = config_cm["CM"]["selection"]
-nn_model_name = config_nn["NN"]["selection"]
+nn_evol_name = config_nn["selection"]["selection"]
 
 cm_model_setup = config_cm["CM"][cm_model_name]
-nn_model_setup = config_nn["NN"][nn_model_name]
+nn_evol_setup = config_nn["NN"][nn_evol_name]
 
-model_label = cm_model_name + "_" + nn_model_name
+model_label = cm_model_name + "_" + nn_evol_name
 
 sizes = config_cm["sizes"]
 
@@ -146,39 +146,40 @@ for i, size in enumerate(sizes):
 
         ###################################################
 
-        factory = FactoryBuilder(nn_model_setup, **{"lattice_size": size})
-        model = factory.get_model()
-        nparams, nbytes = factory.get_params_info(model, N, show_info=False)
+        #### INITIALIZE NETWORK FRAMEWORK ####
+        hydra = Hydra(config_nn, **{"lattice_size": size})
+        model = hydra.model
+        nparams, nbytes = hydra.n_params, hydra.nbytes
+        display_simulation_settings({**sim_config})
+        print(f"\nNN stats: {nparams} parameters ({nbytes/(1024**2)} MB)")
+        print(f"Total samples: {n_samples}\n")
 
         sim_config = get_sim_config(
             {
                 "SIM": config,
                 "CM": cm_model_setup,
                 "NN": {
-                    "name": nn_model_name,
+                    "name": nn_evol_name,
                     "n_params": nparams,
                     "nbytes": nbytes,
-                    "setup": nn_model_setup,
+                    "setup": nn_evol_setup,
                 },
             }
         )
         # print_tree(sim_config, values=True)
 
-        ## Reset sampler
+        #### INITIALIZE SAMPLER ####
         print("Initializing sampler...")
-        sampler = SamplerFactory(sampler_setup, cm_model=cm_model).get_sampler(hi)
+        sampler_factory = SamplerFactory(sampler_setup, cm_model=cm_model)
+        sampler = sampler_factory.get_sampler(hi)
 
-        display_simulation_settings({**sim_config})
-        print(f"\nNN stats: {nparams} parameters ({nbytes/(1024**2)} MB)")
-        print(f"Total samples: {n_samples}\n")
-
-        callback_artifacts = {}
-        time_in = time.time()
-
+        #### INITIALIZE LOGGER ####
         log = (
             nk.logging.RuntimeLog()
         )  # If instead of this logging you insert a string, it will be used as output prefix for a JSON file where the evolution of the energy at each epoch will be stored.
-        print("Initializing VMC state...")
+
+        #### INITIALIZE VSTATE ####
+        print("Initializing Variational State...")
         vstate = nk.vqs.MCState(
             sampler,
             model=model,
@@ -186,53 +187,49 @@ for i, size in enumerate(sizes):
             n_discard_per_chain=0,
             chunk_size=sampler_setup["chunk_vstate"],
         )
-        sys.exit(0)
 
-        # SplitTraining Schedule
-        schedule = Schedule(schedule_setup, model)
+        #### INITIALIZE SCHEDULE ####
+        schedule = Schedule(schedule_setup, hydra.get_code2path(vstate.parameters))
         total_periods = schedule.total_periods
         total_epochs = schedule.total_epochs
         schedule_setup["total_epochs"] = total_epochs
 
         ds_schedule = jnp.linspace(1e-2, 1e-4, total_periods, dtype=jnp.float64)
 
-        # Callbacks
-        if enable_keeper:
-            keeper = BestIterKeeper(total_epochs, H, N, baseline=1e-8, mode="always")
-            callbacks.append(keeper.update)
-        if enable_inline:
-            inline_energy = EnergyPlotter(H, N, E_ED=E_ED)
-            callbacks.append(inline_energy)
-        if enable_modphase:
-            print(f"Adding Modphase")
-            inline_modphase = ModPhasePlotter(sim_config, x_ED)
-            callbacks.append(inline_modphase)
-        if enable_sanity:
-            sanity_monitor = SanityMonitor(config["callback"]["sanity_setup"])
-            callbacks.append(sanity_monitor)
+        #### INITIALIZE CALLBACKS ####
+        callbacks = Callback(
+            config,
+            sim_config=sim_config,
+            total_epochs=total_epochs,
+            H=H,
+            N=N,
+            E_ED=E_ED,
+            x_ED=x_ED,
+        )
 
-        for i, (lr_period, info) in enumerate(schedule.schedule()):
-            print(f"info: {info}")
+        callback_artifacts = {}
+        time_in = time.time()
 
+        for i, (lr_period, info, change) in enumerate(schedule.schedule()):
+
+            #### PRINT PERIOD INFO ####
             epochs = info[0][0]
             mode = info[0][1]
             lr_string = ""
             for inf in info:
                 lr_string += f"{inf[2]}  "
-
             rescaled = "" if len(info) < 4 else info[3]
             print(f"\nPeriod {i + 1} / {total_periods}:")
             print(f"Training {mode} for {epochs} epochs")
             print(f"LR: {lr_string}  ({rescaled})")
-
             print(f"Diagonal shift: {ds_schedule[i]:.4e}\n")
+            ###########################
 
             variables = vstate.variables
             sampler = vstate.sampler
             optimizer = schedule.transform_optimizer(
                 vstate.parameters, optax.sgd, info, lr_period
             )
-            sys.exit(0)
 
             # vstate = nk.vqs.MCState(
             #     sampler,
@@ -243,15 +240,17 @@ for i, size in enumerate(sizes):
             #     chunk_size=sampler_setup["chunk_vstate"],
             #     variables=variables,
             # )
-            if i != 0:
-                vstate = nk.vqs.MCState(
-                    sampler,
-                    model=model,
-                    n_samples=n_samples,
-                    n_discard_per_chain=500,
-                    chunk_size=sampler_setup["chunk_vstate"],
-                    variables=variables,
-                )
+            # if i != 0:
+            #     vstate = nk.vqs.MCState(
+            #         sampler,
+            #         model=model,
+            #         n_samples=n_samples,
+            #         n_discard_per_chain=500,
+            #         chunk_size=sampler_setup["chunk_vstate"],
+            #         variables=variables,
+            #     )
+
+            #### INITIALIZING VMC RUN
             holo = nk.utils.is_probably_holomorphic(
                 vstate._apply_fun,
                 vstate.parameters,
@@ -277,9 +276,21 @@ for i, size in enumerate(sizes):
             # P1 = vstate.parameters
             # compare_params(P0, P1)
             # check_zero_grads(vstate, mask)
+            if change:
+                schedule.eon += 1
+                hydra.arch_evol(vstate.parameters)
+                vstate = nk.vqs.MCState(
+                    sampler=sampler_factory.get_sampler(hi),
+                    model=model,
+                    n_samples=n_samples,
+                    n_discard_per_chain=0,
+                    chunk_size=sampler_setup["chunk_vstate"],
+                )
 
         time_out = time.time()
         time_exe = time_out - time_in
+
+        keeper
 
         vstate = keeper.best_state
 
@@ -292,7 +303,7 @@ for i, size in enumerate(sizes):
 
         sim_label, ED_label, json_label, title_label_callback = (
             get_filenames_from_settings(
-                cm_model_setup, {"name": nn_model_name, **nn_model_setup}, sim_uuid
+                cm_model_setup, {"name": nn_evol_name, **nn_evol_setup}, sim_uuid
             )
         )
 

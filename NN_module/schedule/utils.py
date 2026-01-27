@@ -111,3 +111,17 @@ def schedule_from_array(x):
         return x[step]
 
     return schedule_fun
+
+
+#################################################
+# CHANGE NN ARCHITECTURE CONTROL
+#################################################
+
+
+def eon_change(i_eon, i_era, i_per, n_eons, n_eras, n_pers):
+
+    eon_bool = i_eon != n_eons - 1
+    era_bool = i_era == n_eras - 1
+    per_bool = i_per == n_pers - 1
+
+    return eon_bool & era_bool & per_bool

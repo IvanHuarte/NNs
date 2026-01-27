@@ -86,3 +86,7 @@ def measureNdump(keeper, time_exe, exact_diag=False):
     }
 
     return results, mp_array_vs, mp_array_ED
+
+
+def change_architecture_stage():
+    pass
