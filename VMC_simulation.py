@@ -270,7 +270,6 @@ for i, size in enumerate(sizes):
         time_out = time.time()
         time_exe = time_out - time_in
 
-        sys.exit(0)
 
         keeper  = callback_objects[0]
         best_step = keeper.best_step
