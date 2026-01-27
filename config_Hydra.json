@@ -10,35 +10,29 @@
                    "CNN":{}
                 }
             },
-            "save_as": "stage_0"
+            "save_params": true
         },
 
         "stage_1": {
             "template": {
 
                 "SplitTraining":{
+                    "MLP":{},
                     "Transversal":{
-                        "ViT2D":{},
-                        "MLP":{}
-                    },
-                    "Sequential":{
-                        "CNN":{},
-                        "CvT":{}
+                        "CvT":{},
+                        "CNN":{}
                     }
                 }
             },
-            "save_as": "stage_1",
-            "change_attr":[],
+            "save_params": true,
+            "change_attr":{},
             "load": [
-                ["stage_0", "0", "01"],
-                ["stage_0", "1", "10"]
+                ["stage_0", "0", "0"],
+                ["stage_0", "1", "11"]
             ]
             
         }
 
-
-    
-    
     
     }
 

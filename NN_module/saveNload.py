@@ -12,7 +12,7 @@ from platform import architecture, python_version
 from pathlib import Path
 
 from VA_project.initialize_model import ModelFactory
-from .NN.NN import FactoryBuilder
+from .NN.NN import NeuralNetwork
 from .sampler.sampler import SamplerFactory
 
 
@@ -118,7 +118,7 @@ def print_tree_keys(obj, indent=0):
             print_tree_keys(item, indent + 1)
 
 
-def load_vstate(setup, only_parameters, tree_data=False):
+def load_vstate(setup, tree_data=False):
 
     # Initialize model
     size = setup["CM"]["size"]
@@ -126,7 +126,7 @@ def load_vstate(setup, only_parameters, tree_data=False):
     # print(setup["NN"])
     cm_model = ModelFactory.init(setup["CM"]).get_model()
 
-    model = FactoryBuilder(
+    model = NeuralNetwork(
         setup["NN"]["setup"], **{"lattice_size": setup["CM"]["size"]}
     ).get_model()
 

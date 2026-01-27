@@ -74,20 +74,20 @@ with open(configurations[2], "r") as f:
 with open(configurations[3], "r") as f:
     config_hydra_nn = json.load(f)
 
-config_nn = config_hydra + config_hydra_nn
+config_nn = {**config_hydra, **config_hydra_nn}
 
 cm_model_name = config_cm["CM"]["selection"]
-nn_evol_name = config_nn["selection"]["selection"]
+nn_evol_name = config_nn["selection"]
 
 cm_model_setup = config_cm["CM"][cm_model_name]
-nn_evol_setup = config_nn["NN"][nn_evol_name]
+nn_evol_setup = config_nn[nn_evol_name]
 
 model_label = cm_model_name + "_" + nn_evol_name
 
 sizes = config_cm["sizes"]
 
 # Simulation settings
-schedule_setup = config["schedule"]["learning_rate"]
+schedule_setup = config["schedule"]
 
 ### MC sampling rules ###
 sampler_setup = config["sampler"]
@@ -96,13 +96,6 @@ n_samples = (
     * sampler_setup["n_chains_per_rank"]
     * sampler_setup["n_ranks"]
 )
-
-### Callbacks
-enable_keeper = config["callback"]["keeper"]
-enable_inline = config["callback"]["inline"]
-enable_modphase = config["callback"]["modphase"]
-enable_sanity = config["callback"]["sanity"]
-callbacks = []
 
 write = get_write_folder_from_model({**config, **config_cm, **config_nn})
 
@@ -116,7 +109,7 @@ for i, size in enumerate(sizes):
 
     write_folder_size = write + f"Size_{size[0]}x{size[1]}/"
 
-    training_folder = get_schedule_label(schedule_setup)
+    training_folder = get_schedule_label(schedule_setup['learning_rate'])
 
     write_folder_training = write_folder_size + f"{training_folder}/"
 
@@ -146,26 +139,25 @@ for i, size in enumerate(sizes):
 
         ###################################################
 
+        ######## DISPLAY #########
+        sim_config = {
+            "SIM": config,
+            "CM": cm_model_setup,
+            "NN": {
+                "name": nn_evol_name,
+                "setup": nn_evol_setup
+            }
+        }
+        display_simulation_settings(sim_config)
+
+
         #### INITIALIZE NETWORK FRAMEWORK ####
         hydra = Hydra(config_nn, **{"lattice_size": size})
         model = hydra.model
         nparams, nbytes = hydra.n_params, hydra.nbytes
-        display_simulation_settings({**sim_config})
-        print(f"\nNN stats: {nparams} parameters ({nbytes/(1024**2)} MB)")
         print(f"Total samples: {n_samples}\n")
 
-        sim_config = get_sim_config(
-            {
-                "SIM": config,
-                "CM": cm_model_setup,
-                "NN": {
-                    "name": nn_evol_name,
-                    "n_params": nparams,
-                    "nbytes": nbytes,
-                    "setup": nn_evol_setup,
-                },
-            }
-        )
+        
         # print_tree(sim_config, values=True)
 
         #### INITIALIZE SAMPLER ####
@@ -176,7 +168,8 @@ for i, size in enumerate(sizes):
         #### INITIALIZE LOGGER ####
         log = (
             nk.logging.RuntimeLog()
-        )  # If instead of this logging you insert a string, it will be used as output prefix for a JSON file where the evolution of the energy at each epoch will be stored.
+        )  
+        # If instead of this logging you insert a string, it will be used as output prefix for a JSON file where the evolution of the energy at each epoch will be stored.
 
         #### INITIALIZE VSTATE ####
         print("Initializing Variational State...")
@@ -197,8 +190,8 @@ for i, size in enumerate(sizes):
         ds_schedule = jnp.linspace(1e-2, 1e-4, total_periods, dtype=jnp.float64)
 
         #### INITIALIZE CALLBACKS ####
-        callbacks = Callback(
-            config,
+        callback_objects, callback_funcs = Callback(
+            config["callback"],
             sim_config=sim_config,
             total_epochs=total_epochs,
             H=H,
@@ -231,25 +224,6 @@ for i, size in enumerate(sizes):
                 vstate.parameters, optax.sgd, info, lr_period
             )
 
-            # vstate = nk.vqs.MCState(
-            #     sampler,
-            #     sampler_seed=vstate.sampler_state.rng,
-            #     model=model,
-            #     n_samples=n_samples,
-            #     n_discard_per_chain=0,
-            #     chunk_size=sampler_setup["chunk_vstate"],
-            #     variables=variables,
-            # )
-            # if i != 0:
-            #     vstate = nk.vqs.MCState(
-            #         sampler,
-            #         model=model,
-            #         n_samples=n_samples,
-            #         n_discard_per_chain=500,
-            #         chunk_size=sampler_setup["chunk_vstate"],
-            #         variables=variables,
-            #     )
-
             #### INITIALIZING VMC RUN
             holo = nk.utils.is_probably_holomorphic(
                 vstate._apply_fun,
@@ -266,7 +240,7 @@ for i, size in enumerate(sizes):
             gs.run(
                 n_iter=epochs,
                 out=log,
-                callback=callbacks,
+                callback=callback_funcs,
                 show_progress=True,
             )
             # vstate.sampler.reset(vstate.model.apply, vstate.variables["params"])
@@ -277,8 +251,10 @@ for i, size in enumerate(sizes):
             # compare_params(P0, P1)
             # check_zero_grads(vstate, mask)
             if change:
+                print("Changing Architecture")
                 schedule.eon += 1
-                hydra.arch_evol(vstate.parameters)
+                hydra.arch_evol(vstate.parameters)   # n_stage + 1
+                model = hydra.model
                 vstate = nk.vqs.MCState(
                     sampler=sampler_factory.get_sampler(hi),
                     model=model,
@@ -286,13 +262,31 @@ for i, size in enumerate(sizes):
                     n_discard_per_chain=0,
                     chunk_size=sampler_setup["chunk_vstate"],
                 )
+                vstate.parameters, code2path = hydra.weight_transplantation(vstate.parameters)
+                schedule.update_eon_code2path(code2path)
+
+
 
         time_out = time.time()
         time_exe = time_out - time_in
 
-        keeper
+        sys.exit(0)
 
+        keeper  = callback_objects[0]
+        best_step = keeper.best_step
         vstate = keeper.best_state
+
+        # Reconstruct NN setup and sim_config in the best state
+        eon, _, _ = schedule.locate_period(best_step)
+        NN_setup = hydra.storage[f'stage_{eon}']
+        sim_config = {
+            "SIM": config,
+            "CM": cm_model_setup,
+            "NN": {
+                "name": nn_evol_name + f"stage_{eon}",
+                "setup": NN_setup
+            }
+        }
 
         if exact_diag:
             keeper.E_ED = E_ED
@@ -303,7 +297,7 @@ for i, size in enumerate(sizes):
 
         sim_label, ED_label, json_label, title_label_callback = (
             get_filenames_from_settings(
-                cm_model_setup, {"name": nn_evol_name, **nn_evol_setup}, sim_uuid
+                cm_model_setup, {"name": nn_evol_name, "setup": {}}, sim_uuid
             )
         )
 
@@ -314,7 +308,7 @@ for i, size in enumerate(sizes):
             "time_exe": time_exe,
             "sim_label": sim_label,
             "title_label_callback": title_label_callback,
-            "best_step": keeper.best_step,
+            "best_step": best_step,
             "schedule_setup": schedule.flat_setup(),
         }
 

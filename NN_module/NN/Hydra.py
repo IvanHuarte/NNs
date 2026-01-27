@@ -58,16 +58,13 @@ class Hydra(NeuralNetwork):
 
         # Stage 0
         self.template = self.arch_evolution["stage_0"]["template"]
-        self.save_as = (
-            self.arch_evolution["stage_0"]["save_as"]
-            if "save_as" in self.arch_evolution["stage_0"]
-            else ""
-        )
+        self.save_params = self.arch_evolution["stage_0"]["save_params"]
+
 
         # Build the initial NN model. Adapt first template 'model_0' to a configuration dictionary.
         setup = setup_from_template(self.template, self.storage, self.symm_wrapper)
-        if self.save_as:
-            self.storage[self.save_as] = setup
+        self.storage["stage_0"] = setup
+        
         super().__init__(setup, **self.external_args)
 
         if "lattice_size" in self.external_args:
@@ -128,13 +125,19 @@ class Hydra(NeuralNetwork):
         old_params : pytree
             Parameters of the previous model, used for later transplantation.
         """
+        # PREVIOUS EON
+        if self.save_params:
+            print(f"Saving stage_{self.n_stage} parameters....")
+            self.params_history[f"stage_{self.n_stage}"] = old_params
+            print("Saved.")
+            print(self.params_history)
+
+        # NEXT EON
         self.n_stage += 1
-        if self.save_as:
-            self.params_history.update(**{f"{self.save_as}": old_params})
 
         stage_config = self.arch_evolution[f"stage_{self.n_stage}"]
         self.template = stage_config["template"]
-        self.save_as = stage_config["save_as"] if "save_as" in stage_config else ""
+        self.save_params = stage_config["save_params"] if "save_params" in stage_config else ""
         self.load = stage_config["load"] if "load" in stage_config else []
 
         # Update symmetry settings, in the case.
@@ -146,19 +149,19 @@ class Hydra(NeuralNetwork):
         # Create stage setup and change module attributes, in the case
         raw_setup = setup_from_template(self.template, self.storage, self.symm_wrapper)
         if "change_attr" in stage_config:
-            raw_setup = change_module_attr(raw_setup, stage_config["change_attr"])
+            if stage_config["change_attr"]:
+                raw_setup = change_module_attr(raw_setup, stage_config["change_attr"])
 
         # Create new NN model
         self.initialize_from_setup(raw_setup, self.external_args)
 
-        # Save the setup, in the case
-        if self.save_as:
-            self.storage[self.save_as] = self.setup
+        # Save the setup
+        self.storage[f"stage_{self.n_stage}"] = self.setup
 
         # Show architecture and update metadata
         self.update_info(self.N)
 
-    def weight_transplantation(self, new_params, code2path=True):
+    def weight_transplantation(self, new_params, return_c2p=True):
         """
         Transplant compatible weights from previous models.
 
@@ -209,7 +212,7 @@ class Hydra(NeuralNetwork):
                 val = get_subtree(old_params, old_abs)
                 new_params = set_subtree(new_params, new_abs, val)
 
-        if code2path:
+        if return_c2p:
             return new_params, new_c2p
         else:
             return new_params

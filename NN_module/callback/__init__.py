@@ -8,29 +8,34 @@ def Callback(
     config, sim_config=None, total_epochs=None, H=None, N=None, E_ED=None, x_ED=None
 ):
 
-    callbacks = []
+    callback_funcs = []
+    callback_objects = []
 
     if config["keeper"]:
         assert all([variable is not None for variable in [total_epochs, H, N]])
         print(f"Adding BestIterKeeper")
         keeper = BestIterKeeper(total_epochs, H, N, baseline=1e-8, mode="always")
-        callbacks.append(keeper.update)
+        callback_objects.append(keeper)
+        callback_funcs.append(keeper.update)
 
     if config["energy_plot"]:
         assert all([variable is not None for variable in [H, N]])
         print(f"Adding EnergyPlotter")
-        inline_energy = EnergyPlotter(H, N, E_ED=E_ED)
-        callbacks.append(inline_energy)
+        energy_plotter = EnergyPlotter(H, N, E_ED=E_ED)
+        callback_objects.append(energy_plotter)
+        callback_funcs.append(energy_plotter)
 
     if config["modphase"]:
         assert all([variable is not None for variable in [sim_config, x_ED]])
         print(f"Adding Modphase")
-        inline_modphase = ModPhasePlotter(sim_config, x_ED)
-        callbacks.append(inline_modphase)
+        modphase = ModPhasePlotter(sim_config, x_ED)
+        callback_objects.append(modphase)
+        callback_funcs.append(modphase)
 
     if config["sanity"]:
         print(f"Adding SanityMonitor")
         sanity_monitor = SanityMonitor(config["callback"]["sanity_setup"])
-        callbacks.append(sanity_monitor)
+        callback_objects.append(sanity_monitor)
+        callback_funcs.append(sanity_monitor)
 
-    return callbacks
+    return callback_objects, callback_funcs

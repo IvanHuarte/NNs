@@ -3,7 +3,7 @@ import jax.numpy as jnp
 
 import matplotlib
 
-matplotlib.use("Qt5Agg")
+matplotlib.use("QtAgg")
 
 import matplotlib.pyplot as plt
 import matplotlib.transforms as mtransforms

@@ -19,8 +19,6 @@ class Schedule:
 
         self.eon = 0
 
-        self.print_arch = setup["print_arch"]
-
         # Learning rate setup
         learning_rate = setup["learning_rate"]
         self.epochs_struct = learning_rate["epochs_struct"]
@@ -29,11 +27,8 @@ class Schedule:
         self.repeat = learning_rate["repeat"]
         self.rescale = learning_rate["rescale"]
 
-        # Architecture evolution along simulation
-        arch_evol = setup["architecture"]
-
         # Sampler orders
-        sampler_evol = setup["sampler"]
+        # sampler_evol = setup["sampler"]
 
         self._initialize()
         self.update_eon_code2path(code2path)
@@ -109,6 +104,17 @@ class Schedule:
         nruter["rescale"] = self.rescale
 
         return nruter
+    
+    def locate_period(self, epoch):
+        cum = 0
+        for i_eon, eon in enumerate(self.epochs_struct):
+            for i_era, era in enumerate(eon):
+                for i_per, per in enumerate(era):
+                    cum += per
+                    if cum > epoch:
+                        return i_eon, i_era, i_per
+        raise ValueError(f"Epoch ({epoch}) out of schedule")
+                    
 
     def schedule_generator(self):
 
@@ -147,7 +153,7 @@ class Schedule:
 
     def schedule(self, return_array=False):
 
-        for period_array, info in self.schedule_generator():
+        for period_array, info, change in self.schedule_generator():
 
             if return_array:
                 yield period_array, info
@@ -156,7 +162,7 @@ class Schedule:
             if isinstance(period_array, (list, tuple)):
                 period_func = [schedule_from_array(x) for x in period_array]
 
-            yield period_func, info
+            yield period_func, info, change
 
     def transform_optimizer(self, params, optimizer, info, lr_func):
 
@@ -166,6 +172,6 @@ class Schedule:
         trans_dict = transformation_dictionary(optimizer, modes_code, lr_func)
         trans_tree = masked_optimizer(params, modes_path, self.eon_path2code)
         trans_optimizer = optax.multi_transform(trans_dict, trans_tree)
-        # print(print_tree(trans_tree, values=True))
+        print(print_tree(trans_tree, values=True))
 
         return trans_optimizer

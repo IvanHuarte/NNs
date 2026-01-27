@@ -37,62 +37,31 @@ def get_sim_config(configurations, **kwargs):
     return cleaned
 
 
-def get_string_from_nnsetup(dic, nivel=0):
-    if not isinstance(dic, dict):
+def get_string_from_nnsetup(tree, level=0):
+    if not isinstance(tree, dict) or not tree:
         return ""
 
-    modulo = dic.get("module")
-    setup = dic.get("setup")  # setup puede no existir en algunos niveles
+    names = []
 
-    if modulo is None:
-        return ""
+    for module, submodules in tree.items():
+        children = get_string_from_nnsetup(submodules, level + 1)
+        separator = "_" * (level + 1)
 
-    if modulo in __all_single__:
-        return modulo
-
-    nombres_submodulos = []
-
-    # Si existe la clave 'setup' y es dict, se usa
-    if isinstance(setup, dict):
-        sub_setup = setup.get("setup")
-        if isinstance(sub_setup, dict):
-            for key, val in sub_setup.items():
-                res = get_string_from_nnsetup(val, nivel + 1)
-                if res:
-                    nombres_submodulos.append(res)
+        if children:
+            names.append(f"{module}{separator}{children}")
         else:
-            # Si no existe la clave 'setup' dentro, probamos iterar setup directamente
-            for key, val in setup.items():
-                # Evitar iterar claves no módulos, como flags booleanos, etc.
-                if isinstance(val, dict):
-                    res = get_string_from_nnsetup(val, nivel + 1)
-                    if res:
-                        nombres_submodulos.append(res)
+            names.append(module)
 
-    # En caso de que 'setup' no exista, intentar ver si el dicc contiene submódulos directos
-    elif isinstance(dic, dict):
-        # Iterar claves que no sean 'module' ni 'setup' ni otras claves conocidas no módulo
-        for key, val in dic.items():
-            if key not in ("module", "setup") and isinstance(val, dict):
-                res = get_string_from_nnsetup(val, nivel + 1)
-                if res:
-                    nombres_submodulos.append(res)
-
-    separador = "_" * (nivel + 1)
-    if nombres_submodulos:
-        hijos = separador.join(nombres_submodulos)
-        return f"{modulo}{separador}{hijos}"
-    else:
-        return modulo
-
+    return "_".join(names)
 
 def get_write_folder_from_model(config):
 
-    name = config["NN"]["selection"]
-    nn_setup = config["NN"][name]
+    name = config["selection"]
+    nn_setup = config[name]
+    last_stage = next(reversed(nn_setup))
     model_label = config["CM"]["selection"]
 
-    nn_label = get_string_from_nnsetup(nn_setup)
+    nn_label = get_string_from_nnsetup(nn_setup[last_stage])
     nn_label = name + "_" + nn_label
     return config["write_folder_sim"] + model_label + "/" + nn_label + "/"
 
@@ -443,6 +412,7 @@ def display_simulation_settings(settings, n_cols=5):
 
 
 def get_filenames_from_settings(cm_setup, nn_setup, sim_uuid=None, **kwargs):
+    print(nn_setup)
 
     cm_name, nn_name = cm_setup["name"], nn_setup["name"]
 
@@ -505,13 +475,20 @@ def get_filenames_from_settings(cm_setup, nn_setup, sim_uuid=None, **kwargs):
 
     # Necessary to set unique simulation labels
     date = datetime.now().strftime("%Y%m%dT%H%M%S")
-    nnparams = (
-        get_string_from_nnsetup(nn_setup["setup"]) + f"_date_{date}_UUID_{sim_uuid}"
-    )
 
-    sim_label = model_label + f"_simulation_{size[0]}x{size[1]}" + cparams + nnparams
-    ED_label = model_label + f"_xED_{size[0]}x{size[1]}" + cparams
-    json_label = model_label + f"_results_{size[0]}x{size[1]}" + cparams + nnparams
+    if nn_setup["setup"]:
+        name = nn_setup["name"]
+        setup = nn_setup["setup"]
+        last_stage = next(reversed(setup))
+        nnparams = (
+            get_string_from_nnsetup(setup[last_stage]) 
+        )
+    else:
+        nnparams = ""
+
+    sim_label = model_label + f"_simulation_{size[0]}x{size[1]}" + cparams + nnparams + f"_date_{date}_UUID_{sim_uuid}"
+    ED_label = model_label + f"_xED_{size[0]}x{size[1]}" + cparams + f"_date_{date}_UUID_{sim_uuid}"
+    json_label = model_label + f"_results_{size[0]}x{size[1]}" + cparams + nnparams + f"_date_{date}_UUID_{sim_uuid}"
     title_label_callback = (
         f"Callback  " + model_label + "  " + call_params + f"  ({size[0]}x{size[1]})"
     )
