@@ -84,7 +84,7 @@ class Factorized(nn.Module):
 
         # Add constant modulus
         if self.complex:
-            real_part = jnp.array([0.01])
+            real_part = jnp.array([0.5])
             z = real_part.astype(jnp.complex128) + 1j * imag_part.astype(jnp.complex128)         
             return z
         else:

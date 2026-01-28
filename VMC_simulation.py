@@ -257,7 +257,7 @@ for i, size in enumerate(sizes):
                 hydra.arch_evol(vstate.parameters)   # n_stage + 1
                 model = hydra.model
                 vstate = nk.vqs.MCState(
-                    sampler=sampler_factory.get_sampler(hi),
+                    sampler=sampler, #sampler_factory.get_sampler(hi),
                     model=model,
                     n_samples=n_samples,
                     n_discard_per_chain=0,
