@@ -1,43 +1,46 @@
 {
 
-    "selection": "testAnsatz_CNN",
+    "selection": "OnlyAnsatz",
 
     "load_from": "",
 
-    "testAnsatz_CNN":{
+    "OnlyAnsatz":{
+
         "stage_0": {
+
             "template": {
                "Transversal":{
                     "Factorized":{}
                }
             },
-            "save_params": true
-        },
 
-        "stage_1": {
-            "template": {
-    
-                "SplitTraining":{
-                    "CNN":{},
-                    "Factorized":{}
-                }
-    
-            },
-            "save_params": true,
-            "change_attr":{
-                "Factorized":{
-                    "complex": false
-                }
-            },
-            "load": [
-                ["stage_0", "0", "1"]
-            ]
-            
+            "save_params": true
         }
+
         
+        
+    },
+    
+    "stage_1": {
+        "template": {
+
+            "SplitTraining":{
+                "CNN":{},
+                "Factorized":{}
+            }
+
+        },
+        "save_params": true,
+        "change_attr":{
+            "Factorized":{
+                "complex": false
+            }
+        },
+        "load": [
+            ["stage_0", "0", "1"]
+        ]
         
     }
-    
     
 
 

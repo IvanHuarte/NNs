@@ -181,9 +181,14 @@ for i, size in enumerate(sizes):
             n_discard_per_chain=0,
             chunk_size=sampler_setup["chunk_vstate"],
         )
+        ## Transplant loaded parameters to the current architecture
+        if hydra.load_from:
+            vstate.parameters, code2path = hydra.weight_transplantation(vstate.parameters)
+        else:
+            code2path = hydra.get_code2path(vstate.parameters)
 
         #### INITIALIZE SCHEDULE ####
-        schedule = Schedule(schedule_setup, hydra.get_code2path(vstate.parameters))
+        schedule = Schedule(schedule_setup, code2path)
         total_periods = schedule.total_periods
         total_epochs = schedule.total_epochs
         schedule_setup["total_epochs"] = total_epochs
@@ -219,13 +224,11 @@ for i, size in enumerate(sizes):
             print(f"Diagonal shift: {ds_schedule[i]:.4e}\n")
             ###########################
 
-            variables = vstate.variables
-            sampler = vstate.sampler
             optimizer = schedule.transform_optimizer(
                 vstate.parameters, optax.sgd, info, lr_period
             )
 
-            #### INITIALIZING VMC RUN
+            #### INITIALIZING VMC RUN ####
             holo = nk.utils.is_probably_holomorphic(
                 vstate._apply_fun,
                 vstate.parameters,

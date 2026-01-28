@@ -15,6 +15,27 @@ from VA_project.initialize_model import ModelFactory
 from .NN.NN import NeuralNetwork
 from .sampler.sampler import SamplerFactory
 
+def save_pytree(path, pytree):
+    leaves, treedef = jax.tree_util.tree_flatten(pytree)
+
+    payload = {
+        "treedef": treedef.to_string(),  
+        "leaves": leaves,                
+    }
+
+    with open(path, "wb") as f:
+        f.write(to_bytes(payload))
+
+
+def load_pytree(path):
+    with open(path, "rb") as f:
+        payload = from_bytes(None, f.read())
+
+    treedef = jax.tree_util.tree_structure_from_string(payload["treedef"])
+    leaves = payload["leaves"]
+
+    return jax.tree_util.tree_unflatten(treedef, leaves)
+jax.tree_util.tree_s
 
 def save_results(
     vstate,
@@ -48,18 +69,13 @@ def save_results(
         json.dump(legend, legendfile, separators=(",", ":"), sort_keys=True, indent=4)
 
     # Save the variational state parameters
-
-    path_vstate = write_folder + sim_label + "_vstate_params.msgpack"
-
-    with open(path_vstate, "wb") as f:
-        f.write(to_bytes(vstate.parameters))
-
-    setup["_artifacts"]["vstate"] = path_vstate
+    path_vstate = write_folder + sim_label + "_vstate_parameters.mpk"
+    save_pytree(path_vstate, vstate.parameters)
+    setup["_artifacts"]["parameters"] = path_vstate
 
     # Save the vstate sampler state
-    path_sampler = write_folder + sim_label + "_vstate_sampler_state.msgpack"
-    with open(path_sampler, "wb") as f:
-        f.write(to_bytes(vstate.sampler_state))
+    path_sampler = write_folder + sim_label + "_vstate_sampler_state.mpk"
+    save_pytree(path_sampler, vstate.sampler_state)
     setup["_artifacts"]["sampler_state"] = path_sampler
 
     # Save exact diagonalization eigenstate
@@ -124,7 +140,6 @@ def load_vstate(setup, tree_data=False):
     # Initialize model
     size = setup["CM"]["size"]
     N = int(np.prod(size))
-    # print(setup["NN"])
     cm_model = ModelFactory.init(setup["CM"]).get_model()
 
     model = NeuralNetwork(
@@ -134,9 +149,9 @@ def load_vstate(setup, tree_data=False):
     # Initialize hilbert space
     hi = nk.hilbert.Spin(s=0.5, N=N)
 
-    # Dummy init to have the vs_params structure
-    rng = jax.random.PRNGKey(0)
-    dummy_params = model.init(rng, jnp.ones((1, N)))
+    # # Dummy init to have the vs_params structure
+    # rng = jax.random.PRNGKey(0)
+    # dummy_params = model.init(rng, jnp.ones((1, N)))
 
     # Initialize sampler
     sampler = SamplerFactory(setup["SIM"]["sampler"], cm_model=cm_model).get_sampler(hi)
@@ -147,10 +162,9 @@ def load_vstate(setup, tree_data=False):
         * setup["SIM"]["sampler"]["n_chains_per_rank"]
         * setup["SIM"]["sampler"]["n_ranks"]
     )
-    n_samples = n_samples  # setup["SIM"]["sampler"]["n_samples"]
+    n_samples = n_samples  
 
     vs = nk.vqs.MCState(sampler, model, n_samples=n_samples, seed=0)
-    dummy_params = dummy_params["params"]
 
     if tree_data:  # For debugging
         import msgpack
@@ -166,14 +180,20 @@ def load_vstate(setup, tree_data=False):
         print_tree_keys(data)
 
     # Load params
-    vs_path = setup["results"]["vstate"]
-    with open(vs_path, "rb") as f:
-        loaded_params = from_bytes(dummy_params, f.read())
-        vs.parameters = loaded_params
+    # with open(vs_path, "rb") as f:
+    #     loaded_params = from_bytes(dummy_params, f.read())
+    #     vs.parameters = loaded_params
 
-    sampler_path = setup["_artifacts"]["sampler_state"]
     # Load sample_state
-    with open(sampler_path, "rb") as f:
-        vs.sampler_state = from_bytes(vs.sampler_state, f.read())
+    # with open(sampler_path, "rb") as f:
+    #     vs.sampler_state = from_bytes(vs.sampler_state, f.read())
+
+    params_path = setup["results"]["parameters"]
+    sampler_path = setup["_artifacts"]["sampler_state"]
+
+    vs.parameters = load_pytree(params_path)    
+    vs.sampler_state = load_pytree(sampler_path)    
 
     return vs
+
+

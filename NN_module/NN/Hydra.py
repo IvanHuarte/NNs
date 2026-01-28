@@ -11,6 +11,7 @@ from NN_module.NN.utils import (
     greedy_transplant,
     get_subtree,
     set_subtree,
+    load_params_from_file
 )
 
 
@@ -49,6 +50,7 @@ class Hydra(NeuralNetwork):
         self.n_stage = 0
 
         self.print_arch = hydra_config["print_arch"]
+        self.load_from = hydra_config["load_from"]
 
         self.storage = hydra_config["storage"]
         self.symm_wrapper = hydra_config["symm_wrapper"]
@@ -69,7 +71,18 @@ class Hydra(NeuralNetwork):
 
         if "lattice_size" in self.external_args:
             self.update_info()
+ 
         self.params_history = {}
+
+        # Load initial parameters for Stage_0, in the case. If a valid artifact is set,
+        # load info will be required in stage_0 and must refeer the label set in params_history
+        # at below, Stage_x as default. Loaded parameters should be transplanted to Stage_0 
+        # parameters PyTree after generate the variational state object via weight transplantation.
+
+        if self.load_from:
+            self.params_history["stage_X"] = load_params_from_file(self.load_from)
+            self.load = self.arch_evolution["stage_0"]["load"]
+
 
     def setup_from_template(self, template, storage, symm_wrappers):
         return setup_from_template(template, storage, symm_wrappers)

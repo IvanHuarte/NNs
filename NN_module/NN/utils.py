@@ -1,3 +1,4 @@
+import json
 import jax
 import flax
 import flax.linen as nn
@@ -8,7 +9,6 @@ from NN_module.NN import (
     factory_submodule_dict,
     factory_submodule_tags,
 )
-from NN_module.ST_utils import print_tree
 
 
 activation_dict = {
@@ -475,3 +475,26 @@ def greedy_transplant(old, new):
             used_old.add(p0)
             used_new.add(p1)
     return mapping
+
+##########################################
+# LOAD PARAMETERS FROM FILE FOR FIRST STAGE
+##########################################
+
+def load_pytree(path):
+    with open(path, "rb") as f:
+        payload = flax.serialization.from_bytes(None, f.read())
+
+    return jax.tree_util.tree_unflatten(
+        payload["treedef"],
+        payload["leaves"],
+    )
+
+def load_params_from_file(artifact_path):
+
+    with open(artifact_path, "r") as f:
+        artifact = json.load(f)
+
+    path = artifact["_artifacts"]["parameters"]
+    parameters = load_pytree(path)
+
+    return parameters
