@@ -46,7 +46,6 @@ def masked_optimizer(params, mode_paths, path2code):
     """
 
     # init_tree = flax.traverse_util.path_aware_map(init_mask, params)
-    print(mode_paths)
 
     train_tree = flax.traverse_util.path_aware_map(
         train_branches(mode_paths, path2code), params

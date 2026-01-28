@@ -52,7 +52,6 @@ def some_submodules(submodules, mode, lr):
 
 def decode_arch_labels(submodules, mode, lr):
     assert isinstance(mode, (list, tuple))
-    print(f"submod: {submodules}, modes: {mode}, lr:{lr}")
 
     if mode[0] == "A":
         assert len(mode) == 1
@@ -63,7 +62,6 @@ def decode_arch_labels(submodules, mode, lr):
         assert len(mode) == len(lr)
         mode, lr = some_submodules(submodules, mode, lr)
 
-    print(f"submod: {submodules}, modes: {mode}, lr:{lr}")
 
     return mode, lr
 

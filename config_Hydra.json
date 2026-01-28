@@ -1,42 +1,44 @@
 {
 
-    "selection": "prueba",
+    "selection": "testAnsatz_CNN",
 
-    "prueba":{
+    "load_from": "",
+
+    "testAnsatz_CNN":{
         "stage_0": {
             "template": {
-               "SplitTraining":{
-                   "MLP":{},
-                   "CNN":{}
-                }
+               "Transversal":{
+                    "Factorized":{}
+               }
             },
             "save_params": true
         },
 
         "stage_1": {
             "template": {
-
+    
                 "SplitTraining":{
-                    "MLP":{},
-                    "Transversal":{
-                        "CvT":{},
-                        "CNN":{}
-                    }
+                    "CNN":{},
+                    "Factorized":{}
                 }
+    
             },
             "save_params": true,
-            "change_attr":{},
+            "change_attr":{
+                "Factorized":{
+                    "complex": false
+                }
+            },
             "load": [
-                ["stage_0", "0", "0"],
-                ["stage_0", "1", "11"]
+                ["stage_0", "0", "1"]
             ]
             
         }
-
-    
+        
+        
     }
-
-
+    
+    
 
 
 

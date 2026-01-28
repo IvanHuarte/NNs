@@ -65,11 +65,12 @@ cm_model_name = artifact["CM"]["name"]
 nn_model_name = artifact["NN"]["name"]
 cm_model_setup = artifact["CM"]
 nn_model_setup = artifact["NN"]
+sim_uuid = artifact["metadata"]
 
 
 kwargs = {"size": size, **artifact["CM"], **artifact["NN"]["setup"]}
 
-sim_label, _, _, callback = get_filenames_from_settings(cm_model_setup, nn_model_setup)
+sim_label, _, _, callback = get_filenames_from_settings(cm_model_setup, {"name":nn_model_name, "setup":{}})
 title = callback.replace("Callback", "").lstrip().replace(" ", "\\quad")
 
 filename = f"Modphase_plot_{sim_label}"

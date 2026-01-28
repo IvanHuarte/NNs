@@ -373,11 +373,10 @@ def print_architecture(tree, print_all=True, prefix="", is_last=True):
 
 
 def change_values(module_setup, changes):
-    for attr, value in changes:
+    for attr, value in changes.items():
         if attr != "_count":
             module_setup[attr] = value
     return module_setup
-
 
 def change_module_attr(setup, changes):
     """
@@ -395,26 +394,40 @@ def change_module_attr(setup, changes):
     ...
     }
     """
+
     new_setup = {}
-    for name, in_setup in setup.items():
-        if name in changes.keys():
-            if hasattr(in_setup, "_count"):
-                if in_setup != 0:
-                    changes[name]["_count"] += -1
-                    continue
+    if all([key in ["module","setup"] for key in setup.keys()]): 
+        new_setup["module"] = setup["module"]
+        if setup["module"] in changes.keys(): # Then is a change_target
+            
+
+            if "_count" in changes[setup["module"]]:
+                if changes[setup["module"]]["_count"] != 0:
+                    changes[setup["module"]]["_count"] += -1
+                    new_setup["setup"] = setup["setup"]
+
                 else:
-                    new_setup = change_values(in_setup, changes[name])
+                    new_setup["setup"] = change_values(setup["setup"], changes[setup["module"]])
+
 
             else:
-                new_setup = change_values(in_setup, changes[name])
+                new_setup["setup"] = change_values(setup["setup"], changes[setup["module"]])
+        
+        elif setup["module"] in __all_single__: # Then is another simple module
+            new_setup["setup"] = setup["setup"]
 
-        elif isinstance(in_setup, dict):
-            new_setup[name], changes = change_module_attr(in_setup, changes)
+
         else:
-            new_setup[name] = in_setup
+            new_setup["setup"], changes = change_module_attr(setup["setup"], changes)
+
+    else: # module, phase, Seq, Trans 
+        for k, v in setup.items():
+            if isinstance(v, dict):
+                new_setup[k], changes = change_module_attr(v, changes)
+            else:
+                new_setup[k] = v
 
     return new_setup, changes
-
 
 ##########################################
 # WEIGHTS TRASPLANTATION OF TRAINED MODELS

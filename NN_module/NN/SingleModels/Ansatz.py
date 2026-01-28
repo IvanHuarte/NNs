@@ -15,6 +15,8 @@ class Jastrow_wrap(nn.Module):
         return x
 
 
+
+
 class Factorized(nn.Module):
     """
     General factorized ansatz with optional site-dependent parameters, i.e.
@@ -43,7 +45,6 @@ class Factorized(nn.Module):
     """
 
     lattice_size: tuple
-    site_dependent: bool = False
     complex: bool = True
     dtype: jnp.dtype = jnp.float64
     init_kernel: Callable = nn.initializers.lecun_normal()
@@ -54,17 +55,12 @@ class Factorized(nn.Module):
         L = x.shape[-1]
 
         # Amplitude parameters
-        lam_shape = (L,) if self.site_dependent else (1,)
-        lam = self.param(
-            "lambda", nn.initializers.normal(stddev=1e-1), lam_shape, self.dtype
-        )
+        # lam_shape = (L,) if self.site_dependent else (1,)
+        # lam = self.param(
+        #     "lambda", nn.initializers.normal(stddev=1e-1), lam_shape, self.dtype
+        # )
+        # p = nn.log_sigmoid(x * lam)
 
-        p = nn.log_sigmoid(x * lam)
-        real_part = jnp.array([0.5])
-
-        # No phase
-        if not self.complex:
-            return real_part
 
         # Phase parameters
         # phi_params = self.param(
@@ -80,11 +76,18 @@ class Factorized(nn.Module):
         # phi_shape = (L,) if self.site_dependent else (1,)
         # imag_part = jnp.sum(theta * (x == 1), axis=-1)
 
-        phi_shape = (L,) if self.site_dependent else (1,)
+        phi_shape = (L,) 
         phi = self.param("phi", nn.initializers.normal(), phi_shape, self.dtype)
         theta = jnp.pi * nn.sigmoid(phi)
         imag_part = jnp.sum(theta * (x == 1), axis=-1)
 
-        z = real_part.astype(jnp.complex128) + 1j * imag_part.astype(jnp.complex128)
 
-        return jnp.atleast_2d(z).T
+        # Add constant modulus
+        if self.complex:
+            real_part = jnp.array([0.01])
+            z = real_part.astype(jnp.complex128) + 1j * imag_part.astype(jnp.complex128)         
+            return z
+        else:
+            return jnp.atleast_2d(imag_part).T
+        
+

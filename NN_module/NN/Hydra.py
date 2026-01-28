@@ -149,7 +149,7 @@ class Hydra(NeuralNetwork):
         raw_setup = setup_from_template(self.template, self.storage, self.symm_wrapper)
         if "change_attr" in stage_config:
             if stage_config["change_attr"]:
-                raw_setup = change_module_attr(raw_setup, stage_config["change_attr"])
+                raw_setup, _ = change_module_attr(raw_setup, stage_config["change_attr"])
 
         # Create new NN model
         self.initialize_from_setup(raw_setup, self.external_args)

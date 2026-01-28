@@ -1,10 +1,6 @@
 import numpy as np
 import jax.numpy as jnp
 
-import matplotlib
-
-matplotlib.use("QtAgg")
-
 import matplotlib.pyplot as plt
 import matplotlib.transforms as mtransforms
 

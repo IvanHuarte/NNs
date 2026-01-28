@@ -54,9 +54,6 @@ class Schedule:
 
         self.eon_path2code = dict([(v, k) for k, v in self.eon_code2path.items()])
 
-        print(self.eon_code2path, "\n")
-        print(self.eon_path2code, "\n")
-
     def _initialize(self):
 
         # Repeat substructures
@@ -141,9 +138,7 @@ class Schedule:
 
                 for i_per, (epo, mode, lr) in enumerate(zip(era_epo, era_mode, era_lr)):
 
-                    print(f"Mode: {mode} LR: {lr}")
                     mode, lr = decode_arch_labels(self.eon_code2path, mode, lr)
-                    print(f"Mode: {mode} LR: {lr}")
                     period_array, info = generate_period(epo, mode, lr)
                     if not isinstance(period_array, list):
                         period_array = [period_array]

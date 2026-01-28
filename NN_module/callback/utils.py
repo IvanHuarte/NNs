@@ -64,9 +64,9 @@ def plot_schedule_setup(ax, setup):
     for i in range(len(eons_bound[1:])):
         ax.axvline(eons_bound[i], color="black", linestyle="--", alpha=0.7)
         ax.text(
-            eons_bound[i-1] + eons_bound[i] / 2,
+            eons_bound[i] + eons_bound[i+1] / 2,
             0.95,
-            r"Stage ",
+            r"$Stage\;%d$"%i,
             horizontalalignment="center",
             verticalalignment="center",
             fontsize=12,

@@ -84,6 +84,7 @@ def save_results(
 
     # Write metadata in main setup artifact
     metadata = {
+        "uuid": sim_uuid,
         "date": date.today().strftime("%x"),
         "architecture": architecture(),
         "versions": {

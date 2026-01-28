@@ -61,7 +61,7 @@ def get_write_folder_from_model(config):
     last_stage = next(reversed(nn_setup))
     model_label = config["CM"]["selection"]
 
-    nn_label = get_string_from_nnsetup(nn_setup[last_stage])
+    nn_label = get_string_from_nnsetup(nn_setup[last_stage]["template"])
     nn_label = name + "_" + nn_label
     return config["write_folder_sim"] + model_label + "/" + nn_label + "/"
 
@@ -477,11 +477,10 @@ def get_filenames_from_settings(cm_setup, nn_setup, sim_uuid=None, **kwargs):
     date = datetime.now().strftime("%Y%m%dT%H%M%S")
 
     if nn_setup["setup"]:
-        name = nn_setup["name"]
         setup = nn_setup["setup"]
         last_stage = next(reversed(setup))
         nnparams = (
-            get_string_from_nnsetup(setup[last_stage]) 
+            get_string_from_nnsetup(setup[last_stage]["template"]) 
         )
     else:
         nnparams = ""

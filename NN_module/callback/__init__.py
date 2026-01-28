@@ -2,6 +2,13 @@ from .BestIterKeeper import BestIterKeeper
 from .EnergyPlotter import EnergyPlotter
 from .ModPhasePlotter import ModPhasePlotter
 from .SanityMonitor import SanityMonitor
+import os
+import matplotlib
+
+if os.environ.get("DISPLAY"):
+    matplotlib.use("QtAgg")
+else:
+    matplotlib.use("Agg")
 
 
 def Callback(
