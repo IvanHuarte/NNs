@@ -12,11 +12,12 @@ warnings.filterwarnings("ignore", message="qt.svg")
 
 def plot_schedule_setup(ax, setup):
 
-    epochs, modes, lr_ins, rescale = (
+    epochs, modes, lr_ins, rescale, eons_bound = (
         setup["epochs"],
         setup["modes"],
         setup["lr_instructions"],
         setup["rescale"],
+        setup["eons_bound"]
     )
 
     total_epochs = int(np.array([epo for epo in epochs]).sum())
@@ -59,6 +60,21 @@ def plot_schedule_setup(ax, setup):
             transform=ax.transAxes,
 
         )
+    eons_bound = [0] + eons_bound
+    for i in range(len(eons_bound[1:])):
+        ax.axvline(eons_bound[i], color="black", linestyle="--", alpha=0.7)
+        ax.text(
+            eons_bound[i-1] + eons_bound[i] / 2,
+            0.95,
+            r"Stage ",
+            horizontalalignment="center",
+            verticalalignment="center",
+            fontsize=12,
+            color="black",
+            transform=ax.get_xaxis_transform(),
+        )
+
+
 
 def dump_callback(logger, settings, write=False):
 

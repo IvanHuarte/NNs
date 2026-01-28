@@ -27,6 +27,7 @@ from NN_module.callback.utils import dump_callback
 
 from NN_module.saveNload import save_results
 from NN_module.NN.Hydra import Hydra
+from NN_module.NN.utils import make_setup_serializable
 from NN_module.sampler.sampler import SamplerFactory
 from NN_module.schedule.schedule import Schedule
 from NN_module.label_utils import (
@@ -282,7 +283,7 @@ for i, size in enumerate(sizes):
             "SIM": config,
             "CM": cm_model_setup,
             "NN": {
-                "name": nn_evol_name + f"stage_{eon}",
+                "name": nn_evol_name + f"_stage_{eon}",
                 "setup": NN_setup
             }
         }
@@ -328,6 +329,7 @@ for i, size in enumerate(sizes):
             "optimizer": "Sgd",
             "_artifacts": {"callback": callback_artifacts},
         }
+        dump_setup = make_setup_serializable(dump_setup)
 
         save_results(
             vstate,

@@ -84,12 +84,18 @@ class Schedule:
         epochs = []
         modes = []
         lr_instructions = []
-        for eon_epo, eon_mode, eon_lr in zip(
+        eons_bound = []
+        count = 0
+        eon = 0
+        for i_eon, (eon_epo, eon_mode, eon_lr) in enumerate(zip(
             self.epochs_struct, self.modes_struct, self.lr_struct
-        ):
+        )):
             for era_epo, era_mode, era_lr in zip(eon_epo, eon_mode, eon_lr):
                 for epo, mode, lr in zip(era_epo, era_mode, era_lr):
-
+                    if eon < i_eon:
+                        eons_bound.append(count)
+                        eon += 1
+                    count += epo
                     mode = [
                         self.eon_code2path[idx] if isinstance(idx, int) else "A"
                         for idx in mode
@@ -98,10 +104,13 @@ class Schedule:
                     modes.append(mode)
                     lr_instructions.append(lr)
 
+        eons_bound.append(count)
+
         nruter["epochs"] = epochs
         nruter["modes"] = modes
         nruter["lr_instructions"] = lr_instructions
         nruter["rescale"] = self.rescale
+        nruter["eons_bound"] = eons_bound
 
         return nruter
     

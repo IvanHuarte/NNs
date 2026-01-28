@@ -54,6 +54,15 @@ def recursive_list_to_tuple(target):
         return tuple(target)
     return tuple(out)
 
+def recursive_tuple_to_list(target):
+
+    out = []
+    if all(isinstance(element, tuple) for element in target):
+        for element in target:
+            out.append(recursive_tuple_to_list(element))
+    else:
+        return list(target)
+    return out
 
 def preprocess_setup(setup: dict) -> dict:
 
@@ -70,6 +79,23 @@ def preprocess_setup(setup: dict) -> dict:
         elif "activation" in k:
             if all([type(act) in [str, int] for act in v]):
                 v = tuple([activation_dict[act] if act != 0 else 0 for act in v])
+
+        clean_setup[k] = v
+
+    return clean_setup
+
+
+def make_setup_serializable(setup: dict) -> dict:
+
+    clean_setup = {}
+
+    for k, v in setup.items():
+
+        if isinstance(v, dict):
+            v = make_setup_serializable(v)
+
+        elif isinstance(v, tuple):
+            v = recursive_tuple_to_list(v)
 
         clean_setup[k] = v
 

@@ -44,7 +44,7 @@ def measureNdump(keeper, time_exe, exact_diag=False):
     fidelity = None
     try:
         fidelity = float(jnp.abs(jnp.vdot(vstate.to_array(), x_ED.squeeze())))
-        fidelity_per_site = jnp.exp(jnp.log(fidelity) / N)
+        fidelity_per_site = float(jnp.exp(jnp.log(fidelity) / N))
         print(f"Fidelity: {fidelity:.3e}")
     except (MemoryError, RuntimeError, ValueError):
         print(f"Failed fidelity calculation due to memory allocation error")

@@ -130,7 +130,6 @@ class Hydra(NeuralNetwork):
             print(f"Saving stage_{self.n_stage} parameters....")
             self.params_history[f"stage_{self.n_stage}"] = old_params
             print("Saved.")
-            print(self.params_history)
 
         # NEXT EON
         self.n_stage += 1
