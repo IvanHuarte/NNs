@@ -61,7 +61,6 @@ class Factorized(nn.Module):
         # )
         # p = nn.log_sigmoid(x * lam)
 
-
         # Phase parameters
         # phi_params = self.param(
         #     "phi", nn.initializers.normal(stddev=1e-1), (2,), self.dtype
@@ -91,3 +90,37 @@ class Factorized(nn.Module):
             return jnp.atleast_2d(imag_part).T
         
 
+class FactorMod(nn.Module):
+    """
+    General factorized ansatz modified.
+
+    """
+
+    lattice_size: tuple
+    complex: bool = True
+    dtype: jnp.dtype = jnp.float64
+    init_kernel: Callable = nn.initializers.lecun_normal()
+
+    @nn.compact
+    def __call__(self, x):
+        x = x.astype(self.dtype)
+        L = x.shape[-1]
+
+        phi_shape = (L,) 
+        phi = self.param("phi", nn.initializers.normal(), phi_shape, self.dtype)
+        theta = jnp.pi * nn.sigmoid(phi)
+
+
+        # single_params modification
+        params = self.param("mod", nn.initializers.normal(), phi_shape, self.dtype)
+        
+        x = jnp.sum(params + theta * (x == 1), axis=-1)
+
+
+        # Add constant modulus
+        if self.complex:
+            real_part = jnp.array([0.5])
+            z = real_part.astype(jnp.complex128) + 1j * x.astype(jnp.complex128)         
+            return z
+        else:
+            return jnp.atleast_2d(x).T

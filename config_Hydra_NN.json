@@ -4,7 +4,7 @@
 
     "symm_wrapper":{
 
-        "symm_Z2": false,
+        "symm_Z2": true,
         "trivial_Z2": true,
         "symm_2D": false,
         "irrep": [0, 0],
@@ -88,6 +88,10 @@
         "Jastrow_wrap": {},
         
         "Factorized":{
+            "complex": true
+        },
+
+        "FactorMod":{
             "complex": true
         }
         

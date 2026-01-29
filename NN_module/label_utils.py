@@ -412,7 +412,6 @@ def display_simulation_settings(settings, n_cols=5):
 
 
 def get_filenames_from_settings(cm_setup, nn_setup, sim_uuid=None, **kwargs):
-    print(nn_setup)
 
     cm_name, nn_name = cm_setup["name"], nn_setup["name"]
 

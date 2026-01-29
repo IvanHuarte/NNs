@@ -2,6 +2,7 @@ import json
 import jax
 import flax
 import flax.linen as nn
+import orbax.checkpoint as ocp
 
 from NN_module.NN import (
     EXTERNAL_ARGS,
@@ -481,13 +482,8 @@ def greedy_transplant(old, new):
 ##########################################
 
 def load_pytree(path):
-    with open(path, "rb") as f:
-        payload = flax.serialization.from_bytes(None, f.read())
-
-    return jax.tree_util.tree_unflatten(
-        payload["treedef"],
-        payload["leaves"],
-    )
+    cp = ocp.PyTreeCheckpointer()
+    return cp.restore(path)
 
 def load_params_from_file(artifact_path):
 

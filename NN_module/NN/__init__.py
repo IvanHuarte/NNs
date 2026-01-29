@@ -12,7 +12,7 @@ from .SingleModels.MLP import MLP
 from .SingleModels.Phase import CNNPh, EDPPh, CNNClsf, CNNbinClsf, CNNSzabo
 from .SingleModels.ViT2D import ViT2D
 from .SingleModels.ViT import ViT
-from .SingleModels.Ansatz import Factorized, Jastrow_wrap
+from .SingleModels.Ansatz import Factorized, FactorMod, Jastrow_wrap
 
 from .toolbox import MarshallSign, CarreteSign
 
@@ -42,6 +42,7 @@ __all_single__ = [
     "ViT2D",
     "ViT",
     "Factorized",
+    "FactorMod",
     "Jastrow_wrap",
 ]
 
@@ -70,6 +71,7 @@ REGISTRY_SINGLE = {
     "ViT2D": ViT2D,
     "ViT": ViT,
     "Factorized": Factorized,
+    "FactorMod": FactorMod,
     "Jastrow_wrap": Jastrow_wrap,
 }
 
@@ -95,6 +97,7 @@ LATTICE_SIZE = {
         "ViT2D",
         "ViT",
         "Factorized",
+        "FactorMod"
     ]
 }
 

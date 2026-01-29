@@ -4,7 +4,7 @@ import numpy as np
 import scipy as sp
 import flax
 import jax
-import jax.numpy as jnp
+import orbax.checkpoint as ocp
 import netket as nk
 from flax.serialization import to_bytes, from_bytes
 from datetime import date
@@ -16,26 +16,19 @@ from .NN.NN import NeuralNetwork
 from .sampler.sampler import SamplerFactory
 
 def save_pytree(path, pytree):
-    leaves, treedef = jax.tree_util.tree_flatten(pytree)
-
-    payload = {
-        "treedef": treedef.to_string(),  
-        "leaves": leaves,                
-    }
-
-    with open(path, "wb") as f:
-        f.write(to_bytes(payload))
-
+    """
+    Save PyTree with structure via Orbax
+    
+    :param path: Absolute path to the target
+    :param pytree_dict: Pytree
+    """
+    cp = ocp.PyTreeCheckpointer()
+    jax.tree_util.tree_map(lambda x: jax.block_until_ready(x), pytree)
+    cp.save(path, pytree)
 
 def load_pytree(path):
-    with open(path, "rb") as f:
-        payload = from_bytes(None, f.read())
-
-    treedef = jax.tree_util.tree_structure_from_string(payload["treedef"])
-    leaves = payload["leaves"]
-
-    return jax.tree_util.tree_unflatten(treedef, leaves)
-jax.tree_util.tree_s
+    cp = ocp.PyTreeCheckpointer()
+    return cp.restore(path)
 
 def save_results(
     vstate,
@@ -69,12 +62,12 @@ def save_results(
         json.dump(legend, legendfile, separators=(",", ":"), sort_keys=True, indent=4)
 
     # Save the variational state parameters
-    path_vstate = write_folder + sim_label + "_vstate_parameters.mpk"
+    path_vstate = write_folder + sim_label + "_vstate_parameters.orbax"
     save_pytree(path_vstate, vstate.parameters)
     setup["_artifacts"]["parameters"] = path_vstate
 
     # Save the vstate sampler state
-    path_sampler = write_folder + sim_label + "_vstate_sampler_state.mpk"
+    path_sampler = write_folder + sim_label + "_vstate_sampler_state.orbax"
     save_pytree(path_sampler, vstate.sampler_state)
     setup["_artifacts"]["sampler_state"] = path_sampler
 
@@ -156,43 +149,29 @@ def load_vstate(setup, tree_data=False):
     # Initialize sampler
     sampler = SamplerFactory(setup["SIM"]["sampler"], cm_model=cm_model).get_sampler(hi)
 
-    # Load parameters and initialize vstate
     n_samples = (
         setup["SIM"]["sampler"]["n_samples_per_chain"]
         * setup["SIM"]["sampler"]["n_chains_per_rank"]
         * setup["SIM"]["sampler"]["n_ranks"]
     )
-    n_samples = n_samples  
 
+    # Variational State
     vs = nk.vqs.MCState(sampler, model, n_samples=n_samples, seed=0)
 
-    if tree_data:  # For debugging
-        import msgpack
-
-        print(f"Parameters structure")
-        with open(setup["_artifacts"]["vstate"], "rb") as f:
-            data = msgpack.unpack(f, raw=False)
-        print_tree_keys(data)
-
-        print(f"Sampler state structure")
-        with open(setup["_artifacts"]["sampler_state"], "rb") as f:
-            data = msgpack.unpack(f, raw=False)
-        print_tree_keys(data)
-
-    # Load params
-    # with open(vs_path, "rb") as f:
-    #     loaded_params = from_bytes(dummy_params, f.read())
-    #     vs.parameters = loaded_params
-
-    # Load sample_state
-    # with open(sampler_path, "rb") as f:
-    #     vs.sampler_state = from_bytes(vs.sampler_state, f.read())
-
-    params_path = setup["results"]["parameters"]
+    params_path = setup["_artifacts"]["parameters"]
     sampler_path = setup["_artifacts"]["sampler_state"]
 
-    vs.parameters = load_pytree(params_path)    
-    vs.sampler_state = load_pytree(sampler_path)    
+    parameters = load_pytree(params_path)  
+    sampler_state = load_pytree(sampler_path)   
+
+    if tree_data:  # For debugging
+        params_ok = jax.tree_util.tree_structure(parameters) == jax.tree_util.tree_structure(vs.parameters)
+        sampler_ok = jax.tree_util.tree_structure(sampler_state) == jax.tree_util.tree_structure(vs.sampler_state)
+        print(f"Parameter structure{" " if params_ok else " DOESN'T "}fit")
+        print(f"Sampler State structure{" " if params_ok else " DOESN'T "}fit")
+
+    vs.parameters = parameters
+    vs.sampler_state = sampler_state
 
     return vs
 

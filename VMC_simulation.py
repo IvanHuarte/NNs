@@ -271,6 +271,7 @@ for i, size in enumerate(sizes):
 
 
 
+
         time_out = time.time()
         time_exe = time_out - time_in
 
@@ -278,6 +279,8 @@ for i, size in enumerate(sizes):
         keeper  = callback_objects[0]
         best_step = keeper.best_step
         vstate = keeper.best_state
+
+        print(vstate.parameters['Trans_0']['phi'].reshape((4,4)))
 
         # Reconstruct NN setup and sim_config in the best state
         eon, _, _ = schedule.locate_period(best_step)

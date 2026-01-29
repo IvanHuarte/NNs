@@ -1,45 +1,46 @@
 {
 
-    "selection": "OnlyAnsatz",
+    "selection": "FactorMod",
 
     "load_from": "",
 
-    "OnlyAnsatz":{
+    "FactorMod":{
 
         "stage_0": {
 
             "template": {
                "Transversal":{
-                    "Factorized":{}
+                    "FactorMod":{}
                }
             },
 
             "save_params": true
         }
-
-        
         
     },
+
+    "TrainedAns_CNN":{
     
-    "stage_1": {
-        "template": {
+        "stage_0": {
+            "template": {
 
-            "SplitTraining":{
-                "CNN":{},
-                "Factorized":{}
-            }
+                "SplitTraining":{
+                    "CNNLiang":{},
+                    "Factorized":{}
+                }
 
-        },
-        "save_params": true,
-        "change_attr":{
-            "Factorized":{
-                "complex": false
-            }
-        },
-        "load": [
-            ["stage_0", "0", "1"]
-        ]
-        
+            },
+            "save_params": true,
+            "change_attr":{
+                "Factorized":{
+                    "complex": false
+                }
+            },
+            "load": [
+                ["stage_X", "0", "1"]
+            ]
+            
+        }
     }
     
 
