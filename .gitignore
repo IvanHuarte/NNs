@@ -18,6 +18,8 @@ env/
 **/First_sim/
 **/Simulations/
 **/pile/
+**/pruebas/
+**/new_pruebas/
 
 **/*.jpeg
 **/*.txt
