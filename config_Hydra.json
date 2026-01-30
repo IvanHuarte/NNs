@@ -1,16 +1,16 @@
 {
 
-    "selection": "FactorMod",
+    "selection": "Factorized",
 
     "load_from": "",
 
-    "FactorMod":{
+    "Factorized":{
 
         "stage_0": {
 
             "template": {
                "Transversal":{
-                    "FactorMod":{}
+                    "Factorized":{}
                }
             },
 

@@ -6,7 +6,10 @@ import os
 import matplotlib
 
 if os.environ.get("DISPLAY"):
-    matplotlib.use("QtAgg")
+    if not "localhost" in os.environ.get("DISPLAY"):
+        matplotlib.use("QtAgg")
+    else:
+        matplotlib.use("Agg")
 else:
     matplotlib.use("Agg")
 

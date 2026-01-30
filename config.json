@@ -1,6 +1,6 @@
 {
 
-   "write_folder_sim":"/home/ihuarte/Escritorio/Ivan/NNs/new_pruebas/",
+   "write_folder_sim":"/home/ihuarte/Escritorio/Ivan/NNs/test_in_J2_Factorized/",
 
    "callback":{
         "keeper": true,
