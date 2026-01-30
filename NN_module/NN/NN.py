@@ -72,7 +72,11 @@ class NeuralNetwork:
         return self.model
 
     def get_model_class(self, module_name):
-        return REGISTRY[module_name]
+        try:
+            return REGISTRY[module_name]
+        except:
+            module_name = module_name.split("_")[0]
+            return REGISTRY[module_name]
 
     def get_params_info(self, model, N, show_info=False):
         variables = model.init(jax.random.PRNGKey(0), jnp.ones((1, N)))
@@ -132,7 +136,23 @@ class NeuralNetwork:
 
         squeeze = jnp.squeeze if "squeeze" in setup else lambda x: x
 
-        if module_name == "SplitTraining":
+        if module_name == "SingleModule":
+            single = self.build_module(setup["single"], external_args)
+            mode = setup["mode"] if "mode" in setup else None
+
+            return clss(
+                single=single,
+                mode=mode,
+                symm_Z2=symm_Z2,
+                trivial_Z2=trivial_Z2,
+                symm_2D=symm_2D,
+                irrep=irrep,
+                use_anchor=use_anchor,
+                lattice_size=lattice_size,
+                squeeze=squeeze,
+            )
+
+        elif module_name == "SplitTraining":
             modulus = self.build_module(setup["modulus"], external_args)
             phase = self.build_module(setup["phase"], external_args)
 

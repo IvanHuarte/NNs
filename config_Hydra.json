@@ -1,8 +1,8 @@
 {
 
-    "selection": "Factorized",
+    "selection": "RefinePhase",
 
-    "load_from": "",
+    "load_from": "/home/ihuarte/Escritorio/Ivan/NNs/test_in_J2_Factorized/J1J2Square/Factorized_Transversal_Factorized/Size_4x4/ST_2000-A/UUID_a42c6714/J1J2Square_Factorized_results_4x4_J1J2_1.0_0.3_XYZ_0.0_0.0_0.0_date_20260130T112952_UUID_a42c6714.json",
 
     "Factorized":{
 
@@ -41,8 +41,40 @@
             ]
             
         }
-    }
+    },
     
+    "RefinePhase":{
+    
+        "stage_0": {
+            "template": {
+
+                "SplitTraining":{
+                    "CNN":{},
+                    "Transversal":{
+                        "Factorized":{},
+                        "Transversal":{
+                            "FactorMod":{},
+                            "CNN_2":{},
+                            "operation":"product"
+                        },
+                        "operation":"sum"
+                    },
+                    "mode": "phase"
+                }
+
+            },
+            "save_params": true,
+            "change_attr":{
+                "Factorized":{
+                    "complex": false
+                }
+            },
+            "load": [
+                ["stage_X", "0", "00"]
+            ]
+            
+        }
+    }
 
 
 

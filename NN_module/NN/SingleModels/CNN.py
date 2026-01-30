@@ -120,11 +120,10 @@ class CNNWorker(nn.Module):
             else:
                 x = x.mean(axis=1)
                 x = x.reshape((B, -1))
-                x = nn.Dense(
-                        1,
-                        dtype=REAL_DTYPE,
-                        param_dtype=REAL_DTYPE
-                    )(MultiLayerPerceptron(self.final_architecture)(x))
+                x = nn.Dense(1, dtype=REAL_DTYPE, param_dtype=REAL_DTYPE)(
+                    MultiLayerPerceptron(self.final_architecture)(x)
+                )
+
                 return x
 
 
@@ -230,4 +229,5 @@ class CNN(nn.Module):
             )
 
         output_x = worker(x)
+        # print(f"CNN: {output_x.shape}")
         return output_x

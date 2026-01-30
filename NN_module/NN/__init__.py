@@ -1,4 +1,5 @@
 # Importation of factories
+from .Factories.SingleModule import SingleModule
 from .Factories.SplitTraining import SplitTraining
 from .Factories.Sequential import Sequential
 from .Factories.Transversal import Transversal
@@ -21,6 +22,7 @@ from .toolbox import MarshallSign, CarreteSign
 
 # Listas de exportación
 __all_factories__ = [
+    "SingleModule",
     "SplitTraining",
     "Sequential",
     "Transversal",
@@ -50,6 +52,7 @@ __all__ = __all_factories__ + __all_single__
 
 # Diccionarios de registro
 REGISTRY_FACTORIES = {
+    "SingleModule": SingleModule,
     "SplitTraining": SplitTraining,
     "Sequential": Sequential,
     "Transversal": Transversal,
@@ -97,7 +100,7 @@ LATTICE_SIZE = {
         "ViT2D",
         "ViT",
         "Factorized",
-        "FactorMod"
+        "FactorMod",
     ]
 }
 
@@ -106,9 +109,10 @@ EXTERNAL_ARGS = {**LATTICE_SIZE}
 
 # Tags used in configurations
 factory_submodule_dict = {
+    "SingleModule": "single",
     "SplitTraining": ["modulus", "phase"],
     "Sequential": "Seq",
     "Transversal": "Trans",
 }
 
-factory_submodule_tags = ["ModulusNet", "PhaseNet", "Seq", "ZZ", "Trans"]
+factory_submodule_tags = ["Single", "ModulusNet", "PhaseNet", "Seq", "ZZ", "Trans"]

@@ -55,6 +55,7 @@ def recursive_list_to_tuple(target):
         return tuple(target)
     return tuple(out)
 
+
 def recursive_tuple_to_list(target):
 
     out = []
@@ -64,6 +65,7 @@ def recursive_tuple_to_list(target):
     else:
         return list(target)
     return out
+
 
 def preprocess_setup(setup: dict) -> dict:
 
@@ -145,6 +147,8 @@ def get_submodules(father, n_mod):
         submodules = [f"Trans_{i}" for i in range(n_mod)]
     elif father == "SplitTraining":
         submodules = ["modulus", "phase"]
+    elif father == "SingleModule":
+        submodules = ["single"]
     return submodules
 
 
@@ -188,6 +192,7 @@ def setup_from_template(template, storage, symm_wrappers, father="", depth=0):
                     )
 
             else:
+                father = father if "_" not in father else father.split("_")[0]
                 config["module"] = father
                 config["setup"] = storage[father]
 
@@ -379,6 +384,7 @@ def change_values(module_setup, changes):
             module_setup[attr] = value
     return module_setup
 
+
 def change_module_attr(setup, changes):
     """
 
@@ -397,10 +403,9 @@ def change_module_attr(setup, changes):
     """
 
     new_setup = {}
-    if all([key in ["module","setup"] for key in setup.keys()]): 
+    if all([key in ["module", "setup"] for key in setup.keys()]):
         new_setup["module"] = setup["module"]
-        if setup["module"] in changes.keys(): # Then is a change_target
-            
+        if setup["module"] in changes.keys():  # Then is a change_target
 
             if "_count" in changes[setup["module"]]:
                 if changes[setup["module"]]["_count"] != 0:
@@ -408,20 +413,22 @@ def change_module_attr(setup, changes):
                     new_setup["setup"] = setup["setup"]
 
                 else:
-                    new_setup["setup"] = change_values(setup["setup"], changes[setup["module"]])
-
+                    new_setup["setup"] = change_values(
+                        setup["setup"], changes[setup["module"]]
+                    )
 
             else:
-                new_setup["setup"] = change_values(setup["setup"], changes[setup["module"]])
-        
-        elif setup["module"] in __all_single__: # Then is another simple module
-            new_setup["setup"] = setup["setup"]
+                new_setup["setup"] = change_values(
+                    setup["setup"], changes[setup["module"]]
+                )
 
+        elif setup["module"] in __all_single__:  # Then is another simple module
+            new_setup["setup"] = setup["setup"]
 
         else:
             new_setup["setup"], changes = change_module_attr(setup["setup"], changes)
 
-    else: # module, phase, Seq, Trans 
+    else:  # module, phase, Seq, Trans
         for k, v in setup.items():
             if isinstance(v, dict):
                 new_setup[k], changes = change_module_attr(v, changes)
@@ -429,6 +436,7 @@ def change_module_attr(setup, changes):
                 new_setup[k] = v
 
     return new_setup, changes
+
 
 ##########################################
 # WEIGHTS TRASPLANTATION OF TRAINED MODELS
@@ -477,13 +485,16 @@ def greedy_transplant(old, new):
             used_new.add(p1)
     return mapping
 
+
 ##########################################
 # LOAD PARAMETERS FROM FILE FOR FIRST STAGE
 ##########################################
 
+
 def load_pytree(path):
     cp = ocp.PyTreeCheckpointer()
     return cp.restore(path)
+
 
 def load_params_from_file(artifact_path):
 

@@ -73,10 +73,10 @@ class Transversal_Worker(nn.Module):
 
         # print(f"x_norm: {x.shape}")
 
-        x = final_ensemble(ensem_mode=self.operation)(x, axis=0, keepdims=True)
+        x = final_ensemble(ensem_mode=self.operation)(x, axis=0, keepdims=True)  ######
         # jax.debug.print("x_after: {} \n\n", x)
 
-        # print(f"final_ensemble: {x}")
+        # print(f"final_ensemble: {x.shape}")
         x = jnp.atleast_2d(x).reshape(B, *x.shape[2:])
 
         # print(f"x_group: {x.shape}")

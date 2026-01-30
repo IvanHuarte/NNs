@@ -11,7 +11,7 @@ from NN_module.NN.utils import (
     greedy_transplant,
     get_subtree,
     set_subtree,
-    load_params_from_file
+    load_params_from_file,
 )
 
 
@@ -62,27 +62,25 @@ class Hydra(NeuralNetwork):
         self.template = self.arch_evolution["stage_0"]["template"]
         self.save_params = self.arch_evolution["stage_0"]["save_params"]
 
-
         # Build the initial NN model. Adapt first template 'model_0' to a configuration dictionary.
         setup = setup_from_template(self.template, self.storage, self.symm_wrapper)
         self.storage["stage_0"] = setup
-        
+
         super().__init__(setup, **self.external_args)
 
         if "lattice_size" in self.external_args:
             self.update_info()
- 
+
         self.params_history = {}
 
         # Load initial parameters for Stage_0, in the case. If a valid artifact is set,
         # load info will be required in stage_0 and must refeer the label set in params_history
-        # at below, Stage_x as default. Loaded parameters should be transplanted to Stage_0 
+        # at below, Stage_x as default. Loaded parameters should be transplanted to Stage_0
         # parameters PyTree after generate the variational state object via weight transplantation.
 
         if self.load_from:
             self.params_history["stage_X"] = load_params_from_file(self.load_from)
             self.load = self.arch_evolution["stage_0"]["load"]
-
 
     def setup_from_template(self, template, storage, symm_wrappers):
         return setup_from_template(template, storage, symm_wrappers)
@@ -149,7 +147,9 @@ class Hydra(NeuralNetwork):
 
         stage_config = self.arch_evolution[f"stage_{self.n_stage}"]
         self.template = stage_config["template"]
-        self.save_params = stage_config["save_params"] if "save_params" in stage_config else ""
+        self.save_params = (
+            stage_config["save_params"] if "save_params" in stage_config else ""
+        )
         self.load = stage_config["load"] if "load" in stage_config else []
 
         # Update symmetry settings, in the case.
@@ -162,7 +162,9 @@ class Hydra(NeuralNetwork):
         raw_setup = setup_from_template(self.template, self.storage, self.symm_wrapper)
         if "change_attr" in stage_config:
             if stage_config["change_attr"]:
-                raw_setup, _ = change_module_attr(raw_setup, stage_config["change_attr"])
+                raw_setup, _ = change_module_attr(
+                    raw_setup, stage_config["change_attr"]
+                )
 
         # Create new NN model
         self.initialize_from_setup(raw_setup, self.external_args)
