@@ -4,7 +4,7 @@
 
     "symm_wrapper":{
 
-        "symm_Z2": true,
+        "symm_Z2": false,
         "trivial_Z2": true,
         "symm_2D": false,
         "irrep": [0, 0],
@@ -16,31 +16,31 @@
     "storage":{
  
         "MLP":{
-            "hidden_alpha": [2, 1],
-            "activation": ["swish","swish"],
+            "hidden_alpha": [4, 2, 1],
+            "activation": ["swish","swish", "swish"],
             "final_architecture": [1]
         },
         
         "ViT2D":{
             "token_size": [2, 1],
-            "embedding_d": 32,
-            "n_heads": 2,
+            "embedding_d": 64,
+            "n_heads": 4,
             "n_blocks": 2,
             "n_ffn_layers": 1,
             "final_architecture": [5]
         },
         
         "CvT":{
-            "n_CP_blocks":[2],
-            "channels": [16],
-            "attn_heads":[4],
+            "n_CP_blocks":[2, 2, 2],
+            "channels": [32, 16, 4],
+            "attn_heads":[4, 4, 4],
             "kernel": [3, 3],
             "final_architecture": [1]
         },
         
         "CvTaps":{
             "n_CP_blocks": [2, 2, 2],
-            "channels": [64, 32, 16],
+            "channels": [32, 16, 4],
             "attn_heads": [4, 4, 4],
             "strides": [[2,2], [1,1], [1,1]],
             "kernel": [3, 3],

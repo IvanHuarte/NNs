@@ -1,8 +1,8 @@
 {
 
-    "selection": "RefinePhase",
+    "selection": "TrainedAns_CNN",
 
-    "load_from": "/home/ihuarte/Escritorio/Ivan/NNs/test_in_J2_Factorized/J1J2Square/Factorized_Transversal_Factorized/Size_4x4/ST_2000-A/UUID_a42c6714/J1J2Square_Factorized_results_4x4_J1J2_1.0_0.3_XYZ_0.0_0.0_0.0_date_20260130T112952_UUID_a42c6714.json",
+    "load_from": "/home/ihuarte/Escritorio/Ivan/NNs/new_pruebas/Oxalate/Factorized_Transversal_Factorized/Size_4x4/ST_800-0/UUID_9aaa57f7/Oxalate_Factorized_results_4x4_strength_0.2_theta_9.0_phi_72.0_date_20260202T104641_UUID_9aaa57f7.json",
 
     "Factorized":{
 
@@ -25,7 +25,7 @@
             "template": {
 
                 "SplitTraining":{
-                    "CNNLiang":{},
+                    "CNN":{},
                     "Factorized":{}
                 }
 

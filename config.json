@@ -1,6 +1,6 @@
 {
 
-   "write_folder_sim":"/home/ihuarte/Escritorio/Ivan/NNs/test_in_J2_Factorized/",
+   "write_folder_sim":"/home/ihuarte/Escritorio/Ivan/NNs/oxalate_pretrained_phase/",
 
    "callback":{
         "keeper": true,
@@ -14,7 +14,7 @@
             "mode": "always"
         },        
         "modphase_setup": {
-            "plot_each": 10
+            "plot_each": 500
         },
         "sanity_setup":{
             "do_each": 100,
@@ -46,19 +46,19 @@
         "learning_rate":{
             "epochs_struct":[
                 [ 
-                    [100,1000]
+                    [800]
                 ]
             ],
 
             "modes_struct":[
                 [
-                    [ ["0","11"],  ["0","11"] ]
+                    [ ["0"] ]
                 ]
             ],
             "lr_struct":[
 
                 [  
-                    [ ["lin(0.00001, 0.01)", "lin(0.00001, 0.01)"],  [0.01, 0.02] ]
+                    [ [0.02] ]
                 ]
             ],
             "repeat":[], 
