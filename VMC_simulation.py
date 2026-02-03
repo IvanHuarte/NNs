@@ -134,6 +134,7 @@ for i, size in enumerate(sizes):
         if exact_diag:
             print("Running exact diagonalization...")
             E_ED, x_ED = eng.exact_energy_lanczos(hi, eigenstates=True)
+            sys.exit(0)
             # x_ED = full_basis_state(x_ED, hi) if hi._total_sz is not None else x_ED
             E_ED = float(E_ED.squeeze(-1))
             print(f"Energy ED: {E_ED}")
@@ -275,11 +276,11 @@ for i, size in enumerate(sizes):
 
         # Reconstruct NN setup and sim_config in the best state
         eon, _, _ = schedule.locate_period(best_step)
-        NN_setup = hydra.storage[f"stage_{eon}"]
+        NN_setup = hydra.storage[f"stage{eon}"]
         sim_config = {
             "SIM": config,
             "CM": cm_model_setup,
-            "NN": {"name": nn_evol_name + f"_stage_{eon}", "setup": NN_setup},
+            "NN": {"name": nn_evol_name + f"_stage{eon}", "setup": NN_setup},
         }
 
         if exact_diag:

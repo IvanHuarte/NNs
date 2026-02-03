@@ -12,6 +12,7 @@ from NN_module.NN.utils import (
     get_subtree,
     set_subtree,
     load_params_from_file,
+    tree_delete_attributes,
 )
 from NN_module.ST_utils import print_tree
 
@@ -65,8 +66,7 @@ class Hydra(NeuralNetwork):
 
         # Build the initial NN model. Adapt first template 'model_0' to a configuration dictionary.
         setup = setup_from_template(self.template, self.storage, self.symm_wrapper)
-        self.storage["stage0"] = setup
-        print_tree(self.storage["stage0"])
+        self.save_stage_setup(setup)
 
         super().__init__(setup, **self.external_args)
 
@@ -83,6 +83,17 @@ class Hydra(NeuralNetwork):
         if self.load_from:
             self.params_history["stageX"] = load_params_from_file(self.load_from)
             self.load = self.arch_evolution["stage0"]["load"]
+
+    def save_stage_setup(self, setup, return_setup=False):
+
+        nowrap_setup = tree_delete_attributes(setup, self.symm_wrapper.keys())
+        self.storage[f"stage{self.n_stage}"] = nowrap_setup
+        # print(f"Cleaning this setup's wrappers:\n")
+        # print_tree(setup, values=True)
+        # print(f"\nCleaned:\n")
+        # print_tree(nowrap_setup, values=True)
+        if return_setup:
+            return nowrap_setup
 
     def setup_from_template(self, template, storage, symm_wrappers):
         return setup_from_template(template, storage, symm_wrappers)
@@ -168,11 +179,11 @@ class Hydra(NeuralNetwork):
                     raw_setup, stage_config["change_attr"]
                 )
 
-        # Create new NN model
-        self.initialize_from_setup(raw_setup, self.external_args)
+        # Save the stage architecture setup without symmetry wrappers
+        cleaned_setup = self.save_stage_setup(raw_setup, return_setup=True)
 
-        # Save the setup
-        self.storage[f"stage{self.n_stage}"] = self.setup
+        # Create new NN model
+        self.initialize_from_setup(cleaned_setup, self.external_args)
 
         # Show architecture and update metadata
         self.update_info(self.N)

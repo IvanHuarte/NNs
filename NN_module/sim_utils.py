@@ -86,6 +86,3 @@ def measureNdump(keeper, time_exe, exact_diag=False):
     }
 
     return results, mp_array_vs, mp_array_ED
-
-
-

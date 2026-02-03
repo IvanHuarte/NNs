@@ -339,3 +339,50 @@ def print_max_contributors(x, size, N_max=10, return_states=False):
 
     if return_states:
         return max_configs
+
+
+def distance_with_neel(size):
+    N = jnp.prod(jnp.array(size))
+    i, j = jnp.unravel_index(jnp.arange(N), size)
+    neel_A = (-1) ** (i + j).reshape(size)
+    neel_B = -1.0 * neel_A
+
+    def _compare(x):
+        distance_A = jnp.sum(jnp.abs(x - neel_A))
+        distance_B = jnp.sum(jnp.abs(x - neel_B))
+
+        if distance_A < distance_B:
+            return distance_A, "Neel-A"
+        elif distance_B < distance_A:
+            return distance_B, "Neel-B"
+        else:
+            return distance_A, "Same in Neel-A and Neel-B"
+
+    return _compare
+
+
+def distance_with_stripped(size):
+    N = jnp.prod(jnp.array(size))
+    stripped_VA = (-1) ** jnp.arange(N).reshape(size)
+    stripped_VB = -1.0 * stripped_VA
+    stripped_HA = stripped_VA.T
+    stripped_HB = -1.0 * stripped_HA
+    patterns = [stripped_VA, stripped_VB, stripped_HA, stripped_HB]
+    labels = ["VA", "VB", "HA", "HB"]
+
+    def _compare(x):
+        distances = jnp.array([jnp.sum(jnp.abs(x - p)) for p in patterns])
+
+        dmin = jnp.min(distances)
+        mask = distances == dmin
+
+        equal_labels = [label for label, m in zip(labels, mask) if bool(m)]
+        label_out = "Stripped-"
+
+        for s in equal_labels:
+            label_out += f"{s}-"
+        label_out = label_out[:-1]
+
+        return dmin, label_out
+
+    return _compare

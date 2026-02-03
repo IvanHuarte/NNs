@@ -5,7 +5,7 @@
    "callback":{
         "keeper": true,
         "energy_plot": false,
-        "modphase": true,
+        "modphase": false,
         "sanity": false,
 
         
@@ -15,7 +15,8 @@
         },        
         "modphase_setup": {
             "plot_each": 10,
-            "no_null_mod": true
+            "no_null_mod": true,
+            "logscale": false
         },
         "sanity_setup":{
             "do_each": 100,
@@ -47,10 +48,10 @@
         "learning_rate":{
             "epochs_struct":[
                 [ 
-                    [10, 10]
+                    [100, 500]
                 ],
                 [ 
-                    [10, 10]
+                    [100, 1000]
                 ]
             ],
 

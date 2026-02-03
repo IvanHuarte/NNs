@@ -84,9 +84,9 @@ class Schedule:
         eons_bound = []
         count = 0
         eon = 0
-        for i_eon, (eon_epo, eon_mode, eon_lr) in enumerate(zip(
-            self.epochs_struct, self.modes_struct, self.lr_struct
-        )):
+        for i_eon, (eon_epo, eon_mode, eon_lr) in enumerate(
+            zip(self.epochs_struct, self.modes_struct, self.lr_struct)
+        ):
             for era_epo, era_mode, era_lr in zip(eon_epo, eon_mode, eon_lr):
                 for epo, mode, lr in zip(era_epo, era_mode, era_lr):
                     if eon < i_eon:
@@ -110,7 +110,7 @@ class Schedule:
         nruter["eons_bound"] = eons_bound
 
         return nruter
-    
+
     def locate_period(self, epoch):
         cum = 0
         for i_eon, eon in enumerate(self.epochs_struct):
@@ -120,7 +120,6 @@ class Schedule:
                     if cum > epoch:
                         return i_eon, i_era, i_per
         raise ValueError(f"Epoch ({epoch}) out of schedule")
-                    
 
     def schedule_generator(self):
 
@@ -176,6 +175,6 @@ class Schedule:
         trans_dict = transformation_dictionary(optimizer, modes_code, lr_func)
         trans_tree = masked_optimizer(params, modes_path, self.eon_path2code)
         trans_optimizer = optax.multi_transform(trans_dict, trans_tree)
-        print(print_tree(trans_tree, values=True))
+        # print(print_tree(trans_tree, values=True))
 
         return trans_optimizer

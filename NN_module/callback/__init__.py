@@ -61,6 +61,7 @@ def Callback(
             x_ED,
             no_null_mod=config["modphase_setup"]["no_null_mod"],
             plot_each=config["modphase_setup"]["plot_each"],
+            logscale=config["modphase_setup"]["logscale"],
         )
         callback_objects.append(modphase)
         callback_funcs.append(modphase)

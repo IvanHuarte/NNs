@@ -206,6 +206,38 @@ def setup_from_template(template, storage, symm_wrappers, father="", depth=0):
     return config
 
 
+def tree_delete_attributes(tree, attributes, depth=0):
+    """
+    Deletes attributes from a nested dictionary (tree) structure.
+
+    Parameters
+    ----------
+    tree : dict
+        The nested dictionary from which attributes will be deleted.
+    attributes : list
+        List of attribute names (keys) to be deleted from the tree.
+
+    Returns
+    -------
+    dict
+        The modified tree with specified attributes removed.
+    """
+    if not isinstance(tree, dict):
+        return tree
+
+    if depth > 2:
+        return {
+            k: tree_delete_attributes(v, attributes, depth=depth + 1)
+            for k, v in tree.items()
+            if k not in attributes
+        }
+    else:
+        return {
+            k: tree_delete_attributes(v, attributes, depth=depth + 1)
+            for k, v in tree.items()
+        }
+
+
 ###########################################
 # Encode the architecture into int-strings,
 # used to modify it in subsequent calls

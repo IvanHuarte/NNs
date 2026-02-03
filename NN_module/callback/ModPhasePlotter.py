@@ -3,6 +3,7 @@ import jax.numpy as jnp
 
 import matplotlib.pyplot as plt
 import matplotlib.transforms as mtransforms
+from optax import scale
 
 # matplotlib.rcParams["toolbar"] = "None"  # ← DESACTIVA icono SVG corrupto
 # matplotlib.rcParams["figure.raise_window"] = False
@@ -19,11 +20,15 @@ class ModPhasePlotter:
     Dynamic callback for plotting modulus and phase in each iteration
     """
 
-    def __init__(self, sim_config, x_ED=None, no_null_mod=True, plot_each=10):
+    def __init__(
+        self, sim_config, x_ED=None, no_null_mod=True, logscale=False, plot_each=10
+    ):
         self.plot_each = plot_each
         self.sim_config = sim_config
         self.x_ED = x_ED
         self.no_null_mod = no_null_mod
+        self.logscale = logscale
+
         size = sim_config["CM"]["size"]
         self.N = size[0] * size[1]
 
@@ -302,7 +307,8 @@ class ModPhasePlotter:
         except Exception:
             pass
 
-        self.ax[-1].set_yscale("log")
+        if self.logscale:
+            self.ax[-1].set_yscale("log")
 
         # --- Redibujar canvas de forma eficiente ---
         self.fig.canvas.draw_idle()
