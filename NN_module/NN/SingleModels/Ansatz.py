@@ -1,4 +1,5 @@
 import flax.linen as nn
+import jax
 import jax.numpy as jnp
 from typing import Callable
 
@@ -102,10 +103,15 @@ class FactorMod(nn.Module):
         L = x.shape[-1]
 
         # g(x) gating for a NN module
-        x = nn.Dense(2 * L, dtype=self.dtype, param_dtype=self.dtype)(x)
-        x = nn.glu(x)
+        x = nn.Dense(
+            L,
+            dtype=self.dtype,
+            param_dtype=self.dtype,
+        )(x)
+
+        # x = nn.glu(x)
         x = jnp.sum(x, axis=-1)
-        x = nn.sigmoid(x)
+        x = jnp.tanh(x)
 
         x = jnp.atleast_2d(x).T
 

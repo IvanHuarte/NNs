@@ -1,8 +1,8 @@
 {
 
-    "selection": "TrainedAns_CNN",
+    "selection": "Factor_Gated",
 
-    "load_from": "/home/ihuarte/Escritorio/Ivan/NNs/new_pruebas/Oxalate/Factorized_Transversal_Factorized/Size_4x4/ST_800-0/UUID_9aaa57f7/Oxalate_Factorized_results_4x4_strength_0.2_theta_9.0_phi_72.0_date_20260202T104641_UUID_9aaa57f7.json",
+    "load_from": "/home/ihuarte/Escritorio/Ivan/NNs/new_pruebas/J1J2Square/Factorized_trained_phases/Neel/J1J2Square_Factorized_results_4x4_J1J2_1.0_0.3_XYZ_0.0_0.0_0.0_date_20260130T112952_UUID_a42c6714.json",
 
     "Factorized":{
 
@@ -17,6 +17,61 @@
             "save_params": true
         }
         
+    },
+    "Factor_Gated":{
+    
+        "stage0": {
+            "template": {
+
+                "SingleModule":{
+
+                    "Transversal":{
+                        "Factorized":{},
+                        "Transversal":{
+                            "FactorMod":{},
+                            "CNN_2":{},
+                            "operation":"product"
+                        },
+                        "operation":"sum"
+                    },
+                    "mode": "phase"
+                }
+
+            },
+            "save_params": true,
+            "change_attr":{
+                "Factorized":{
+                    "complex": false
+                }
+            },
+            "load": [
+                ["stageX", "0", "00"]
+            ]
+            
+        },
+
+        "stage1": {
+            "template": {
+
+                "SplitTraining":{
+
+                    "CNN":{},
+                    "stage0":{}
+                }
+
+            },
+            "save_params": true,
+            "change_attr":{
+                "SingleModule":{
+                    "mode": null,
+                    "squeeze": false
+                }
+            },
+            "load": [
+                ["stage0", "0", "1"]
+            ]
+            
+        }
     },
 
     "TrainedAns_CNN":{

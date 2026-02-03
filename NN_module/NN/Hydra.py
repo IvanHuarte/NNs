@@ -13,6 +13,7 @@ from NN_module.NN.utils import (
     set_subtree,
     load_params_from_file,
 )
+from NN_module.ST_utils import print_tree
 
 
 class Hydra(NeuralNetwork):
@@ -59,12 +60,13 @@ class Hydra(NeuralNetwork):
         self.external_args = external_kwargs
 
         # Stage 0
-        self.template = self.arch_evolution["stage_0"]["template"]
-        self.save_params = self.arch_evolution["stage_0"]["save_params"]
+        self.template = self.arch_evolution["stage0"]["template"]
+        self.save_params = self.arch_evolution["stage0"]["save_params"]
 
         # Build the initial NN model. Adapt first template 'model_0' to a configuration dictionary.
         setup = setup_from_template(self.template, self.storage, self.symm_wrapper)
-        self.storage["stage_0"] = setup
+        self.storage["stage0"] = setup
+        print_tree(self.storage["stage0"])
 
         super().__init__(setup, **self.external_args)
 
@@ -73,14 +75,14 @@ class Hydra(NeuralNetwork):
 
         self.params_history = {}
 
-        # Load initial parameters for Stage_0, in the case. If a valid artifact is set,
-        # load info will be required in stage_0 and must refeer the label set in params_history
-        # at below, Stage_x as default. Loaded parameters should be transplanted to Stage_0
+        # Load initial parameters for stage0, in the case. If a valid artifact is set,
+        # load info will be required in stage0 and must refeer the label set in params_history
+        # at below, stageX as default. Loaded parameters should be transplanted to stage0
         # parameters PyTree after generate the variational state object via weight transplantation.
 
         if self.load_from:
-            self.params_history["stage_X"] = load_params_from_file(self.load_from)
-            self.load = self.arch_evolution["stage_0"]["load"]
+            self.params_history["stageX"] = load_params_from_file(self.load_from)
+            self.load = self.arch_evolution["stage0"]["load"]
 
     def setup_from_template(self, template, storage, symm_wrappers):
         return setup_from_template(template, storage, symm_wrappers)
@@ -138,14 +140,14 @@ class Hydra(NeuralNetwork):
         """
         # PREVIOUS EON
         if self.save_params:
-            print(f"Saving stage_{self.n_stage} parameters....")
-            self.params_history[f"stage_{self.n_stage}"] = old_params
+            print(f"Saving stage{self.n_stage} parameters....")
+            self.params_history[f"stage{self.n_stage}"] = old_params
             print("Saved.")
 
         # NEXT EON
         self.n_stage += 1
 
-        stage_config = self.arch_evolution[f"stage_{self.n_stage}"]
+        stage_config = self.arch_evolution[f"stage{self.n_stage}"]
         self.template = stage_config["template"]
         self.save_params = (
             stage_config["save_params"] if "save_params" in stage_config else ""
@@ -170,7 +172,7 @@ class Hydra(NeuralNetwork):
         self.initialize_from_setup(raw_setup, self.external_args)
 
         # Save the setup
-        self.storage[f"stage_{self.n_stage}"] = self.setup
+        self.storage[f"stage{self.n_stage}"] = self.setup
 
         # Show architecture and update metadata
         self.update_info(self.N)

@@ -192,9 +192,13 @@ def setup_from_template(template, storage, symm_wrappers, father="", depth=0):
                     )
 
             else:
-                father = father if "_" not in father else father.split("_")[0]
-                config["module"] = father
-                config["setup"] = storage[father]
+                if "stage" in father:
+                    config["module"] = storage[father]["module"]
+                    config["setup"] = storage[father]["setup"]
+                else:
+                    father = father if "_" not in father else father.split("_")[0]
+                    config["module"] = father
+                    config["setup"] = storage[father]
 
         else:
             config[father] = template

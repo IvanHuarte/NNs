@@ -19,10 +19,11 @@ class ModPhasePlotter:
     Dynamic callback for plotting modulus and phase in each iteration
     """
 
-    def __init__(self, sim_config, x_ED=None, plot_each=10):
+    def __init__(self, sim_config, x_ED=None, no_null_mod=True, plot_each=10):
         self.plot_each = plot_each
         self.sim_config = sim_config
         self.x_ED = x_ED
+        self.no_null_mod = no_null_mod
         size = sim_config["CM"]["size"]
         self.N = size[0] * size[1]
 
@@ -219,9 +220,11 @@ class ModPhasePlotter:
             self.ax[-1].transData, self.ax[-1].transAxes
         )
 
-        # Si hay ED, volver a calcular (o podrías haber guardado en __init__) y dibujar su hist
         if self.x_ED is not None:
             (mod_ED, phase_ED), stats_ED = modphase(self.x_ED)
+            if self.no_null_mod:
+                no_null_mod_mask = mod_ED > 1e-12
+                phase_ED = phase_ED[no_null_mod_mask]
             # plot ED histogram (como en init)
             self.ax[-1].hist(
                 np.asarray(phase_ED),
@@ -298,6 +301,8 @@ class ModPhasePlotter:
             self.ax[-1].legend(loc="upper right")
         except Exception:
             pass
+
+        self.ax[-1].set_yscale("log")
 
         # --- Redibujar canvas de forma eficiente ---
         self.fig.canvas.draw_idle()

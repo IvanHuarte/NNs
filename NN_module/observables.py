@@ -214,7 +214,7 @@ def full2red_basis_idx(hi_sub, indices_full):
     return indices_sub
 
 
-def modphase_extended(mod, phase, sigmas=1):
+def modphase_extended(mod, phase, no_null_mod=True, sigmas=1):
     """
     Calculates modulus and phase for a expanded hilbert vector. Returns also statics for both
     modulus and phase and detects symmetry peaks for phase.
@@ -247,7 +247,14 @@ def modphase_extended(mod, phase, sigmas=1):
         "phase": {"mean": float(mean_phase), "std": float(std_phase)},
     }
 
-    counts, values = jnp.histogram(phase, bins=1000000)
+    # Histograma solo con las fases correspondientes a módulos no nulos
+    if no_null_mod:
+        no_null_mod_mask = mod > 1e-12
+        phase_hist = phase[no_null_mod_mask]
+    else:
+        phase_hist = phase
+
+    counts, values = jnp.histogram(phase_hist, bins=1000000)
     nonzero_mask = jnp.where(counts != 0.0)[0]
     nonzero_counts, nonzero_values = counts[nonzero_mask], values[nonzero_mask]
     mean = nonzero_counts.mean()

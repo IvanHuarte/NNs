@@ -64,6 +64,8 @@ class NeuralNetwork:
         external_args : dict
             External parameters to be propagated into the setup.
         """
+        print("\nBuilding Neural Network from setup...\n")
+        print_tree(setup, values=True)
         setup = insert_external_kwargs(setup, external_args)
         self.setup = preprocess_setup(setup)
         self.model = self.build_module(deepfreeze(self.setup), external_args)

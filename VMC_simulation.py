@@ -110,7 +110,7 @@ for i, size in enumerate(sizes):
 
     write_folder_size = write + f"Size_{size[0]}x{size[1]}/"
 
-    training_folder = get_schedule_label(schedule_setup['learning_rate'])
+    training_folder = get_schedule_label(schedule_setup["learning_rate"])
 
     write_folder_training = write_folder_size + f"{training_folder}/"
 
@@ -144,13 +144,9 @@ for i, size in enumerate(sizes):
         sim_config = {
             "SIM": config,
             "CM": cm_model_setup,
-            "NN": {
-                "name": nn_evol_name,
-                "setup": nn_evol_setup
-            }
+            "NN": {"name": nn_evol_name, "setup": nn_evol_setup},
         }
         display_simulation_settings(sim_config)
-
 
         #### INITIALIZE NETWORK FRAMEWORK ####
         hydra = Hydra(config_nn, **{"lattice_size": size})
@@ -158,7 +154,6 @@ for i, size in enumerate(sizes):
         nparams, nbytes = hydra.n_params, hydra.nbytes
         print(f"Total samples: {n_samples}\n")
 
-        
         # print_tree(sim_config, values=True)
 
         #### INITIALIZE SAMPLER ####
@@ -167,9 +162,7 @@ for i, size in enumerate(sizes):
         sampler = sampler_factory.get_sampler(hi)
 
         #### INITIALIZE LOGGER ####
-        log = (
-            nk.logging.RuntimeLog()
-        )  
+        log = nk.logging.RuntimeLog()
         # If instead of this logging you insert a string, it will be used as output prefix for a JSON file where the evolution of the energy at each epoch will be stored.
 
         #### INITIALIZE VSTATE ####
@@ -183,7 +176,9 @@ for i, size in enumerate(sizes):
         )
         ## Transplant loaded parameters to the current architecture
         if hydra.load_from:
-            vstate.parameters, code2path = hydra.weight_transplantation(vstate.parameters)
+            vstate.parameters, code2path = hydra.weight_transplantation(
+                vstate.parameters
+            )
         else:
             code2path = hydra.get_code2path(vstate.parameters)
 
@@ -257,41 +252,34 @@ for i, size in enumerate(sizes):
             if change:
                 print("Changing Architecture")
                 schedule.eon += 1
-                hydra.arch_evol(vstate.parameters)   # n_stage + 1
+                hydra.arch_evol(vstate.parameters)  # n_stage + 1
                 model = hydra.model
                 vstate = nk.vqs.MCState(
-                    sampler=sampler, #sampler_factory.get_sampler(hi),
+                    sampler=sampler,  # sampler_factory.get_sampler(hi),
                     model=model,
                     n_samples=n_samples,
                     n_discard_per_chain=0,
                     chunk_size=sampler_setup["chunk_vstate"],
                 )
-                vstate.parameters, code2path = hydra.weight_transplantation(vstate.parameters)
+                vstate.parameters, code2path = hydra.weight_transplantation(
+                    vstate.parameters
+                )
                 schedule.update_eon_code2path(code2path)
-
-
-
 
         time_out = time.time()
         time_exe = time_out - time_in
 
-
-        keeper  = callback_objects[0]
+        keeper = callback_objects[0]
         best_step = keeper.best_step
         vstate = keeper.best_state
 
-        print(vstate.parameters['Trans_0']['phi'].reshape((4,4)))
-
         # Reconstruct NN setup and sim_config in the best state
         eon, _, _ = schedule.locate_period(best_step)
-        NN_setup = hydra.storage[f'stage_{eon}']
+        NN_setup = hydra.storage[f"stage_{eon}"]
         sim_config = {
             "SIM": config,
             "CM": cm_model_setup,
-            "NN": {
-                "name": nn_evol_name + f"_stage_{eon}",
-                "setup": NN_setup
-            }
+            "NN": {"name": nn_evol_name + f"_stage_{eon}", "setup": NN_setup},
         }
 
         if exact_diag:
