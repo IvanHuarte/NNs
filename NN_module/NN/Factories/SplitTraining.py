@@ -229,6 +229,6 @@ class SplitTraining(nn.Module):
                 ModulusNet=self.ModulusNet, PhaseNet=self.PhaseNet, squeeze=self.squeeze
             )
 
-        x = worker(x)
+        x = jnp.atleast_1d(worker(x))
 
         return x

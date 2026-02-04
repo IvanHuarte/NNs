@@ -300,6 +300,6 @@ class Transversal(nn.Module):
                 squeeze=self.squeeze,
             )
 
-        x = worker(x)
+        x = jnp.atleast_1d(worker(x))
 
         return x

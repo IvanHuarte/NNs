@@ -5,7 +5,7 @@
    "callback":{
         "keeper": true,
         "energy_plot": false,
-        "modphase": false,
+        "modphase": true,
         "sanity": false,
 
         
@@ -14,8 +14,8 @@
             "mode": "always"
         },        
         "modphase_setup": {
-            "plot_each": 10,
-            "no_null_mod": true,
+            "plot_each": 20,
+            "no_null_mod": false,
             "logscale": false
         },
         "sanity_setup":{

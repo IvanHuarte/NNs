@@ -1,7 +1,27 @@
 #!/home/ihuarte/miniconda3/envs/conda_env/bin/python
 
+import jax
+
+print("JAX version:", jax.__version__)
+
+# Backend y dispositivos
+print("Backend:", jax.default_backend())
+print("Devices:", jax.devices())
+
+# Información adicional de GPU:
+for dev in jax.devices():
+    print("-----")
+    print("Device:", dev)
+    print("Platform:", dev.platform)
+    print("Device kind:", dev.device_kind)
+
+import sys
+
+sys.exit()
+
 import numpy as np
 import jax
+
 jax.config.update("jax_enable_x64", True)
 jax.config.update("jax_platform_name", "cpu")
 print(jax.devices())
@@ -58,11 +78,8 @@ arch_evolution = config[config["selection"]]
 
 from NN_module.NN.Hydra import Hydra
 from NN_module.NN import __all_single__
-hydra = Hydra(config, **{"lattice_size": [4,4]})
-#%%
+
+hydra = Hydra(config, **{"lattice_size": [4, 4]})
+# %%
 
 hydra.update_info()
-
-
-
-

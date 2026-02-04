@@ -249,6 +249,6 @@ class SingleModule(nn.Module):
                 single=self.single, mode=self.mode, squeeze=self.squeeze
             )
 
-        x = worker(x)
+        x = jnp.atleast_1d(worker(x))
 
         return x

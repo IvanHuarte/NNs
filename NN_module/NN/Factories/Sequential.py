@@ -220,6 +220,6 @@ class Sequential(nn.Module):
         else:
             worker = Sequential_Worker(Seq=self.Seq, ZZ=self.ZZ, squeeze=self.squeeze)
 
-        x = worker(x)
+        x = jnp.atleast_1d(worker(x))
 
         return x

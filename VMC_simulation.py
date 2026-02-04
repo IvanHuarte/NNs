@@ -134,7 +134,7 @@ for i, size in enumerate(sizes):
         if exact_diag:
             print("Running exact diagonalization...")
             E_ED, x_ED = eng.exact_energy_lanczos(hi, eigenstates=True)
-            sys.exit(0)
+
             # x_ED = full_basis_state(x_ED, hi) if hi._total_sz is not None else x_ED
             E_ED = float(E_ED.squeeze(-1))
             print(f"Energy ED: {E_ED}")
@@ -224,16 +224,10 @@ for i, size in enumerate(sizes):
                 vstate.parameters, optax.sgd, info, lr_period
             )
 
-            #### INITIALIZING VMC RUN ####
-            holo = nk.utils.is_probably_holomorphic(
-                vstate._apply_fun,
-                vstate.parameters,
-                vstate.samples,
-                model_state=vstate.model_state,
-            )
-            sr = nk.optimizer.SR(diag_shift=ds_schedule[i], holomorphic=False)
-            gs = nk.driver.VMC(
-                H, optimizer, variational_state=vstate, preconditioner=sr
+            #### INITIALIZING VMC RUN WITH STOCHASTIC RECONFIGURATION ####
+
+            gs = nk.driver.VMC_SR(
+                H, optimizer, variational_state=vstate, diag_shift=ds_schedule[i]
             )
 
             print(f"\nTraining {mode} for {epochs} epochs...")
