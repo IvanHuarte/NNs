@@ -20,8 +20,7 @@ env/
 **/pile/
 **/pruebas/
 **/new_pruebas/
-**/*.orbax/
-**/*.orbax/*
+*.orbax/
 
 **/*.jpeg
 **/*.txt
