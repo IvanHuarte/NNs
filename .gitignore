@@ -21,6 +21,7 @@ env/
 **/pruebas/
 **/new_pruebas/
 **/*.orbax/
+**/*.orbax/*
 
 **/*.jpeg
 **/*.txt
@@ -29,7 +30,6 @@ env/
 **/*.msgpack
 **/*.log
 **/*.out
-**/*.orbax
 
 # Jupyter Notebook
 .ipynb_checkpoints
