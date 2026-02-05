@@ -1,1 +1,0 @@
-{"tree_metadata": {"('Trans_0', 'phi')": {"key_metadata": [{"key": "Trans_0", "key_type": 2}, {"key": "phi", "key_type": 2}], "value_metadata": {"value_type": "jax.Array", "skip_deserialize": false, "write_shape": [16]}}}, "use_zarr3": false, "store_array_data_equal_to_fill_value": true, "custom_metadata": null}

@@ -1,1 +1,0 @@
-{"VHJhbnNfMC5waGk=":"{\"sharding_type\": \"NamedSharding\", \"shape\": [1], \"axis_names\": [\"S\"], \"axis_types\": [\"AxisType.Auto\"], \"partition_spec\": [], \"device_mesh\": {\"mesh\": [{\"id\": 0}]}}"}
