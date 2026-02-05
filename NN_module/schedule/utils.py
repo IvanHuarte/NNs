@@ -123,3 +123,29 @@ def eon_change(i_eon, i_era, i_per, n_eons, n_eras, n_pers):
     per_bool = i_per == n_pers - 1
 
     return eon_bool & era_bool & per_bool
+
+
+################################################
+# CALCULATE LEARNING RATE SCHEDULE FROM SETUP
+################################################
+
+def calculate_lr_schedule(setup):
+
+    epo_st = setup["epochs_struct"]
+    mod_st = setup["modes_struct"]
+    lr_st = setup["lr_struct"]
+
+    epo_st = [period for eon in epo_st for era in eon for period in era]
+    mod_st = [period for eon in mod_st for era in eon for period in era]
+    lr_st = [period for eon in lr_st for era in eon for period in era]
+
+    lr_schedule = []
+    info_schedule = []
+    for epochs, mode, lr_instruction in zip(epo_st, mod_st, lr_st):
+        period, info = generate_period(epochs, mode, lr_instruction)
+        lr_schedule.append(*period)
+        info_schedule.append(*info)
+
+    
+
+    return lr_schedule, info_schedule

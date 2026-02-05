@@ -35,7 +35,7 @@ def plot_schedule_setup(ax, setup):
                 period_label += f"\n{l}"
 
         ax.text(
-            cum_epoch + epo / 2,
+            (cum_epoch + epo) / 2,
             0.85 + 0.05 * (-1)**i,
             period_label,
             horizontalalignment="center",
