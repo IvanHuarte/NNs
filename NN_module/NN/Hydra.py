@@ -81,8 +81,9 @@ class Hydra(NeuralNetwork):
         # parameters PyTree after generate the variational state object via weight transplantation.
 
         if self.load_from:
-            self.params_history["stageX"] = load_params_from_file(self.load_from)
-            self.load = self.arch_evolution["stage0"]["load"]
+            for i, trained_NN in enumerate(self.load_from):
+                self.params_history[f"stageX{i}"] = load_params_from_file(trained_NN)
+                self.load = self.arch_evolution["stage0"]["load"]
 
     def save_stage_setup(self, setup, return_setup=False):
 
