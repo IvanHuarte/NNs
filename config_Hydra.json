@@ -1,6 +1,6 @@
 {
 
-    "selection": "SymmZ2_TrFacCNN",
+    "selection": "TrFacNeel_CvT",
 
     "load_from": [
         "/home/ihuarte/Escritorio/Ivan/NNs/TrainedNetworks/J1J2Square/Factorized_trained_phases/Neel/J1J2Square_Factorized_results_4x4_J1J2_1.0_0.3_XYZ_0.0_0.0_0.0_date_20260130T112952_UUID_a42c6714.json"
@@ -19,14 +19,14 @@
 
 
 
-    "SymmZ2_TrFacCNN": {
+    "TrFacNeel_CvT": {
         "stage0": {
 
             "template": {
 
                "SplitTraining":{
 
-                    "CNN":{},
+                    "CvT":{},
                     "Factorized":{}
 
                 }

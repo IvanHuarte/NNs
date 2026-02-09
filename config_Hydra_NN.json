@@ -4,7 +4,7 @@
 
     "symm_wrapper":{
 
-        "symm_Z2": true,
+        "symm_Z2": false,
         "trivial_Z2": true,
         "symm_2D": false,
         "irrep": [0, 0],
@@ -31,9 +31,9 @@
         },
         
         "CvT":{
-            "n_CP_blocks":[2, 2, 2],
+            "n_CP_blocks":[1, 1, 1],
             "channels": [32, 16, 4],
-            "attn_heads":[4, 4, 4],
+            "attn_heads":[2, 2, 2],
             "kernel": [3, 3],
             "final_architecture": [1]
         },
