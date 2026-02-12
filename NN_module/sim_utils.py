@@ -14,11 +14,12 @@ def measureNdump(keeper, time_exe, exact_diag=False):
     x_ED = keeper.x_ED
 
     vstate = keeper.best_state
+    N = vstate.hilbert.size
+
     best_step = keeper.best_step
     E_best = float(keeper.best_state_energy)
+    E_best_per_site = E_best / N
     vscore = float(keeper.best_state_vscore)
-
-    N = vstate.hilbert.size
 
     modphase_results = {}
     if exact_diag:
@@ -67,6 +68,7 @@ def measureNdump(keeper, time_exe, exact_diag=False):
     results = {
         "best_step": best_step,
         "E_best": E_best,
+        "E_best_per_site": E_best_per_site,
         "E_ED": E_ED,
         "error": error,
         "vscore": vscore,
