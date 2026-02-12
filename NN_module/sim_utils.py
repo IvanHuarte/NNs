@@ -10,8 +10,8 @@ from NN_module.observables import (
 
 def measureNdump(keeper, time_exe, exact_diag=False):
 
-    E_ED = keeper.E_ED
-    x_ED = keeper.x_ED
+    E_ED = keeper.E_ED if hasattr(keeper, "E_ED") else None
+    x_ED = keeper.x_ED if hasattr(keeper, "x_ED") else None
 
     vstate = keeper.best_state
     N = vstate.hilbert.size
@@ -31,9 +31,8 @@ def measureNdump(keeper, time_exe, exact_diag=False):
         )
 
     else:
-        E_ED = None
-        x_ED = None
         error = None
+        mp_array_ED = None
 
     mp_array_vs, stats_vs = modphase(vstate)
     modphase_results["vstate"] = stats_vs
@@ -43,6 +42,7 @@ def measureNdump(keeper, time_exe, exact_diag=False):
 
     # Fidelity
     fidelity = None
+    fidelity_per_site = None
     try:
         fidelity = float(jnp.abs(jnp.vdot(vstate.to_array(), x_ED.squeeze())))
         fidelity_per_site = float(jnp.exp(jnp.log(fidelity) / N))
@@ -63,7 +63,7 @@ def measureNdump(keeper, time_exe, exact_diag=False):
         print(f"ED < ms >: {ms_ED}  < ms2 >: {ms2_ED}\n")
 
     else:
-        m_ED, ms_ED, m2_ED, ms2_ED = None
+        m_ED, ms_ED, m2_ED, ms2_ED = None, None, None, None
 
     results = {
         "best_step": best_step,

@@ -97,7 +97,7 @@
         "Jastrow_wrap": {},
         
         "Factorized":{
-            "complex": false
+            "complex": true
         },
 
         "FactorMod":{

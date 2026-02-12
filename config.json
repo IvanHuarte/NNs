@@ -1,6 +1,6 @@
 {
 
-   "write_folder_sim":"/home/ihuarte/Escritorio/Ivan/NNs/pruebas/",
+   "write_folder_sim":"/home/ihuarte/Escritorio/Ivan/NNs/pruebas/Neel/",
 
    "callback":{
         "keeper": true,
@@ -14,7 +14,7 @@
             "mode": "best_energy"
         },        
         "modphase_setup": {
-            "plot_each": 20,
+            "plot_each": 10,
             "no_null_mod": false,
             "logscale": false
         },
@@ -60,7 +60,7 @@
             "lr_struct":[
 
                 [  
-                    [ [0.5] ]
+                    [ [0.05] ]
                 ]
             ],
             "repeat":[], 

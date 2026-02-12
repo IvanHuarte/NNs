@@ -54,7 +54,7 @@ def Callback(
         callback_funcs.append(energy_plotter)
 
     if config["modphase"]:
-        assert all([variable is not None for variable in [sim_config, x_ED]])
+        # assert all([variable is not None for variable in [sim_config, x_ED]])
         print(f"Adding Modphase")
         modphase = ModPhasePlotter(
             sim_config,

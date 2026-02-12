@@ -32,9 +32,10 @@ class ModPhasePlotter:
         size = sim_config["CM"]["size"]
         self.N = size[0] * size[1]
 
-        (mod_ED, phase_ED), stats_ED = modphase(x_ED)
+        if x_ED is not None:
+            (mod_ED, phase_ED), stats_ED = modphase(x_ED)
 
-        n_comp = x_ED.shape[0]
+        n_comp = x_ED.shape[0] if x_ED is not None else 4000
         msize = 0.1 * 65000 / n_comp
 
         _, _, _, callback = get_filenames_from_settings(
@@ -130,7 +131,8 @@ class ModPhasePlotter:
                     alpha=0.7,
                 )
 
-        self.max_mod_ED = max(mod_ED)
+        self.max_mod_ED = max(mod_ED) if x_ED is not None else 0.0
+
         self.peak_texts_vs = []
         self.text_stats = None
         self.sample_vlines = []
