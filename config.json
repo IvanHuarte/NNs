@@ -11,7 +11,7 @@
         
         "keeper_setup":{
             "baseline": 1e-8,
-            "mode": "best_energy"
+            "mode": "always"
         },        
         "modphase_setup": {
             "plot_each": 10,
@@ -60,7 +60,7 @@
             "lr_struct":[
 
                 [  
-                    [ [0.05] ]
+                    [ [0.01] ]
                 ]
             ],
             "repeat":[], 

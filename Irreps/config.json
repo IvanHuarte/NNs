@@ -4,12 +4,30 @@
     "symmetries":{
         
         "Traslation":{
-            "on": true,
+            "on": false,
             "subgroup":[0,1]
         },
 
         "Z2":{
             "on":false
+        },
+
+        "Cn":{
+            "on": true,
+            "n": 4
+        },
+
+        "Refl_H":{
+            "on": true
+        },
+        "Refl_V":{
+            "on": true
+        },
+        "Refl_D":{
+            "on": true
+        },
+        "Refl_AD":{
+            "on": true
         }
     },
 
