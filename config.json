@@ -37,10 +37,10 @@
             "prules": [0.2, 0.7, 0.1]
         },
         "n_ranks": 1,
-        "n_chains_per_rank": 32,
-        "n_samples_per_chain": 64,
+        "n_chains_per_rank": 128,
+        "n_samples_per_chain": 32,
         "chunk_sampler": null,
-        "chunk_vstate": 512
+        "chunk_vstate": 1024
     },
 
     "schedule":{
@@ -48,19 +48,19 @@
         "learning_rate":{
             "epochs_struct":[
                 [ 
-                    [100, 1000]
+                    [5000]
                 ]
             ],
 
             "modes_struct":[
                 [
-                    [ ["0"], ["0"] ]
+                    [ ["0"] ]
                 ]
             ],
             "lr_struct":[
 
                 [  
-                    [ ["lin(0.0001, 0.02)"], ["exp(0.2,0.0005"] ]
+                    [ [0.5] ]
                 ]
             ],
             "repeat":[], 
