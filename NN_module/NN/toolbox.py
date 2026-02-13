@@ -1,10 +1,18 @@
 import jax
 import flax.linen as nn
+
+from flax.typing import (
+    DotGeneralT,
+    Dtype,
+    Initializer,
+    PRNGKey as PRNGKey,
+    PrecisionLike,
+    Shape as Shape,
+)
+import jax
 import jax.typing as jt
 import jax.numpy as jnp
-from typing import Callable, Sequence, Tuple
-
-from matplotlib.pylab import size
+from typing import Callable, Sequence, Tuple, Any
 
 from NN_module.NN_utils import traslations_2D
 
@@ -67,6 +75,19 @@ def batched_get_anchor(size, memory=True):
         return _, idx
 
     return core
+
+
+class CDense(nn.Module):
+    features: int
+    use_bias: bool = True
+    dtype: Dtype | None = None
+    param_dtype: Dtype = jnp.float32
+    precision: PrecisionLike = None
+    kernel_init: Initializer = nn.initializers.lecun_normal()
+    bias_init: Initializer = nn.initializers.zeros_init()
+    promote_dtype: nn.linear.PromoteDtypeFn = nn.dtypes.promote_dtype
+    dot_general: DotGeneralT | None = None
+    dot_general_cls: Any = None
 
 
 class MultiLayerPerceptron(nn.Module):
