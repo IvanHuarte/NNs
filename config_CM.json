@@ -1,7 +1,7 @@
 {
     "mode": "zip",
     
-    "sizes":[[10, 10]],
+    "sizes":[[6,6], [8,8], [10,10]],
 
     "kwargs_lattice" : {
         "bc":"periodic",
@@ -41,7 +41,7 @@
             "J1J2Square":{
                 "J1": 1.0,
                 "J2_list": [
-                    0.0
+                    0.05
             ],
                 "fields": [0.0,0.0,0.0]
             }

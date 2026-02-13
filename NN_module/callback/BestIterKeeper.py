@@ -122,16 +122,14 @@ class BestIterKeeper:
 
         # Always update
 
-        if self.step > self.step_threshold:
+        self.best_state = copy.copy(driver.state)
+        self.best_state_energy = energy_step
+        self.best_state_vscore = vscore_step
+        self.best_step = self.step
 
-            self.best_state = copy.copy(driver.state)
-            self.best_state_energy = energy_step
-            self.best_state_vscore = vscore_step
-            self.best_step = self.step
-
-            if self.filename != None:
-                with open(self.filename, "wb") as file:
-                    file.write(flax.serialization.to_bytes(driver.state))
+        if self.filename != None:
+            with open(self.filename, "wb") as file:
+                file.write(flax.serialization.to_bytes(driver.state))
 
         return self.survive_condition(energy_step, vscore_step)
 

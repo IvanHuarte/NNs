@@ -47,13 +47,13 @@ from NN_module.observables import (
 from NN_module.ST_utils import compare_params
 
 
-def neel_callback(hamiltonian):
+def neel_callback(hamiltonian, N):
     def _call(step, _, driver):
         survive = True
-        if step > 500:
+        if step > 200:
             vstate = driver.state
             energy_step = np.real(vstate.expect(hamiltonian).mean)
-            if energy_step > -45.0:
+            if energy_step > -N/2+2:
                 survive = False
 
         return survive
@@ -180,6 +180,8 @@ for i, size in enumerate(sizes):
             print(f"     Attempt #{attempt}")
             print(f"\n********************")
 
+            attempt += 1
+
             #### INITIALIZE NETWORK FRAMEWORK ####
             hydra = Hydra(config_nn, **{"lattice_size": size})
             model = hydra.model
@@ -232,7 +234,7 @@ for i, size in enumerate(sizes):
                 E_ED=E_ED,
                 x_ED=x_ED,
             )
-            callback_funcs.append(neel_callback(H))
+            callback_funcs.append(neel_callback(H, N))
 
             callback_artifacts = {}
             time_in = time.time()
@@ -300,7 +302,7 @@ for i, size in enumerate(sizes):
             )
             filtered_params = jnp.where(params < 0, -1, 1)
             print(f"\nObtained parameters:\n {params}")
-            print(f"\nFiltered:\n {params}")
+            print(f"\nFiltered:\n {filtered_params}")
             dist_neel, neel_label = neel(filtered_params)
             dist_strip, strip_label = stripped(filtered_params)
 
@@ -314,73 +316,73 @@ for i, size in enumerate(sizes):
             else:
                 print("Neel not found. Repeating")
 
-            keeper = callback_objects[0]
-            best_step = keeper.best_step
-            vstate = keeper.best_state
+        keeper = callback_objects[0]
+        best_step = keeper.best_step
+        vstate = keeper.best_state
 
-            # Reconstruct NN setup and sim_config in the best state
-            eon, _, _ = schedule.locate_period(best_step)
-            NN_setup = hydra.storage[f"stage{eon}"]
-            sim_config = {
-                "SIM": config,
-                "CM": cm_model_setup,
-                "NN": {"name": nn_evol_name + f"_stage{eon}", "setup": NN_setup},
-            }
+        # Reconstruct NN setup and sim_config in the best state
+        eon, _, _ = schedule.locate_period(best_step)
+        NN_setup = hydra.storage[f"stage{eon}"]
+        sim_config = {
+            "SIM": config,
+            "CM": cm_model_setup,
+            "NN": {"name": nn_evol_name + f"_stage{eon}", "setup": NN_setup},
+        }
 
-            if exact_diag:
-                keeper.E_ED = E_ED
-                keeper.x_ED = x_ED
-                log.E_ED = E_ED
+        if exact_diag:
+            keeper.E_ED = E_ED
+            keeper.x_ED = x_ED
+            log.E_ED = E_ED
 
-            ## Save results
+        ## Save results
 
-            sim_label, ED_label, json_label, title_label_callback = (
-                get_filenames_from_settings(
-                    cm_model_setup, {"name": nn_evol_name, "setup": {}}, sim_uuid
-                )
+        sim_label, ED_label, json_label, title_label_callback = (
+            get_filenames_from_settings(
+                cm_model_setup, {"name": nn_evol_name, "setup": {}}, sim_uuid
             )
+        )
 
-            # Plot Callback
-            callback_args = {
-                "size": size,
-                "write_folder": write_folder,
-                "time_exe": time_exe,
-                "sim_label": sim_label,
-                "title_label_callback": title_label_callback,
-                "best_step": best_step,
-                "schedule_setup": schedule.flat_setup(),
-            }
+        # Plot Callback
+        callback_args = {
+            "size": size,
+            "write_folder": write_folder,
+            "time_exe": time_exe,
+            "sim_label": sim_label,
+            "title_label_callback": title_label_callback,
+            "best_step": best_step,
+            "schedule_setup": schedule.flat_setup(),
+        }
 
-            callback_artifacts = dump_callback(log, callback_args)
+        callback_artifacts = dump_callback(log, callback_args)
 
-            ## Calculate some observables
-            results, mp_array_vs, mp_array_ED = measureNdump(
-                keeper, time_exe, exact_diag
-            )
+        ## Calculate some observables
+        results, mp_array_vs, mp_array_ED = measureNdump(
+            keeper, time_exe, exact_diag
+        )
 
-            sim_config["SIM"]["sampler"]["nsamples"] = n_samples
-            sim_config["SIM"]["sampler"]["rng"] = jax.random.key_data(
-                vstate.sampler_state.rng
-            ).tolist()
+        sim_config["SIM"]["sampler"]["nsamples"] = n_samples
+        sim_config["SIM"]["sampler"]["rng"] = jax.random.key_data(
+            vstate.sampler_state.rng
+        ).tolist()
 
-            ## Save the results
-            dump_setup = {
-                **sim_config,
-                "results": results,
-                "optimizer": "Sgd",
-                "_artifacts": {"callback": callback_artifacts},
-            }
-            dump_setup = make_setup_serializable(dump_setup)
+        ## Save the results
+        dump_setup = {
+            **sim_config,
+            "results": results,
+            "optimizer": "Sgd",
+            "_artifacts": {"callback": callback_artifacts},
+        }
+        dump_setup = make_setup_serializable(dump_setup)
 
-            save_results(
-                vstate,
-                dump_setup,
-                x_ED=x_ED,
-                modphase=mp_array_vs,
-                modphase_ED=mp_array_ED,
-                write_folder=write_folder,
-                sim_label=sim_label,
-                ED_label=ED_label,
-                json_label=json_label,
-                sim_uuid=sim_uuid,
-            )
+        save_results(
+            vstate,
+            dump_setup,
+            x_ED=x_ED,
+            modphase=mp_array_vs,
+            modphase_ED=mp_array_ED,
+            write_folder=write_folder,
+            sim_label=sim_label,
+            ED_label=ED_label,
+            json_label=json_label,
+            sim_uuid=sim_uuid,
+        )

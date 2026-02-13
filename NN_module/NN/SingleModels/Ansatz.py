@@ -75,7 +75,7 @@ class Factorized(nn.Module):
         # imag_part = jnp.sum(theta * (x == 1), axis=-1)
 
         phi_shape = (L,)
-        phi = self.param("phi", nn.initializers.normal(), phi_shape, self.dtype)
+        phi = self.param("phi", nn.initializers.normal(stddev=5e-2), phi_shape, self.dtype)
         theta = jnp.pi * nn.sigmoid(phi)
         imag_part = jnp.sum(theta * (x == 1), axis=-1)
 
