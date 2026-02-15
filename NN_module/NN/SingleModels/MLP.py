@@ -3,76 +3,66 @@ import jax
 import jax.numpy as jnp
 from typing import Callable, Tuple, Any
 
-from ..toolbox import (
-    two_heads,
-    two_heads_phasors,
-    glu_phasor,
-)
+from ..toolbox import CDense
 from NN_module.NN_utils import traslations_2D
 
-DTYPE = jnp.float64
+RDTYPE = jnp.float64
 CDTYPE = jnp.complex128
 
 class MLPWorker(nn.Module):
     """A simple multi-layer perceptron."""
 
-    hidden_alpha: int | Tuple[int, ...] = None
+    hidden_alpha: Tuple[int, ...] = None
     activation: Callable | Tuple[Callable, ...] = None
     final_architecture: Tuple[int, ...] | None = None
-    param_dtype: Any = DTYPE
-
-    two_heads: bool = False
-    phasors: bool = False
+    dense_backend: str = "real"
 
     @nn.compact
     def __call__(self, x):
+        print(f"Hidd: {self.hidden_alpha}")
+        print(f"Act: {self.activation}")
+        print(f"Final: {self.final_architecture}")
+        print(f"Dense_back: {self.dense_backend}")
+
+        def make_dense(features):
+            if self.dense_backend == "real":
+                return nn.Dense(features=features, param_dtype=RDTYPE)
+            elif self.dense_backend == "complex":
+                return nn.Dense(features=features, param_dtype=CDTYPE)
+            elif self.dense_backend == "cdense":
+                return CDense(features=features, param_dtype=RDTYPE)
+
+        if self.dense_backend == "real":
+            is_complex = False
+            param_dtype = RDTYPE
+        elif self.dense_backend == "complex":
+            is_complex = True
+            param_dtype = CDTYPE
+        elif self.dense_backend == "cdense":
+            is_complex = True
+            param_dtype = RDTYPE
+        else:
+            raise ValueError(f"Unknown dense_backend: {self.dense_backend}")
 
         B = x.shape[0]
-
         hidden_dims = tuple([int(ha * x.shape[1]) for ha in self.hidden_alpha])
 
         for hi, act in zip(hidden_dims, self.activation):
-
-            if jnp.issubdtype(self.param_dtype, jnp.complexfloating):
-                normalizer = lambda x: x
-            else:
-                normalizer = nn.LayerNorm(param_dtype=DTYPE)
-
-            x = normalizer(nn.Dense(hi, param_dtype=self.param_dtype)(x))
+            x = make_dense(hi)(x)
+            if not is_complex:
+                x = nn.LayerNorm(param_dtype=param_dtype)(x)
             if callable(act):
                 x = act(x)
 
-        # Works with termination module by default
-        if self.final_architecture is None:
-            return x
+        if self.final_architecture is not None:
+            # Pooling si es necesario
+            x = x.reshape(B, -1, x.shape[-1]).mean(axis=1)
+            for hi in self.final_architecture:
+                x = make_dense(hi)(x)
+                if not is_complex:
+                    x = nn.LayerNorm(param_dtype=param_dtype)(x)
 
-        # To work only with this module, we distinguish between real output
-        # and imaginary output (modulus + phase).
-        x = x.reshape(B, -1, x.shape[-1])
-
-        if self.two_heads:
-
-            if self.phasors:
-                return two_heads_phasors(self.final_architecture)(x)
-
-            else:
-                x = x.mean(axis=1)
-                x = x.reshape((B, -1))
-                return two_heads(self.final_architecture)(x)
-
-        else:
-
-            if self.phasors:
-                return glu_phasor()(x)
-            else:
-                x = x.mean(axis=1)
-                x = x.reshape((B, -1))
-                x = nn.Dense(
-                    1,
-                    dtype=DTYPE,
-                    param_dtype=DTYPE
-                )(x)
-                return x
+        return x
 
 
 class MLP_2D(nn.Module):
@@ -82,18 +72,15 @@ class MLP_2D(nn.Module):
     hidden_alpha: Tuple[int, ...] = None
     final_architecture: Tuple[int, ...] | None = None
     activation: Tuple[Callable, ...] = None
-    param_dtype: Any = DTYPE
-
-    two_heads: bool = False
-    phasors: bool = False
+    dense_backend: str = "real"
 
     @nn.compact
     def __call__(self, x):
         worker = MLPWorker(
             hidden_alpha=self.hidden_alpha,
             activation=self.activation,
-            param_dtype=self.param_dtype,
             final_architecture=self.final_architecture,
+            dense_backend=self.dense_backend
         )
         traslational_x = traslations_2D(x, size=self.lattice_size, memory=False)
 
@@ -107,10 +94,7 @@ class MLP_Z2(nn.Module):
     hidden_alpha: Tuple[int, ...] = None
     activation: Tuple[Callable, ...] = None
     final_architecture: Tuple[int, ...] | None = None
-    param_dtype: Any = DTYPE
-
-    two_heads: bool = False
-    phasors: bool = False
+    dense_backend: str = "real"
 
     symm_2D: bool = False
     trivial: bool = True
@@ -122,16 +106,17 @@ class MLP_Z2(nn.Module):
             worker = MLP_2D(
                 hidden_alpha=self.hidden_alpha,
                 activation=self.activation,
-                param_dtype=self.param_dtype,
                 final_architecture=self.final_architecture,
+                dense_backend=self.dense_backend
+
             )
 
         else:
             worker = MLPWorker(
                 hidden_alpha=self.hidden_alpha,
                 activation=self.activation,
-                param_dtype=self.param_dtype,
                 final_architecture=self.final_architecture,
+                dense_backend=self.dense_backend
             )
 
         output_x = worker(x)
@@ -152,10 +137,7 @@ class MLP(nn.Module):
     hidden_alpha: Tuple[int, ...] = None
     activation: Tuple[Callable, ...] = None
     final_architecture: Tuple[int, ...] | None = None
-    param_dtype: Any = DTYPE
-
-    two_heads: bool = False
-    phasors: bool = False
+    dense_backend: str = "real"
 
     symm_2D: bool = False
     symm_Z2: bool = False
@@ -171,10 +153,8 @@ class MLP(nn.Module):
             worker = MLP_Z2(
                 hidden_alpha=self.hidden_alpha,
                 activation=self.activation,
-                param_dtype=self.param_dtype,
                 final_architecture=self.final_architecture,
-                two_heads=self.two_heads,
-                phasors=self.phasors,
+                dense_backend=self.dense_backend,
                 trivial_Z2=self.trivial_Z2,
                 symm_2D=self.symm_2D,
             )
@@ -183,20 +163,16 @@ class MLP(nn.Module):
             worker = MLP_2D(
                 hidden_alpha=self.hidden_alpha,
                 activation=self.activation,
-                param_dtype=self.param_dtype,
                 final_architecture=self.final_architecture,
-                two_heads=self.two_heads,
-                phasors=self.phasors,
+                dense_backend=self.dense_backend
             )
 
         else:
             worker = MLPWorker(
                 hidden_alpha=self.hidden_alpha,
                 activation=self.activation,
-                param_dtype=self.param_dtype,
                 final_architecture=self.final_architecture,
-                two_heads=self.two_heads,
-                phasors=self.phasors,
+                dense_backend=self.dense_backend
             )
 
         return worker(x)

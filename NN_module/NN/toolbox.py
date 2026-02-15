@@ -2,16 +2,16 @@ import jax
 import flax.linen as nn
 
 from flax.typing import (
-    DotGeneralT,
     Dtype,
     Initializer,
     PRNGKey as PRNGKey,
-    PrecisionLike,
     Shape as Shape,
 )
 import jax
 import jax.typing as jt
 import jax.numpy as jnp
+from flax.linen.dtypes import promote_dtype
+from flax.linen.linear import PromoteDtypeFn
 from typing import Callable, Sequence, Tuple, Any
 
 from NN_module.NN_utils import traslations_2D
@@ -49,7 +49,6 @@ def get_mask(name) -> jnp.ndarray:
             ]
         )
 
-
 def get_min_idx(x):
     """
     Input: x=x(s_i) (s_i = +1,-1) of shape (B, N)  where B
@@ -80,14 +79,51 @@ def batched_get_anchor(size, memory=True):
 class CDense(nn.Module):
     features: int
     use_bias: bool = True
-    dtype: Dtype | None = None
-    param_dtype: Dtype = jnp.float32
-    precision: PrecisionLike = None
+    param_dtype: Dtype = jnp.float64
     kernel_init: Initializer = nn.initializers.lecun_normal()
     bias_init: Initializer = nn.initializers.zeros_init()
-    promote_dtype: nn.linear.PromoteDtypeFn = nn.dtypes.promote_dtype
-    dot_general: DotGeneralT | None = None
-    dot_general_cls: Any = None
+    promote_dtype: PromoteDtypeFn = promote_dtype
+
+    @nn.compact
+    def __call__(self, x):
+        cdtype = jnp.complex128 if self.param_dtype == jnp.float64 else jnp.complex64
+
+        kernel = self.param(
+            'ckernel',
+            self.kernel_init,
+            (x.shape[-1], self.features, 2),
+            self.param_dtype,
+        )
+        ckernel = (kernel[:, :, 0] + 1j * kernel[:, :, 1]).astype(dtype=cdtype)
+
+        if self.use_bias:
+            bias = self.param(
+                'cbias',
+                self.bias_init,
+                (self.features, 2),
+                self.param_dtype,
+            )
+            cbias = (bias[:,  0] + 1j * bias[:, 1]).astype(dtype=cdtype)
+        else:
+            cbias = None
+
+        x, ckernel, cbias = self.promote_dtype(
+            x, ckernel, cbias, dtype=None
+        )
+
+        assert x is not None
+        assert kernel is not None
+        
+        y = jax.lax.dot_general(
+            x,
+            ckernel,
+            (((x.ndim - 1,), (0,)), ((), ())),
+            precision=None,
+        )
+        if cbias is not None:
+            y += jnp.reshape(cbias, (1,) * (y.ndim - 1) + (-1,))
+
+        return y
 
 
 class MultiLayerPerceptron(nn.Module):
