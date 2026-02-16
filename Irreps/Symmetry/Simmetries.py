@@ -34,17 +34,15 @@ class Traslation:
         return configuration
 
 
-
-
 def c4_operation(lattice_size):
     def _operation(configuration):
         configuration = configuration.reshape(lattice_size).T[::-1]
         return configuration.reshape(-1)
+
     return _operation
 
 
-
-class Cn():
+class Cn:
 
     def __init__(self, lattice_size, n):
         """
@@ -62,11 +60,10 @@ class Cn():
 
         if n == 4:
             self.operation = c4_operation(lattice_size)
-        
 
-    
-class Refl_H():
-    
+
+class Refl_H:
+
     def __init__(self, lattice_size):
         """
         Reflection symmetry respect to the horizontal axis
@@ -76,16 +73,17 @@ class Refl_H():
 
         self.dim = 1
         self.N = 2
-        self.character = lambda k, m: 1 if k==0 else (-1)**m
+        self.character = lambda k, m: 1 if k == 0 else (-1) ** m
 
         assert self.N != 1, f"Group size too low. N = 1"
         assert all(L != 1 for L in self.lattice_size)
 
     def operation(self, configuration):
-        return configuration.reshape(self.lattice_size)[::-1]
-    
-class Refl_V():
-    
+        return configuration.reshape(self.lattice_size)[::-1].reshape(-1)
+
+
+class Refl_V:
+
     def __init__(self, lattice_size):
         """
         Reflection symmetry respect to the horizontal axis
@@ -95,16 +93,17 @@ class Refl_V():
 
         self.dim = 1
         self.N = 2
-        self.character = lambda k, m: 1 if k==0 else (-1)**m
+        self.character = lambda k, m: 1 if k == 0 else (-1) ** m
 
         assert self.N != 1, f"Group size too low. N = 1"
         assert all(L != 1 for L in self.lattice_size)
 
     def operation(self, configuration):
-        return configuration.reshape(self.lattice_size)[:, ::-1]
+        return configuration.reshape(self.lattice_size)[:, ::-1].reshape(-1)
 
-class Refl_D():
-    
+
+class Refl_D:
+
     def __init__(self, lattice_size):
         """
         Reflection symmetry respect to the horizontal axis
@@ -114,17 +113,17 @@ class Refl_D():
 
         self.dim = 1
         self.N = 2
-        self.character = lambda k, m: 1 if k==0 else (-1)**m
-
+        self.character = lambda k, m: 1 if k == 0 else (-1) ** m
 
         assert self.N != 1, f"Group size too low. N = 1"
         assert all(L != 1 for L in self.lattice_size)
 
     def operation(self, configuration):
-        return configuration.reshape(self.lattice_size).T
-    
-class Refl_AD():
-    
+        return configuration.reshape(self.lattice_size).T.reshape(-1)
+
+
+class Refl_AD:
+
     def __init__(self, lattice_size):
         """
         Reflection symmetry respect to the horizontal axis
@@ -134,11 +133,10 @@ class Refl_AD():
 
         self.dim = 1
         self.N = 2
-        self.character = lambda k, m: 1 if k==0 else (-1)**m
+        self.character = lambda k, m: 1 if k == 0 else (-1) ** m
 
         assert self.N != 1, f"Group size too low. N = 1"
         assert all(L != 1 for L in self.lattice_size)
 
     def operation(self, configuration):
-        return configuration.reshape(self.lattice_size)[:, ::-1].T[:, ::-1]
-    
+        return configuration.reshape(self.lattice_size)[:, ::-1].T[:, ::-1].reshape(-1)

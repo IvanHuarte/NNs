@@ -5,7 +5,7 @@
    "callback":{
         "keeper": true,
         "energy_plot": false,
-        "modphase": false,
+        "modphase": true,
         "sanity": false,
 
         
@@ -48,19 +48,19 @@
         "learning_rate":{
             "epochs_struct":[
                 [ 
-                    [5000]
+                    [1000]
                 ]
             ],
 
             "modes_struct":[
                 [
-                    [ ["0"] ]
+                    [ ["A"] ]
                 ]
             ],
             "lr_struct":[
 
                 [  
-                    [ ["lin(0.03, 0.001, 5)"] ]
+                    [ [0.01] ]
                 ]
             ],
             "repeat":[], 

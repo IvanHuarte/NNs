@@ -1,5 +1,6 @@
 import json
 import jax
+import jax.numpy as jnp
 import flax
 import flax.linen as nn
 import orbax.checkpoint as ocp
@@ -12,6 +13,32 @@ from NN_module.NN import (
 )
 
 
+class ModReLU(nn.Module):
+    bias_init: float = 0.0
+
+    @nn.compact
+    def __call__(self, z):
+        b = self.param("b", lambda key: jnp.array(self.bias_init))
+        r = jnp.abs(z) + b
+        # ReLU on modulus
+        m = jnp.maximum(r, 0)
+        return m * (z / jnp.abs(z))
+
+
+def Cgelu(z):
+    return nn.gelu(jnp.real(z)) + 1j * nn.gelu(jnp.imag(z))
+
+
+def Ctanh(z):
+    return jnp.tanh(jnp.real(z)) + 1j * jnp.tanh(jnp.imag(z))
+
+
+def cardioid(z, eps=1e-8):
+    r = jnp.abs(z) + eps
+    scale = 0.5 * (1.0 + jnp.real(z) / r)
+    return scale * z
+
+
 activation_dict = {
     "sigmoid": nn.sigmoid,
     "tanh": nn.tanh,
@@ -22,6 +49,10 @@ activation_dict = {
     "elu": nn.elu,
     "softplus": nn.softplus,
     "relu": nn.relu,
+    "modrelu": ModReLU,
+    "cgelu": Cgelu,
+    "ctanh": Ctanh,
+    "cardioid": cardioid,
 }
 
 

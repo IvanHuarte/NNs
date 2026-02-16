@@ -224,11 +224,16 @@ for i, size in enumerate(sizes):
                 vstate.parameters, optax.sgd, info, lr_period
             )
 
-            #### INITIALIZING VMC RUN WITH STOCHASTIC RECONFIGURATION ####
-
-            gs = nk.driver.VMC_SR(
-                H, optimizer, variational_state=vstate, diag_shift=ds_schedule[i]
+            #### INITIALIZE OLD VMC WITH SEPARATED SR ####
+            sr = nk.optimizer.SR(diag_shift=ds_schedule[i])
+            gs = nk.driver.VMC(
+                H, optimizer, variational_state=vstate, preconditioner=sr
             )
+
+            #### INITIALIZING VMC RUN WITH STOCHASTIC RECONFIGURATION ####
+            # gs = nk.driver.VMC_SR(
+            #     H, optimizer, variational_state=vstate, diag_shift=ds_schedule[i]
+            # )
 
             print(f"\nTraining {mode} for {epochs} epochs...")
             gs.run(
