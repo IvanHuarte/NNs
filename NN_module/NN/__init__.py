@@ -10,6 +10,7 @@ from .SingleModels.CNNLiang import CNNLiang
 from .SingleModels.CvT import CvT
 from .SingleModels.CvTaps import CvTaps
 from .SingleModels.MLP import MLP
+from .SingleModels.CMLP import CMLP
 from .SingleModels.Phase import CNNPh, EDPPh, CNNClsf, CNNbinClsf, CNNSzabo
 from .SingleModels.ViT2D import ViT2D
 from .SingleModels.ViT import ViT
@@ -41,6 +42,7 @@ __all_single__ = [
     "MarshallSign",
     "CarreteSign",
     "MLP",
+    "CMLP",
     "ViT2D",
     "ViT",
     "Factorized",
@@ -71,6 +73,7 @@ REGISTRY_SINGLE = {
     "MarshallSign": MarshallSign,
     "CarreteSign": CarreteSign,
     "MLP": MLP,
+    "CMLP": CMLP,
     "ViT2D": ViT2D,
     "ViT": ViT,
     "Factorized": Factorized,
@@ -97,6 +100,7 @@ LATTICE_SIZE = {
         "MarshallSign",
         "CarreteSign",
         "MLP",
+        "CMLP",
         "ViT2D",
         "ViT",
         "Factorized",
