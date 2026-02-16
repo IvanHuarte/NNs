@@ -176,7 +176,7 @@ class NeuralNetwork:
                 [
                     self.build_module(seq_setup, external_args)
                     for name, seq_setup in setup.items()
-                    if name != "ZZ"
+                    if "Seq" in name
                 ]
             )
             ZZ_module = self.build_module(setup["ZZ"], external_args)

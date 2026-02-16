@@ -26,7 +26,7 @@ class MLPWorker(nn.Module):
         hidden_dims = tuple([int(ha * x.shape[1]) for ha in self.hidden_alpha])
 
         for hi, act in zip(hidden_dims, self.activation):
-            x = nn.Dense(features=hi, param_dtype=DTYPE)
+            x = nn.Dense(features=hi, param_dtype=DTYPE)(x)
             if not self.is_complex:
                 x = nn.LayerNorm(param_dtype=DTYPE)(x)
             if callable(act):
@@ -35,7 +35,7 @@ class MLPWorker(nn.Module):
         if self.final_architecture is not None:
             x = x.reshape(B, -1, x.shape[-1]).mean(axis=1)
             for hi in self.final_architecture:
-                x = nn.Dense(features=hi, param_dtype=DTYPE)
+                x = nn.Dense(features=hi, param_dtype=DTYPE)(x)
                 if not self.is_complex:
                     x = nn.LayerNorm(param_dtype=DTYPE)(x)
 
@@ -117,7 +117,11 @@ class MLP(nn.Module):
     def __call__(self, x):
 
         N = self.lattice_size[0] * self.lattice_size[1]
-        x = x.reshape(x.shape[0], N)
+        x = (
+            x.reshape(x.shape[0], N, x.shape[-1])
+            if len(x.shape) >= 3
+            else x.reshape(x.shape[0], N)
+        )
 
         if self.symm_Z2:
             worker = MLP_Z2(

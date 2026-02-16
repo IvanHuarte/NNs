@@ -1,6 +1,6 @@
 {
 
-    "selection": "Factorized",
+    "selection": "CarleoArch",
 
     "load_from_Neel": [
         "/home/ihuarte/Escritorio/Ivan/NNs/TrainedNetworks/J1J2Square/Factorized_trained_phases/Neel/J1J2Square_Factorized_results_4x4_J1J2_1.0_0.3_XYZ_0.0_0.0_0.0_date_20260130T112952_UUID_a42c6714.json"
@@ -17,6 +17,23 @@
         "/home/ihuarte/Escritorio/Ivan/NNs/Simulations/J1J2Square/TrainedFactorizedNeel_CNN_SplitTraining_CNN_Factorized/Size_4x4/ST_100-0_1000-0/UUID_56a07afc/J1J2Square_TrainedFactorizedNeel_CNN_results_4x4_J1J2_1.0_0.5_XYZ_0.0_0.0_0.0_date_20260203T113728_UUID_56a07afc.json"
     ],
     "load_from": [],
+
+    "CarleoArch":{
+
+        "stage0": {
+
+            "template": {
+                "Sequential":{
+                    "CvT":{},
+                    "CMLP":{}
+                }
+            },
+
+            "save_params": true
+
+        }
+        
+    },
 
     "Factorized":{
 

@@ -18,6 +18,12 @@
         "MLP":{
             "hidden_alpha": [4, 2, 1],
             "activation": ["swish","swish", "swish"],
+            "final_architecture": [1],
+            "complex": false
+        },
+        "CMLP":{
+            "hidden_alpha": [1, 1],
+            "activation": ["tanh","tanh"],
             "final_architecture": [1]
         },
         
@@ -32,10 +38,10 @@
         
         "CvT":{
             "n_CP_blocks":[1, 1, 1],
-            "channels": [32, 16, 4],
+            "channels": [16, 8, 8],
             "attn_heads":[2, 2, 2],
             "kernel": [3, 3],
-            "final_architecture": [1]
+            "final_architecture": null
         },
         
         "CvTaps":{
