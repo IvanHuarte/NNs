@@ -1,9 +1,17 @@
 {
 
-    "selection": "CarleoArch",
+    "selection": "CvTMarshall",
 
-    "load_from_Neel": [
+    "load_from_Neel4x4": [
         "/home/ihuarte/Escritorio/Ivan/NNs/TrainedNetworks/J1J2Square/Factorized_trained_phases/Neel/J1J2Square_Factorized_results_4x4_J1J2_1.0_0.3_XYZ_0.0_0.0_0.0_date_20260130T112952_UUID_a42c6714.json"
+    ],
+
+    "load_from_Neel6x6": [
+        "/home/ihuarte/Escritorio/Ivan/NNs/TrainedNetworks/J1J2Square/Factorized_trained_phases/Neel/6x6/J1J2Square_Factorized_results_6x6_J1J2_1.0_0.05_XYZ_0.0_0.0_0.0_date_20260213T172136_UUID_f022639c.json"
+    ],
+
+    "load_from_Neel8x8": [
+        "/home/ihuarte/Escritorio/Ivan/NNs/TrainedNetworks/J1J2Square/Factorized_trained_phases/Neel/8x8/J1J2Square_Factorized_results_8x8_J1J2_1.0_0.05_XYZ_0.0_0.0_0.0_date_20260213T181940_UUID_fb5f2089.json"
     ],
 
     "load_from_NeelStripped":[
@@ -17,6 +25,48 @@
         "/home/ihuarte/Escritorio/Ivan/NNs/Simulations/J1J2Square/TrainedFactorizedNeel_CNN_SplitTraining_CNN_Factorized/Size_4x4/ST_100-0_1000-0/UUID_56a07afc/J1J2Square_TrainedFactorizedNeel_CNN_results_4x4_J1J2_1.0_0.5_XYZ_0.0_0.0_0.0_date_20260203T113728_UUID_56a07afc.json"
     ],
     "load_from": [],
+
+    "CvTMarshall":{
+
+        "stage0": {
+
+            "template": {
+                "SplitTraining":{
+                    "CvT":{},
+                    "MarshallSign":{}
+                }
+            },
+
+            "save_params": true
+
+        }
+        
+    },
+
+    "TrFacNeel_ViT2D": {
+        "stage0": {
+
+            "template": {
+
+                "SplitTraining":{
+
+                    "ViT2D":{},
+                    "Factorized":{}
+
+                }
+            },
+
+            "save_params": true,
+            "change_attr":{
+                "Factorized":{
+                    "complex": false
+                }
+            },
+            "load": [
+                ["stageX0", "0", "1"]
+            ]
+        }
+    },
 
     "CarleoArch":{
 
@@ -49,31 +99,6 @@
 
         }
         
-    },
-
-    "TrFacNeel_CvT": {
-        "stage0": {
-
-            "template": {
-
-               "SplitTraining":{
-
-                    "CvT":{},
-                    "Factorized":{}
-
-                }
-            },
-
-            "save_params": true,
-            "change_attr":{
-                "Factorized":{
-                    "complex": false
-                }
-            },
-            "load": [
-                ["stageX0", "0", "1"]
-            ]
-        }
     },
 
     "NeelStripped_Gated_CNN":{

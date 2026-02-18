@@ -1,17 +1,17 @@
 {
 
-   "write_folder_sim":"/home/ihuarte/Escritorio/Ivan/NNs/pruebas/Neel/",
+   "write_folder_sim":"/home/ihuarte/Escritorio/Ivan/NNs/Simulations/",
 
    "callback":{
         "keeper": true,
         "energy_plot": false,
-        "modphase": true,
+        "modphase": false,
         "sanity": false,
 
         
         "keeper_setup":{
             "baseline": 1e-8,
-            "mode": "always"
+            "mode": "best_energy"
         },        
         "modphase_setup": {
             "plot_each": 10,
@@ -48,13 +48,13 @@
         "learning_rate":{
             "epochs_struct":[
                 [ 
-                    [1000]
+                    [5000]
                 ]
             ],
 
             "modes_struct":[
                 [
-                    [ ["A"] ]
+                    [ ["0"] ]
                 ]
             ],
             "lr_struct":[

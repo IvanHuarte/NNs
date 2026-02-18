@@ -4,7 +4,7 @@
 
     "symm_wrapper":{
 
-        "symm_Z2": false,
+        "symm_Z2": true,
         "trivial_Z2": true,
         "symm_2D": false,
         "irrep": [0, 0],
@@ -29,7 +29,7 @@
         
         "ViT2D":{
             "token_size": [2, 1],
-            "embedding_d": 64,
+            "embedding_d": 32,
             "n_heads": 4,
             "n_blocks": 2,
             "n_ffn_layers": 1,
@@ -37,11 +37,11 @@
         },
         
         "CvT":{
-            "n_CP_blocks":[2, 2, 2],
-            "channels": [64, 32, 16],
-            "attn_heads":[4, 2],
+            "n_CP_blocks":[1, 1, 1, 1, 1],
+            "channels": [16, 8, 8, 8, 4],
+            "attn_heads":[2, 2, 2, 2, 2],
             "kernel": [3, 3],
-            "final_architecture": null
+            "final_architecture": [1]
         },
         
         "CvTaps":{
@@ -53,11 +53,11 @@
             "final_architecture": [128, 5]
         },
         "CNN":{
-            "channels":[32, 16, 4],
-            "strides":[[1,1],[1,1],[1,1]],
+            "channels":[32, 16, 16, 8],
+            "strides":[[1,1],[1,1],[1,1],[1,1]],
             "kernel":[3,3],
             "use_pooling":false,
-            "pooling_strides":[[1,1],[1,1],[1,1]],
+            "pooling_strides":[[1,1],[1,1],[1,1],[1,1]],
             "final_architecture":[1]
         },
         
@@ -103,7 +103,7 @@
         "Jastrow_wrap": {},
         
         "Factorized":{
-            "complex": true
+            "complex": false
         },
 
         "FactorMod":{
