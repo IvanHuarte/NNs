@@ -3,6 +3,7 @@ import jax
 import jax.numpy as jnp
 import flax
 import flax.linen as nn
+import netket as nk
 import orbax.checkpoint as ocp
 
 from NN_module.NN import (
@@ -40,6 +41,7 @@ def make_split(activation):
 
 activation_dict = {
     "relu": nn.relu,
+    "logcosh": nk.nn.activation.log_cosh,
     "sigmoid": nn.sigmoid,
     "tanh": nn.tanh,
     "softmax": nn.softmax,
@@ -49,7 +51,9 @@ activation_dict = {
     "elu": nn.elu,
     "softplus": nn.softplus,
     "modrelu": ModReLU,
+    "cardioid": cardioid,
     "Crelu": make_split(nn.relu),
+    "Clogcosh": make_split(nk.nn.activation.log_cosh),
     "Csigmoid": make_split(nn.sigmoid),
     "Ctanh": make_split(nn.tanh),
     "Csoftmax": make_split(nn.softmax),
@@ -57,7 +61,6 @@ activation_dict = {
     "Cswish": make_split(nn.swish),
     "Celu": make_split(nn.elu),
     "Csoftplus": make_split(nn.softplus),
-    "cardioid": cardioid,
 }
 
 

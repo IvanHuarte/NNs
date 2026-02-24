@@ -22,10 +22,10 @@
             "complex": false
         },
         "CMLP":{
-            "hidden_alpha": [2, 1],
-            "activation": ["Ctanh","Crelu"],
-            "final_architecture": [1],
-            "only_phase": true
+            "hidden_alpha": [2],
+            "activation": ["Crelu"],
+            "final_architecture": null,
+            "only_phase": false
         },
         
         "ViT2D":{
@@ -108,9 +108,16 @@
         },
 
         "FactorMod":{
+        },
+        
+        
+
+        "Sum":{
+            "axis":-1
+        },
+        "Mean":{
+            "axis": 1
         }
-        
-        
 }
     
 

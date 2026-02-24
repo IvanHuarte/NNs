@@ -29,14 +29,11 @@ class CMLPWorker(nn.Module):
                 x = act(x)
 
         if self.final_architecture is not None:
-            x = x.reshape(B, -1, x.shape[-1]).mean(axis=1)  # Pooling
+            x = x.reshape(B, -1, x.shape[-1]).mean(axis=1)  # Mean pooling over spins
             for hi in self.final_architecture:
                 x = CDense(features=hi, param_dtype=DTYPE)(x)
-
         if self.only_phase:
-            x = (jnp.ones(x.shape[0], dtype=DTYPE) + 1j * x.imag.T).astype(
-                jnp.complex128
-            )
+            x = jnp.ones(x.shape, dtype=DTYPE) + 1.0j * x.imag
 
         return x
 

@@ -15,6 +15,7 @@ from .SingleModels.Phase import CNNPh, EDPPh, CNNClsf, CNNbinClsf, CNNSzabo
 from .SingleModels.ViT2D import ViT2D
 from .SingleModels.ViT import ViT
 from .SingleModels.Ansatz import Factorized, FactorMod, Jastrow_wrap
+from .SingleModels.FluxFunc import Sum, Mean
 
 from .toolbox import MarshallSign, CarreteSign
 
@@ -48,6 +49,8 @@ __all_single__ = [
     "Factorized",
     "FactorMod",
     "Jastrow_wrap",
+    "Sum",
+    "Mean",
 ]
 
 __all__ = __all_factories__ + __all_single__
@@ -79,6 +82,8 @@ REGISTRY_SINGLE = {
     "Factorized": Factorized,
     "FactorMod": FactorMod,
     "Jastrow_wrap": Jastrow_wrap,
+    "Sum": Sum,
+    "Mean": Mean,
 }
 
 REGISTRY = {None: None, **REGISTRY_SINGLE, **REGISTRY_FACTORIES}

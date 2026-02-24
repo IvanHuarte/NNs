@@ -2,6 +2,7 @@ from .BestIterKeeper import BestIterKeeper
 from .EnergyPlotter import EnergyPlotter
 from .ModPhasePlotter import ModPhasePlotter
 from .SanityMonitor import SanityMonitor
+from .Checkpoint import Checkpoint
 import os
 import matplotlib
 
@@ -25,6 +26,7 @@ def Callback(
     x_ED=None,
     vs_prev=None,
     error_prev=None,
+    sim_label_folder=None,
 ):
 
     callback_funcs = []
@@ -71,5 +73,13 @@ def Callback(
         sanity_monitor = SanityMonitor(config["callback"]["sanity_setup"])
         callback_objects.append(sanity_monitor)
         callback_funcs.append(sanity_monitor)
+
+    if config["checkpoint"]:
+        print(f"Adding OrbaxCheckpointing")
+        checkpointing = Checkpoint(
+            H=H, sim_label_folder=sim_label_folder, setup=config["checkpoint_setup"]
+        )
+        callback_objects.append(checkpointing)
+        callback_funcs.append(checkpointing)
 
     return callback_objects, callback_funcs

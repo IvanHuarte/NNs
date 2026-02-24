@@ -192,6 +192,13 @@ for i, size in enumerate(sizes):
         ds_schedule = jnp.linspace(1e-2, 1e-4, total_periods, dtype=jnp.float64)
 
         #### INITIALIZE CALLBACKS ####
+        if config["callback"]["checkpoint"]:
+            sim_label, _, _, _ = get_filenames_from_settings(
+                cm_model_setup, {"name": nn_evol_name, "setup": {}}, sim_uuid
+            )
+        else:
+            sim_label = None
+
         callback_objects, callback_funcs = Callback(
             config["callback"],
             sim_config=sim_config,
@@ -200,6 +207,7 @@ for i, size in enumerate(sizes):
             N=N,
             E_ED=E_ED,
             x_ED=x_ED,
+            sim_label_folder=write_folder + sim_label,
         )
 
         callback_artifacts = {}
