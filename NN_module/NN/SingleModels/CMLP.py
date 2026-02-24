@@ -15,6 +15,7 @@ class CMLPWorker(nn.Module):
     hidden_alpha: Tuple[int, ...] = None
     activation: Callable | Tuple[Callable, ...] = None
     final_architecture: Tuple[int, ...] | None = None
+    only_phase: bool = False
 
     @nn.compact
     def __call__(self, x):
@@ -32,6 +33,11 @@ class CMLPWorker(nn.Module):
             for hi in self.final_architecture:
                 x = CDense(features=hi, param_dtype=DTYPE)(x)
 
+        if self.only_phase:
+            x = (jnp.ones(x.shape[0], dtype=DTYPE) + 1j * x.imag.T).astype(
+                jnp.complex128
+            )
+
         return x
 
 
@@ -42,6 +48,7 @@ class CMLP_2D(nn.Module):
     hidden_alpha: Tuple[int, ...] = None
     final_architecture: Tuple[int, ...] | None = None
     activation: Tuple[Callable, ...] = None
+    only_phase: bool = False
 
     @nn.compact
     def __call__(self, x):
@@ -49,6 +56,7 @@ class CMLP_2D(nn.Module):
             hidden_alpha=self.hidden_alpha,
             activation=self.activation,
             final_architecture=self.final_architecture,
+            only_phase=self.only_phase,
         )
         traslational_x = traslations_2D(x, size=self.lattice_size, memory=False)
 
@@ -62,6 +70,7 @@ class CMLP_Z2(nn.Module):
     hidden_alpha: Tuple[int, ...] = None
     activation: Tuple[Callable, ...] = None
     final_architecture: Tuple[int, ...] | None = None
+    only_phase: bool = False
 
     symm_2D: bool = False
     trivial: bool = True
@@ -74,6 +83,7 @@ class CMLP_Z2(nn.Module):
                 hidden_alpha=self.hidden_alpha,
                 activation=self.activation,
                 final_architecture=self.final_architecture,
+                only_phase=self.only_phase,
             )
 
         else:
@@ -81,6 +91,7 @@ class CMLP_Z2(nn.Module):
                 hidden_alpha=self.hidden_alpha,
                 activation=self.activation,
                 final_architecture=self.final_architecture,
+                only_phase=self.only_phase,
             )
 
         output_x = worker(x)
@@ -101,6 +112,7 @@ class CMLP(nn.Module):
     hidden_alpha: Tuple[int, ...] = None
     activation: Tuple[Callable, ...] = None
     final_architecture: Tuple[int, ...] | None = None
+    only_phase: bool = False
 
     symm_2D: bool = False
     symm_Z2: bool = False
@@ -121,6 +133,7 @@ class CMLP(nn.Module):
                 hidden_alpha=self.hidden_alpha,
                 activation=self.activation,
                 final_architecture=self.final_architecture,
+                only_phase=self.only_phase,
                 trivial_Z2=self.trivial_Z2,
                 symm_2D=self.symm_2D,
             )
@@ -130,6 +143,7 @@ class CMLP(nn.Module):
                 hidden_alpha=self.hidden_alpha,
                 activation=self.activation,
                 final_architecture=self.final_architecture,
+                only_phase=self.only_phase,
             )
 
         else:
@@ -137,6 +151,7 @@ class CMLP(nn.Module):
                 hidden_alpha=self.hidden_alpha,
                 activation=self.activation,
                 final_architecture=self.final_architecture,
+                only_phase=self.only_phase,
             )
 
         return worker(x)

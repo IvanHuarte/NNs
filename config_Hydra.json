@@ -1,6 +1,6 @@
 {
 
-    "selection": "CvTMarshall",
+    "selection": "BeccaAllTrainingCvT",
 
     "load_from_Neel4x4": [
         "/home/ihuarte/Escritorio/Ivan/NNs/TrainedNetworks/J1J2Square/Factorized_trained_phases/Neel/J1J2Square_Factorized_results_4x4_J1J2_1.0_0.3_XYZ_0.0_0.0_0.0_date_20260130T112952_UUID_a42c6714.json"
@@ -26,14 +26,14 @@
     ],
     "load_from": [],
 
-    "CvTMarshall":{
+    "BeccaConstantModulus":{
 
         "stage0": {
 
             "template": {
-                "SplitTraining":{
+                "Sequential":{
                     "CvT":{},
-                    "MarshallSign":{}
+                    "CMLP":{}
                 }
             },
 
@@ -41,6 +41,54 @@
 
         }
         
+    },
+    "BeccaTrPhaseCvT_Mod":{
+        "stage0": {
+
+            "template": {
+                "Sequential":{
+                    "CvT":{},
+                    "CMLP":{}
+                }
+            },
+
+            "save_params": true,
+            "load": [
+                ["stageX0", "0", "0"],
+                ["stageX0", "1", "1"]
+            ]
+        }
+    },
+    "BeccaAllTrainingCvT":{
+
+        "stage0": {
+            "template": {
+                "Sequential":{
+                    "CvT":{},
+                    "CMLP":{}
+                }
+            },
+            "save_params": true
+            
+        },
+
+        "stage1": {
+            "template": {
+                "stage0":{}
+            },
+            "save_params": true,
+            "change_attr":{
+                "CMLP":{
+                    "only_phase": false
+                }
+            },
+            "load": [
+                ["stage0", "0", "0"],
+                ["stage0", "1", "1"]
+            ]
+            
+        }
+
     },
 
     "TrFacNeel_ViT2D": {

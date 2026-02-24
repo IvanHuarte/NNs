@@ -25,21 +25,21 @@ class ModReLU(nn.Module):
         return m * (z / jnp.abs(z))
 
 
-def Cgelu(z):
-    return nn.gelu(jnp.real(z)) + 1j * nn.gelu(jnp.imag(z))
-
-
-def Ctanh(z):
-    return jnp.tanh(jnp.real(z)) + 1j * jnp.tanh(jnp.imag(z))
-
-
 def cardioid(z, eps=1e-8):
     r = jnp.abs(z) + eps
     scale = 0.5 * (1.0 + jnp.real(z) / r)
     return scale * z
 
 
+def make_split(activation):
+    def nruter(x):
+        return activation(x.real) + 1.0j * activation(x.imag)
+
+    return nruter
+
+
 activation_dict = {
+    "relu": nn.relu,
     "sigmoid": nn.sigmoid,
     "tanh": nn.tanh,
     "softmax": nn.softmax,
@@ -48,10 +48,15 @@ activation_dict = {
     "selu": nn.selu,
     "elu": nn.elu,
     "softplus": nn.softplus,
-    "relu": nn.relu,
     "modrelu": ModReLU,
-    "cgelu": Cgelu,
-    "ctanh": Ctanh,
+    "Crelu": make_split(nn.relu),
+    "Csigmoid": make_split(nn.sigmoid),
+    "Ctanh": make_split(nn.tanh),
+    "Csoftmax": make_split(nn.softmax),
+    "Cgelu": make_split(nn.gelu),
+    "Cswish": make_split(nn.swish),
+    "Celu": make_split(nn.elu),
+    "Csoftplus": make_split(nn.softplus),
     "cardioid": cardioid,
 }
 
