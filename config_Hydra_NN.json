@@ -14,45 +14,7 @@
     
     
     "storage":{
- 
-        "MLP":{
-            "hidden_alpha": [4, 2, 1],
-            "activation": ["swish","swish", "swish"],
-            "final_architecture": [1],
-            "complex": false
-        },
-        "CMLP":{
-            "hidden_alpha": [2],
-            "activation": ["Crelu"],
-            "final_architecture": null,
-            "only_phase": false
-        },
         
-        "ViT2D":{
-            "token_size": [2, 1],
-            "embedding_d": 32,
-            "n_heads": 4,
-            "n_blocks": 2,
-            "n_ffn_layers": 1,
-            "final_architecture": [5]
-        },
-        
-        "CvT":{
-            "n_CP_blocks":[1, 1],
-            "channels": [64, 32],
-            "attn_heads":[4, 2],
-            "kernel": [3, 3],
-            "final_architecture": null
-        },
-        
-        "CvTaps":{
-            "n_CP_blocks": [2, 2, 2],
-            "channels": [32, 16, 4],
-            "attn_heads": [4, 4, 4],
-            "strides": [[2,2], [1,1], [1,1]],
-            "kernel": [3, 3],
-            "final_architecture": [128, 5]
-        },
         "CNN":{
             "channels":[32, 16, 16, 8],
             "strides":[[1,1],[1,1],[1,1],[1,1]],
@@ -60,6 +22,44 @@
             "use_pooling":false,
             "pooling_strides":[[1,1],[1,1],[1,1],[1,1]],
             "final_architecture":[1]
+        },
+        "ViT2D":{
+            "token_size": [2, 1],
+            "embedding_d": 64,
+            "n_heads": 4,
+            "n_blocks": 2,
+            "n_ffn_layers": 1,
+            "final_architecture": [5]
+        },
+        
+        "CvT":{
+            "n_CP_blocks":[1],
+            "channels": [32],
+            "attn_heads":[4],
+            "kernel": [3, 3],
+            "final_architecture": null
+        },
+        "CMLP":{
+            "hidden_alpha": [2, 1],
+            "activation": ["Crelu", "Crelu"],
+            "final_architecture": null,
+            "only_phase": true
+        },
+        
+        
+        "MLP":{
+            "hidden_alpha": [4, 2, 1],
+            "activation": ["swish","swish", "swish"],
+            "final_architecture": [1],
+            "complex": false
+        },
+        "CvTaps":{
+            "n_CP_blocks": [2, 2, 2],
+            "channels": [32, 16, 4],
+            "attn_heads": [4, 4, 4],
+            "strides": [[2,2], [1,1], [1,1]],
+            "kernel": [3, 3],
+            "final_architecture": [128, 5]
         },
         
         "CNN_2":{

@@ -196,8 +196,10 @@ for i, size in enumerate(sizes):
             sim_label, _, _, _ = get_filenames_from_settings(
                 cm_model_setup, {"name": nn_evol_name, "setup": {}}, sim_uuid
             )
+            do_each_checkpoint = config["callback"]["checkpoint_setup"]["do_each"]
         else:
             sim_label = None
+            do_each_checkpoint = None
 
         callback_objects, callback_funcs = Callback(
             config["callback"],
@@ -312,6 +314,7 @@ for i, size in enumerate(sizes):
             "title_label_callback": title_label_callback,
             "best_step": best_step,
             "schedule_setup": schedule.flat_setup(),
+            "do_each_checkpoint": do_each_checkpoint,
         }
 
         callback_artifacts = dump_callback(log, callback_args)

@@ -22,6 +22,10 @@ def get_schedule_label(setup):
     for char in ["[", "]", "'", '"']:
         label = label.replace(char, "") if char != "[" else label.replace("[", "-")
 
+    # Filter characters
+    label = label.replace(",", "-")
+    label = label.replace(" ", "")
+
     return label
 
 
@@ -61,7 +65,6 @@ def decode_arch_labels(submodules, mode, lr):
     else:
         assert len(mode) == len(lr)
         mode, lr = some_submodules(submodules, mode, lr)
-
 
     return mode, lr
 
@@ -129,6 +132,7 @@ def eon_change(i_eon, i_era, i_per, n_eons, n_eras, n_pers):
 # CALCULATE LEARNING RATE SCHEDULE FROM SETUP
 ################################################
 
+
 def calculate_lr_schedule(setup):
 
     epo_st = setup["epochs_struct"]
@@ -145,7 +149,5 @@ def calculate_lr_schedule(setup):
         period, info = generate_period(epochs, mode, lr_instruction)
         lr_schedule.append(*period)
         info_schedule.append(*info)
-
-    
 
     return lr_schedule, info_schedule

@@ -14,12 +14,12 @@
             "mode": "best_energy"
         },        
         "modphase_setup": {
-            "plot_each": 20,
+            "plot_each": 10,
             "no_null_mod": false,
             "logscale": false
         },
         "sanity_setup":{
-            "do_each": 100,
+            "do_each": 500,
             "mode": "simple",
             "verbose": 3,
             "metrics": {
@@ -29,17 +29,8 @@
             }
         },
         "checkpoint_setup":{
-            "do_each":500,
-            "async": true,
-            "options":{
-                "max_to_keep":null,             
-                "save_interval_steps":null,  
-                "create":true,               
-                "best_fn":null,              
-                "best_mode":"min",           
-                "cleanup_tmp_directories":true,
-                "step_prefix":null
-            }
+            "do_each":10,
+            "async": false
         }
             
     },
@@ -61,19 +52,28 @@
         "learning_rate":{
             "epochs_struct":[
                 [ 
-                    [5000]
+                    [1000]
+                ],
+                [ 
+                    [100, 5000]
                 ]
             ],
 
             "modes_struct":[
                 [
-                    [ ["0", "1"] ]
+                    [ ["A"] ]
+                ],
+                [
+                    [ ["0", "1"], ["0", "1"] ]
                 ]
             ],
             "lr_struct":[
 
                 [  
-                    [ ["exp(0.05,0.0005,5)", "exp(0.01,0.0001,5)"] ]
+                    [ [0.05] ]
+                ],
+                [  
+                    [ ["lin(0.00002,0.02)", "lin(0.00001,0.01)"], ["exp(0.02,0.002,5)", "exp(0.01,0.001,5)"] ]
                 ]
             ],
             "repeat":[], 

@@ -54,6 +54,7 @@ def get_string_from_nnsetup(tree, level=0):
 
     return "_".join(names)
 
+
 def get_write_folder_from_model(config):
 
     name = config["selection"]
@@ -63,195 +64,13 @@ def get_write_folder_from_model(config):
 
     nn_label = get_string_from_nnsetup(nn_setup[last_stage]["template"])
     nn_label = name + "_" + nn_label
+
     return config["write_folder_sim"] + model_label + "/" + nn_label + "/"
 
 
 from rich.console import Console
 from rich.table import Table
 from rich.panel import Panel
-from rich.columns import Columns
-from rich.box import ROUNDED
-
-
-def display_nn_architecture(console, nn_dict, all_singles, all_factories):
-    """
-    Dibuja la arquitectura de la red neuronal como diagrama de flujo.
-
-    Args:
-        nn_dict: Diccionario con la configuración de la red neuronal
-        all_singles: Lista/set de módulos simples (con parámetros entrenables)
-        all_factories: Lista/set de módulos de flujo (Sequential, SplitTraining, Transversal)
-    """
-
-    # Obtener el root (sin "name")
-    root_setup = nn_dict.get("setup", {})
-
-    def _format_params(params_dict, exclude_keys=None):
-        """Formatea parámetros para mostrar en un cuadro"""
-        if exclude_keys is None:
-            exclude_keys = {"module", "setup"}
-
-        lines = []
-        for k, v in params_dict.items():
-            if k not in exclude_keys:
-                v_str = str(v)
-                if len(v_str) > 40:
-                    v_str = v_str[:37] + "..."
-                lines.append(f"[cyan]{k}[/]=[yellow]{v_str}[/]")
-
-        return "\n".join(lines) if lines else "[dim]no params[/]"
-
-    def _is_flow_module(module_name):
-        """Verifica si es un módulo de flujo"""
-        return module_name in all_factories
-
-    def _is_simple_module(module_name):
-        """Verifica si es un módulo simple"""
-        return module_name in all_singles
-
-    def _draw_module(module_dict, level=0, parent_name=""):
-        module_name = module_dict.get("module", "Unknown")
-        setup = module_dict.get("setup", {})
-
-        extra_params = {
-            k: v for k, v in module_dict.items() if k not in {"module", "setup"}
-        }
-        module_title = f"[bold magenta]{module_name}[/]"
-        param_text = _format_params(extra_params, exclude_keys=set())
-
-        module_panel = Panel(
-            param_text,
-            title=module_title,
-            border_style="magenta",
-            box=ROUNDED,
-            width=30,
-        )
-
-        result = {"panel": module_panel, "name": module_name, "children": []}
-
-        # Nodo terminal si no hay setup
-        if not setup:
-            return result
-
-        if _is_flow_module(module_name):
-            if module_name == "SplitTraining":
-                branches = {}
-                for key, value in setup.items():
-                    if key.endswith("_setup") and isinstance(value, dict):
-                        branch_name = key.replace("_setup", "")
-                        branches[branch_name] = value
-                for branch_name, branch_dict in branches.items():
-                    child = _draw_module(branch_dict, level + 1, branch_name)
-                    result["children"].append({"name": branch_name, "module": child})
-            elif module_name == "Sequential":
-                seq_modules = []
-                for key, value in sorted(setup.items()):
-                    if isinstance(value, dict) and "module" in value:
-                        seq_modules.append((key, value))
-                for idx, (key, seq_dict) in enumerate(seq_modules):
-                    child = _draw_module(seq_dict, level + 1, f"Seq_{idx}")
-                    result["children"].append(
-                        {"name": f"Seq_{idx}", "module": child, "sequential": True}
-                    )
-            elif module_name == "Transversal":
-                trans_modules = []
-                for key, value in sorted(setup.items()):
-                    if isinstance(value, dict) and "module" in value:
-                        trans_modules.append((key, value))
-                for idx, (key, trans_dict) in enumerate(trans_modules):
-                    child = _draw_module(trans_dict, level + 1, f"Trans_{idx}")
-                    result["children"].append({"name": f"Trans_{idx}", "module": child})
-        elif _is_simple_module(module_name):
-            pass  # módulos simples no tienen hijos de flujo
-
-        return result
-
-    def _render_branches(parents, children_names, children_panels):
-        """Renderiza branches bien alineadas para N hijos bajo el padre"""
-        col_count = len(children_panels)
-        table = Table.grid(padding=(0, 1))
-        for _ in range(col_count):
-            table.add_column(justify="center")
-
-        # Espacio arriba
-        table.add_row(*([""] * col_count))
-        # Padre centrado
-        mid = col_count // 2
-        parent_row = [""] * col_count
-        parent_row[mid] = parents
-        table.add_row(*parent_row)
-        # Línea descendente
-        branch_row = [""] * col_count
-        for i in range(col_count):
-            branch_row[i] = Text("│", style="dim") if i == mid else ""
-        table.add_row(*branch_row)
-        # Bifurcación horizontal
-        branch_row = [""] * col_count
-        for i in range(col_count):
-            branch_row[i] = Text("└──", style="dim") if i == mid else ""
-        table.add_row(*branch_row)
-        # Hijos
-        table.add_row(*children_panels)
-        return table
-
-    def _render_tree(tree_node, is_root=False):
-        renderables = []
-        renderables.append(tree_node["panel"])
-
-        if tree_node["children"]:
-            children = tree_node["children"]
-            is_sequential = len(children) > 0 and children[0].get("sequential", False)
-
-            if is_sequential:
-                renderables.append(Text("    │", style="dim"))
-                renderables.append(Text("    ↓", style="dim"))
-                for child in children:
-                    child_renderables = _render_tree(child["module"])
-                    renderables.extend(child_renderables)
-                    if child != children[-1]:
-                        renderables.append(Text("    │", style="dim"))
-                        renderables.append(Text("    ↓", style="dim"))
-            else:
-                # Mejor alineación para ramas paralelas
-                child_panels = []
-                child_names = []
-                for child in children:
-                    child_tree_panel = _render_tree(child["module"])
-                    group = Table.grid()
-                    group.add_column()
-                    for item in child_tree_panel:
-                        group.add_row(item)
-                    child_panels.append(group)
-                    child_names.append(child["name"])
-                # Llama a _render_branches para organizar padre e hijos
-                renderables.append(
-                    _render_branches(tree_node["panel"], child_names, child_panels)
-                )
-
-        return renderables
-
-    # Construir el árbol desde el root
-    tree = _draw_module(root_setup)
-
-    # Renderizar el árbol
-    rendered = _render_tree(tree, is_root=True)
-
-    # Mostrar todo en un panel
-    main_table = Table.grid()
-    main_table.add_column(justify="center")
-
-    for item in rendered:
-        main_table.add_row(item)
-
-    nn_name = nn_dict.get("name", "Unknown")
-    final_panel = Panel(
-        main_table,
-        title=f"[bold yellow]NEURAL NETWORK: {nn_name}[/]",
-        border_style="bright_yellow",
-        expand=False,
-    )
-
-    console.print(final_panel)
 
 
 def display_simulation_settings(settings, n_cols=5):
@@ -478,15 +297,30 @@ def get_filenames_from_settings(cm_setup, nn_setup, sim_uuid=None, **kwargs):
     if nn_setup["setup"]:
         setup = nn_setup["setup"]
         last_stage = next(reversed(setup))
-        nnparams = (
-            get_string_from_nnsetup(setup[last_stage]["template"]) 
-        )
+        nnparams = get_string_from_nnsetup(setup[last_stage]["template"])
     else:
         nnparams = ""
 
-    sim_label = model_label + f"_simulation_{size[0]}x{size[1]}" + cparams + nnparams + f"_date_{date}_UUID_{sim_uuid}"
-    ED_label = model_label + f"_xED_{size[0]}x{size[1]}" + cparams + f"_date_{date}_UUID_{sim_uuid}"
-    json_label = model_label + f"_results_{size[0]}x{size[1]}" + cparams + nnparams + f"_date_{date}_UUID_{sim_uuid}"
+    sim_label = (
+        model_label
+        + f"_simulation_{size[0]}x{size[1]}"
+        + cparams
+        + nnparams
+        + f"_date_{date}_UUID_{sim_uuid}"
+    )
+    ED_label = (
+        model_label
+        + f"_xED_{size[0]}x{size[1]}"
+        + cparams
+        + f"_date_{date}_UUID_{sim_uuid}"
+    )
+    json_label = (
+        model_label
+        + f"_results_{size[0]}x{size[1]}"
+        + cparams
+        + nnparams
+        + f"_date_{date}_UUID_{sim_uuid}"
+    )
     title_label_callback = (
         f"Callback  " + model_label + "  " + call_params + f"  ({size[0]}x{size[1]})"
     )

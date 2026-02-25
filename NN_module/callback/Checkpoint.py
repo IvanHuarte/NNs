@@ -1,5 +1,6 @@
 import orbax.checkpoint as ocp
 import numpy as np
+from pathlib import Path
 
 
 class Checkpoint:
@@ -7,24 +8,33 @@ class Checkpoint:
     def __init__(self, H, sim_label_folder, setup):
 
         self.Hamiltonian = H
+        self.do_each = setup["do_each"]
+        self.asyn = setup["async"]
+        self.step = -1
 
         checkpoint_path = sim_label_folder + "_checkpoint.orbax"
-        print(checkpoint_path)
-        manger_options = ocp.CheckpointManagerOptions(**setup["options"])
-        self.do_each = setup["do_each"]
-        if setup["async"]:
-            checkpointer = ocp.AsyncCheckpointer(ocp.PyTreeCheckpointHandler())
-        else:
-            checkpointer = ocp.PyTreeCheckpointHandler()
 
-        self.manager = ocp.CheckpointManager(
-            checkpoint_path, checkpointer, manger_options
+        manger_options = ocp.CheckpointManagerOptions(
+            max_to_keep=1000000,
+            save_interval_steps=1,
+            create=True,
+            cleanup_tmp_directories=True,
         )
 
-    def __call__(self, step, log_data, driver):
+        self.manager = ocp.CheckpointManager(
+            checkpoint_path,
+            item_names=("parameters", "sampler_state", "metrics"),
+            options=manger_options,
+        )
 
-        if step % self.do_each != 0 or step == 0:
+    def __call__(self, _, log_data, driver):
+
+        self.step += 1
+
+        if self.step % self.do_each != 0 or self.step == 0:
             return True
+
+        print(f"\n CHECKPOINT!!! --> step {self.step}\n")
 
         vstate = driver.state
         energy_step = np.real(vstate.expect(self.Hamiltonian).mean)
@@ -32,9 +42,21 @@ class Checkpoint:
         mean = np.real(getattr(log_data[driver._loss_name], "mean"))
         vscore_step = vstate.hilbert.size * var / mean**2
 
-        items = {"parameters": vstate.parameters, "sampler_state": vstate.sampler_state}
-        metrics = {"energy": energy_step, "vscore": vscore_step}
+        metrics = {"energy": float(energy_step), "vscore": float(vscore_step)}
 
-        self.manager.save(step=step, items=items, metrics=metrics)
+        self.manager.save(
+            self.step,
+            args=ocp.args.Composite(
+                parameters=ocp.args.StandardSave(vstate.parameters),
+                sampler_state=ocp.args.StandardSave(vstate.sampler_state),
+                metrics=ocp.args.JsonSave(metrics),
+            ),
+        )
+
+        if not self.asyn:
+            self.manager.wait_until_finished()
 
         return True
+
+    def wait(self):
+        self.manager.wait_until_finished()
