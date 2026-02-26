@@ -8,7 +8,7 @@
         "order": "default_2"
     },
 
-    "S_operators": true,
+    "S_operators": false,
 
 
     "CM": {

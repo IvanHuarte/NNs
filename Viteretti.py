@@ -317,7 +317,7 @@ hamiltonian = nk.operator.Heisenberg(
 
 # Intiialize the ViT variational wave function
 vit_module = ViT(
-    num_layers=4, d_model=60, n_heads=10, patch_size=2, transl_invariant=True
+    num_layers=num_layers, d_model=d_model, n_heads=n_heads, patch_size=patch_size, transl_invariant=True
 )
 
 key, subkey = jax.random.split(key)

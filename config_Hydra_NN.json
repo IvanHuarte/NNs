@@ -35,7 +35,7 @@
             "num_layers": 2,
             "d_model": 30,
             "n_heads": 5,
-            "patch_size": 1,
+            "patch_size": 2,
             "transl_invariant": true
         },
         

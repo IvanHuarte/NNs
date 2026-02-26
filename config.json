@@ -38,13 +38,13 @@
     "sampler":{
         "sampler":{
             "rules": ["Exchange"],
-            "prules": [0.2, 0.7, 0.1]
+            "prules": [1.0]
         },
         "n_ranks": 1,
         "n_chains_per_rank": 64,
-        "n_samples_per_chain": 32,
+        "n_samples_per_chain": 16,
         "chunk_sampler": null,
-        "chunk_vstate": 512
+        "chunk_vstate": 1024
     },
 
     "schedule":{
@@ -52,7 +52,7 @@
         "learning_rate":{
             "epochs_struct":[
                 [ 
-                    [500]
+                    [2000]
                 ]
             ],
 
@@ -63,7 +63,7 @@
             ],
             "lr_struct":[
                 [  
-                    [ [0.01] ]
+                    [ [0.0075] ]
                 ]
             ],
             "repeat":[], 

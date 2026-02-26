@@ -32,7 +32,6 @@
 
             "template": {
                     "VViT":{}
-                
             },
 
             "save_params": true
