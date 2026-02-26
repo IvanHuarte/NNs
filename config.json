@@ -7,7 +7,7 @@
         "energy_plot": false,
         "modphase": false,
         "sanity": false,
-        "checkpoint":true,
+        "checkpoint":false,
         
         "keeper_setup":{
             "baseline": 1e-8,
@@ -37,14 +37,14 @@
 
     "sampler":{
         "sampler":{
-            "rules": ["LocalRule", "Exchange", "InvertMagnetization"],
+            "rules": ["Exchange"],
             "prules": [0.2, 0.7, 0.1]
         },
         "n_ranks": 1,
-        "n_chains_per_rank": 32,
+        "n_chains_per_rank": 64,
         "n_samples_per_chain": 32,
         "chunk_sampler": null,
-        "chunk_vstate": 1024
+        "chunk_vstate": 512
     },
 
     "schedule":{
@@ -52,18 +52,18 @@
         "learning_rate":{
             "epochs_struct":[
                 [ 
-                    [50, 5000]
+                    [500]
                 ]
             ],
 
             "modes_struct":[
                 [
-                    [ ["0", "1"], ["0", "1"] ]
+                    [ ["A"] ]
                 ]
             ],
             "lr_struct":[
                 [  
-                    [ ["lin(0.00002,0.05)", "lin(0.00001,0.05)"], ["exp(0.05,0.002,5)", "exp(0.05,0.001,5)"] ]
+                    [ [0.01] ]
                 ]
             ],
             "repeat":[], 

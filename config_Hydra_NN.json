@@ -21,7 +21,7 @@
             "kernel":[3,3],
             "use_pooling":false,
             "pooling_strides":[[1,1],[1,1],[1,1],[1,1]],
-            "final_architecture":[1]
+            "final_architecture":null
         },
         "ViT2D":{
             "token_size": [2, 1],
@@ -31,11 +31,18 @@
             "n_ffn_layers": 1,
             "final_architecture": null
         },
+        "VViT":{
+            "num_layers": 2,
+            "d_model": 30,
+            "n_heads": 5,
+            "patch_size": 1,
+            "transl_invariant": true
+        },
         
         "CvT":{
-            "n_CP_blocks":[1],
-            "channels": [32],
-            "attn_heads":[4],
+            "n_CP_blocks":[1, 1],
+            "channels": [64, 32],
+            "attn_heads":[4, 4],
             "kernel": [3, 3],
             "final_architecture": null
         },
@@ -49,7 +56,7 @@
         
         "MLP":{
             "hidden_alpha": [4, 2],
-            "activation": ["swish", "swish"],
+            "activation": ["Crelu", "Crelu"],
             "final_architecture": null,
             "only_phase": true
         },

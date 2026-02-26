@@ -118,7 +118,8 @@ def dump_callback(logger, settings, write=False):
         e = 2
 
     total_epochs = len(E_hist)
-    checkpoint_indices = np.arange(0, total_epochs, do_each_checkpoint)
+    if do_each_checkpoint is not None:
+        checkpoint_indices = np.arange(0, total_epochs, do_each_checkpoint)
 
     ax[0].set_title(title_label_callback)
 
@@ -135,14 +136,15 @@ def dump_callback(logger, settings, write=False):
 
     ax[0].plot(E_hist, color="blue", label="E")
     ax[0].plot(best_step, E_hist[best_step], marker="o", ms=4, color="gold")
-    ax[0].plot(
-        checkpoint_indices,
-        E_hist[checkpoint_indices],
-        ls="",
-        marker="o",
-        ms=3,
-        color="tan",
-    )
+    if do_each_checkpoint is not None:
+        ax[0].plot(
+            checkpoint_indices,
+            E_hist[checkpoint_indices],
+            ls="",
+            marker="o",
+            ms=3,
+            color="tan",
+        )
 
     ax[0].text(
         0.9,
@@ -165,14 +167,15 @@ def dump_callback(logger, settings, write=False):
 
     ax[v].plot(vscore, color="purple", label="Vscore")
     ax[v].plot(best_step, vscore[best_step], marker="o", ms=3, color="gold")
-    ax[v].plot(
-        checkpoint_indices,
-        vscore[checkpoint_indices],
-        ls="",
-        marker="o",
-        ms=3,
-        color="tan",
-    )
+    if do_each_checkpoint is not None:
+        ax[v].plot(
+            checkpoint_indices,
+            vscore[checkpoint_indices],
+            ls="",
+            marker="o",
+            ms=3,
+            color="tan",
+        )
 
     ax[v].set_yscale("log")
     # ax[v].set_ylim(bottom=vs_min)
@@ -184,6 +187,7 @@ def dump_callback(logger, settings, write=False):
     if hasattr(logger, "E_ED"):
         ax[e].plot(error, color="red", label="E")
         ax[e].plot(best_step, error[best_step], marker="o", ms=3, color="gold")
+    if do_each_checkpoint is not None:
         ax[e].plot(
             checkpoint_indices,
             error[checkpoint_indices],
@@ -192,11 +196,11 @@ def dump_callback(logger, settings, write=False):
             ms=3,
             color="tan",
         )
-        ax[e].set_yscale("log")
-        ax[e].legend()
-        ax[e].set_xlabel("Iteration")
-        ax[e].set_ylabel("Error", fontsize=12)
-        ax[e].grid()
+    ax[e].set_yscale("log")
+    ax[e].legend()
+    ax[e].set_xlabel("Iteration")
+    ax[e].set_ylabel("Error", fontsize=12)
+    ax[e].grid()
 
     file_path = write_folder + f"Callback_" + sim_label
     figure_path = file_path + ".jpeg"

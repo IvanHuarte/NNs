@@ -14,6 +14,8 @@ from .SingleModels.CMLP import CMLP
 from .SingleModels.Phase import CNNPh, EDPPh, CNNClsf, CNNbinClsf, CNNSzabo
 from .SingleModels.ViT2D import ViT2D
 from .SingleModels.ViT import ViT
+from .SingleModels.VViT import VViT
+
 from .SingleModels.Ansatz import Factorized, FactorMod, Jastrow_wrap
 from .SingleModels.FluxFunc import Sum, Mean
 
@@ -46,6 +48,7 @@ __all_single__ = [
     "CMLP",
     "ViT2D",
     "ViT",
+    "VViT"
     "Factorized",
     "FactorMod",
     "Jastrow_wrap",
@@ -79,6 +82,7 @@ REGISTRY_SINGLE = {
     "CMLP": CMLP,
     "ViT2D": ViT2D,
     "ViT": ViT,
+    "VViT": VViT,
     "Factorized": Factorized,
     "FactorMod": FactorMod,
     "Jastrow_wrap": Jastrow_wrap,

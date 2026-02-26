@@ -196,9 +196,10 @@ for i, size in enumerate(sizes):
             sim_label, _, _, _ = get_filenames_from_settings(
                 cm_model_setup, {"name": nn_evol_name, "setup": {}}, sim_uuid
             )
+            sim_label_folder = write_folder + sim_label
             do_each_checkpoint = config["callback"]["checkpoint_setup"]["do_each"]
         else:
-            sim_label = None
+            sim_label_folder = ""
             do_each_checkpoint = None
 
         callback_objects, callback_funcs = Callback(
@@ -209,7 +210,7 @@ for i, size in enumerate(sizes):
             N=N,
             E_ED=E_ED,
             x_ED=x_ED,
-            sim_label_folder=write_folder + sim_label,
+            sim_label_folder=sim_label_folder,
         )
 
         callback_artifacts = {}
