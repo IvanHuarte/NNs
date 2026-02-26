@@ -31,8 +31,8 @@
         "stage0": {
             "template": {
                 "Sequential":{
-                    "ViT":{},
-                    "CMLP":{},
+                    "ViT2D":{},
+                    "MLP":{},
                     "Mean":{},
                     "Sum":{}
                 }

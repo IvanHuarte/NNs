@@ -118,11 +118,9 @@ class CMLP(nn.Module):
     @nn.compact
     def __call__(self, x):
 
-        N = self.lattice_size[0] * self.lattice_size[1]
         x = (
-            x.reshape(x.shape[0], N, x.shape[-1])
-            if len(x.shape) >= 3
-            else x.reshape(x.shape[0], N)
+            x.reshape(x.shape[0], x.shape[1]*x.shape[2], *x.shape[3:])
+            if len(x.shape) == 4 else x
         )
 
         if self.symm_Z2:

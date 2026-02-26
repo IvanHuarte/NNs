@@ -8,7 +8,7 @@ from NN_module.NN_utils import traslations_2D
 RDTYPE = jnp.float64
 CDTYPE = jnp.complex128
 
-DTYPE = RDTYPE
+DTYPE = CDTYPE
 
 
 class MLPWorker(nn.Module):
@@ -17,7 +17,7 @@ class MLPWorker(nn.Module):
     hidden_alpha: Tuple[int, ...] = None
     activation: Callable | Tuple[Callable, ...] = None
     final_architecture: Tuple[int, ...] | None = None
-    complex: bool = True
+    only_phase: bool = False
 
     @nn.compact
     def __call__(self, x):
@@ -27,7 +27,7 @@ class MLPWorker(nn.Module):
 
         for hi, act in zip(hidden_dims, self.activation):
             x = nn.Dense(features=hi, param_dtype=DTYPE)(x)
-            if not self.is_complex:
+            if jnp.issubdtype(DTYPE, jnp.floating):
                 x = nn.LayerNorm(param_dtype=DTYPE)(x)
             if callable(act):
                 x = act(x)
@@ -39,6 +39,11 @@ class MLPWorker(nn.Module):
                 if not self.is_complex:
                     x = nn.LayerNorm(param_dtype=DTYPE)(x)
 
+        if self.only_phase:
+            assert jnp.issubdtype(DTYPE, jnp.complexfloating)
+            x = jnp.ones(x.shape, dtype=DTYPE) + 1.0j * x.imag
+
+
         return x
 
 
@@ -49,6 +54,8 @@ class MLP_2D(nn.Module):
     hidden_alpha: Tuple[int, ...] = None
     final_architecture: Tuple[int, ...] | None = None
     activation: Tuple[Callable, ...] = None
+    only_phase: bool = False
+
 
     @nn.compact
     def __call__(self, x):
@@ -56,6 +63,8 @@ class MLP_2D(nn.Module):
             hidden_alpha=self.hidden_alpha,
             activation=self.activation,
             final_architecture=self.final_architecture,
+            only_phase=self.only_phase,
+
         )
         traslational_x = traslations_2D(x, size=self.lattice_size, memory=False)
 
@@ -69,18 +78,21 @@ class MLP_Z2(nn.Module):
     hidden_alpha: Tuple[int, ...] = None
     activation: Tuple[Callable, ...] = None
     final_architecture: Tuple[int, ...] | None = None
+    only_phase: bool = False
+
 
     symm_2D: bool = False
     trivial: bool = True
 
     @nn.compact
     def __call__(self, x):
-        N = self.lattice_size[0] * self.lattice_size[1]
         if self.symm_2D:
             worker = MLP_2D(
+                lattice_size=self.lattice_size,
                 hidden_alpha=self.hidden_alpha,
                 activation=self.activation,
                 final_architecture=self.final_architecture,
+                only_phase=self.only_phase,
             )
 
         else:
@@ -88,6 +100,8 @@ class MLP_Z2(nn.Module):
                 hidden_alpha=self.hidden_alpha,
                 activation=self.activation,
                 final_architecture=self.final_architecture,
+                only_phase=self.only_phase,
+
             )
 
         output_x = worker(x)
@@ -108,6 +122,8 @@ class MLP(nn.Module):
     hidden_alpha: Tuple[int, ...] = None
     activation: Tuple[Callable, ...] = None
     final_architecture: Tuple[int, ...] | None = None
+    only_phase: bool = False
+
 
     symm_2D: bool = False
     symm_Z2: bool = False
@@ -116,34 +132,38 @@ class MLP(nn.Module):
     @nn.compact
     def __call__(self, x):
 
-        N = self.lattice_size[0] * self.lattice_size[1]
         x = (
-            x.reshape(x.shape[0], N, x.shape[-1])
-            if len(x.shape) >= 3
-            else x.reshape(x.shape[0], N)
+            x.reshape(x.shape[0], x.shape[1]*x.shape[2], *x.shape[3:])
+            if len(x.shape) == 4 else x
         )
+
 
         if self.symm_Z2:
             worker = MLP_Z2(
+                lattice_size=self.lattice_size,
                 hidden_alpha=self.hidden_alpha,
                 activation=self.activation,
                 final_architecture=self.final_architecture,
-                trivial_Z2=self.trivial_Z2,
+                only_phase=self.only_phase,
+                trivial_Z2=self.trivial_Z2,                
                 symm_2D=self.symm_2D,
             )
 
         elif self.symm_2D:
             worker = MLP_2D(
+                lattice_size=self.lattice_size,
                 hidden_alpha=self.hidden_alpha,
                 activation=self.activation,
                 final_architecture=self.final_architecture,
+                only_phase=self.only_phase,
             )
 
         else:
             worker = MLPWorker(
                 hidden_alpha=self.hidden_alpha,
                 activation=self.activation,
-                final_architecture=self.final_architecture,
+                final_architecture=self.final_architecture,                
+                only_phase=self.only_phase,
             )
 
         return worker(x)

@@ -29,7 +29,7 @@
             "n_heads": 4,
             "n_blocks": 2,
             "n_ffn_layers": 1,
-            "final_architecture": [5]
+            "final_architecture": null
         },
         
         "CvT":{
@@ -48,10 +48,10 @@
         
         
         "MLP":{
-            "hidden_alpha": [4, 2, 1],
-            "activation": ["swish","swish", "swish"],
-            "final_architecture": [1],
-            "complex": false
+            "hidden_alpha": [4, 2],
+            "activation": ["swish", "swish"],
+            "final_architecture": null,
+            "only_phase": true
         },
         "CvTaps":{
             "n_CP_blocks": [2, 2, 2],
