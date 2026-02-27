@@ -118,7 +118,7 @@ for i, size in enumerate(sizes):
     write_folder = write_folder_training + f"UUID_{sim_uuid}/"
 
     ###  Reseting Hilbert space object and the observables ###
-    hi = nk.hilbert.Spin(s=1 / 2, N=N, total_sz=None)
+    hi = nk.hilbert.Spin(s=1 / 2, N=N, total_sz=0)
     model_factory = ModelFactory(size, config_cm)
 
     for params in model_factory.get_params():
@@ -155,12 +155,35 @@ for i, size in enumerate(sizes):
         nparams, nbytes = hydra.n_params, hydra.nbytes
         print(f"Total samples: {n_samples}\n")
 
+        from NN_module.NN.SingleModels.VViT import VViT
+        model = VViT(
+            num_layers=2,
+            d_model=30,
+            n_heads=5,
+            patch_size=2,
+            transl_invariant=True
+        )
+
+        seed = 0
+        key = jax.random.key(seed)
+        key, subkey = jax.random.split(key)
+        spin_configs = jax.random.randint(subkey, shape=(200, 16), minval=0, maxval=1) * 2 - 1
+        params = model.init(subkey, spin_configs)
+
         # print_tree(sim_config, values=True)
 
         #### INITIALIZE SAMPLER ####
         print("Initializing sampler...")
-        sampler_factory = SamplerFactory(sampler_setup, cm_model=cm_model)
-        sampler = sampler_factory.get_sampler(hi)
+        # sampler_factory = SamplerFactory(sampler_setup, cm_model=cm_model)
+        # sampler = sampler_factory.get_sampler(hi)
+        lattice = nk.graph.Hypercube(length=size[0], n_dim=2, pbc=True, max_neighbor_order=2)
+        sampler = nk.sampler.MetropolisExchange(
+            hilbert=hi,
+            graph=lattice,
+            d_max=2,
+            n_chains=n_samples,
+            sweep_size=N,
+        )
 
         #### INITIALIZE LOGGER ####
         log = nk.logging.RuntimeLog()
@@ -169,11 +192,14 @@ for i, size in enumerate(sizes):
         #### INITIALIZE VSTATE ####
         print("Initializing Variational State...")
         vstate = nk.vqs.MCState(
-            sampler,
+            sampler=sampler,
             model=model,
+            sampler_seed=subkey,
             n_samples=n_samples,
             n_discard_per_chain=0,
+            variables=params,
             chunk_size=sampler_setup["chunk_vstate"],
+
         )
         ## Transplant loaded parameters to the current architecture
         if hydra.load_from:
@@ -189,7 +215,7 @@ for i, size in enumerate(sizes):
         total_epochs = schedule.total_epochs
         schedule_setup["total_epochs"] = total_epochs
 
-        ds_schedule = jnp.linspace(1e-2, 1e-4, total_periods, dtype=jnp.float64)
+        ds_schedule = jnp.linspace(1e-4, 1e-5, total_periods, dtype=jnp.float64)
 
         #### INITIALIZE CALLBACKS ####
         if config["callback"]["checkpoint"]:
@@ -231,9 +257,10 @@ for i, size in enumerate(sizes):
             print(f"Diagonal shift: {ds_schedule[i]:.4e}\n")
             ###########################
 
-            optimizer = schedule.transform_optimizer(
-                vstate.parameters, optax.sgd, info, lr_period
-            )
+            # optimizer = schedule.transform_optimizer(
+            #     vstate.parameters, optax.sgd, info, lr_period
+            # )
+            optimizer=nk.optimizer.Sgd(learning_rate=0.01)
 
             #### INITIALIZE OLD VMC WITH SEPARATED SR ####
             # sr = nk.optimizer.SR(diag_shift=ds_schedule[i])
@@ -243,8 +270,13 @@ for i, size in enumerate(sizes):
 
             #### INITIALIZING VMC RUN WITH STOCHASTIC RECONFIGURATION ####
             gs = nk.driver.VMC_SR(
-                H, optimizer, variational_state=vstate, diag_shift=ds_schedule[i], mode="complex"
+                hamiltonian=H.to_jax_operator(),
+                optimizer=optimizer, 
+                variational_state=vstate, 
+                diag_shift=1e-4, 
+                mode="complex"
             )
+            sys.exit(0)
 
             print(f"\nTraining {mode} for {epochs} epochs...")
             gs.run(

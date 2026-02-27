@@ -293,8 +293,11 @@ n_heads=5
 patch_size=2
 transl_invariant=True
 
+ds = 1e-4
+
 # Run
 epochs = 2000
+
 
 print(f"L = {L}  || J2 = {J2}")
 print(f"Nsamples = {N_samples}  || chunking = {chunk_size}")
@@ -313,7 +316,7 @@ hilbert = nk.hilbert.Spin(s=1 / 2, N=lattice.n_nodes, total_sz=0)
 # Heisenberg J1-J2 spin hamiltonian
 hamiltonian = nk.operator.Heisenberg(
     hilbert=hilbert, graph=lattice, J=[1.0, J2], sign_rule=[False, False]
-).to_jax_operator()  # No Marshall sign rule
+).to_jax_operator()  # No Mar
 
 # Intiialize the ViT variational wave function
 vit_module = ViT(
@@ -325,7 +328,7 @@ spin_configs = jax.random.randint(subkey, shape=(M, L * L), minval=0, maxval=1) 
 params = vit_module.init(subkey, spin_configs)
 
 # Metropolis Local Sampling
-sampler = nk.sampler.MetropolisExchange(
+vsampler = nk.sampler.MetropolisExchange(
     hilbert=hilbert,
     graph=lattice,
     d_max=2,
@@ -333,11 +336,11 @@ sampler = nk.sampler.MetropolisExchange(
     sweep_size=lattice.n_nodes,
 )
 
-optimizer = nk.optimizer.Sgd(learning_rate=learning_rate)
+voptimizer = nk.optimizer.Sgd(learning_rate=learning_rate)
 
 key, subkey = jax.random.split(key, 2)
-vstate = nk.vqs.MCState(
-    sampler=sampler,
+vvstate = nk.vqs.MCState(
+    sampler=vsampler,
     model=vit_module,
     sampler_seed=subkey,
     n_samples=N_samples,
@@ -346,7 +349,7 @@ vstate = nk.vqs.MCState(
     chunk_size=chunk_size,
 )
 
-N_params = nk.jax.tree_size(vstate.parameters)
+N_params = nk.jax.tree_size(vvstate.parameters)
 print("Number of parameters = ", N_params, flush=True)
 
 # Variational monte carlo driver
@@ -354,15 +357,16 @@ from netket._src.driver.vmc_sr import VMC_SR
 
 vmc = VMC_SR(
     hamiltonian=hamiltonian,
-    optimizer=optimizer,
-    diag_shift=1e-4,
-    variational_state=vstate,
+    optimizer=voptimizer,
+    diag_shift=ds,
+    variational_state=vvstate,
     mode="complex",
 )
 
 # Optimization
 log = nk.logging.RuntimeLog()
-
+import sys
+sys.exit(0)
 vmc.run(n_iter=epochs, out=log)
 
 energy = log.data["Energy"]["Mean"].real / 4
