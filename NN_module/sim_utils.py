@@ -8,18 +8,20 @@ from NN_module.observables import (
 )
 
 
-def measureNdump(keeper, time_exe, exact_diag=False):
+def measureNdump(keeper, time_exe, exact_diag=False, S_operators=False):
 
-    E_ED = keeper.E_ED if hasattr(keeper, "E_ED") else None
+    s_factor = 4 if S_operators else 1
+
+    E_ED = keeper.E_ED / s_factor if hasattr(keeper, "E_ED") else None
     x_ED = keeper.x_ED if hasattr(keeper, "x_ED") else None
 
     vstate = keeper.best_state
     N = vstate.hilbert.size
 
     best_step = keeper.best_step
-    E_best = float(keeper.best_state_energy)
+    E_best = float(keeper.best_state_energy) / s_factor
     E_best_per_site = E_best / N
-    vscore = float(keeper.best_state_vscore)
+    vscore = s_factor * float(keeper.best_state_vscore)
 
     modphase_results = {}
     if exact_diag:
@@ -51,7 +53,7 @@ def measureNdump(keeper, time_exe, exact_diag=False):
         print(f"Failed fidelity calculation due to memory allocation error")
 
     # Renyi entropy, magnetization and its fluctuation
-    S_renyi, m, ms, m2, ms2 = calc_all_observables_vs(vstate)
+    S_renyi, m, ms, m2, ms2 = calc_all_observables_vs(vstate, S_operators=S_operators)
 
     print(f"\nRenyi entropy: {S_renyi}")
     print(f"< m >: {m}   < m2 >: {m2}")

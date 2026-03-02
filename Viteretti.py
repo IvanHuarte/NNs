@@ -8,6 +8,7 @@ from einops import rearrange
 
 print(jax.devices())
 
+
 def extract_patches2d(x, patch_size):
     batch = x.shape[0]
     n_patches = int((x.shape[1] // patch_size**2) ** 0.5)
@@ -35,7 +36,8 @@ class Embed(nn.Module):
         x = self.embed(x)
 
         return x
-    
+
+
 class FactoredAttention(nn.Module):
     n_patches: int  # lenght of the input sequence
     d_model: int  # dimensionality of the embedding space (d in the equations)
@@ -51,7 +53,8 @@ class FactoredAttention(nn.Module):
     def __call__(self, x):
         y = jnp.einsum("i j, a b, M j b-> M i a", self.alpha, self.V, x)
         return y
-    
+
+
 from functools import partial
 
 
@@ -132,7 +135,8 @@ class FMHA(nn.Module):
         x = self.W(x)
 
         return x
-    
+
+
 class EncoderBlock(nn.Module):
     d_model: int  # dimensionality of the embedding space
     n_heads: int  # number of heads
@@ -172,7 +176,8 @@ class EncoderBlock(nn.Module):
 
         x = x + self.ff(self.layer_norm_2(x))
         return x
-    
+
+
 class Encoder(nn.Module):
     num_layers: int  # number of layers
     d_model: int  # dimensionality of the embedding space
@@ -197,7 +202,8 @@ class Encoder(nn.Module):
             x = l(x)
 
         return x
-    
+
+
 log_cosh = (
     nk.nn.activation.log_cosh
 )  # Logarithm of the hyperbolic cosine, implemented in a more stable way
@@ -240,7 +246,8 @@ class OuputHead(nn.Module):
         out = out_real + 1j * out_imag
 
         return jnp.sum(log_cosh(out), axis=-1)
-    
+
+
 class ViT(nn.Module):
     num_layers: int  # number of layers
     d_model: int  # dimensionality of the embedding space
@@ -269,6 +276,7 @@ class ViT(nn.Module):
 
         return log_psi
 
+
 ##### GROUND STATE OPTIMIZATION #####
 
 seed = 0
@@ -276,22 +284,22 @@ key = jax.random.key(seed)
 
 M = 200
 
-#Model
+# Model
 L = 4
 n_dim = 2
 J2 = 0.5
 
-#sampler and vstate
+# sampler and vstate
 N_samples = 1024
 chunk_size = 1024
 learning_rate = 0.01
 
-#ViT
-num_layers=2
-d_model=30
-n_heads=5
-patch_size=2
-transl_invariant=True
+# ViT
+num_layers = 2
+d_model = 30
+n_heads = 5
+patch_size = 2
+transl_invariant = True
 
 ds = 1e-4
 
@@ -320,7 +328,11 @@ hamiltonian = nk.operator.Heisenberg(
 
 # Intiialize the ViT variational wave function
 vit_module = ViT(
-    num_layers=num_layers, d_model=d_model, n_heads=n_heads, patch_size=patch_size, transl_invariant=True
+    num_layers=num_layers,
+    d_model=d_model,
+    n_heads=n_heads,
+    patch_size=patch_size,
+    transl_invariant=True,
 )
 
 key, subkey = jax.random.split(key)
@@ -366,14 +378,14 @@ vmc = VMC_SR(
 # Optimization
 log = nk.logging.RuntimeLog()
 import sys
+
 sys.exit(0)
 vmc.run(n_iter=epochs, out=log)
 
 energy = log.data["Energy"]["Mean"].real / 4
 energy_per_site = log.data["Energy"]["Mean"].real / (L * L)
 var = log.data["Energy"]["Variance"].real / 4
-vscore = L * L * var / energy**2 
+vscore = L * L * var / energy**2
 print(f"Energy: {energy}")
 print(f"Vscore: {vscore}")
 print(f"Energy per site: {energy_per_site[-1]}")
-
