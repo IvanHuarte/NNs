@@ -17,7 +17,7 @@ from .SingleModels.ViT import ViT
 from .SingleModels.VViT import VViT
 
 from .SingleModels.Ansatz import Factorized, FactorMod, Jastrow_wrap
-from .SingleModels.FluxFunc import Sum, Mean
+from .SingleModels.FluxFunc import Sum, Mean, OutputHead
 
 from .toolbox import MarshallSign, CarreteSign
 
@@ -52,6 +52,7 @@ __all_single__ = [
     "Factorized",
     "FactorMod",
     "Jastrow_wrap",
+    "OutputHead",
     "Sum",
     "Mean",
 ]
@@ -86,6 +87,7 @@ REGISTRY_SINGLE = {
     "Factorized": Factorized,
     "FactorMod": FactorMod,
     "Jastrow_wrap": Jastrow_wrap,
+    "OutputHead": OutputHead,
     "Sum": Sum,
     "Mean": Mean,
 }

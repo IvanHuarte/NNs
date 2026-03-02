@@ -161,15 +161,15 @@ for i, size in enumerate(sizes):
         sampler_factory = SamplerFactory(sampler_setup, cm_model=cm_model)
         sampler = sampler_factory.get_sampler(hi)
 
-        lattice = nk.graph.Hypercube(length=N, n_dim=2, pbc=True, max_neighbor_order=2)
+        # lattice = nk.graph.Hypercube(length=N, n_dim=2, pbc=True, max_neighbor_order=2)
 
-        vsampler = nk.sampler.MetropolisExchange(
-            hilbert=hi,
-            graph=lattice,
-            d_max=2,
-            n_chains=n_samples,
-            sweep_size=lattice.n_nodes,
-        )
+        # vsampler = nk.sampler.MetropolisExchange(
+        #     hilbert=hi,
+        #     graph=lattice,
+        #     d_max=2,
+        #     n_chains=n_samples,
+        #     sweep_size=lattice.n_nodes,
+        # )
 
         #### INITIALIZE LOGGER ####
         log = nk.logging.RuntimeLog()
@@ -248,22 +248,25 @@ for i, size in enumerate(sizes):
             )
 
             #### INITIALIZE OLD VMC WITH SEPARATED SR ####
-            # sr = nk.optimizer.SR(diag_shift=ds_schedule[i])
-            # gs = nk.driver.VMC(
-            #     H, optimizer, variational_state=vstate, preconditioner=sr
-            # )
-
-            #### INITIALIZING VMC RUN WITH STOCHASTIC RECONFIGURATION ####
-            gs = nk.driver.VMC_SR(
-                hamiltonian=H.to_jax_operator(),
+            sr = nk.optimizer.SR(diag_shift=ds_schedule[i])
+            vmc = nk.driver.VMC(
+                H.to_jax_operator(),
                 optimizer=optimizer,
-                variational_state=vstate,
-                diag_shift=1e-4,
-                mode="complex",
+                variational_state=vstate, 
+                preconditioner=sr
             )
 
+            #### INITIALIZING VMC RUN WITH STOCHASTIC RECONFIGURATION ####
+            # vmc = nk.driver.VMC_SR(
+                # hamiltonian=H.to_jax_operator(),
+                # optimizer=optimizer,
+                # variational_state=vstate,
+                # diag_shift=1e-4,
+                # mode="complex",
+            # )
+
             print(f"\nTraining {mode} for {epochs} epochs...")
-            gs.run(
+            vmc.run(
                 n_iter=epochs,
                 out=log,
                 callback=callback_funcs,

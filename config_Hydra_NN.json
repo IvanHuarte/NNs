@@ -40,26 +40,33 @@
         },
         
         "CvT":{
-            "n_CP_blocks":[1, 1],
-            "channels": [64, 32],
-            "attn_heads":[4, 4],
+            "n_CP_blocks":[2],
+            "channels": [32],
+            "attn_heads":[4],
             "kernel": [3, 3],
             "final_architecture": null
         },
         "CMLP":{
-            "hidden_alpha": [2, 1],
-            "activation": ["Crelu", "Crelu"],
+            "hidden_alpha": [1],
+            "activation": ["0"],
             "final_architecture": null,
-            "only_phase": true
+            "only_phase": false
         },
-        
         
         "MLP":{
-            "hidden_alpha": [4, 2],
-            "activation": ["Crelu", "Crelu"],
+            "hidden_alpha": [1],
+            "activation": ["0"],
             "final_architecture": null,
             "only_phase": true
         },
+
+        "MLP_2":{
+            "hidden_alpha": [1],
+            "activation": ["0"],
+            "final_architecture": null,
+            "only_phase": true
+        },
+
         "CvTaps":{
             "n_CP_blocks": [2, 2, 2],
             "channels": [32, 16, 4],
@@ -120,10 +127,19 @@
         
 
         "Sum":{
-            "axis":-1
+            "axis": 1
         },
+
+        "Sum_1":{
+            "axis": -1
+        },
+
         "Mean":{
             "axis": 1
+        },
+
+        "OutputHead":{
+            "d_model": 32
         }
 }
     

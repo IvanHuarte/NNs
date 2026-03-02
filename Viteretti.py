@@ -238,6 +238,8 @@ class OuputHead(nn.Module):
 
     def __call__(self, x):
 
+        x = x.reshape(x.shape[0], -1, x.shape[-1])
+
         z = self.out_layer_norm(x.sum(axis=1))
 
         out_real = self.norm2(self.output_layer0(z))
