@@ -72,7 +72,7 @@ class Exchange(MetropolisRule):
     neighbors: jax.typing.ArrayLike
     nn_max: int
     nn_dim: jax.typing.ArrayLike
-    sigma: float = 0.85  # parameter to adjust neighbor selection
+    sigma: float = 1.1  # parameter to adjust neighbor selection
 
     @override
     def random_state(

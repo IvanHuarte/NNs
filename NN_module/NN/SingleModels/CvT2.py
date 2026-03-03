@@ -38,14 +38,26 @@ class ConvProjectionBlock(nn.Module):
         ), "Channels must be divisible by the number of heads"
         head_dim = self.channels // self.n_heads
 
-        Q = DepthPointwiseConv(
-            self.channels, kernel=self.kernel, strides=self.strides_qkv[0]
+        Q = nn.Conv(
+            features=self.channels,
+            kernel_size=self.kernel,
+            strides=(1, 1),
+            padding="CIRCULAR",
+            dtype=REAL_DTYPE,
         )(x)
-        K = DepthPointwiseConv(
-            self.channels, kernel=self.kernel, strides=self.strides_qkv[1]
+        K = nn.Conv(
+            features=self.channels,
+            kernel_size=self.kernel,
+            strides=(1, 1),
+            padding="CIRCULAR",
+            dtype=REAL_DTYPE,
         )(x)
-        V = DepthPointwiseConv(
-            self.channels, kernel=self.kernel, strides=self.strides_qkv[2]
+        V = nn.Conv(
+            features=self.channels,
+            kernel_size=self.kernel,
+            strides=(1, 1),
+            padding="CIRCULAR",
+            dtype=REAL_DTYPE,
         )(x)
 
         _, Hq, Wq, _ = (
@@ -78,22 +90,24 @@ class ConvProjectionBlock(nn.Module):
             .reshape((B, Hq, Wq, self.channels))
         )
 
-        x = nn.LayerNorm(dtype=REAL_DTYPE, param_dtype=REAL_DTYPE)(x + attention)
+        x = nn.LayerNorm(param_dtype=REAL_DTYPE)(x + attention)
 
-        # MLP
+        # FFN block
         x_ffn = x.reshape((B, Nq, self.channels))  # Reshape to (B, Hq*Wq, channels)
         x_ffn = MultiLayerPerceptron(
-            layer_widths=tuple([x_ffn.shape[-1]] * self.n_mlp_layers),
+            layer_widths=tuple([4 * self.channels] * self.n_mlp_layers),
+            activation_function=nn.gelu,
         )(x_ffn)
+        x_ffn = nn.Dense(self.channels, param_dtype=REAL_DTYPE)(x_ffn)
         x_ffn = x_ffn.reshape((B, Hq, Wq, self.channels))
-        x_ffn = nn.LayerNorm(dtype=REAL_DTYPE, param_dtype=REAL_DTYPE)(x_ffn)
+        x_ffn = nn.LayerNorm(param_dtype=REAL_DTYPE)(x_ffn)
         # print(f"After MLP: {x_ffn.shape}")
         return x + x_ffn
 
 
 class StageBlock(nn.Module):
     """
-    Implementation of a stage block for CvT.
+    Implementation of a stage block for CvT2.
     It consists of a convolutional token embedding followed by multiple
     convolutional projection blocks. x = (B, H, W, Ch)
     Inputs:
@@ -112,43 +126,35 @@ class StageBlock(nn.Module):
         # print(f"Beginning Stage")
         # print(f"Input shape: {x.shape}")
 
-        mask = get_mask("")
-        mask = jnp.broadcast_to(
-            mask[:, :, None, None], (*mask.shape, x.shape[-1], self.channels)
-        )
-        if self.kernel[1] == 1:
-            mask = None
-
         # Convolutional token embedding
         x = nn.Conv(
             features=self.channels,
             kernel_size=self.kernel,
             strides=(1, 1),
             padding="CIRCULAR",
-            # mask=mask,
             dtype=REAL_DTYPE,
         )(x)
 
-        x = nn.LayerNorm(dtype=REAL_DTYPE, param_dtype=REAL_DTYPE)(x)
         # print(f"After Conv embedding: {x.shape}")
         # Convolutional projection blocks
         for _ in range(self.n_CP_blocks):
+            x = nn.LayerNorm(param_dtype=REAL_DTYPE)(x)
             x = ConvProjectionBlock(
                 channels=self.channels,
                 n_heads=self.n_heads,
                 kernel=self.kernel,
             )(x)
 
-        return log_cosh(x)
+        return x
 
 
-class CvTWorker(nn.Module):
+class CvT2Worker(nn.Module):
     """
-    Convolutional Vision Transformer (CvT) implementation.
+    Convolutional Vision Transformer (CvT2) implementation.
     It consists of multiple stages, each containing a convolutional token embedding
     followed by a series of convolutional projection blocks.
     Inputs:
-        n_stages: Number of stages in the CvT model.
+        n_stages: Number of stages in the CvT2 model.
         n_blocks: Number of convolutional projection blocks in each stage.
         channels: Number of channels in the convolutional token embedding in
                         each stage.
@@ -179,7 +185,7 @@ class CvTWorker(nn.Module):
 
     @nn.compact
     def __call__(self, x: jt.ArrayLike) -> jt.ArrayLike:
-        # print(f"Begging CvT")
+        # print(f"Begging CvT2")
         # print(f"Input shape: {x.shape}")
 
         B = x.shape[0]
@@ -227,7 +233,7 @@ class CvTWorker(nn.Module):
                 return x
 
 
-class CvT_Z2(nn.Module):
+class CvT2_Z2(nn.Module):
 
     lattice_size: Tuple[int, int]
 
@@ -254,7 +260,7 @@ class CvT_Z2(nn.Module):
     @nn.compact
     def __call__(self, x: jt.ArrayLike) -> jt.ArrayLike:
 
-        worker = CvTWorker(
+        worker = CvT2Worker(
             lattice_size=self.lattice_size,
             n_CP_blocks=self.n_CP_blocks,
             channels=self.channels,
@@ -277,7 +283,7 @@ class CvT_Z2(nn.Module):
             return jax.nn.logsumexp(z2_stack, b=b, axis=0, keepdims=False)
 
 
-class CvT(nn.Module):
+class CvT2(nn.Module):
 
     lattice_size: Tuple[int, int]
 
@@ -308,7 +314,7 @@ class CvT(nn.Module):
     def __call__(self, x: jt.ArrayLike) -> jt.ArrayLike:
 
         if self.symm_Z2:
-            worker = CvT_Z2(
+            worker = CvT2_Z2(
                 lattice_size=self.lattice_size,
                 n_CP_blocks=self.n_CP_blocks,
                 channels=self.channels,
@@ -320,7 +326,7 @@ class CvT(nn.Module):
                 phasors=self.phasors,
             )
         else:
-            worker = CvTWorker(
+            worker = CvT2Worker(
                 lattice_size=self.lattice_size,
                 n_CP_blocks=self.n_CP_blocks,
                 channels=self.channels,

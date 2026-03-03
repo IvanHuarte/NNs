@@ -11,10 +11,10 @@
         
         "keeper_setup":{
             "baseline": 1e-8,
-            "mode": "best_energy"
+            "mode": "always"
         },        
         "modphase_setup": {
-            "plot_each": 10,
+            "plot_each": 25,
             "no_null_mod": false,
             "logscale": false
         },
@@ -41,7 +41,7 @@
             "prules": [1.0]
         },
         "n_ranks": 1,
-        "n_chains_per_rank": 1024,
+        "n_chains_per_rank": 2048,
         "n_samples_per_chain": 1,
         "chunk_sampler": null,
         "chunk_vstate": 1024
@@ -51,19 +51,22 @@
 
         "learning_rate":{
             "epochs_struct":[
+                
                 [ 
-                    [5]
+                    [2000]
                 ]
             ],
 
             "modes_struct":[
+                
                 [
                     [ ["A"] ]
                 ]
             ],
             "lr_struct":[
-                [  
-                    [ ["lin(0.01,0.001,4)"] ]
+                
+                [
+                    [ [0.0075] ]
                 ]
             ],
             "repeat":[], 

@@ -70,7 +70,9 @@ sim_uuid = artifact["metadata"]
 
 kwargs = {"size": size, **artifact["CM"], **artifact["NN"]["setup"]}
 
-sim_label, _, _, callback = get_filenames_from_settings(cm_model_setup, {"name":nn_model_name, "setup":{}})
+sim_label, _, _, callback = get_filenames_from_settings(
+    cm_model_setup, {"name": nn_model_name, "setup": {}}
+)
 title = callback.replace("Callback", "").lstrip().replace(" ", "\\quad")
 
 filename = f"Modphase_plot_{sim_label}"
@@ -100,7 +102,7 @@ if "xED" in artifact["_artifacts"]["modphase"]:
     stats_ED = artifact["results"]["modphase"]["xED"]
 
 if mod_vs.shape[-1] != 2**N:
-    vstate_label = f"Approximated ({artifact['sampler']['n_samples']} samples)"
+    vstate_label = f"Approximated ({artifact['SIM']['sampler']['nsamples']} samples)"
 else:
     vstate_label = "Exact"
 
@@ -205,9 +207,8 @@ else:
     ax[0].set_title(r"$Modulus\;and\;Phase\qquad %s$" % (title), fontsize=10)
     ax[0].set_xticks([])
     ax[0].set_ylabel(r"$Modulus$")
-    ax[0].set_ylim(-0.01, max(max(mod_ED), max(mod_vs)) * 9 / 8)
+    ax[0].set_ylim(-0.00001, max(mod_vs) * 9 / 8)
     ax[0].plot(mod_vs, alpha=0.6, color="r", label="vstate")
-    ax[0].plot(mod_ED, alpha=0.6, label="ED")
     ax[0].legend()
 
     ax[1].set_xlabel(r"$C_i$")
@@ -232,19 +233,20 @@ else:
         alpha=0.7,
         label="vstate",
     )
-    ax[3].text(
+    ax[2].text(
         0.8,
         0.7,
         r"$\varphi_{vs}=%.2f \pm %.2f$"
-        % (stats_ED["mean"], stats_ED["std"], stats_vs["mean"], stats_vs["std"]),
-        transform=ax[3].transAxes,
-        bbox=dict(facecolor="white", alpha=0.4, fontsize=10),
+        % (stats_vs["phase"]["mean"], stats_vs["phase"]["std"]),
+        fontsize=10,
+        transform=ax[2].transAxes,
+        bbox=dict(facecolor="white", alpha=0.4),
     )
-    transform = mtransforms.blended_transform_factory(ax[3].transData, ax[3].transAxes)
+    transform = mtransforms.blended_transform_factory(ax[2].transData, ax[2].transAxes)
 
     if stats_vs["peaks"] is not None:
         for peak in stats_vs["peaks"]["values"]:
-            ax[3].text(
+            ax[2].text(
                 peak - 0.1,
                 0.9,
                 r"%.2f" % peak,

@@ -294,12 +294,12 @@ J2 = 0.5
 # sampler and vstate
 N_samples = 1024
 chunk_size = 1024
-learning_rate = 0.01
+learning_rate = 0.0075
 
 # ViT
 num_layers = 2
-d_model = 30
-n_heads = 5
+d_model = 60
+n_heads = 10
 patch_size = 2
 transl_invariant = True
 
@@ -381,7 +381,7 @@ vmc = VMC_SR(
 log = nk.logging.RuntimeLog()
 import sys
 
-sys.exit(0)
+# sys.exit(0)
 vmc.run(n_iter=epochs, out=log)
 
 energy = log.data["Energy"]["Mean"].real / 4

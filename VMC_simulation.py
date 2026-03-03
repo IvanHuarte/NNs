@@ -156,14 +156,26 @@ for i, size in enumerate(sizes):
         print(f"Total samples: {n_samples}\n")
         print_tree(hydra.setup, values=True)
 
+        # from NN_module.NN.SingleModels.VViT import VViT
+
+        # model = VViT(
+        #     num_layers=2,
+        #     d_model=30,
+        #     n_heads=5,
+        #     patch_size=2,
+        #     transl_invariant=True,
+        # )
+
         #### INITIALIZE SAMPLER ####
         print("Initializing sampler...")
         sampler_factory = SamplerFactory(sampler_setup, cm_model=cm_model)
         sampler = sampler_factory.get_sampler(hi)
 
-        # lattice = nk.graph.Hypercube(length=N, n_dim=2, pbc=True, max_neighbor_order=2)
+        # lattice = nk.graph.Hypercube(
+        #     length=size[0], n_dim=2, pbc=True, max_neighbor_order=2
+        # )
 
-        # vsampler = nk.sampler.MetropolisExchange(
+        # sampler = nk.sampler.MetropolisExchange(
         #     hilbert=hi,
         #     graph=lattice,
         #     d_max=2,
@@ -177,7 +189,7 @@ for i, size in enumerate(sizes):
 
         #### INITIALIZE VSTATE ####
         print("Initializing Variational State...")
-        seed = int(0)
+        seed = int(time.time())
         key = jax.random.key(seed)
         vstate = nk.vqs.MCState(
             sampler=sampler,
@@ -246,24 +258,26 @@ for i, size in enumerate(sizes):
             optimizer = schedule.transform_optimizer(
                 vstate.parameters, optax.sgd, info, lr_period
             )
+            # optimizer = nk.optimizer.Sgd(learning_rate=0.01)
 
             #### INITIALIZE OLD VMC WITH SEPARATED SR ####
-            sr = nk.optimizer.SR(diag_shift=ds_schedule[i])
-            vmc = nk.driver.VMC(
-                H.to_jax_operator(),
-                optimizer=optimizer,
-                variational_state=vstate, 
-                preconditioner=sr
-            )
+            # sr = nk.optimizer.SR(diag_shift=ds_schedule[i])
+            # vmc = nk.driver.VMC(
+            #     H.to_jax_operator(),
+            #     optimizer=optimizer,
+            #     variational_state=vstate,
+            #     preconditioner=sr,
+            # )
+            # sys.exit(0)
 
             #### INITIALIZING VMC RUN WITH STOCHASTIC RECONFIGURATION ####
-            # vmc = nk.driver.VMC_SR(
-                # hamiltonian=H.to_jax_operator(),
-                # optimizer=optimizer,
-                # variational_state=vstate,
-                # diag_shift=1e-4,
-                # mode="complex",
-            # )
+            vmc = nk.driver.VMC_SR(
+                hamiltonian=H.to_jax_operator(),
+                optimizer=optimizer,
+                variational_state=vstate,
+                diag_shift=1e-4,
+                mode="complex",
+            )
 
             print(f"\nTraining {mode} for {epochs} epochs...")
             vmc.run(

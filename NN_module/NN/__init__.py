@@ -8,6 +8,7 @@ from .Factories.Transversal import Transversal
 from .SingleModels.CNN import CNN
 from .SingleModels.CNNLiang import CNNLiang
 from .SingleModels.CvT import CvT
+from .SingleModels.CvT2 import CvT2
 from .SingleModels.CvTaps import CvTaps
 from .SingleModels.MLP import MLP
 from .SingleModels.CMLP import CMLP
@@ -36,6 +37,7 @@ __all_single__ = [
     "CNN",
     "CNNLiang",
     "CvT",
+    "CvT2",
     "CvTaps",
     "CNNPh",
     "EDPPh",
@@ -48,8 +50,7 @@ __all_single__ = [
     "CMLP",
     "ViT2D",
     "ViT",
-    "VViT"
-    "Factorized",
+    "VViT" "Factorized",
     "FactorMod",
     "Jastrow_wrap",
     "OutputHead",
@@ -71,6 +72,7 @@ REGISTRY_SINGLE = {
     "CNN": CNN,
     "CNNLiang": CNNLiang,
     "CvT": CvT,
+    "CvT2": CvT2,
     "CvTaps": CvTaps,
     "CNNPh": CNNPh,
     "EDPPh": EDPPh,
@@ -102,6 +104,7 @@ LATTICE_SIZE = {
         "CNN",
         "CNNLiang",
         "CvT",
+        "CvT2",
         "CvTaps",
         "CNNPh",
         "EDPPh",

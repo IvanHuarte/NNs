@@ -49,6 +49,7 @@ def get_mask(name) -> jnp.ndarray:
             ]
         )
 
+
 def get_min_idx(x):
     """
     Input: x=x(s_i) (s_i = +1,-1) of shape (B, N)  where B
@@ -89,7 +90,7 @@ class CDense(nn.Module):
         cdtype = jnp.complex128 if self.param_dtype == jnp.float64 else jnp.complex64
 
         kernel = self.param(
-            'ckernel',
+            "ckernel",
             self.kernel_init,
             (x.shape[-1], self.features, 2),
             self.param_dtype,
@@ -98,22 +99,20 @@ class CDense(nn.Module):
 
         if self.use_bias:
             bias = self.param(
-                'cbias',
+                "cbias",
                 self.bias_init,
                 (self.features, 2),
                 self.param_dtype,
             )
-            cbias = (bias[:,  0] + 1j * bias[:, 1]).astype(dtype=cdtype)
+            cbias = (bias[:, 0] + 1j * bias[:, 1]).astype(dtype=cdtype)
         else:
             cbias = None
 
-        x, ckernel, cbias = self.promote_dtype(
-            x, ckernel, cbias, dtype=None
-        )
+        x, ckernel, cbias = self.promote_dtype(x, ckernel, cbias, dtype=None)
 
         assert x is not None
         assert kernel is not None
-        
+
         y = jax.lax.dot_general(
             x,
             ckernel,

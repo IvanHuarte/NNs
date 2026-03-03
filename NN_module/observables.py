@@ -59,14 +59,16 @@ def Ms2_vs(vstate):
 
 
 def calc_all_observables_vs(vstate):
-
-    S_renyi = renyi_vs(vstate)
+    if vstate.hilbert._total_sz is None:
+        S_renyi = float(renyi_vs(vstate))
+    else:
+        S_renyi = None
     m = M_vs(vstate)
     ms = Ms_vs(vstate)
     m2 = M2_vs(vstate)
     ms2 = Ms2_vs(vstate)
 
-    return float(S_renyi), float(m), float(ms), float(m2), float(ms2)
+    return S_renyi, float(m), float(ms), float(m2), float(ms2)
 
 
 # Exact Diagonalization calculations
