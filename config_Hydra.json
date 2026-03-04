@@ -1,6 +1,6 @@
 {
 
-    "selection": "CvT2OutputHead2",
+    "selection": "CvTOutputHead2",
 
     "load_from_Neel4x4": [
         "/home/ihuarte/Escritorio/Ivan/NNs/TrainedNetworks/J1J2Square/Factorized_trained_phases/Neel/J1J2Square_Factorized_results_4x4_J1J2_1.0_0.3_XYZ_0.0_0.0_0.0_date_20260130T112952_UUID_a42c6714.json"
@@ -26,6 +26,19 @@
     ],
     "load_from": [],
 
+    "CvTOutputHead2":{
+
+        "stage0": {
+            "template": {
+                "Sequential":{
+                    "CvT":{},
+                    "OutputHead":{}
+                }
+            },
+            "save_params": true
+            
+        }
+    },
     "CvT2OutputHead2Phase":{
 
         "stage0": {
@@ -58,19 +71,6 @@
 
     },
 
-    "CvT2OutputHead2":{
-
-        "stage0": {
-            "template": {
-                "Sequential":{
-                    "CvT2":{},
-                    "OutputHead":{}
-                }
-            },
-            "save_params": true
-            
-        }
-    },
     
     "Viteritti":{
 

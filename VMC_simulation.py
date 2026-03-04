@@ -260,24 +260,25 @@ for i, size in enumerate(sizes):
             )
             # optimizer = nk.optimizer.Sgd(learning_rate=0.01)
 
-            #### INITIALIZE OLD VMC WITH SEPARATED SR ####
-            # sr = nk.optimizer.SR(diag_shift=ds_schedule[i])
-            # vmc = nk.driver.VMC(
-            #     H.to_jax_operator(),
-            #     optimizer=optimizer,
-            #     variational_state=vstate,
-            #     preconditioner=sr,
-            # )
-            # sys.exit(0)
+            if config["vmc_sr"]:
 
-            #### INITIALIZING VMC RUN WITH STOCHASTIC RECONFIGURATION ####
-            vmc = nk.driver.VMC_SR(
-                hamiltonian=H.to_jax_operator(),
-                optimizer=optimizer,
-                variational_state=vstate,
-                diag_shift=1e-4,
-                mode="complex",
-            )
+                #### INITIALIZING VMC RUN WITH STOCHASTIC RECONFIGURATION ####
+                vmc = nk.driver.VMC_SR(
+                    hamiltonian=H.to_jax_operator(),
+                    optimizer=optimizer,
+                    variational_state=vstate,
+                    diag_shift=ds_schedule[i],
+                    mode="complex",
+                )
+            else:
+                #### INITIALIZE OLD VMC WITH SEPARATED SR ####
+                sr = nk.optimizer.SR(diag_shift=ds_schedule[i])
+                vmc = nk.driver.VMC(
+                    H.to_jax_operator(),
+                    optimizer=optimizer,
+                    variational_state=vstate,
+                    preconditioner=sr,
+                )
 
             print(f"\nTraining {mode} for {epochs} epochs...")
             vmc.run(
