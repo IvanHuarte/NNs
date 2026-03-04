@@ -26,12 +26,12 @@
     ],
     "load_from": [],
 
-    "ViT2DOutputHead2Phase":{
+    "CvT2OutputHead2Phase":{
 
         "stage0": {
             "template": {
                 "Sequential":{
-                    "ViT2D":{},
+                    "CvT2":{},
                     "OutputHead":{}
                 }
             },

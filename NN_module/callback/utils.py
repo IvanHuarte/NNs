@@ -158,7 +158,7 @@ def dump_callback(logger, settings, write=False):
         bbox=dict(boxstyle="round", facecolor="white", alpha=0.7),
     )
     # Plotting training setup
-    plot_schedule_setup(ax[0], schedule_setup)
+    plot_schedule_setup(ax[0], schedule_setup) if schedule_setup is not None else None
 
     ax[0].legend()
     ax[0].set_xlabel("Iteration")
@@ -196,11 +196,12 @@ def dump_callback(logger, settings, write=False):
             ms=3,
             color="tan",
         )
-    ax[e].set_yscale("log")
-    ax[e].legend()
-    ax[e].set_xlabel("Iteration")
-    ax[e].set_ylabel("Error", fontsize=12)
-    ax[e].grid()
+    if hasattr(logger, "E_ED"):
+        ax[e].set_yscale("log")
+        ax[e].legend()
+        ax[e].set_xlabel("Iteration")
+        ax[e].set_ylabel("Error", fontsize=12)
+        ax[e].grid()
 
     file_path = write_folder + f"Callback_" + sim_label
     figure_path = file_path + ".jpeg"
@@ -210,19 +211,5 @@ def dump_callback(logger, settings, write=False):
     plt.close()
 
     callback_artifacts["plot"] = figure_path
-
-    # Save the data
-    if write:
-        E_path = file_path + "_E_hist.txt"
-        error_path = file_path + "_error.txt"
-        vscore_path = file_path + "_vscore.txt"
-
-        np.savetxt(E_path, np.array(E_hist))
-        np.savetxt(error_path, np.array(error))
-        np.savetxt(vscore_path, np.array(vscore))
-
-        callback_artifacts["Energy"] = E_path
-        callback_artifacts["error"] = error_path
-        callback_artifacts["vscore"] = vscore_path
 
     return callback_artifacts

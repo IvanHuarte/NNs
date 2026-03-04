@@ -171,17 +171,17 @@ for i, size in enumerate(sizes):
         sampler_factory = SamplerFactory(sampler_setup, cm_model=cm_model)
         sampler = sampler_factory.get_sampler(hi)
 
-        # lattice = nk.graph.Hypercube(
-        #     length=size[0], n_dim=2, pbc=True, max_neighbor_order=2
-        # )
+        lattice = nk.graph.Hypercube(
+            length=size[0], n_dim=2, pbc=True, max_neighbor_order=2
+        )
 
-        # sampler = nk.sampler.MetropolisExchange(
-        #     hilbert=hi,
-        #     graph=lattice,
-        #     d_max=2,
-        #     n_chains=n_samples,
-        #     sweep_size=lattice.n_nodes,
-        # )
+        sampler = nk.sampler.MetropolisExchange(
+            hilbert=hi,
+            graph=lattice,
+            d_max=2,
+            n_chains=n_samples,
+            sweep_size=lattice.n_nodes,
+        )
 
         #### INITIALIZE LOGGER ####
         log = nk.logging.RuntimeLog()

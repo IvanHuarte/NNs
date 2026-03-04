@@ -45,12 +45,13 @@ def measureNdump(keeper, time_exe, exact_diag=False, S_operators=False):
     # Fidelity
     fidelity = None
     fidelity_per_site = None
-    try:
-        fidelity = float(jnp.abs(jnp.vdot(vstate.to_array(), x_ED.squeeze())))
-        fidelity_per_site = float(jnp.exp(jnp.log(fidelity) / N))
-        print(f"Fidelity: {fidelity:.3e}")
-    except (MemoryError, RuntimeError, ValueError):
-        print(f"Failed fidelity calculation due to memory allocation error")
+    if exact_diag:
+        try:
+            fidelity = float(jnp.abs(jnp.vdot(vstate.to_array(), x_ED.squeeze())))
+            fidelity_per_site = float(jnp.exp(jnp.log(fidelity) / N))
+            print(f"Fidelity: {fidelity:.3e}")
+        except (MemoryError, RuntimeError, ValueError):
+            print(f"Failed fidelity calculation due to memory allocation error")
 
     # Renyi entropy, magnetization and its fluctuation
     S_renyi, m, ms, m2, ms2 = calc_all_observables_vs(vstate)
@@ -58,7 +59,6 @@ def measureNdump(keeper, time_exe, exact_diag=False, S_operators=False):
     ms /= s_factor
     m2 /= s_factor**2
     ms2 /= s_factor**2
-
 
     print(f"\nRenyi entropy: {S_renyi}")
     print(f"< m >: {m}   < m2 >: {m2}")

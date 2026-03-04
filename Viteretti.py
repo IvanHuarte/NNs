@@ -1,10 +1,17 @@
 #!/home/ihuarte/miniconda3/envs/conda_env/bin/python
 
+from time import time
+import uuid
+
 import jax
 import jax.numpy as jnp
 import flax.linen as nn
 import netket as nk
 from einops import rearrange
+
+from NN_module.NN.utils import make_setup_serializable
+from NN_module.callback.utils import dump_callback
+from NN_module.sim_utils import measureNdump
 
 print(jax.devices())
 
@@ -292,12 +299,12 @@ n_dim = 2
 J2 = 0.5
 
 # sampler and vstate
-N_samples = 1024
-chunk_size = 1024
+N_samples = 4096
+chunk_size = 2048
 learning_rate = 0.0075
 
 # ViT
-num_layers = 2
+num_layers = 4
 d_model = 60
 n_heads = 10
 patch_size = 2
@@ -306,7 +313,7 @@ transl_invariant = True
 ds = 1e-4
 
 # Run
-epochs = 2000
+epochs = 800
 
 
 print(f"L = {L}  || J2 = {J2}")
@@ -379,15 +386,79 @@ vmc = VMC_SR(
 
 # Optimization
 log = nk.logging.RuntimeLog()
-import sys
 
 # sys.exit(0)
+time_in = time()
 vmc.run(n_iter=epochs, out=log)
+time_out = time()
 
-energy = log.data["Energy"]["Mean"].real / 4
-energy_per_site = log.data["Energy"]["Mean"].real / (L * L)
-var = log.data["Energy"]["Variance"].real / 4
+time_exe = time_out - time_in
+print(f"Execution time: {time_exe:.2f} seconds")
+
+energy = (log.data["Energy"]["Mean"].real)[-1]
+energy_per_site = energy / (L * L)
+var = (log.data["Energy"]["Variance"].real)[-1]
 vscore = L * L * var / energy**2
 print(f"Energy: {energy}")
 print(f"Vscore: {vscore}")
-print(f"Energy per site: {energy_per_site[-1]}")
+print(f"Energy per site: {energy_per_site}")
+
+import os
+from NN_module.saveNload import save_results
+
+
+path = "/home/ihuarte/Escritorio/Ivan/NNs/Viteretti_10x10/"
+os.makedirs(path, exist_ok=True)
+
+sim_uuid = str(uuid.uuid4())[:8]
+sim_label = "Viteretti_simulation_10x10_"
+
+log.best_state = vvstate
+log.best_step = epochs - 1
+log.best_state_energy = energy
+log.best_state_vscore = vscore
+
+print(hasattr(log, "E_ED"))
+
+callback_args = {
+    "size": [L, L],
+    "write_folder": path,
+    "time_exe": time_exe,
+    "sim_label": sim_label,
+    "title_label_callback": "Viteretti 10 x 10",
+    "best_step": epochs - 1,
+    "schedule_setup": None,
+    "do_each_checkpoint": None,
+}
+callback_artifacts = dump_callback(log, callback_args)
+## Calculate some observables
+results, mp_array_vs, _ = measureNdump(
+    log,
+    time_exe,
+    exact_diag=False,
+    S_operators=False,
+)
+
+## Save the results
+dump_setup = {
+    "results": results,
+    "optimizer": "Sgd",
+    "_artifacts": {"callback": callback_artifacts},
+}
+dump_setup = make_setup_serializable(dump_setup)
+
+dump_setup = {**dump_setup, "NN": None, "SIM": None, "CM": None}
+
+
+save_results(
+    vvstate,
+    dump_setup,
+    x_ED=None,
+    modphase=mp_array_vs,
+    modphase_ED=None,
+    write_folder=path,
+    sim_label=sim_label,
+    ED_label=None,
+    json_label="_results_",
+    sim_uuid=sim_uuid,
+)

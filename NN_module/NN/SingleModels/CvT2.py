@@ -94,13 +94,13 @@ class ConvProjectionBlock(nn.Module):
 
         # FFN block
         x_ffn = x.reshape((B, Nq, self.channels))  # Reshape to (B, Hq*Wq, channels)
-        x_ffn = MultiLayerPerceptron(
-            layer_widths=tuple([4 * self.channels] * self.n_mlp_layers),
-            activation_function=nn.gelu,
-        )(x_ffn)
-        x_ffn = nn.Dense(self.channels, param_dtype=REAL_DTYPE)(x_ffn)
-        x_ffn = x_ffn.reshape((B, Hq, Wq, self.channels))
+
+        x_ffn = nn.Dense(2 * self.channels, param_dtype=REAL_DTYPE)(x_ffn)
         x_ffn = nn.LayerNorm(param_dtype=REAL_DTYPE)(x_ffn)
+        x_ffn = nn.gelu(x_ffn)
+        x_ffn = nn.Dense(self.channels, param_dtype=REAL_DTYPE)(x_ffn)
+
+        x_ffn = x_ffn.reshape((B, Hq, Wq, self.channels))
         # print(f"After MLP: {x_ffn.shape}")
         return x + x_ffn
 
@@ -145,7 +145,7 @@ class StageBlock(nn.Module):
                 kernel=self.kernel,
             )(x)
 
-        return x
+        return log_cosh(nn.LayerNorm(param_dtype=REAL_DTYPE)(x))
 
 
 class CvT2Worker(nn.Module):

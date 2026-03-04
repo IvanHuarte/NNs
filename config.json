@@ -5,7 +5,7 @@
    "callback":{
         "keeper": true,
         "energy_plot": false,
-        "modphase": false,
+        "modphase": true,
         "sanity": false,
         "checkpoint":false,
         
@@ -14,7 +14,7 @@
             "mode": "always"
         },        
         "modphase_setup": {
-            "plot_each": 25,
+            "plot_each": 10,
             "no_null_mod": false,
             "logscale": false
         },
@@ -37,7 +37,7 @@
 
     "sampler":{
         "sampler":{
-            "rules": ["Exchange"],
+            "rules": ["ExchangeJ1J2"],
             "prules": [1.0]
         },
         "n_ranks": 1,
@@ -53,21 +53,24 @@
             "epochs_struct":[
                 
                 [ 
-                    [2000]
+                    [500, 1000, 500]
                 ]
+                
             ],
 
             "modes_struct":[
                 
                 [
-                    [ ["A"] ]
+                    [ ["A"], ["A"], ["A"] ]
                 ]
+                
             ],
             "lr_struct":[
                 
                 [
-                    [ [0.0075] ]
+                    [ [0.01], [0.005], [0.01] ]
                 ]
+                
             ],
             "repeat":[], 
             "rescale": 1.0
