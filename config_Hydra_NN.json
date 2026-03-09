@@ -40,16 +40,16 @@
         },
         
         "CvT2":{
-            "n_CP_blocks":[1, 1, 1, 1, 1],
-            "channels": [16, 8, 8, 8, 4],
-            "attn_heads":[4, 2, 2, 2, 1],
+            "n_CP_blocks":[1, 1],
+            "channels": [32, 32],
+            "attn_heads":[4, 4],
             "kernel": [3, 3],
             "final_architecture": null
         },
         "CvT":{
-            "n_CP_blocks":[1, 1, 1],
-            "channels": [8, 16, 32],
-            "attn_heads":[2, 4, 8],
+            "n_CP_blocks":[1, 1],
+            "channels": [64, 32],
+            "attn_heads":[8, 4],
             "kernel": [3, 3],
             "final_architecture": null
         },

@@ -171,17 +171,17 @@ for i, size in enumerate(sizes):
         sampler_factory = SamplerFactory(sampler_setup, cm_model=cm_model)
         sampler = sampler_factory.get_sampler(hi)
 
-        lattice = nk.graph.Hypercube(
-            length=size[0], n_dim=2, pbc=True, max_neighbor_order=2
-        )
+        # lattice = nk.graph.Hypercube(
+        #     length=size[0], n_dim=2, pbc=True, max_neighbor_order=2
+        # )
 
-        sampler = nk.sampler.MetropolisExchange(
-            hilbert=hi,
-            graph=lattice,
-            d_max=2,
-            n_chains=n_samples,
-            sweep_size=lattice.n_nodes,
-        )
+        # sampler = nk.sampler.MetropolisExchange(
+        #     hilbert=hi,
+        #     graph=lattice,
+        #     d_max=2,
+        #     n_chains=n_samples,
+        #     sweep_size=lattice.n_nodes,
+        # )
 
         #### INITIALIZE LOGGER ####
         log = nk.logging.RuntimeLog()
@@ -213,7 +213,7 @@ for i, size in enumerate(sizes):
         total_epochs = schedule.total_epochs
         schedule_setup["total_epochs"] = total_epochs
 
-        ds_schedule = jnp.linspace(1e-4, 1e-5, total_periods, dtype=jnp.float64)
+        ds_schedule = jnp.linspace(2e-4, 1e-4, total_periods, dtype=jnp.float64)
 
         #### INITIALIZE CALLBACKS ####
         if config["callback"]["checkpoint"]:

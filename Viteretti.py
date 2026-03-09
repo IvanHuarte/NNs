@@ -294,7 +294,7 @@ key = jax.random.key(seed)
 M = 200
 
 # Model
-L = 4
+L = 6
 n_dim = 2
 J2 = 0.5
 
