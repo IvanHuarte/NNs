@@ -18,7 +18,7 @@ from .SingleModels.ViT import ViT
 from .SingleModels.VViT import VViT
 
 from .SingleModels.Ansatz import Factorized, FactorMod, Jastrow_wrap
-from .SingleModels.FluxFunc import Sum, Mean, OutputHead
+from .SingleModels.FluxFunc import Sum, Mean, OutputHead, SzaboOutput
 
 from .toolbox import MarshallSign, CarreteSign
 
@@ -54,6 +54,7 @@ __all_single__ = [
     "FactorMod",
     "Jastrow_wrap",
     "OutputHead",
+    "SzaboOutput",
     "Sum",
     "Mean",
 ]
@@ -90,6 +91,7 @@ REGISTRY_SINGLE = {
     "FactorMod": FactorMod,
     "Jastrow_wrap": Jastrow_wrap,
     "OutputHead": OutputHead,
+    "SzaboOutput": SzaboOutput,
     "Sum": Sum,
     "Mean": Mean,
 }
@@ -119,6 +121,7 @@ LATTICE_SIZE = {
         "ViT",
         "Factorized",
         "FactorMod",
+        "SzaboOutput",
     ]
 }
 

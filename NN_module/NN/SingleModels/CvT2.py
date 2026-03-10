@@ -26,6 +26,7 @@ class ConvProjectionBlock(nn.Module):
 
     @nn.compact
     def __call__(self, x: jt.ArrayLike) -> jt.ArrayLike:
+
         # print(f"Begging ConvProjectionBlock")
         # print(f"Input shape: {x.shape}")
 
@@ -44,6 +45,8 @@ class ConvProjectionBlock(nn.Module):
             strides=(1, 1),
             padding="CIRCULAR",
             dtype=REAL_DTYPE,
+            kernel_init=nn.initializers.xavier_uniform(),
+            bias_init=jax.nn.initializers.zeros,
         )(x)
         K = nn.Conv(
             features=self.channels,
@@ -51,6 +54,8 @@ class ConvProjectionBlock(nn.Module):
             strides=(1, 1),
             padding="CIRCULAR",
             dtype=REAL_DTYPE,
+            kernel_init=nn.initializers.xavier_uniform(),
+            bias_init=jax.nn.initializers.zeros,
         )(x)
         V = nn.Conv(
             features=self.channels,
@@ -58,6 +63,8 @@ class ConvProjectionBlock(nn.Module):
             strides=(1, 1),
             padding="CIRCULAR",
             dtype=REAL_DTYPE,
+            kernel_init=nn.initializers.xavier_uniform(),
+            bias_init=jax.nn.initializers.zeros,
         )(x)
 
         _, Hq, Wq, _ = (
@@ -95,9 +102,17 @@ class ConvProjectionBlock(nn.Module):
         # FFN block
         x_ffn = x.reshape((B, Nq, self.channels))  # Reshape to (B, Hq*Wq, channels)
 
-        x_ffn = nn.Dense(self.channels, param_dtype=REAL_DTYPE)(x_ffn)
-        x_ffn = nn.LayerNorm(param_dtype=REAL_DTYPE)(x_ffn)
+        x_ffn = nn.Dense(
+            self.channels,
+            param_dtype=REAL_DTYPE,
+            kernel_init=nn.initializers.xavier_uniform(),
+        )(x_ffn)
         x_ffn = nn.gelu(x_ffn)
+        x_ffn = nn.Dense(
+            self.channels,
+            param_dtype=REAL_DTYPE,
+            kernel_init=nn.initializers.xavier_uniform(),
+        )(x_ffn)
 
         x_ffn = x_ffn.reshape((B, Hq, Wq, self.channels))
         # print(f"After MLP: {x_ffn.shape}")

@@ -70,7 +70,7 @@ def Callback(
 
     if config["sanity"]:
         print(f"Adding SanityMonitor")
-        sanity_monitor = SanityMonitor(config["callback"]["sanity_setup"])
+        sanity_monitor = SanityMonitor(config["sanity_setup"])
         callback_objects.append(sanity_monitor)
         callback_funcs.append(sanity_monitor)
 

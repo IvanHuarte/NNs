@@ -2,22 +2,6 @@
 
     "selection": "CvTOutputHead",
 
-    "load_from_Neel4x4": [
-        "/home/ihuarte/Escritorio/Ivan/NNs/TrainedNetworks/J1J2Square/Factorized_trained_phases/Neel/J1J2Square_Factorized_results_4x4_J1J2_1.0_0.3_XYZ_0.0_0.0_0.0_date_20260130T112952_UUID_a42c6714.json"
-    ],
-
-    "load_from_Neel6x6": [
-        "/home/ihuarte/Escritorio/Ivan/NNs/TrainedNetworks/J1J2Square/Factorized_trained_phases/Neel/6x6/J1J2Square_Factorized_results_6x6_J1J2_1.0_0.05_XYZ_0.0_0.0_0.0_date_20260213T172136_UUID_f022639c.json"
-    ],
-
-    "load_from_Neel8x8": [
-        "/home/ihuarte/Escritorio/Ivan/NNs/TrainedNetworks/J1J2Square/Factorized_trained_phases/Neel/8x8/J1J2Square_Factorized_results_8x8_J1J2_1.0_0.05_XYZ_0.0_0.0_0.0_date_20260213T181940_UUID_fb5f2089.json"
-    ],
-
-    "load_from_NeelStripped":[
-        "/home/ihuarte/Escritorio/Ivan/NNs/TrainedNetworks/J1J2Square/Factorized_trained_phases/Neel/J1J2Square_Factorized_results_4x4_J1J2_1.0_0.3_XYZ_0.0_0.0_0.0_date_20260130T112952_UUID_a42c6714.json",
-        "/home/ihuarte/Escritorio/Ivan/NNs/TrainedNetworks/J1J2Square/Factorized_trained_phases/Stripped/J1J2Square_Factorized_results_4x4_J1J2_1.0_0.9_XYZ_0.0_0.0_0.0_date_20260130T120159_UUID_a42c6714.json"
-    ],
     "load_from_NeelStripped_Gated":[
         "/home/ihuarte/Escritorio/Ivan/NNs/TrainedNetworks/J1J2Square/NeelStripped_Gated_SingleModule_Transversal__SingleModule___Transversal____FactorMod_Factorized_operation_Transversal___FactorMod_Factorized_operation_operation_mode/Size_4x4/ST_100-0000, 010_500-0000, 010/UUID_7e8a986e/J1J2Square_NeelStripped_Gated_results_4x4_J1J2_1.0_0.5_XYZ_0.0_0.0_0.0_date_20260205T171906_UUID_7e8a986e.json"
     ],
@@ -31,12 +15,11 @@
         "stage0": {
             "template": {
                 "Sequential":{
-                    "CvT":{},
+                    "CvT2":{},
                     "OutputHead":{}
                 }
             },
             "save_params": true
-            
         }
     },
     "CvT2OutputHead2Phase":{
@@ -49,7 +32,6 @@
                 }
             },
             "save_params": true
-            
         },
 
         "stage1": {

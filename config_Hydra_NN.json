@@ -47,9 +47,9 @@
             "final_architecture": null
         },
         "CvT":{
-            "n_CP_blocks":[1, 1],
-            "channels": [64, 32],
-            "attn_heads":[8, 4],
+            "n_CP_blocks":[1, 1, 1],
+            "channels": [64, 32, 16],
+            "attn_heads":[8, 4, 2],
             "kernel": [3, 3],
             "final_architecture": null
         },
@@ -148,7 +148,8 @@
         "OutputHead":{
             "d_model": 32,
             "only_phase": false
-        }
+        },
+        "SzaboOutput":{}
 }
     
 

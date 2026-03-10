@@ -21,7 +21,7 @@ class ConvProjectionBlock(nn.Module):
     channels: int
     n_heads: int = 1
     kernel: Tuple = (3, 3)
-    strides_qkv: Tuple[Tuple, Tuple, Tuple] = ((1, 1), (1, 1), (1, 1))
+    strides_qkv: Tuple[Tuple, Tuple, Tuple] = ((1, 1), (2, 2), (2, 2))
     n_mlp_layers: int = 1
 
     @nn.compact
@@ -112,27 +112,19 @@ class StageBlock(nn.Module):
         # print(f"Beginning Stage")
         # print(f"Input shape: {x.shape}")
 
-        mask = get_mask("")
-        mask = jnp.broadcast_to(
-            mask[:, :, None, None], (*mask.shape, x.shape[-1], self.channels)
-        )
-        if self.kernel[1] == 1:
-            mask = None
-
         # Convolutional token embedding
         x = nn.Conv(
             features=self.channels,
             kernel_size=self.kernel,
             strides=(1, 1),
             padding="CIRCULAR",
-            # mask=mask,
             dtype=REAL_DTYPE,
         )(x)
 
-        x = nn.LayerNorm(dtype=REAL_DTYPE, param_dtype=REAL_DTYPE)(x)
         # print(f"After Conv embedding: {x.shape}")
         # Convolutional projection blocks
         for _ in range(self.n_CP_blocks):
+            x = nn.LayerNorm(dtype=REAL_DTYPE, param_dtype=REAL_DTYPE)(x)
             x = ConvProjectionBlock(
                 channels=self.channels,
                 n_heads=self.n_heads,
@@ -195,13 +187,13 @@ class CvTWorker(nn.Module):
                 kernel=self.kernel,
             )(x)
 
-        # Works with termination module by default
-        if self.final_architecture is None:
-            return x
-
         # To work only with this module, we distinguish between real output
         # and imaginary output (modulus + phase).
         x = x.reshape(B, -1, x.shape[-1])
+
+        # Works with termination module by default
+        if self.final_architecture is None:
+            return x
 
         if self.two_heads:
 

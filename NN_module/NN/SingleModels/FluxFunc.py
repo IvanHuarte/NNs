@@ -6,6 +6,7 @@ from typing import Callable, Tuple
 
 from netket.nn.activation import log_cosh
 
+from NN_module.NN.SingleModels.CNN import REAL_DTYPE
 from NN_module.NN.SingleModels.MLP import DTYPE
 
 
@@ -70,3 +71,38 @@ class OutputHead(nn.Module):
             out = jnp.ones(out.shape, dtype=DTYPE) + 1.0j * out.imag
 
         return jnp.sum(log_cosh(out), axis=-1)
+
+
+class SzaboOutput(nn.Module):
+
+    lattice_size: Tuple[int, int]
+
+    @nn.compact
+    def __call__(self, x: jt.ArrayLike) -> jt.ArrayLike:
+
+        x_mod = nn.LayerNorm(use_scale=True, use_bias=True, param_dtype=REAL_DTYPE)(
+            x.sum(axis=1)
+        )
+        log_modulus = nn.Dense(
+            features=x.shape[-1],
+            param_dtype=REAL_DTYPE,
+            kernel_init=nn.initializers.lecun_normal(),
+        )(x_mod)
+        log_modulus = nn.LayerNorm(param_dtype=REAL_DTYPE)(log_modulus)
+
+        phase = nn.Conv(
+            features=x.shape[-1],
+            kernel_size=(3, 3),
+            strides=(1, 1),
+            padding="CIRCULAR",
+            dtype=REAL_DTYPE,
+            bias_init=jax.nn.initializers.zeros,
+        )(x.reshape(x.shape[0], *self.lattice_size, x.shape[-1]))
+        phase = phase.reshape(phase.shape[0], -1, phase.shape[-1])
+        # phase = nn.LayerNorm(use_scale=True, use_bias=True, param_dtype=REAL_DTYPE)(
+        #     phase
+        # )
+        phase = jnp.exp(1j * phase).sum(axis=1)
+
+        nruter = log_modulus + 1j * jnp.angle(phase)
+        return jnp.sum(log_cosh(nruter), axis=-1)

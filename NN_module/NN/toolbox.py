@@ -14,6 +14,8 @@ from flax.linen.dtypes import promote_dtype
 from flax.linen.linear import PromoteDtypeFn
 from typing import Callable, Sequence, Tuple, Any
 
+from optax import log_cosh
+
 from NN_module.NN_utils import traslations_2D
 
 REAL_DTYPE = jnp.float64
@@ -277,11 +279,6 @@ class DepthPointwiseConv(nn.Module):
     def __call__(self, x: jt.ArrayLike) -> jt.ArrayLike:
 
         Ch_in = x.shape[-1]
-
-        mask = get_mask("")
-        mask = jnp.broadcast_to(mask[:, :, None, None], (*mask.shape, 1, Ch_in))
-        if self.kernel[1] == 1:
-            mask = None
 
         # Depth-wise convolution (Aplica mascara adyacente a cada canal)
         x = nn.Conv(
