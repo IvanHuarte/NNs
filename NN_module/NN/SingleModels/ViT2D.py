@@ -59,7 +59,7 @@ class AffinityPosWeight(nn.Module):
         #         (x.shape[-2], x.shape[-2]),
         #         REAL_DTYPE,
         #     )
-            # weight = jnp.tile(weight_row, (x.shape[-2], 1))
+        # weight = jnp.tile(weight_row, (x.shape[-2], 1))
 
         return weight @ x
 
@@ -134,10 +134,7 @@ class CoreBlock(nn.Module):
         sa = MultiHeadPositionalAttention(
             self.token_lattice_size, self.n_heads, head_size
         )
-        x += sa(nn.LayerNorm(
-            dtype=REAL_DTYPE,
-            param_dtype=REAL_DTYPE
-        )(x))
+        x += sa(nn.LayerNorm(dtype=REAL_DTYPE, param_dtype=REAL_DTYPE)(x))
         # print(f"After attention: {x.shape}")
         ffn = MultiLayerPerceptron(
             [
@@ -205,7 +202,6 @@ class ViT2DWorker(nn.Module):
         if self.final_architecture is None:
             return x
 
-
         if self.two_heads:
 
             if self.phasors:
@@ -223,10 +219,9 @@ class ViT2DWorker(nn.Module):
             else:
                 x = x.mean(axis=1)
                 x = x.reshape((B, -1))
-                x = nn.Dense(
-                    1,
-                    param_dtype=REAL_DTYPE
-                )(MultiLayerPerceptron(self.final_architecture)(x))
+                x = nn.Dense(1, param_dtype=REAL_DTYPE)(
+                    MultiLayerPerceptron(self.final_architecture)(x)
+                )
                 # print(f"Final: {x.shape}")
 
                 return x

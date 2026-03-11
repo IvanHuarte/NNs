@@ -20,7 +20,6 @@ class Sequential_Worker(nn.Module):
     def setup(self):
 
         self.seq = self.Seq
-        self.end = self.ZZ if (isinstance(self.ZZ, nn.Module)) else lambda x: x
 
     def __call__(self, x: jnp.ndarray) -> jnp.ndarray:
 
