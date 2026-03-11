@@ -12,7 +12,6 @@ class Traslation(nn.Module):
     lattice_size: Tuple[int, int]
     TWrap: nn.Module
 
-    token_size: Tuple[int, int] = None
     irrep: Tuple[int] = (0, 0)  # Tuple (q_1, q_2) representing the irrep.
     save_memory: bool = False
 

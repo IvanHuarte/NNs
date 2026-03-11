@@ -13,9 +13,6 @@ class Sequential_Worker(nn.Module):
     """
 
     Seq: Tuple[nn.Module, ...]
-    ZZ: nn.Module | None
-
-    squeeze: Callable = lambda x: x
 
     def setup(self):
 
@@ -27,8 +24,6 @@ class Sequential_Worker(nn.Module):
 
         for module in self.seq:
             x = module(x)
-
-        x = self.end(x)
 
         return self.squeeze(x)
 
