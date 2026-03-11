@@ -9,7 +9,7 @@
         "energy_plot": false,
         "modphase": false,
         "sanity": false,
-        "checkpoint":false,
+        "checkpoint":true,
         
         "keeper_setup":{
             "baseline": 1e-8,
@@ -31,7 +31,7 @@
             }
         },
         "checkpoint_setup":{
-            "do_each":200,
+            "do_each":100,
             "async": false
         }
             
@@ -55,7 +55,7 @@
             "epochs_struct":[
                 
                 [ 
-                    [500]
+                    [1000]
                 ]
                 
             ],

@@ -42,23 +42,23 @@ class AffinityPosWeight(nn.Module):
         # print(x.shape)
 
         # Traslation 2D
-        if self.token_lattice_size is not None:
-            weight_row = self.param(
-                "alpha_delta",
-                nn.initializers.truncated_normal(stddev=jnp.sqrt(1.0 / x.shape[-2])),
-                (x.shape[-2],),
-                REAL_DTYPE,
-            )
-            weight = traslations_2D(
-                x=weight_row, size=self.token_lattice_size, memory=False
-            )
-        else:
-            weight = self.param(
-                "alpha_delta_nosymm",
-                nn.initializers.truncated_normal(stddev=jnp.sqrt(1.0 / x.shape[-2])),
-                (x.shape[-2], x.shape[-2]),
-                REAL_DTYPE,
-            )
+        # if self.token_lattice_size is not None:
+        weight_row = self.param(
+            "alpha_delta",
+            nn.initializers.truncated_normal(stddev=jnp.sqrt(1.0 / x.shape[-2])),
+            (x.shape[-2],),
+            REAL_DTYPE,
+        )
+        weight = traslations_2D(
+            x=weight_row, size=self.token_lattice_size, memory=False
+        )
+        # else:
+        #     weight = self.param(
+        #         "alpha_delta_nosymm",
+        #         nn.initializers.truncated_normal(stddev=jnp.sqrt(1.0 / x.shape[-2])),
+        #         (x.shape[-2], x.shape[-2]),
+        #         REAL_DTYPE,
+        #     )
             # weight = jnp.tile(weight_row, (x.shape[-2], 1))
 
         return weight @ x
@@ -147,7 +147,7 @@ class CoreBlock(nn.Module):
         )
         # print(f"After MLP: {ffn(x).shape}\n\n")
         # No LayerNorm here because it is already included in the perceptron.
-        return nk.nn.log_cosh(ffn(x) + x)
+        return ffn(x) + x
 
 
 class ViT2DWorker(nn.Module):
@@ -197,13 +197,14 @@ class ViT2DWorker(nn.Module):
             x = cb(x)
             # print(f"After CoreBlock: {x.shape}")
 
+        # To work only with this module, we distinguish between real output
+        # and imaginary output (modulus + phase).
+        x = x.reshape(B, -1, x.shape[-1])
+
         # Works with termination module by default
         if self.final_architecture is None:
             return x
 
-        # To work only with this module, we distinguish between real output
-        # and imaginary output (modulus + phase).
-        x = x.reshape(B, -1, x.shape[-1])
 
         if self.two_heads:
 
@@ -251,8 +252,6 @@ class ViT2DTokenize(nn.Module):
     two_heads: bool = False
     phasors: bool = False
 
-    symm_2D: bool = False
-
     @nn.compact
     def __call__(self, x):
         # print(f"Tokenize:")
@@ -283,10 +282,8 @@ class ViT2DTokenize(nn.Module):
         )
         # print(f"x_tokenized: {x.shape}")
 
-        token_size = self.token_size if self.symm_2D else None
-
         worker = ViT2DWorker(
-            token_lattice_size=token_size,
+            token_lattice_size=token_lattice_size,
             embedding_d=self.embedding_d,
             n_heads=self.n_heads,
             n_blocks=self.n_blocks,

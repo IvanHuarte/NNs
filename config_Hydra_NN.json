@@ -24,11 +24,11 @@
             "final_architecture":null
         },
         "ViT2D":{
-            "token_size": [2, 1],
-            "embedding_d": 32,
-            "n_heads": 4,
-            "n_blocks": 2,
-            "n_ffn_layers": 1,
+            "token_size": [2, 2],
+            "embedding_d": 60,
+            "n_heads": 10,
+            "n_blocks": 4,
+            "n_ffn_layers": 2,
             "final_architecture": null
         },
         "VViT":{
@@ -146,7 +146,7 @@
         },
 
         "OutputHead":{
-            "d_model": 32,
+            "d_model": 60,
             "only_phase": false
         },
         "SzaboOutput":{}

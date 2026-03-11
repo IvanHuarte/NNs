@@ -1,6 +1,6 @@
 {
 
-    "selection": "CvTOutputHead",
+    "selection": "ViT2DOutputHead",
 
     "load_from_NeelStripped_Gated":[
         "/home/ihuarte/Escritorio/Ivan/NNs/TrainedNetworks/J1J2Square/NeelStripped_Gated_SingleModule_Transversal__SingleModule___Transversal____FactorMod_Factorized_operation_Transversal___FactorMod_Factorized_operation_operation_mode/Size_4x4/ST_100-0000, 010_500-0000, 010/UUID_7e8a986e/J1J2Square_NeelStripped_Gated_results_4x4_J1J2_1.0_0.5_XYZ_0.0_0.0_0.0_date_20260205T171906_UUID_7e8a986e.json"
@@ -10,12 +10,12 @@
     ],
     "load_from": [],
 
-    "CvTOutputHead":{
+    "ViT2DOutputHead":{
 
         "stage0": {
             "template": {
                 "Sequential":{
-                    "CvT2":{},
+                    "ViT2D":{},
                     "OutputHead":{}
                 }
             },

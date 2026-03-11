@@ -68,8 +68,8 @@ class NeuralNetwork:
         setup = insert_external_kwargs(setup, external_args)
         self.setup = preprocess_setup(setup)
         self.model = self.build_module(deepfreeze(self.setup), external_args)
-        # print("\nBuilt Neural Network from setup...\n")
-        # print_tree(setup, values=True)
+        print("\nBuilding Neural Network from setup...\n")
+        print_tree(setup, values=True)
 
     def get_model(self):
         return self.model
