@@ -187,15 +187,17 @@ def dump_callback(logger, settings, write=False):
     if hasattr(logger, "E_ED"):
         ax[e].plot(error, color="red", label="E")
         ax[e].plot(best_step, error[best_step], marker="o", ms=3, color="gold")
-    if do_each_checkpoint is not None:
-        ax[e].plot(
-            checkpoint_indices,
-            error[checkpoint_indices],
-            ls="",
-            marker="o",
-            ms=3,
-            color="tan",
-        )
+
+        if do_each_checkpoint is not None :
+            ax[e].plot(
+                checkpoint_indices,
+                error[checkpoint_indices],
+                ls="",
+                marker="o",
+                ms=3,
+                color="tan",
+            )
+            
     if hasattr(logger, "E_ED"):
         ax[e].set_yscale("log")
         ax[e].legend()

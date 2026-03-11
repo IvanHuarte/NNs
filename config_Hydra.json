@@ -20,6 +20,22 @@
                 }
             },
             "save_params": true
+        },
+        "stage1": {
+            "template": {
+                "stage0":{}
+            },
+            "save_params": true,
+            "change_attr":{
+                "Sequential":{
+                    "symm_2D": true
+                }
+            },
+            "load": [
+                ["stage0", "0", "0"],
+                ["stage0", "1", "1"]
+            ]
+            
         }
     },
     "CvT2OutputHead2Phase":{
