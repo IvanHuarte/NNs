@@ -181,7 +181,7 @@ def insert_external_kwargs(setup: dict, external_args: dict):
 
 def get_submodules(father, n_mod):
     if father == "Sequential":
-        submodules = [f"Seq_{i}" for i in range(n_mod - 1)] + ["ZZ"]
+        submodules = [f"Seq_{i}" for i in range(n_mod)]
     elif father == "Transversal":
         submodules = [f"Trans_{i}" for i in range(n_mod)]
     elif father == "SplitTraining":
@@ -191,14 +191,12 @@ def get_submodules(father, n_mod):
     return submodules
 
 
-def setup_from_template(template, storage, symm_wrappers, father="", depth=0):
+def recursive_build_NN(template, storage, father="", depth=0):
 
     config = {}
     if not father:
         for k, v in template.items():
-            return setup_from_template(
-                v, storage, symm_wrappers, father=k, depth=depth + 1
-            )
+            return recursive_build_NN(v, storage, father=k, depth=depth + 1)
 
     elif father in factory_submodule_dict.keys():
         n_mod = len([1 for _, v in template.items() if isinstance(v, dict)])
@@ -206,18 +204,17 @@ def setup_from_template(template, storage, symm_wrappers, father="", depth=0):
         config["module"] = father
         config["setup"] = {}
         for i, (k, v) in enumerate(template.items()):
+
             if isinstance(v, dict):
                 config["setup"].update(
                     **{
-                        submodules[i]: setup_from_template(
-                            v, storage, symm_wrappers, father=k, depth=depth + 1
+                        submodules[i]: recursive_build_NN(
+                            v, storage, father=k, depth=depth + 1
                         )
                     }
                 )
             else:
                 config["setup"].update(**{k: v})
-        if depth == 1:
-            config["setup"].update(**symm_wrappers)
 
     else:
         if isinstance(template, dict):
@@ -226,8 +223,8 @@ def setup_from_template(template, storage, symm_wrappers, father="", depth=0):
 
                 for k, v in template.items():
                     config["module"] = k
-                    config["setup"] = setup_from_template(
-                        v, storage, symm_wrappers, father=k, depth=depth + 1
+                    config["setup"] = recursive_build_NN(
+                        v, storage, father=k, depth=depth + 1
                     )
 
             else:
@@ -241,6 +238,40 @@ def setup_from_template(template, storage, symm_wrappers, father="", depth=0):
 
         else:
             config[father] = template
+
+    return config
+
+
+def recursive_build_symm_wrapper(template, storage, symm_wrapper, count=0):
+
+    if count == len(symm_wrapper.keys()):
+        return recursive_build_NN(template, storage)
+
+    symm_key = list(symm_wrapper.keys())[count]
+    symmetrization = symm_wrapper[symm_key]
+
+    if symmetrization["on"]:
+        config = {}
+        config["module"] = symm_key
+        config["setup"] = {}
+        config["setup"]["Wrap"] = recursive_build_symm_wrapper(
+            template, storage, symm_wrapper, count=count + 1
+        )
+        for k, v in symmetrization.items():
+            if k != "on":
+                config["setup"][k] = v
+
+    else:
+        config = recursive_build_symm_wrapper(
+            template, storage, symm_wrapper, count=count + 1
+        )
+
+    return config
+
+
+def setup_from_template(template, storage, symm_wrappers):
+
+    config = recursive_build_symm_wrapper(template, storage, symm_wrappers)
 
     return config
 

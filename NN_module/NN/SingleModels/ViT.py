@@ -7,7 +7,9 @@ import jax.typing as jt
 import netket as nk
 import numpy.typing as npt
 
-from NN_module.NN_utils import REAL_DTYPE, circulant
+from NN_module.NN_utils import circulant
+
+DTYPE = jnp.float64
 
 
 class MultiLayerPerceptron(nn.Module):
@@ -36,16 +38,13 @@ class MultiLayerPerceptron(nn.Module):
             if w == 1:
                 normalizer = lambda x: x
             else:
-                normalizer = nn.LayerNorm(
-                    dtype=REAL_DTYPE,
-                    param_dtype=REAL_DTYPE
-                )
+                normalizer = nn.LayerNorm(param_dtype=DTYPE)
             x = self.activation_function(
                 normalizer(
                     nn.Dense(
                         w,
                         kernel_init=self.kernel_init,
-                        param_dtype=REAL_DTYPE,
+                        param_dtype=DTYPE,
                     )(x)
                 )
             )
@@ -61,7 +60,7 @@ class AffinityPosWeight(nn.Module):
             "alpha_delta",
             nn.initializers.truncated_normal(stddev=jnp.sqrt(1.0 / x.shape[-2])),
             (x.shape[-2],),
-            REAL_DTYPE,
+            DTYPE,
         )
         # print(f"7:input shape: {x.shape}")
         # print(f"7:weight_row shape: {weight_row.shape}")
@@ -84,7 +83,7 @@ class PositionalHead(nn.Module):
 
     @nn.compact
     def __call__(self, x: jt.ArrayLike) -> jt.ArrayLike:
-        value = nn.Dense(self.head_size, use_bias=False, param_dtype=REAL_DTYPE)
+        value = nn.Dense(self.head_size, use_bias=False, param_dtype=DTYPE)
         aff = AffinityPosWeight()
         # print(f"6:Input shape: {x.shape}")
         # print(f"6:Value shape: {value(x).shape}")
@@ -138,10 +137,7 @@ class CoreBlock(nn.Module):
         head_size = embedding_d // self.n_heads
         # print(f"4:Embedding dimension: {embedding_d}  Head size: {head_size}")
         sa = MultiHeadPositionalAttention(self.n_heads, head_size)
-        x += sa(nn.LayerNorm(
-            dtype=REAL_DTYPE,
-            param_dtype=REAL_DTYPE
-        )(x))
+        x += sa(nn.LayerNorm(dtype=DTYPE, param_dtype=DTYPE)(x))
         # print(f"After attention: {x.shape}")
         ffn = MultiLayerPerceptron(
             [
@@ -183,7 +179,7 @@ class RealSpinViT(nn.Module):
     def __call__(self, x):
         # print(f"3:Input shape_RSV: {x.shape}")
 
-        embedding = nn.Dense(self.embedding_d, param_dtype=REAL_DTYPE)
+        embedding = nn.Dense(self.embedding_d, param_dtype=DTYPE)
 
         # print(f"Input shape: {x.shape}")
         x = embedding(x)
@@ -204,7 +200,7 @@ class RealSpinViT(nn.Module):
         x = MultiLayerPerceptron(self.final_architecture)(x)
 
         # Fix the offset and scale.
-        return nn.Dense(1, param_dtype=REAL_DTYPE)(x).squeeze()
+        return nn.Dense(1, param_dtype=DTYPE)(x).squeeze()
 
 
 class SpinViTWorker(nn.Module):

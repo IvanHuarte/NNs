@@ -5,7 +5,7 @@ import jax.numpy as jnp
 from typing import Tuple, Callable
 from NN_module.NN.toolbox import DepthPointwiseConv, MarshallSign
 
-REAL_DTYPE = jnp.float64
+DTYPE = jnp.float64
 
 
 class CNNPh(nn.Module):
@@ -26,8 +26,8 @@ class CNNPh(nn.Module):
             strides=(1, 1),
             padding="CIRCULAR",
             # mask=mask,
-            dtype=REAL_DTYPE,
-            param_dtype=REAL_DTYPE,
+            dtype=DTYPE,
+            param_dtype=DTYPE,
             use_bias=self.use_bias,
             kernel_init=jax.nn.initializers.lecun_normal(),
         )(x)
@@ -62,8 +62,8 @@ class EDPPh(nn.Module):
         x = nn.Embed(
             N,
             self.channels,
-            dtype=REAL_DTYPE,
-            param_dtype=REAL_DTYPE,
+            dtype=DTYPE,
+            param_dtype=DTYPE,
         )(x_in)
         x = x.reshape(-1, *self.lattice_size, self.channels)
 
@@ -108,13 +108,11 @@ class CNNClsf(nn.Module):
                 strides=(1, 1),
                 padding="CIRCULAR",
                 # mask=mask,
-                dtype=REAL_DTYPE,
-                param_dtype=REAL_DTYPE,
+                dtype=DTYPE,
+                param_dtype=DTYPE,
                 kernel_init=jax.nn.initializers.lecun_normal(),
             )(x)
-            x = self.activation(
-                nn.LayerNorm(dtype=REAL_DTYPE, param_dtype=REAL_DTYPE)(x)
-            )
+            x = self.activation(nn.LayerNorm(dtype=DTYPE, param_dtype=DTYPE)(x))
 
         x = x.reshape(-1, self.lattice_size[0] * self.lattice_size[1], x.shape[-1])
         x = x.mean(axis=-1)
@@ -124,8 +122,8 @@ class CNNClsf(nn.Module):
         x = nn.softmax(x)
         phase = jnp.where(
             x[:, 0] > x[:, 1],
-            jnp.array([0.0], dtype=REAL_DTYPE),
-            jnp.array([jnp.pi], dtype=REAL_DTYPE),
+            jnp.array([0.0], dtype=DTYPE),
+            jnp.array([jnp.pi], dtype=DTYPE),
         )[:, None]
         print(f"phase shape: {phase.shape}")
 
@@ -154,13 +152,11 @@ class CNNbinClsf(nn.Module):
                 strides=(1, 1),
                 padding="CIRCULAR",
                 # mask=mask,
-                dtype=REAL_DTYPE,
-                param_dtype=REAL_DTYPE,
+                dtype=DTYPE,
+                param_dtype=DTYPE,
                 kernel_init=jax.nn.initializers.lecun_normal(),
             )(x)
-            x = self.activation(
-                nn.LayerNorm(dtype=REAL_DTYPE, param_dtype=REAL_DTYPE)(x)
-            )
+            x = self.activation(nn.LayerNorm(dtype=DTYPE, param_dtype=DTYPE)(x))
 
         x = x.reshape(-1, self.lattice_size[0] * self.lattice_size[1], x.shape[-1])
         x = x.mean(axis=-1)
@@ -207,12 +203,12 @@ class CNNbinClsf(nn.Module):
 #             strides=(1, 1),
 #             padding="CIRCULAR",
 #             # mask=mask,
-#             dtype=REAL_DTYPE,
-#             param_dtype=REAL_DTYPE,
+#             dtype=DTYPE,
+#             param_dtype=DTYPE,
 #             use_bias=self.use_bias,
 #             # kernel_init=jax.nn.initializers.lecun_normal(),
 #         )(x)
-#         x = nn.LayerNorm(dtype=REAL_DTYPE, param_dtype=REAL_DTYPE)(x)
+#         x = nn.LayerNorm(dtype=DTYPE, param_dtype=DTYPE)(x)
 #         x = x.reshape(x.shape[0], -1)
 #         # x = jnp.exp(1j * jnp.pi * x).sum(axis=-1, keepdims=True)
 
@@ -236,13 +232,13 @@ class CNNSzabo(nn.Module):
             kernel_size=kernel,
             strides=(1, 1),
             padding="CIRCULAR",
-            dtype=REAL_DTYPE,
-            param_dtype=REAL_DTYPE,
+            dtype=DTYPE,
+            param_dtype=DTYPE,
             use_bias=self.use_bias,
             kernel_init=jax.nn.initializers.lecun_normal(),
             bias_init=jax.nn.initializers.zeros,
         )(x)
-        x = nn.LayerNorm(dtype=REAL_DTYPE, param_dtype=REAL_DTYPE)(x)
+        x = nn.LayerNorm(dtype=DTYPE, param_dtype=DTYPE)(x)
         x = x.reshape(x.shape[0], -1)
         x = jnp.exp(1j * jnp.pi * x)
 
@@ -270,12 +266,12 @@ class CNNSzabo(nn.Module):
 #                 strides=(1, 1),
 #                 padding="CIRCULAR",
 #                 # mask=mask,
-#                 dtype=REAL_DTYPE,
-#                 param_dtype=REAL_DTYPE,
+#                 dtype=DTYPE,
+#                 param_dtype=DTYPE,
 #                 use_bias=self.use_bias,
 #                 kernel_init=jax.nn.initializers.lecun_normal(),
 #             )(x)
-#             x = nn.LayerNorm(dtype=REAL_DTYPE, param_dtype=REAL_DTYPE)(x)
+#             x = nn.LayerNorm(dtype=DTYPE, param_dtype=DTYPE)(x)
 #             x = nn.relu(x)
 #         x = x.reshape(-1, self.lattice_size[0] * self.lattice_size[1] * x.shape[-1])
 # x = nn.glu(x)

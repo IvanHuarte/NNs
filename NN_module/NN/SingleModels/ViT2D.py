@@ -21,15 +21,29 @@ import jax.typing as jt
 import netket as nk
 
 from NN_module.NN_utils import traslations_2D
-from ..toolbox import (
-    MultiLayerPerceptron,
-    two_heads,
-    two_heads_phasors,
-    glu_phasor,
-)
+from ..toolbox import MultiLayerPerceptron
+
+DTYPE = jnp.float64
 
 
-REAL_DTYPE = jnp.asarray(1.0).dtype
+def Tokenize(token_size, tok_lat_size, token_dim):
+    def nruter(x):
+        return (
+            x.reshape(
+                (
+                    x.shape[0],
+                    tok_lat_size[1],
+                    token_size[1],
+                    tok_lat_size[0],
+                    token_size[0],
+                ),
+                order="C",
+            )
+            .transpose((0, 1, 3, 2, 4))
+            .reshape(x.shape[0], -1, token_dim)
+        )
+
+    return nruter
 
 
 class AffinityPosWeight(nn.Module):
@@ -47,7 +61,7 @@ class AffinityPosWeight(nn.Module):
             "alpha_delta",
             nn.initializers.truncated_normal(stddev=jnp.sqrt(1.0 / x.shape[-2])),
             (x.shape[-2],),
-            REAL_DTYPE,
+            DTYPE,
         )
         weight = traslations_2D(
             x=weight_row, size=self.token_lattice_size, memory=False
@@ -57,7 +71,7 @@ class AffinityPosWeight(nn.Module):
         #         "alpha_delta_nosymm",
         #         nn.initializers.truncated_normal(stddev=jnp.sqrt(1.0 / x.shape[-2])),
         #         (x.shape[-2], x.shape[-2]),
-        #         REAL_DTYPE,
+        #         DTYPE,
         #     )
         # weight = jnp.tile(weight_row, (x.shape[-2], 1))
 
@@ -76,7 +90,7 @@ class PositionalHead(nn.Module):
 
     @nn.compact
     def __call__(self, x: jt.ArrayLike) -> jt.ArrayLike:
-        value = nn.Dense(self.head_size, use_bias=False, param_dtype=REAL_DTYPE)
+        value = nn.Dense(self.head_size, use_bias=False, param_dtype=DTYPE)
         aff = AffinityPosWeight(self.token_lattice_size)
 
         return aff(value(x))
@@ -134,7 +148,7 @@ class CoreBlock(nn.Module):
         sa = MultiHeadPositionalAttention(
             self.token_lattice_size, self.n_heads, head_size
         )
-        x += sa(nn.LayerNorm(dtype=REAL_DTYPE, param_dtype=REAL_DTYPE)(x))
+        x += sa(nn.LayerNorm(dtype=DTYPE, param_dtype=DTYPE)(x))
         # print(f"After attention: {x.shape}")
         ffn = MultiLayerPerceptron(
             [
@@ -147,7 +161,7 @@ class CoreBlock(nn.Module):
         return ffn(x) + x
 
 
-class ViT2DWorker(nn.Module):
+class ViT2D(nn.Module):
     """Flax module that implements a real-valued ViT architecture.
 
     Two of these modules can be combined to create a complex output. The input
@@ -166,26 +180,34 @@ class ViT2DWorker(nn.Module):
             post-processing MLP.
     """
 
-    token_lattice_size: Tuple[int, int]
+    lattice_size: Tuple[int, int]
+    token_size: Tuple[int, int]
+
     embedding_d: int
     n_heads: int
     n_blocks: int
     n_ffn_layers: int
     final_architecture: Tuple | None = None
-    two_heads: bool = False
-    phasors: bool = False
 
     @nn.compact
     def __call__(self, x):
         B = x.shape[0]
 
-        embedding = nn.Dense(self.embedding_d, param_dtype=REAL_DTYPE)
+        token_dim = self.token_size[0] * self.token_size[1]
+        token_lattice_size = (
+            self.lattice_size[0] // self.token_size[0],
+            self.lattice_size[1] // self.token_size[1],
+        )
+
+        x = Tokenize(self.token_size, token_lattice_size, token_dim)(x)
+
+        embedding = nn.Dense(self.embedding_d, param_dtype=DTYPE)
 
         x = embedding(x)
         # print(f"x_embedd: {x.shape}")
 
         blocks = [
-            CoreBlock(self.token_lattice_size, self.n_heads, self.n_ffn_layers)
+            CoreBlock(token_lattice_size, self.n_heads, self.n_ffn_layers)
             for _ in range(self.n_blocks)
         ]
         # print(f"Entering blocks: {len(blocks)} blocks with {self.n_heads} heads each. Number of FFN layers: {self.n_ffn_layers}")
@@ -202,262 +224,9 @@ class ViT2DWorker(nn.Module):
         if self.final_architecture is None:
             return x
 
-        if self.two_heads:
-
-            if self.phasors:
-                return two_heads_phasors(self.final_architecture)(x)
-
-            else:
-                x = x.mean(axis=1)
-                x = x.reshape((B, -1))
-                return two_heads(self.final_architecture)(x)
-
         else:
-
-            if self.phasors:
-                return glu_phasor()(x)
-            else:
-                x = x.mean(axis=1)
-                x = x.reshape((B, -1))
-                x = nn.Dense(1, param_dtype=REAL_DTYPE)(
-                    MultiLayerPerceptron(self.final_architecture)(x)
-                )
-                # print(f"Final: {x.shape}")
-
-                return x
-
-
-class ViT2DTokenize(nn.Module):
-    """Flax module wrapping `ViT2DWorker` and enforcing Z2 and 2D-traslational invariance.
-
-    This is achieved by averaging the result of `ViT2DWorker` over all
-    possible cyclic permutations.
-
-    See the documentation of `ViT2DWorker` for information about the
-    parameters.
-    """
-
-    lattice_size: Tuple[int, int]
-    token_size: Tuple[int, int]
-    embedding_d: int
-    n_heads: int
-    n_blocks: int
-    n_ffn_layers: int
-    final_architecture: Tuple | None = None
-    two_heads: bool = False
-    phasors: bool = False
-
-    @nn.compact
-    def __call__(self, x):
-        # print(f"Tokenize:")
-        # print(f"x: {x.shape}")
-
-        B = x.shape[0]
-
-        token_dim = self.token_size[0] * self.token_size[1]
-        token_lattice_size = (
-            self.lattice_size[0] // self.token_size[0],
-            self.lattice_size[1] // self.token_size[1],
-        )
-
-        # Tokenizacion 2D
-        x = (
-            x.reshape(
-                (
-                    B,
-                    token_lattice_size[1],
-                    self.token_size[1],
-                    token_lattice_size[0],
-                    self.token_size[0],
-                ),
-                order="C",
-            )
-            .transpose((0, 1, 3, 2, 4))
-            .reshape(B, -1, token_dim)
-        )
-        # print(f"x_tokenized: {x.shape}")
-
-        worker = ViT2DWorker(
-            token_lattice_size=token_lattice_size,
-            embedding_d=self.embedding_d,
-            n_heads=self.n_heads,
-            n_blocks=self.n_blocks,
-            n_ffn_layers=self.n_ffn_layers,
-            final_architecture=self.final_architecture,
-            two_heads=self.two_heads,
-            phasors=self.phasors,
-        )
-        # print(f"x reshape: {x.shape}")
-
-        return worker(x)
-
-
-class ViT2D_2D(nn.Module):
-    """Flax module wrapping `ViT2DWorker` and enforcing 2D-translation invariance.
-
-    This is achieved by averaging the result of `ViT2DWorker` over all
-    possible 2D translation permutations.
-
-    See the documentation of `ViT2DWorker` for information about the
-    parameters.
-    """
-
-    lattice_size: Tuple[int, int]
-    token_size: Tuple[int, int]
-    embedding_d: int
-    n_heads: int
-    n_blocks: int
-    n_ffn_layers: int
-    final_architecture: Tuple | None = None
-    two_heads: bool = False
-    phasors: bool = False
-
-    @nn.compact
-    def __call__(self, x):
-        # print(f"Input shape: {x.shape}")
-
-        worker = ViT2DTokenize(
-            token_size=self.token_size,
-            embedding_d=self.embedding_d,
-            n_heads=self.n_heads,
-            n_blocks=self.n_blocks,
-            n_ffn_layers=self.n_ffn_layers,
-            final_architecture=self.final_architecture,
-            two_heads=self.two_heads,
-            phasors=self.phasors,
-            symm_2D=True,
-        )
-        # print(self.token_size, type(self.token_size))
-
-        # 2D traslation
-        traslational_x = traslations_2D(  # (N_tr, B, N)
-            x, size=self.lattice_size, memory=False
-        )
-
-        return jax.vmap(worker, in_axes=0)(traslational_x).mean(axis=0)
-
-
-class ViT2D_Z2(nn.Module):
-    """Flax module wrapping `ViT2DWorker` and enforcing Z2 and 2D-traslational invariance.
-
-    This is achieved by averaging the result of `ViT2DWorker` over all
-    possible cyclic permutations.
-
-    See the documentation of `ViT2DWorker` for information about the
-    parameters.
-    """
-
-    lattice_size: Tuple[int, int]
-    token_size: Tuple[int, int]
-    embedding_d: int
-    n_heads: int
-    n_blocks: int
-    n_ffn_layers: int
-    final_architecture: Tuple | None = None
-    two_heads: bool = False
-    phasors: bool = False
-
-    trivial_Z2: bool = True
-    symm_2D: bool = False
-
-    @nn.compact
-    def __call__(self, x):
-
-        if self.symm_2D:
-            worker = ViT2D_2D(
-                lattice_size=self.lattice_size,
-                token_size=self.token_size,
-                embedding_d=self.embedding_d,
-                n_heads=self.n_heads,
-                n_blocks=self.n_blocks,
-                n_ffn_layers=self.n_ffn_layers,
-                final_architecture=self.final_architecture,
-                two_heads=self.two_heads,
-                phasors=self.phasors,
-            )
-
-        else:
-            worker = ViT2DTokenize(
-                token_size=self.token_size,
-                embedding_d=self.embedding_d,
-                n_heads=self.n_heads,
-                n_blocks=self.n_blocks,
-                n_ffn_layers=self.n_ffn_layers,
-                final_architecture=self.final_architecture,
-                two_heads=self.two_heads,
-                phasors=self.phasors,
-            )
-
-        output_x = jnp.atleast_1d(worker(x))
-        output_inv_x = jnp.atleast_1d(worker(-x))
-
-        # Ahora sí podemos concatenar
-        z2_stack = jnp.stack([output_x, output_inv_x], axis=0)
-
-        if self.trivial_Z2:
-            return jax.nn.logsumexp(z2_stack, axis=0, keepdims=False)
-        else:
-            b = jnp.asarray([1.0, -1.0])[:, None]  # shape (2,1)
-            return jax.nn.logsumexp(z2_stack, b=b, axis=0, keepdims=False)
-
-
-class ViT2D(nn.Module):
-    "Batched version of ViT2D, accepting several spin configurations at once."
-
-    lattice_size: Tuple[int, int]
-    token_size: Tuple[int, int]
-    embedding_d: int
-    n_heads: int
-    n_blocks: int
-    n_ffn_layers: int
-
-    final_architecture: Tuple | None = None
-    two_heads: bool = False
-    phasors: bool = False
-
-    symm_2D: bool = False
-    symm_Z2: bool = False
-    trivial_Z2: bool = True
-
-    @nn.compact
-    def __call__(self, x):
-        if self.symm_Z2:
-            worker = ViT2D_Z2(
-                self.lattice_size,
-                self.token_size,
-                self.embedding_d,
-                self.n_heads,
-                self.n_blocks,
-                self.n_ffn_layers,
-                self.final_architecture,
-                two_heads=self.two_heads,
-                phasors=self.phasors,
-                trivial_Z2=self.trivial_Z2,
-                symm_2D=self.symm_2D,
-            )
-        elif self.symm_2D:
-            worker = ViT2D_2D(
-                self.lattice_size,
-                self.token_size,
-                self.embedding_d,
-                self.n_heads,
-                self.n_blocks,
-                self.n_ffn_layers,
-                self.final_architecture,
-                two_heads=self.two_heads,
-                phasors=self.phasors,
-            )
-        else:
-            worker = ViT2DTokenize(
-                self.lattice_size,
-                self.token_size,
-                self.embedding_d,
-                self.n_heads,
-                self.n_blocks,
-                self.n_ffn_layers,
-                self.final_architecture,
-                two_heads=self.two_heads,
-                phasors=self.phasors,
-            )
-
-        return worker(x)
+            x = x.reshape(B, -1, x.shape[-1]).mean(axis=1)  # Mean pooling over spins
+            for hi in self.final_architecture:
+                x = nn.Dense(features=hi, param_dtype=DTYPE)(x)
+            x = nn.Dense(features=1, param_dtype=DTYPE)(x)
+            return x

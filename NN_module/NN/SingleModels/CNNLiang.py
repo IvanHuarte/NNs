@@ -6,10 +6,10 @@ from typing import Tuple
 
 from ..toolbox import get_mask
 
-REAL_DTYPE = jnp.asarray(1.0).dtype
+DTYPE = jnp.float64
 
 
-class CNNLiangWorkerBlock(nn.Module):
+class CNNLiangBlock(nn.Module):
     """A simple convolutional block with a first
     It expects an input of shape x = (B,H,W,C)
     """
@@ -37,17 +37,17 @@ class CNNLiangWorkerBlock(nn.Module):
             kernel_size=self.kernel,
             strides=(1, 1),
             padding="CIRCULAR",
-            dtype=REAL_DTYPE,
-            param_dtype=REAL_DTYPE,
+            dtype=DTYPE,
+            param_dtype=DTYPE,
             use_bias=self.use_bias,
             mask=mask,
         )(x)
         # print(f"xM1: {x.shape}")
 
-        #x = nn.LayerNorm(
-        #    dtype=REAL_DTYPE,
-        #    param_dtype=REAL_DTYPE,
-        #)(x)
+        # x = nn.LayerNorm(
+        #    dtype=DTYPE,
+        #    param_dtype=DTYPE,
+        # )(x)
 
         x = x.reshape(-1, H * W, self.M1_channels)
         # print(f"xreshape: {x.shape}")
@@ -67,8 +67,8 @@ class CNNLiangWorkerBlock(nn.Module):
             kernel_size=(1,),
             strides=(self.window_pooling,),
             padding="CIRCULAR",
-            dtype=REAL_DTYPE,
-            param_dtype=REAL_DTYPE,
+            dtype=DTYPE,
+            param_dtype=DTYPE,
             use_bias=False,
         )(x)
         # x = nn.relu(x)
@@ -100,7 +100,7 @@ class CNNLiang(nn.Module):
         # Entering convolutional blocks
         for i in range(n_blocks):
 
-            x = CNNLiangWorkerBlock(
+            x = CNNLiangBlock(
                 M1_channels=self.M1_channels[i],
                 M2_channels=self.M2_channels[i],
                 kernel=self.kernel[i],
@@ -113,8 +113,8 @@ class CNNLiang(nn.Module):
         x = x.reshape(x.shape[0], -1)
 
         # Apply product over 3 last indices
-        x = jnp.sum(x, axis=-1, keepdims=True)  # 83%sigmoid |
-        # x = jnp.mean(x)                                   # 53%
+        x = jnp.sum(x, axis=-1, keepdims=True)
+        # x = jnp.mean(x)
 
         # print(f"After multiplying: {x.shape}")
 

@@ -137,8 +137,6 @@ class NeuralNetwork:
         irrep = setup["irrep"] if "irrep" in setup else (0, 0)
         use_anchor = setup["use_anchor"] if "use_anchor" in setup else False
 
-        squeeze = jnp.squeeze if "squeeze" in setup else lambda x: x
-
         if module_name == "SingleModule":
             single = self.build_module(setup["single"], external_args)
             mode = setup["mode"] if "mode" in setup else None
@@ -152,7 +150,6 @@ class NeuralNetwork:
                 irrep=irrep,
                 use_anchor=use_anchor,
                 lattice_size=lattice_size,
-                squeeze=squeeze,
             )
 
         elif module_name == "SplitTraining":
@@ -168,7 +165,6 @@ class NeuralNetwork:
                 irrep=irrep,
                 use_anchor=use_anchor,
                 lattice_size=lattice_size,
-                squeeze=squeeze,
             )
 
         elif module_name == "Sequential":
@@ -179,11 +175,9 @@ class NeuralNetwork:
                     if "Seq" in name
                 ]
             )
-            ZZ_module = self.build_module(setup["ZZ"], external_args)
 
             return clss(
                 Seq=seq_module,
-                ZZ=ZZ_module,
                 symm_Z2=symm_Z2,
                 trivial_Z2=trivial_Z2,
                 symm_2D=symm_2D,

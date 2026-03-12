@@ -22,6 +22,10 @@ from .SingleModels.FluxFunc import Sum, Mean, OutputHead, SzaboOutput
 
 from .toolbox import MarshallSign, CarreteSign
 
+# Importation of symmetrization modules
+from .Symm import SymmWrapper
+from .Symm import Z2, Traslation
+
 # Final Architecture modules
 
 
@@ -59,7 +63,14 @@ __all_single__ = [
     "Mean",
 ]
 
-__all__ = __all_factories__ + __all_single__
+__all_symm__ = [
+    "SymmWrapper",
+    "Z2",
+    "Traslation",
+    "TraslationAnchor",
+]
+
+__all__ = __all_factories__ + __all_single__ + __all_symm__
 
 # Diccionarios de registro
 REGISTRY_FACTORIES = {
@@ -95,12 +106,16 @@ REGISTRY_SINGLE = {
     "Sum": Sum,
     "Mean": Mean,
 }
+REGISTRY_SYMM = {
+    "SymmWrapper": SymmWrapper,
+    "Z2": Z2,
+    "Traslation": Traslation,
+}
 
-REGISTRY = {None: None, **REGISTRY_SINGLE, **REGISTRY_FACTORIES}
+REGISTRY = {None: None, **REGISTRY_SINGLE, **REGISTRY_FACTORIES, **REGISTRY_SYMM}
 
 
 # Diccionarios de modulos que necesitan argumentos externos
-
 LATTICE_SIZE = {
     "lattice_size": [
         "CNN",
@@ -125,6 +140,9 @@ LATTICE_SIZE = {
     ]
 }
 
+# Modulos de simetrizacion
+LATTICE_SIZE["lattice_size"].append(["Traslation", "TraslationAnchor"])
+
 EXTERNAL_ARGS = {**LATTICE_SIZE}
 
 
@@ -136,4 +154,4 @@ factory_submodule_dict = {
     "Transversal": "Trans",
 }
 
-factory_submodule_tags = ["Single", "ModulusNet", "PhaseNet", "Seq", "ZZ", "Trans"]
+factory_submodule_tags = ["Single", "ModulusNet", "PhaseNet", "Seq", "Trans"]

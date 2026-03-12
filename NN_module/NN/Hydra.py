@@ -66,24 +66,25 @@ class Hydra(NeuralNetwork):
 
         # Build the initial NN model. Adapt first template 'model_0' to a configuration dictionary.
         setup = setup_from_template(self.template, self.storage, self.symm_wrapper)
+
         self.save_stage_setup(setup)
 
-        super().__init__(setup, **self.external_args)
+        # super().__init__(setup, **self.external_args)
 
-        if "lattice_size" in self.external_args:
-            self.update_info()
+        # if "lattice_size" in self.external_args:
+        #     self.update_info()
 
-        self.params_history = {}
+        # self.params_history = {}
 
-        # Load initial parameters for stage0, in the case. If a valid artifact is set,
-        # load info will be required in stage0 and must refeer the label set in params_history
-        # at below, stageX as default. Loaded parameters should be transplanted to stage0
-        # parameters PyTree after generate the variational state object via weight transplantation.
+        # # Load initial parameters for stage0, in the case. If a valid artifact is set,
+        # # load info will be required in stage0 and must refeer the label set in params_history
+        # # at below, stageX as default. Loaded parameters should be transplanted to stage0
+        # # parameters PyTree after generate the variational state object via weight transplantation.
 
-        if self.load_from:
-            for i, trained_NN in enumerate(self.load_from):
-                self.params_history[f"stageX{i}"] = load_params_from_file(trained_NN)
-                self.load = self.arch_evolution["stage0"]["load"]
+        # if self.load_from:
+        #     for i, trained_NN in enumerate(self.load_from):
+        #         self.params_history[f"stageX{i}"] = load_params_from_file(trained_NN)
+        #         self.load = self.arch_evolution["stage0"]["load"]
 
     def save_stage_setup(self, setup, return_setup=False):
 

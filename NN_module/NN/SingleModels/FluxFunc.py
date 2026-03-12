@@ -2,12 +2,11 @@ import flax.linen as nn
 import jax
 import jax.numpy as jnp
 import jax.typing as jt
-from typing import Callable, Tuple
+from typing import Tuple
 
 from netket.nn.activation import log_cosh
 
-from NN_module.NN.SingleModels.CNN import REAL_DTYPE
-from NN_module.NN.SingleModels.MLP import DTYPE
+DTYPE = jnp.float64
 
 
 class Sum(nn.Module):
@@ -80,26 +79,26 @@ class SzaboOutput(nn.Module):
     @nn.compact
     def __call__(self, x: jt.ArrayLike) -> jt.ArrayLike:
 
-        x_mod = nn.LayerNorm(use_scale=True, use_bias=True, param_dtype=REAL_DTYPE)(
+        x_mod = nn.LayerNorm(use_scale=True, use_bias=True, param_dtype=DTYPE)(
             x.sum(axis=1)
         )
         log_modulus = nn.Dense(
             features=x.shape[-1],
-            param_dtype=REAL_DTYPE,
+            param_dtype=DTYPE,
             kernel_init=nn.initializers.lecun_normal(),
         )(x_mod)
-        log_modulus = nn.LayerNorm(param_dtype=REAL_DTYPE)(log_modulus)
+        log_modulus = nn.LayerNorm(param_dtype=DTYPE)(log_modulus)
 
         phase = nn.Conv(
             features=x.shape[-1],
             kernel_size=(3, 3),
             strides=(1, 1),
             padding="CIRCULAR",
-            dtype=REAL_DTYPE,
+            dtype=DTYPE,
             bias_init=jax.nn.initializers.zeros,
         )(x.reshape(x.shape[0], *self.lattice_size, x.shape[-1]))
         phase = phase.reshape(phase.shape[0], -1, phase.shape[-1])
-        # phase = nn.LayerNorm(use_scale=True, use_bias=True, param_dtype=REAL_DTYPE)(
+        # phase = nn.LayerNorm(use_scale=True, use_bias=True, param_dtype=DTYPE)(
         #     phase
         # )
         phase = jnp.exp(1j * phase).sum(axis=1)

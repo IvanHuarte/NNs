@@ -1,21 +1,19 @@
 import jax
 import jax.numpy as jnp
 import flax.linen as nn
-from typing import Tuple, Callable
+from typing import Tuple
 
 from NN_module.NN_utils import traslations_2D
 from NN_module.NN.toolbox import CarreteSign, AddPhase
 
 
-class Traslation(nn.Module):
+class TraslationExplicit(nn.Module):
 
     lattice_size: Tuple[int, int]
     TWrap: nn.Module
 
     irrep: Tuple[int] = (0, 0)  # Tuple (q_1, q_2) representing the irrep.
     save_memory: bool = False
-
-    squeeze: Callable = lambda x: x
 
     def setup(self):
 
@@ -42,7 +40,7 @@ class Traslation(nn.Module):
         traslational_x = traslations_2D(
             x,
             size=self.lattice_size,
-            token_size=self.token_size,
+            token_size=None,
             memory=self.save_memory,
         )
 
@@ -62,8 +60,6 @@ class TraslationAnchor(nn.Module):
 
     irrep: Tuple[int] = (0, 0)  # Tuple (q_1, q_2) representing the irrep.
 
-    squeeze: Callable = lambda x: x
-
     def setup(self):
 
         self.wrap = self.Twrap
@@ -81,3 +77,34 @@ class TraslationAnchor(nn.Module):
         x = AddPhase(lattice_size=self.lattice_size, irrep=self.irrep)(x, anchors)
 
         return x
+
+
+class Traslation(nn.Module):
+
+    lattice_size: Tuple[int, int]
+    TWrap: nn.Module
+
+    irrep: Tuple[int] = (0, 0)  # Tuple (q_1, q_2) representing the irrep.
+    save_memory: bool = False
+    use_anchor: bool = False
+
+    def setup(self):
+
+        self.wrap = self.Twrap
+
+    def __call__(self, x: jnp.ndarray) -> jnp.ndarray:
+
+        if self.use_anchor:
+            return TraslationAnchor(
+                lattice_size=self.lattice_size,
+                TWrap=self.TWrap,
+                irrep=self.irrep,
+            )(x)
+
+        else:
+            return TraslationExplicit(
+                lattice_size=self.lattice_size,
+                TWrap=self.TWrap,
+                irrep=self.irrep,
+                save_memory=self.save_memory,
+            )(x)
