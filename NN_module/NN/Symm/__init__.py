@@ -19,7 +19,6 @@ class SymmWrapper(nn.Module):
         self.NN_model = self.SymmModel
 
     def __call__(self, x: jnp.ndarray) -> jnp.ndarray:
-
         x = jnp.atleast_2d(x)
 
         x = self.NN_model(x)

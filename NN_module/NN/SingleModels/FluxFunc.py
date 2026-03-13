@@ -69,7 +69,9 @@ class OutputHead(nn.Module):
         if self.only_phase:
             out = jnp.ones(out.shape, dtype=DTYPE) + 1.0j * out.imag
 
-        return jnp.sum(log_cosh(out), axis=-1)
+        out = jnp.sum(log_cosh(out), axis=-1, keepdims=True)
+
+        return out
 
 
 class SzaboOutput(nn.Module):

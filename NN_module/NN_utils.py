@@ -183,7 +183,9 @@ def traslations_2D(
     x = (
         x.reshape((-1, sub_lat[1], token_size[1], sub_lat[0], token_size[0]), order="C")
         .transpose((0, 1, 3, 2, 4))
-        .reshape(size[0] * size[1], B, -1, token_size[0] * token_size[1])
+        .reshape(
+            size[0] * size[1], B, sub_lat[0] * sub_lat[1], token_size[0] * token_size[1]
+        )
         .squeeze()
     )
 

@@ -9,14 +9,12 @@ class Z2(nn.Module):
     trivial_Z2: bool = True
 
     def setup(self):
-        self.wrap = self.Z2Wrap
+        self.worker = self.Z2Wrap
 
     def __call__(self, x):
 
-        worker = self.wrap(x)
-
-        output_x = jnp.atleast_1d(worker(x))
-        output_inv_x = jnp.atleast_1d(worker(-x))
+        output_x = jnp.atleast_1d(self.worker(x))
+        output_inv_x = jnp.atleast_1d(self.worker(-x))
 
         # Concatenamos las dos contribuciones
         z2_stack = jnp.stack([output_x, output_inv_x], axis=0)

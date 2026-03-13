@@ -3,7 +3,16 @@ import flax.linen as nn
 import jax
 import jax.numpy as jnp
 
-from NN_module.NN import REGISTRY
+from NN_module.NN import (
+    REGISTRY,
+    __all_factories__,
+    __all_single__,
+    __all_symm__,
+    symm_submodule_dict,
+    factory_submodule_dict,
+    factory_submodule_tags,
+    undefined_submodule_number,
+)
 from NN_module.NN.utils import preprocess_setup, insert_external_kwargs
 from NN_module.ST_utils import print_tree
 
@@ -67,7 +76,7 @@ class NeuralNetwork:
 
         setup = insert_external_kwargs(setup, external_args)
         self.setup = preprocess_setup(setup)
-        self.model = self.build_module(deepfreeze(self.setup), external_args)
+        self.model = self.build_model(deepfreeze(self.setup), external_args)
         print("\nBuilding Neural Network from setup...\n")
         print_tree(setup, values=True)
 
@@ -96,7 +105,7 @@ class NeuralNetwork:
         print_tree(self.setup, values=values)
         print("\n")
 
-    def build_module(self, setup, external_args):
+    def build_model(self, setup, external_args, depth=0):
         """
         Recursively construct a Flax module from a setup subtree.
 
@@ -123,92 +132,74 @@ class NeuralNetwork:
         flax.linen.Module
             Instantiated Flax module corresponding to this subtree.
         """
+        if depth == 0:
+            print(f"Getting wrapped model for symmetrization...")
+            clss = self.get_model_class("SymmWrapper")
+            NN_model = self.build_model(setup, external_args, depth=1)
+            print(f"Model wrapped")
+            return clss(NN_model)
 
         module_name = setup["module"]
         setup = setup["setup"]
+        submodules = {
+            k: v
+            for k, v in setup.items()
+            if any(tag in k for tag in factory_submodule_tags)
+        }
+        extra_args = {
+            k: v
+            for k, v in setup.items()
+            if k not in (*submodules.keys(), "module", "setup")
+        }
+
         clss = self.get_model_class(module_name)
 
-        lattice_size = setup["lattice_size"] if "symm_2D" in setup else None
+        if module_name in __all_symm__:
+            expected_submodules = symm_submodule_dict[module_name]
+            if isinstance(expected_submodules, str):
+                expected_submodules = [expected_submodules]
+            init_submodules = {
+                sub_tag: self.build_model(sub_setup, external_args, depth=depth + 1)
+                for sub_tag, sub_setup in zip(expected_submodules, submodules.values())
+            }
+            return clss(**init_submodules, **extra_args)
 
-        symm_Z2 = setup["symm_Z2"] if "symm_Z2" in setup else False
-        trivial_Z2 = setup["trivial_Z2"] if "trivial_Z2" in setup else False
+        elif module_name in __all_factories__:
+            expected_submodules = factory_submodule_dict[module_name]
+            if isinstance(expected_submodules, str):
+                expected_submodules = [expected_submodules]
 
-        symm_2D = setup["symm_2D"] if "symm_2D" in setup else False
-        irrep = setup["irrep"] if "irrep" in setup else (0, 0)
-        use_anchor = setup["use_anchor"] if "use_anchor" in setup else False
+            print(f"{'  ' * depth}Expected submodules: {expected_submodules}")
 
-        if module_name == "SingleModule":
-            single = self.build_module(setup["single"], external_args)
-            mode = setup["mode"] if "mode" in setup else None
+            if module_name in undefined_submodule_number:
 
-            return clss(
-                single=single,
-                mode=mode,
-                symm_Z2=symm_Z2,
-                trivial_Z2=trivial_Z2,
-                symm_2D=symm_2D,
-                irrep=irrep,
-                use_anchor=use_anchor,
-                lattice_size=lattice_size,
+                init_submodules = {
+                    sub_tag: tuple(
+                        [
+                            self.build_model(sub_setup, external_args, depth=depth + 1)
+                            for sub_setup in submodules.values()
+                            if isinstance(sub_setup, dict)
+                        ]
+                    )
+                    for sub_tag in expected_submodules
+                }
+
+            else:
+                init_submodules = {
+                    sub_tag: self.build_model(
+                        submodules[sub_tag], external_args, depth=depth + 1
+                    )
+                    for sub_tag in expected_submodules
+                }
+            print(
+                f"{'  ' * depth}Initialized submodules: {list(init_submodules.keys())}"
             )
+            return clss(**init_submodules, **extra_args)
 
-        elif module_name == "SplitTraining":
-            modulus = self.build_module(setup["modulus"], external_args)
-            phase = self.build_module(setup["phase"], external_args)
-
-            return clss(
-                ModulusNet=modulus,
-                PhaseNet=phase,
-                symm_Z2=symm_Z2,
-                trivial_Z2=trivial_Z2,
-                symm_2D=symm_2D,
-                irrep=irrep,
-                use_anchor=use_anchor,
-                lattice_size=lattice_size,
-            )
-
-        elif module_name == "Sequential":
-            seq_module = tuple(
-                [
-                    self.build_module(seq_setup, external_args)
-                    for name, seq_setup in setup.items()
-                    if "Seq" in name
-                ]
-            )
-
-            return clss(
-                Seq=seq_module,
-                symm_Z2=symm_Z2,
-                trivial_Z2=trivial_Z2,
-                symm_2D=symm_2D,
-                lattice_size=lattice_size,
-                squeeze=squeeze,
-            )
-
-        elif module_name == "Transversal":
-            trans_module = tuple(
-                [
-                    self.build_module(trans_setup, external_args)
-                    for trans_setup in setup.values()
-                    if isinstance(trans_setup, dict)
-                ]
-            )
-            operation = setup["operation"] if "operation" in setup else "sum"
-            post_norm = setup["post_norm"] if "post_norm" in setup else False
-
-            return clss(
-                Trans=trans_module,
-                operation=operation,
-                post_norm=post_norm,
-                symm_Z2=symm_Z2,
-                trivial_Z2=trivial_Z2,
-                symm_2D=symm_2D,
-                lattice_size=lattice_size,
-                squeeze=squeeze,
-            )
+        elif module_name in __all_single__:
+            return clss(**extra_args)
 
         elif module_name is None:
             return None
-
         else:
-            return clss(**setup)
+            raise NotImplementedError(f"Module {module_name} not found in REGISTRY.")

@@ -41,13 +41,13 @@ class SingleModule(nn.Module):
     Flax module to train modulus and phase separately
     """
 
-    single: nn.Module
+    Single: nn.Module
     mode: str = None
 
     @nn.compact
     def __call__(self, x: jnp.ndarray) -> jnp.ndarray:
 
-        x = self.single(x)
+        x = self.Single(x)
 
         x = get_op_function(self.mode)(x)
 

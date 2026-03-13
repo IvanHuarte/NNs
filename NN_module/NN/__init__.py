@@ -1,24 +1,36 @@
 # Importation of factories
-from .Factories.SingleModule import SingleModule
-from .Factories.SplitTraining import SplitTraining
-from .Factories.Sequential import Sequential
-from .Factories.Transversal import Transversal
+from .Factories import (
+    SingleModule,
+    SplitTraining,
+    Sequential,
+    Transversal,
+)
 
 # Importation of single modules
-from .SingleModels.CNN import CNN
-from .SingleModels.CNNLiang import CNNLiang
-from .SingleModels.CvT import CvT
-from .SingleModels.CvT2 import CvT2
-from .SingleModels.CvTaps import CvTaps
-from .SingleModels.MLP import MLP
-from .SingleModels.CMLP import CMLP
-from .SingleModels.Phase import CNNPh, EDPPh, CNNClsf, CNNbinClsf, CNNSzabo
-from .SingleModels.ViT2D import ViT2D
-from .SingleModels.ViT import ViT
-from .SingleModels.VViT import VViT
-
-from .SingleModels.Ansatz import Factorized, FactorMod, Jastrow_wrap
-from .SingleModels.FluxFunc import Sum, Mean, OutputHead, SzaboOutput
+from .SingleModels import (
+    CNN,
+    CNNLiang,
+    CvT,
+    CvT2,
+    CvTaps,
+    MLP,
+    CMLP,
+    ViT2D,
+    ViT,
+    VViT,
+    CNNPh,
+    EDPPh,
+    CNNClsf,
+    CNNbinClsf,
+    CNNSzabo,
+    Factorized,
+    FactorMod,
+    Jastrow_wrap,
+    Sum,
+    Mean,
+    OutputHead,
+    SzaboOutput,
+)
 
 from .toolbox import MarshallSign, CarreteSign
 
@@ -141,17 +153,23 @@ LATTICE_SIZE = {
 }
 
 # Modulos de simetrizacion
-LATTICE_SIZE["lattice_size"].append(["Traslation", "TraslationAnchor"])
+LATTICE_SIZE["lattice_size"].append(*("Traslation",))
 
 EXTERNAL_ARGS = {**LATTICE_SIZE}
 
-
-# Tags used in configurations
+# Tags and relations used in Neural Network initialization
 factory_submodule_dict = {
-    "SingleModule": "single",
-    "SplitTraining": ["modulus", "phase"],
+    "SingleModule": "Single",
+    "SplitTraining": ["Modulus", "Phase"],
     "Sequential": "Seq",
     "Transversal": "Trans",
 }
+symm_submodule_dict = {
+    "SymmWrapper": "SymmModel",
+    "Z2": "Z2Wrap",
+    "Traslation": "TWrap",
+}
 
-factory_submodule_tags = ["Single", "ModulusNet", "PhaseNet", "Seq", "Trans"]
+undefined_submodule_number = ["Sequential", "Transversal"]
+
+factory_submodule_tags = ["Wrap", "Single", "ModulusNet", "PhaseNet", "Seq", "Trans"]

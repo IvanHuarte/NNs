@@ -9,19 +9,17 @@ from NN_module.NN.toolbox import CarreteSign, AddPhase
 
 class TraslationExplicit(nn.Module):
 
-    lattice_size: Tuple[int, int]
     TWrap: nn.Module
+    lattice_size: Tuple[int, int]
 
     irrep: Tuple[int] = (0, 0)  # Tuple (q_1, q_2) representing the irrep.
     save_memory: bool = False
 
     def setup(self):
 
-        self.wrap = self.Twrap
+        self.worker = self.TWrap
 
     def __call__(self, x: jnp.ndarray) -> jnp.ndarray:
-
-        worker = self.wrap(x)
 
         na, nb = jnp.unravel_index(
             jnp.arange(self.lattice_size[0] * self.lattice_size[1]), self.lattice_size
@@ -37,14 +35,15 @@ class TraslationExplicit(nn.Module):
         )
 
         # 2D traslation
-        traslational_x = traslations_2D(
+        trasl_x = traslations_2D(
             x,
             size=self.lattice_size,
             token_size=None,
             memory=self.save_memory,
         )
+        trasl_x = trasl_x.reshape(trasl_x.shape[0], x.shape[0], trasl_x.shape[-1])
 
-        ffw = jax.vmap(worker, in_axes=0)(traslational_x).T
+        ffw = jax.vmap(self.worker, in_axes=0)(trasl_x).T
 
         x = ffw * characters
 
@@ -55,56 +54,57 @@ class TraslationExplicit(nn.Module):
 
 class TraslationAnchor(nn.Module):
 
-    lattice_size: Tuple[int, int]
     TWrap: nn.Module
+    lattice_size: Tuple[int, int]
 
     irrep: Tuple[int] = (0, 0)  # Tuple (q_1, q_2) representing the irrep.
 
     def setup(self):
 
-        self.wrap = self.Twrap
+        self.worker = self.TWrap
+        self.carrete_sign = CarreteSign(
+            lattice_size=self.lattice_size, irrep=self.irrep
+        )
+        self.add_phase = AddPhase(lattice_size=self.lattice_size, irrep=self.irrep)
 
     def __call__(self, x: jnp.ndarray) -> jnp.ndarray:
 
-        worker = self.wrap(x)
-
         # 2D traslational anchoring
-        x, anchors = CarreteSign(lattice_size=self.lattice_size, irrep=self.irrep)(x)
+        x, anchors = self.carrete_sign(x)
 
-        x = jnp.atleast_1d(worker(x))
+        x = jnp.atleast_1d(self.worker(x))
 
         # Add phase according to the irrep and the anchor
-        x = AddPhase(lattice_size=self.lattice_size, irrep=self.irrep)(x, anchors)
+        x = self.add_phase(x, anchors)
 
         return x
 
 
 class Traslation(nn.Module):
 
-    lattice_size: Tuple[int, int]
     TWrap: nn.Module
+    lattice_size: Tuple[int, int]
 
     irrep: Tuple[int] = (0, 0)  # Tuple (q_1, q_2) representing the irrep.
     save_memory: bool = False
     use_anchor: bool = False
 
-    def setup(self):
-
-        self.wrap = self.Twrap
-
+    @nn.compact
     def __call__(self, x: jnp.ndarray) -> jnp.ndarray:
 
         if self.use_anchor:
-            return TraslationAnchor(
+            x = TraslationAnchor(
                 lattice_size=self.lattice_size,
                 TWrap=self.TWrap,
                 irrep=self.irrep,
             )(x)
 
         else:
-            return TraslationExplicit(
+            x = TraslationExplicit(
                 lattice_size=self.lattice_size,
                 TWrap=self.TWrap,
                 irrep=self.irrep,
                 save_memory=self.save_memory,
             )(x)
+
+        return x

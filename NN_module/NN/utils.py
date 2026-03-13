@@ -154,11 +154,9 @@ def insert_external_kwargs(setup: dict, external_args: dict):
     # is necesary to perform 2D traslational symmetries
     if "module" in setup.keys() and "setup" in setup.keys():
         for k, v in external_args.items():
+
             if setup["module"] in EXTERNAL_ARGS[k]:
                 setup["setup"][k] = v
-
-    if "symm_2D" in setup:
-        setup["lattice_size"] = external_args["lattice_size"]
 
     for _, val in setup.items():
         if isinstance(val, dict):
@@ -185,9 +183,9 @@ def get_submodules(father, n_mod):
     elif father == "Transversal":
         submodules = [f"Trans_{i}" for i in range(n_mod)]
     elif father == "SplitTraining":
-        submodules = ["modulus", "phase"]
+        submodules = ["Modulus", "Phase"]
     elif father == "SingleModule":
-        submodules = ["single"]
+        submodules = ["Single"]
     return submodules
 
 
@@ -345,6 +343,8 @@ get_code_dict:{                get_code2path:{                        get_code2p
                                     
 """
 
+from NN_module.NN import symm_submodule_dict
+
 
 def get_leafcode_dict(node, idx=""):
     """
@@ -364,11 +364,16 @@ def get_leafcode_dict(node, idx=""):
 
     for i, (k, v) in enumerate(zip(subnodes_names, subnodes)):
 
+        if k in symm_submodule_dict.values():
+            next_idx = idx
+        else:
+            next_idx = idx + str(i)
+
         if not v.children():
-            nruter[k] = idx + str(i)
+            nruter[k] = next_idx
 
         else:
-            nruter[k] = get_leafcode_dict(v, idx + str(i))
+            nruter[k] = get_leafcode_dict(v, next_idx)
 
     return nruter
 
