@@ -1,3 +1,4 @@
+import os
 import json
 import jax
 import jax.numpy as jnp
@@ -386,21 +387,32 @@ def get_code2path_flatten(params):
 
     """
 
-    struct = jax.tree_util.tree_structure(params)
+    symm_submodule_labels = list(symm_submodule_dict.values())
 
-    code_dict = get_leafcode_dict(struct)
+    code_dict = {}
 
-    code_dict = flax.traverse_util.flatten_dict(code_dict)
+    def traverse(node, path=(), code=""):
 
-    tmp = {}
+        if isinstance(node, dict):
+            for i, (k, v) in enumerate(node.items()):
 
-    for k, v in code_dict.items():
-        for i in range(len(k)):
-            tmp[k[: i + 1]] = v[: i + 1]
+                next_code = code if k in symm_submodule_labels else code + str(i)
+
+                traverse(v, path + (k,), next_code)
+
+        else:
+            code_dict[code] = path
+
+    traverse(params)
 
     code_to_path = {}
-    for k, v in tmp.items():
-        code_to_path[v] = k
+
+    for k, v in code_dict.items():
+        n_nodes = len(k)
+        for i in range(len(k)):
+            code_to_path[k[: -n_nodes + i + 1]] = v[: -n_nodes + i + 1]
+
+    code_to_path.pop("")
 
     return code_to_path
 
@@ -424,7 +436,10 @@ def get_code2path_tree(params, prefix=""):
 
     tree = {}
     for i, (name, subtree) in enumerate(params.items()):
-        idx = f"{prefix}{i}"
+        if name in symm_submodule_dict.values():
+            idx = f"{prefix}"
+        else:
+            idx = f"{prefix}{i}"
         tree[name] = {"_idx": idx, "_children": get_code2path_tree(subtree, prefix=idx)}
     return tree
 
@@ -446,8 +461,8 @@ def is_simple_module(raw_name):
         raw_name = raw_name.split("_")[0]
     if "Worker" in raw_name:
         raw_name = raw_name.split("Worker")[0]
-    if "Tokenize" in raw_name:
-        raw_name = raw_name.split("Tokenize")[0]
+    if "Block" in raw_name:
+        raw_name = raw_name.split("Block")[0]
 
     if raw_name in __all_single__:
         return f"({raw_name})"
@@ -455,7 +470,11 @@ def is_simple_module(raw_name):
         return ""
 
 
-def print_architecture(tree, print_all=True, prefix="", is_last=True):
+def is_wrap(name):
+    return name in symm_submodule_dict.values()
+
+
+def print_architecture(tree, print_all=True, prefix="", is_last=True, wraps=[]):
 
     keys = list(tree.keys())
 
@@ -463,25 +482,73 @@ def print_architecture(tree, print_all=True, prefix="", is_last=True):
         data = tree[name]
         last = i == len(keys) - 1
 
-        is_main = is_main_module(name)
-        children = list(data["_children"].keys())
-        simple_module = is_simple_module(children) if len(children) == 1 else False
+        iswrap = is_wrap(name)
 
-        if not print_all and not is_main:
-            continue
+        if iswrap:
+            # Is Symm_Wrap
 
-        annotation = ""
-        if is_main and simple_module:
-            annotation += f"{simple_module}"
+            children = list(data["_children"].keys())
+            if len(children) == 1:
+                child_name = children[0]
+                if is_wrap(child_name):
+                    print_architecture(
+                        data["_children"], print_all, prefix, is_last, wraps + [name]
+                    )
+                else:
+                    wraps.append(name)
+                    wrap_label = (
+                        " ".join(wraps[1:])
+                        if len(wraps) > 1
+                        else print("No symmetrization")
+                    )
+                    (
+                        print(f"SymmModel: ({wrap_label})")
+                        if len(wraps) > 1
+                        else print("SymmModel:")
+                    )
+                    print_architecture(data["_children"], print_all, prefix, is_last)
+            else:
+                wraps.append(name)
+                wrap_label = (
+                    " ".join(wraps[1:])
+                    if len(wraps) > 1
+                    else print("No symmetrization")
+                )
+                (
+                    print(f"SymmModel: ({wrap_label})")
+                    if len(wraps) > 1
+                    else print("SymmModel:")
+                )
+                print_architecture(data["_children"], print_all, prefix, is_last)
 
-        connector = "└── " if last else "├── "
-        print(prefix + connector + f"{name} {annotation}  --->  ({data['_idx']})")
+        else:
 
-        if data["_children"]:
-            new_prefix = prefix + ("    " if last else "│   ")
-            print_architecture(
-                data["_children"], print_all, prefix=new_prefix, is_last=last
-            )
+            # Is factory
+            is_main = is_main_module(name)
+            children = list(data["_children"].keys())
+            simple_module = ""
+            if is_main:
+                if len(children) == 1:
+                    simple_module = is_simple_module(children)
+                else:
+                    candidates = [is_simple_module([child]) for child in children]
+                    simple_module = next((c for c in candidates if c != ""), "")
+
+            if not print_all and not is_main:
+                continue
+
+            annotation = ""
+            if is_main and simple_module:
+                annotation += f"{simple_module}"
+
+            connector = "└── " if last else "├── "
+            print(prefix + connector + f"{name} {annotation}  --->  ({data['_idx']})")
+
+            if data["_children"] and not iswrap:
+                new_prefix = prefix + ("    " if last else "│   ")
+                print_architecture(
+                    data["_children"], print_all, prefix=new_prefix, is_last=last
+                )
 
 
 ##########################################
@@ -607,12 +674,32 @@ def load_pytree(path):
     return cp.restore(path)
 
 
-def load_params_from_file(artifact_path):
+def load_params_from_artifact(artifact_path):
 
     with open(artifact_path, "r") as f:
         artifact = json.load(f)
 
     path = artifact["_artifacts"]["parameters"]
     parameters = load_pytree(path)
+
+    return parameters
+
+
+def load_params_from_file(path):
+
+    if ".json" in path:  # Best results
+        parameters = load_params_from_artifact(path)
+
+    elif ".orbax" in path:  # Direct parameters
+        if "checkpoint" in path:
+            assert os.path.basename(
+                path
+            ).isdigit(), (
+                f"In the case of loading checkpoints is necessary to especify the epoch"
+            )
+            path += "/" if not path.endswith("/") else ""
+            path += "parameters"
+
+        parameters = load_pytree(path)
 
     return parameters

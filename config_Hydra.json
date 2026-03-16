@@ -1,6 +1,6 @@
 {
 
-    "selection": "ViT2DOutputHead",
+    "selection": "ViT2DOutputHead700",
 
     "load_from_NeelStripped_Gated":[
         "/home/ihuarte/Escritorio/Ivan/NNs/TrainedNetworks/J1J2Square/NeelStripped_Gated_SingleModule_Transversal__SingleModule___Transversal____FactorMod_Factorized_operation_Transversal___FactorMod_Factorized_operation_operation_mode/Size_4x4/ST_100-0000, 010_500-0000, 010/UUID_7e8a986e/J1J2Square_NeelStripped_Gated_results_4x4_J1J2_1.0_0.5_XYZ_0.0_0.0_0.0_date_20260205T171906_UUID_7e8a986e.json"
@@ -8,9 +8,14 @@
     "load_fromTrFacCNN": [
         "/home/ihuarte/Escritorio/Ivan/NNs/Simulations/J1J2Square/TrainedFactorizedNeel_CNN_SplitTraining_CNN_Factorized/Size_4x4/ST_100-0_1000-0/UUID_56a07afc/J1J2Square_TrainedFactorizedNeel_CNN_results_4x4_J1J2_1.0_0.5_XYZ_0.0_0.0_0.0_date_20260203T113728_UUID_56a07afc.json"
     ],
-    "load_from": [],
 
-    "ViT2DOutputHead":{
+
+
+    "load_from": [
+        "/home/ihuarte/Escritorio/Ivan/NNs/Simulations/J1J2Square/ViT2DOutputHead_stage0/Size_6x6/ST_800-A_200-A/UUID_58ca8e4d/J1J2Square_ViT2DOutputHead_simulation_6x6_J1J2_1.0_0.5_XYZ_0.0_0.0_0.0_date_20260312T093035_UUID_58ca8e4d_checkpoint.orbax/700"
+    ],
+
+    "ViT2DOutputHead700":{
 
         "stage0": {
             "template": {
@@ -19,23 +24,11 @@
                     "OutputHead":{}
                 }
             },
-            "save_params": true
-        },
-        "stage1": {
-            "template": {
-                "stage0":{}
-            },
-            "save_params": true,
-            "change_attr":{
-                "Sequential":{
-                    "symm_2D": true
-                }
-            },
             "load": [
-                ["stage0", "0", "0"],
-                ["stage0", "1", "1"]
-            ]
-            
+                ["stageX0", "0", "0"],
+                ["stageX0", "1", "1"]
+            ],
+            "save_params": true
         }
     },
     "CvT2OutputHead2Phase":{
@@ -55,6 +48,9 @@
                 "stage0":{}
             },
             "save_params": true,
+            "symm_wrapper":{
+                "Z2": {"on": true}
+            },
             "change_attr":{
                 "OutputHead":{
                     "only_phase": false

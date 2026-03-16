@@ -120,7 +120,7 @@ class MultiHeadPositionalAttention(nn.Module):
         return jnp.concatenate([h(x) for h in heads], axis=-1)
 
 
-class CoreBlock(nn.Module):
+class ViT2DBlock(nn.Module):
     """Flax module implementing the core block of the ViT.
 
     This comprises the embedding starting from the spin representation, the
@@ -207,7 +207,7 @@ class ViT2D(nn.Module):
         # print(f"x_embedd: {x.shape}")
 
         blocks = [
-            CoreBlock(token_lattice_size, self.n_heads, self.n_ffn_layers)
+            ViT2DBlock(token_lattice_size, self.n_heads, self.n_ffn_layers)
             for _ in range(self.n_blocks)
         ]
         # print(f"Entering blocks: {len(blocks)} blocks with {self.n_heads} heads each. Number of FFN layers: {self.n_ffn_layers}")

@@ -33,27 +33,6 @@ class Schedule:
         self._initialize()
         self.update_eon_code2path(code2path)
 
-    def update_eon_code2path(self, code2path):
-        """
-        Update eon_code2path and eon_path2code when the architecture changes.
-        """
-        eon_m = self.modes_struct[self.eon]
-
-        codes = [code for era_m in eon_m for per_m in era_m for code in per_m]
-
-        # From code2path Conserve only those which appear in the simulation
-        self.eon_code2path = {}
-        for code in codes:
-            if code == "A":
-                main_branches = dict(
-                    [(k, v) for k, v in code2path.items() if len(k) == 1]
-                )
-                self.eon_code2path.update(**main_branches)
-            else:
-                self.eon_code2path[code] = code2path[code]
-
-        self.eon_path2code = dict([(v, k) for k, v in self.eon_code2path.items()])
-
     def _initialize(self):
 
         # Repeat substructures
@@ -75,6 +54,27 @@ class Schedule:
         )
         self.total_epochs = int(flat_epochs.sum())
         self.total_periods = flat_epochs.shape[0]
+
+    def update_eon_code2path(self, code2path):
+        """
+        Update eon_code2path and eon_path2code when the architecture changes.
+        """
+        eon_m = self.modes_struct[self.eon]
+
+        codes = [code for era_m in eon_m for per_m in era_m for code in per_m]
+
+        # From code2path Conserve only those which appear in the simulation
+        self.eon_code2path = {}
+        for code in codes:
+            if code == "A":
+                main_branches = dict(
+                    [(k, v) for k, v in code2path.items() if len(k) == 1]
+                )
+                self.eon_code2path.update(**main_branches)
+            else:
+                self.eon_code2path[code] = code2path[code]
+
+        self.eon_path2code = dict([(v, k) for k, v in self.eon_code2path.items()])
 
     def flat_setup(self):
         nruter = {}

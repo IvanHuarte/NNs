@@ -169,8 +169,6 @@ class NeuralNetwork:
             if isinstance(expected_submodules, str):
                 expected_submodules = [expected_submodules]
 
-            print(f"{'  ' * depth}Expected submodules: {expected_submodules}")
-
             if module_name in undefined_submodule_number:
 
                 init_submodules = {
@@ -191,9 +189,7 @@ class NeuralNetwork:
                     )
                     for sub_tag in expected_submodules
                 }
-            print(
-                f"{'  ' * depth}Initialized submodules: {list(init_submodules.keys())}"
-            )
+
             return clss(**init_submodules, **extra_args)
 
         elif module_name in __all_single__:

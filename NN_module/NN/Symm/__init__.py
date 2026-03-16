@@ -23,4 +23,4 @@ class SymmWrapper(nn.Module):
 
         x = self.NN_model(x)
 
-        return jnp.squeeze(x)
+        return jnp.atleast_1d(jnp.squeeze(x))

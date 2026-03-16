@@ -82,20 +82,15 @@ class Hydra(NeuralNetwork):
         # parameters PyTree after generate the variational state object via weight transplantation.
 
         if self.load_from:
-            for i, trained_NN in enumerate(self.load_from):
-                self.params_history[f"stageX{i}"] = load_params_from_file(trained_NN)
-                self.load = self.arch_evolution["stage0"]["load"]
+            for i, trained_NN_path in enumerate(self.load_from):
+                self.params_history[f"stageX{i}"] = load_params_from_file(
+                    trained_NN_path
+                )
 
-    def save_stage_setup(self, setup, return_setup=False):
+            self.load = self.arch_evolution["stage0"]["load"]
 
-        nowrap_setup = tree_delete_attributes(setup, self.symm_wrapper.keys())
-        self.storage[f"stage{self.n_stage}"] = nowrap_setup
-        # print(f"Cleaning this setup's wrappers:\n")
-        # print_tree(setup, values=True)
-        # print(f"\nCleaned:\n")
-        # print_tree(nowrap_setup, values=True)
-        if return_setup:
-            return nowrap_setup
+    def save_stage_setup(self, setup):
+        self.storage[f"stage{self.n_stage}"] = setup
 
     def setup_from_template(self, template, storage, symm_wrappers):
         return setup_from_template(template, storage, symm_wrappers)
@@ -169,9 +164,10 @@ class Hydra(NeuralNetwork):
 
         # Update symmetry settings, in the case.
         if "symm_wrapper" in stage_config:
-            for k, v in stage_config["symm_wrapper"]:
-                assert k in self.symm_wrapper
-                self.symm_wrapper[k] = v
+            for symm_name, symm_setup in stage_config["symm_wrapper"]:
+                for k, v in symm_setup:
+                    assert k in self.symm_wrapper
+                    self.symm_wrapper[symm_name][k] = v
 
         # Create stage setup and change module attributes, in the case
         raw_setup = setup_from_template(self.template, self.storage, self.symm_wrapper)
@@ -181,11 +177,14 @@ class Hydra(NeuralNetwork):
                     raw_setup, stage_config["change_attr"]
                 )
 
-        # Save the stage architecture setup without symmetry wrappers
-        cleaned_setup = self.save_stage_setup(raw_setup, return_setup=True)
+        # Rebuild setup
+        setup = setup_from_template(self.template, self.storage, self.symm_wrapper)
+
+        # Save the stage architecture setup
+        self.save_stage_setup(setup, return_setup=True)
 
         # Create new NN model
-        self.initialize_from_setup(cleaned_setup, self.external_args)
+        self.initialize_from_setup(setup, self.external_args)
 
         # Show architecture and update metadata
         self.update_info(self.N)

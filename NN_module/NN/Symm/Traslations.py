@@ -41,13 +41,13 @@ class TraslationExplicit(nn.Module):
             token_size=None,
             memory=self.save_memory,
         )
+
         trasl_x = trasl_x.reshape(trasl_x.shape[0], x.shape[0], trasl_x.shape[-1])
 
-        ffw = jax.vmap(self.worker, in_axes=0)(trasl_x).T
+        ffw = jax.vmap(self.worker, in_axes=0)(trasl_x).transpose((1, 0, 2)).squeeze(-1)
 
         x = ffw * characters
-
-        x = jnp.atleast_1d(x.mean(axis=-1))
+        x = x.mean(axis=-1, keepdims=True)
 
         return x
 
