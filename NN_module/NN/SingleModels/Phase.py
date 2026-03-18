@@ -1,5 +1,6 @@
 import flax.linen as nn
 import jax
+import netket as nk
 import jax.typing as jt
 import jax.numpy as jnp
 from typing import Tuple, Callable
@@ -185,36 +186,6 @@ class CNNbinClsf(nn.Module):
         return phase
 
 
-# class CNNSzabo(nn.Module):
-
-#     lattice_size: Tuple
-#     channels: int
-#     use_bias: bool = False
-
-#     @nn.compact
-#     def __call__(self, x):
-
-#         kernel = (3, 3) if self.lattice_size[1] != 1 else (3, 1)
-#         x = x.reshape(-1, *self.lattice_size, 1)
-
-#         x = nn.Conv(
-#             features=self.channels,
-#             kernel_size=kernel,
-#             strides=(1, 1),
-#             padding="CIRCULAR",
-#             # mask=mask,
-#             dtype=DTYPE,
-#             param_dtype=DTYPE,
-#             use_bias=self.use_bias,
-#             # kernel_init=jax.nn.initializers.lecun_normal(),
-#         )(x)
-#         x = nn.LayerNorm(dtype=DTYPE, param_dtype=DTYPE)(x)
-#         x = x.reshape(x.shape[0], -1)
-#         # x = jnp.exp(1j * jnp.pi * x).sum(axis=-1, keepdims=True)
-
-#         return x.sum(axis=-1, keepdims=True)
-
-
 class CNNSzabo(nn.Module):
 
     lattice_size: Tuple
@@ -236,45 +207,9 @@ class CNNSzabo(nn.Module):
             param_dtype=DTYPE,
             use_bias=self.use_bias,
             kernel_init=jax.nn.initializers.lecun_normal(),
-            bias_init=jax.nn.initializers.zeros,
         )(x)
-        x = nn.LayerNorm(dtype=DTYPE, param_dtype=DTYPE)(x)
-        x = x.reshape(x.shape[0], -1)
-        x = jnp.exp(1j * jnp.pi * x)
-
-        x = x.sum(axis=-1, keepdims=True)
-
+        x = x.reshape(x.shape[0], -1, x.shape[-1])
+        x = x.sum(axis=-1)
+        x = jnp.exp(1j * x)
+        x = jnp.sum(nk.nn.activation.log_cosh(x), axis=-1, keepdims=True)
         return jnp.angle(x)
-
-
-# class CNNSzabo(nn.Module):
-
-#     lattice_size: Tuple
-#     channels: int
-#     use_bias: bool = False
-
-#     @nn.compact
-#     def __call__(self, x):
-
-#         kernel = (3, 3) if self.lattice_size[1] != 1 else (3, 1)
-#         x = x.reshape(-1, *self.lattice_size, 1)
-
-#         for _ in range(2):
-#             x = nn.Conv(
-#                 features=self.channels,
-#                 kernel_size=kernel,
-#                 strides=(1, 1),
-#                 padding="CIRCULAR",
-#                 # mask=mask,
-#                 dtype=DTYPE,
-#                 param_dtype=DTYPE,
-#                 use_bias=self.use_bias,
-#                 kernel_init=jax.nn.initializers.lecun_normal(),
-#             )(x)
-#             x = nn.LayerNorm(dtype=DTYPE, param_dtype=DTYPE)(x)
-#             x = nn.relu(x)
-#         x = x.reshape(-1, self.lattice_size[0] * self.lattice_size[1] * x.shape[-1])
-# x = nn.glu(x)
-#         x = jnp.exp(-1j * jnp.pi * x).sum(axis=-1, keepdims=True)
-
-#         return jnp.angle(x)

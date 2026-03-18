@@ -29,6 +29,7 @@ from .SingleModels import (
     Sum,
     Mean,
     OutputHead,
+    ComplexHead,
     SzaboOutput,
 )
 
@@ -66,10 +67,12 @@ __all_single__ = [
     "CMLP",
     "ViT2D",
     "ViT",
-    "VViT" "Factorized",
+    "VViT",
+    "Factorized",
     "FactorMod",
     "Jastrow_wrap",
     "OutputHead",
+    "ComplexHead",
     "SzaboOutput",
     "Sum",
     "Mean",
@@ -114,6 +117,7 @@ REGISTRY_SINGLE = {
     "FactorMod": FactorMod,
     "Jastrow_wrap": Jastrow_wrap,
     "OutputHead": OutputHead,
+    "ComplexHead": ComplexHead,
     "SzaboOutput": SzaboOutput,
     "Sum": Sum,
     "Mean": Mean,
@@ -125,7 +129,6 @@ REGISTRY_SYMM = {
 }
 
 REGISTRY = {None: None, **REGISTRY_SINGLE, **REGISTRY_FACTORIES, **REGISTRY_SYMM}
-
 
 # Diccionarios de modulos que necesitan argumentos externos
 LATTICE_SIZE = {
@@ -172,4 +175,4 @@ symm_submodule_dict = {
 
 undefined_submodule_number = ["Sequential", "Transversal"]
 
-factory_submodule_tags = ["Wrap", "Single", "ModulusNet", "PhaseNet", "Seq", "Trans"]
+factory_submodule_tags = ["Wrap", "Single", "Modulus", "Phase", "Seq", "Trans"]

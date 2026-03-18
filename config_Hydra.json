@@ -1,36 +1,68 @@
 {
 
-    "selection": "ViT2DOutputHead700",
+    "selection": "ViT2DComplexHead",
 
-    "load_from_NeelStripped_Gated":[
-        "/home/ihuarte/Escritorio/Ivan/NNs/TrainedNetworks/J1J2Square/NeelStripped_Gated_SingleModule_Transversal__SingleModule___Transversal____FactorMod_Factorized_operation_Transversal___FactorMod_Factorized_operation_operation_mode/Size_4x4/ST_100-0000, 010_500-0000, 010/UUID_7e8a986e/J1J2Square_NeelStripped_Gated_results_4x4_J1J2_1.0_0.5_XYZ_0.0_0.0_0.0_date_20260205T171906_UUID_7e8a986e.json"
-    ],
-    "load_fromTrFacCNN": [
-        "/home/ihuarte/Escritorio/Ivan/NNs/Simulations/J1J2Square/TrainedFactorizedNeel_CNN_SplitTraining_CNN_Factorized/Size_4x4/ST_100-0_1000-0/UUID_56a07afc/J1J2Square_TrainedFactorizedNeel_CNN_results_4x4_J1J2_1.0_0.5_XYZ_0.0_0.0_0.0_date_20260203T113728_UUID_56a07afc.json"
-    ],
+    "load_model": {
 
+        "parameters": false,
+        "sampler": false,
 
+        "checkpoint": 0,
+        
+        "load_from": [
+            "/home/ihuarte/Escritorio/Ivan/NNs/Simulations/J1J2Square/CvTMarshall_SplitTraining_CvT_MarshallSign/Size_8x8/ST_5000-0/UUID_54894601/J1J2Square_CvTMarshall_simulation_8x8_J1J2_1.0_0.5_XYZ_0.0_0.0_0.0_date_20260223T063722_UUID_54894601_vstate_parameters.orbax"
+        ]
+    },
 
-    "load_from": [
-        "/home/ihuarte/Escritorio/Ivan/NNs/Simulations/J1J2Square/ViT2DOutputHead_stage0/Size_6x6/ST_800-A_200-A/UUID_58ca8e4d/J1J2Square_ViT2DOutputHead_simulation_6x6_J1J2_1.0_0.5_XYZ_0.0_0.0_0.0_date_20260312T093035_UUID_58ca8e4d_checkpoint.orbax/700"
-    ],
+    "ViT2DCNNSzabo":{
 
-    "ViT2DOutputHead700":{
+         "stage0": {
+            "template":{
 
-        "stage0": {
-            "template": {
-                "Sequential":{
-                    "ViT2D":{},
-                    "OutputHead":{}
-                }
-            },
+            "SplitTraining": {
+                "ViT2D":{},
+                "CNNSzabo":{}
+            }
+            },   
+
             "load": [
-                ["stageX0", "0", "0"],
-                ["stageX0", "1", "1"]
+                ["stageX0", "0", "0"]
             ],
             "save_params": true
         }
     },
+
+               
+
+    "ViT2DComplexHead":{
+
+        "stage0":{
+             "template":{
+
+                "Sequential": {
+                    "ViT2D":{},
+                    "ComplexHead":{}
+                }
+            },
+            "save_params": true
+        },
+
+         "stage1": {
+            "template":{
+
+                "stage0":{}
+            },   
+            "change_attr":{
+                "ComplexHead":{
+                    "d_model": 60,
+                    "only_phase": false
+                }
+            },
+
+            "save_params": true
+        }
+    },
+
     "CvT2OutputHead2Phase":{
 
         "stage0": {
@@ -66,16 +98,21 @@
     },
 
     
-    "Viteritti":{
+    "CvTMarshall":{
 
         "stage0": {
+            "template":{
 
-            "template": {
-                    "VViT":{}
-            },
+            "SplitTraining": {
+                "CvT":{},
+                "MarshallSign":{}
+            }
+            },   
 
+            "load": [
+                ["stageX0", "0", "0"]
+            ],
             "save_params": true
-
         }
         
     },
@@ -238,8 +275,7 @@
                             "operation":"product"
                         },
                         "operation":"sum"
-                    },
-                    "mode": "phase"
+                    }
                 }
             },
 
@@ -255,117 +291,6 @@
             ]
         }
 
-    },
-    "Factor_Gated_CNN":{
-    
-        "stage0": {
-            "template": {
-
-                "SingleModule":{
-
-                    "Transversal":{
-                        "Factorized":{},
-                        "Transversal":{
-                            "FactorMod":{},
-                            "CNN_2":{},
-                            "operation":"product"
-                        },
-                        "operation":"sum"
-                    },
-                    "mode": "phase"
-                }
-
-            },
-            "save_params": true,
-            "change_attr":{
-                "Factorized":{
-                    "complex": false
-                }
-            },
-            "load": [
-                ["stageX0", "0", "00"]
-            ]
-            
-        },
-
-        "stage1": {
-            "template": {
-
-                "SplitTraining":{
-
-                    "CNN":{},
-                    "stage0":{}
-                }
-
-            },
-            "save_params": true,
-            "change_attr":{
-                "SingleModule":{
-                    "mode": null
-                }
-            },
-            "load": [
-                ["stage0", "0", "1"]
-            ]
-            
-        }
-    },
-
-    "TrainedAns_CNN":{
-    
-        "stage_0": {
-            "template": {
-
-                "SplitTraining":{
-                    "CNN":{},
-                    "Factorized":{}
-                }
-
-            },
-            "save_params": true,
-            "change_attr":{
-                "Factorized":{
-                    "complex": false
-                }
-            },
-            "load": [
-                ["stage_X", "0", "1"]
-            ]
-            
-        }
-    },
-    
-    "RefinePhase":{
-    
-        "stage_0": {
-            "template": {
-
-                "SplitTraining":{
-                    "CNN":{},
-                    "Transversal":{
-                        "Factorized":{},
-                        "Transversal":{
-                            "FactorMod":{},
-                            "CNN_2":{},
-                            "operation":"product"
-                        },
-                        "operation":"sum"
-                    },
-                    "mode": "phase"
-                }
-
-            },
-            "save_params": true,
-            "change_attr":{
-                "Factorized":{
-                    "complex": false
-                }
-            },
-            "load": [
-                ["stage_X", "0", "00"]
-            ]
-            
-        }
     }
 
 

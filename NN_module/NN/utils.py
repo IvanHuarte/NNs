@@ -674,32 +674,32 @@ def load_pytree(path):
     return cp.restore(path)
 
 
-def load_params_from_artifact(artifact_path):
+def load_from_artifact(artifact_path, checkpoint=0, tag="parameters"):
 
     with open(artifact_path, "r") as f:
         artifact = json.load(f)
 
-    path = artifact["_artifacts"]["parameters"]
-    parameters = load_pytree(path)
+    if checkpoint:
+        tag = "checkpoint"
 
-    return parameters
+    path = artifact["_artifacts"][tag]
+    data = load_pytree(path)
+
+    return data
 
 
-def load_params_from_file(path):
+def load_from_file(path, checkpoint=0, tag="parameters"):
 
     if ".json" in path:  # Best results
-        parameters = load_params_from_artifact(path)
+        data = load_from_artifact(path, tag)
+        if isinstance(data, str):
+            data = load_from_file(data, checkpoint=checkpoint, tag=tag)
 
-    elif ".orbax" in path:  # Direct parameters
+    elif ".orbax" in path:  # Direct files
+        path += "/" if not path.endswith("/") else ""
         if "checkpoint" in path:
-            assert os.path.basename(
-                path
-            ).isdigit(), (
-                f"In the case of loading checkpoints is necessary to especify the epoch"
-            )
-            path += "/" if not path.endswith("/") else ""
-            path += "parameters"
+            path += str(checkpoint) + "/" + tag
 
-        parameters = load_pytree(path)
+        data = load_pytree(path)
 
-    return parameters
+    return data

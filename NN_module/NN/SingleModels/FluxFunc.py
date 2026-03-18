@@ -6,6 +6,8 @@ from typing import Tuple
 
 from netket.nn.activation import log_cosh
 
+from ..toolbox import CDense
+
 DTYPE = jnp.float64
 
 
@@ -70,6 +72,35 @@ class OutputHead(nn.Module):
             out = jnp.ones(out.shape, dtype=DTYPE) + 1.0j * out.imag
 
         out = jnp.sum(log_cosh(out), axis=-1, keepdims=True)
+
+        return out
+
+
+class ComplexHead(nn.Module):
+    d_model: int  # dimensionality of the embedding space
+    param_dtype = jnp.float64
+    only_phase: bool = False
+
+    @nn.compact
+    def __call__(self, x):
+
+        x = x.reshape(x.shape[0], -1, x.shape[-1])
+
+        x = nn.LayerNorm(use_scale=True, use_bias=True, param_dtype=self.param_dtype)(
+            x.sum(axis=1)
+        )
+
+        z = CDense(
+            self.d_model,
+            param_dtype=self.param_dtype,
+            kernel_init=nn.initializers.xavier_uniform(),
+            bias_init=jax.nn.initializers.zeros,
+        )(x)
+
+        out = jnp.sum(log_cosh(z), axis=-1, keepdims=True)
+
+        if self.only_phase:
+            out = jnp.ones(z.shape, dtype=DTYPE) + 1.0j * z.imag
 
         return out
 

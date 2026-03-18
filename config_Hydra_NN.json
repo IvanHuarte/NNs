@@ -9,7 +9,7 @@
             "trivial_Z2": true
         },
         "Traslation": {
-            "on": true,
+            "on": false,
             "irrep": [0, 0],
             "use_anchor": false,
             "save_memory": false
@@ -20,12 +20,12 @@
     "storage":{
         
         "CNN":{
-            "channels":[32, 16, 16, 8],
-            "strides":[[1,1],[1,1],[1,1],[1,1]],
+            "channels":[32],
+            "strides":[[1,1]],
             "kernel":[3,3],
             "use_pooling":false,
-            "pooling_strides":[[1,1],[1,1],[1,1],[1,1]],
-            "final_architecture":null
+            "pooling_strides":[[1,1]],
+            "final_architecture":[]
         },
         "ViT2D":{
             "token_size": [2, 2],
@@ -51,11 +51,11 @@
             "final_architecture": null
         },
         "CvT":{
-            "n_CP_blocks":[1, 1, 1],
-            "channels": [64, 32, 16],
-            "attn_heads":[8, 4, 2],
+            "n_CP_blocks":[1, 1, 1, 1, 1],
+            "channels": [16, 8, 8, 8, 4],
+            "attn_heads":[2, 2, 2, 2, 2],
             "kernel": [3, 3],
-            "final_architecture": null
+            "final_architecture": []
         },
         "CMLP":{
             "hidden_alpha": [1],
@@ -93,7 +93,7 @@
             "kernel":[3,3],
             "use_pooling":false,
             "pooling_strides":[[1,1]],
-            "final_architecture":[1]
+            "final_architecture":[]
         },
         
         "CNNLiang":{
@@ -108,7 +108,7 @@
         
         
         "CNNSzabo":{
-            "channels": 40,
+            "channels": 30,
             "use_bias": true
         },
         
@@ -149,9 +149,9 @@
             "axis": 1
         },
 
-        "OutputHead":{
+        "ComplexHead":{
             "d_model": 60,
-            "only_phase": false
+            "only_phase": true
         },
         "SzaboOutput":{}
 }

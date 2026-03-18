@@ -43,19 +43,19 @@
             "prules": [1.0]
         },
         "n_ranks": 1,
-        "n_chains_per_rank": 4096,
+        "n_chains_per_rank": 2048,
         "n_samples_per_chain": 1,
         "chunk_sampler": null,
         "chunk_vstate": 1024
     },
 
-    "schedule":{
+     "schedule":{
 
         "learning_rate":{
             "epochs_struct":[
                 
                 [ 
-                    [50, 50, 200]
+                    [1000, 1000]
                 ]
                 
             ],
@@ -63,14 +63,14 @@
             "modes_struct":[
                 
                 [
-                    [ ["A"], ["A"], ["A"] ]
+                    [ ["A"], ["A"] ]
                 ]
                 
             ],
             "lr_struct":[
                 
                 [
-                    [ [0.000001], ["lin(0.00001, 0.01"], [0.01] ]
+                    [ [0.02], [0.001] ]
                 ]
                 
             ],
@@ -83,6 +83,7 @@
         }
     
     }
+
 
 
 }

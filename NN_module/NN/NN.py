@@ -76,9 +76,9 @@ class NeuralNetwork:
 
         setup = insert_external_kwargs(setup, external_args)
         self.setup = preprocess_setup(setup)
-        self.model = self.build_model(deepfreeze(self.setup), external_args)
         print("\nBuilding Neural Network from setup...\n")
         print_tree(setup, values=True)
+        self.model = self.build_model(deepfreeze(self.setup), external_args)
 
     def get_model(self):
         return self.model
@@ -146,6 +146,7 @@ class NeuralNetwork:
             for k, v in setup.items()
             if any(tag in k for tag in factory_submodule_tags)
         }
+
         extra_args = {
             k: v
             for k, v in setup.items()

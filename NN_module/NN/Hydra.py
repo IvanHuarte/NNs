@@ -1,5 +1,6 @@
 import jax
 import jax.numpy as jnp
+from netket.sampler.metropolis import MetropolisSamplerState
 
 from NN_module.NN.NN import NeuralNetwork
 from NN_module.NN.utils import (
@@ -11,8 +12,7 @@ from NN_module.NN.utils import (
     greedy_transplant,
     get_subtree,
     set_subtree,
-    load_params_from_file,
-    tree_delete_attributes,
+    load_from_file,
 )
 from NN_module.ST_utils import print_tree
 
@@ -52,7 +52,7 @@ class Hydra(NeuralNetwork):
         self.n_stage = 0
 
         self.print_arch = hydra_config["print_arch"]
-        self.load_from = hydra_config["load_from"]
+        self.load_model = hydra_config["load_model"]
 
         self.storage = hydra_config["storage"]
         self.symm_wrapper = hydra_config["symm_wrapper"]
@@ -74,20 +74,16 @@ class Hydra(NeuralNetwork):
         if "lattice_size" in self.external_args:
             self.update_info()
 
-        self.params_history = {}
-
         # Load initial parameters for stage0, in the case. If a valid artifact is set,
         # load info will be required in stage0 and must refeer the label set in params_history
         # at below, stageX as default. Loaded parameters should be transplanted to stage0
         # parameters PyTree after generate the variational state object via weight transplantation.
 
-        if self.load_from:
-            for i, trained_NN_path in enumerate(self.load_from):
-                self.params_history[f"stageX{i}"] = load_params_from_file(
-                    trained_NN_path
-                )
-
+        self.params_history = {}
+        if self.load_model["parameters"] or self.load_model["sampler"]:
             self.load = self.arch_evolution["stage0"]["load"]
+        else:
+            self.load_model = None
 
     def save_stage_setup(self, setup):
         self.storage[f"stage{self.n_stage}"] = setup
@@ -189,7 +185,7 @@ class Hydra(NeuralNetwork):
         # Show architecture and update metadata
         self.update_info(self.N)
 
-    def weight_transplantation(self, new_params, return_c2p=True):
+    def weight_transplantation(self, new_params):
         """
         Transplant compatible weights from previous models.
 
@@ -240,7 +236,41 @@ class Hydra(NeuralNetwork):
                 val = get_subtree(old_params, old_abs)
                 new_params = set_subtree(new_params, new_abs, val)
 
-        if return_c2p:
-            return new_params, new_c2p
-        else:
-            return new_params
+        return new_params
+
+    def load_vstate(self, vstate):
+
+        paths = self.load_model["load_from"]
+        checkpoint = self.load_model["checkpoint"]
+
+        assert all(
+            [
+                any(
+                    [
+                        tag in path
+                        for tag in ["checkpoint", ".json", "parameters", "vstate"]
+                    ]
+                )
+                for path in paths
+            ]
+        )
+
+        if self.load_model["parameters"]:
+            for i, path in enumerate(paths):
+                self.params_history[f"stageX{i}"] = load_from_file(
+                    path, checkpoint, "parameters"
+                )
+            vstate.parameters = self.weight_transplantation(vstate.parameters)
+            self.params_history = {}
+
+        if self.load_model["sampler"]:  # vstate.sampler_state
+            sampler_data = load_from_file(paths[0], checkpoint, "sampler_state")
+            sampler_state = MetropolisSamplerState(
+                σ=sampler_data["σ"],
+                rng=sampler_data["rng"],
+                rule_state=sampler_data["rule_state"],
+                log_prob=sampler_data["log_prob"],
+            )
+            vstate.sampler_state = sampler_state
+
+        return vstate

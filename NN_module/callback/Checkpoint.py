@@ -12,7 +12,7 @@ class Checkpoint:
         self.asyn = setup["async"]
         self.step = -1
 
-        checkpoint_path = sim_label_folder + "_checkpoint.orbax"
+        self.checkpoint_path = sim_label_folder + "_checkpoint.orbax"
 
         manger_options = ocp.CheckpointManagerOptions(
             max_to_keep=1000000,
@@ -22,7 +22,7 @@ class Checkpoint:
         )
 
         self.manager = ocp.CheckpointManager(
-            checkpoint_path,
+            self.checkpoint_path,
             item_names=("parameters", "sampler_state", "metrics"),
             options=manger_options,
         )

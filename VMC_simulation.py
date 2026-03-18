@@ -156,32 +156,10 @@ for i, size in enumerate(sizes):
         print(f"Total samples: {n_samples}\n")
         print_tree(hydra.setup, values=True)
 
-        # from NN_module.NN.SingleModels.VViT import VViT
-
-        # model = VViT(
-        #     num_layers=2,
-        #     d_model=30,
-        #     n_heads=5,
-        #     patch_size=2,
-        #     transl_invariant=True,
-        # )
-
         #### INITIALIZE SAMPLER ####
         print("Initializing sampler...")
         sampler_factory = SamplerFactory(sampler_setup, cm_model=cm_model)
         sampler = sampler_factory.get_sampler(hi)
-
-        # lattice = nk.graph.Hypercube(
-        #     length=size[0], n_dim=2, pbc=True, max_neighbor_order=2
-        # )
-
-        # sampler = nk.sampler.MetropolisExchange(
-        #     hilbert=hi,
-        #     graph=lattice,
-        #     d_max=2,
-        #     n_chains=n_samples,
-        #     sweep_size=lattice.n_nodes,
-        # )
 
         #### INITIALIZE LOGGER ####
         log = nk.logging.RuntimeLog()
@@ -200,12 +178,9 @@ for i, size in enumerate(sizes):
             chunk_size=sampler_setup["chunk_vstate"],
         )
         ## Transplant loaded parameters to the current architecture
-        if hydra.load_from:
-            vstate.parameters, code2path = hydra.weight_transplantation(
-                vstate.parameters
-            )
-        else:
-            code2path = hydra.get_code2path(vstate.parameters)
+        if hydra.load_model:
+            vstate = hydra.load_vstate(vstate)
+        code2path = hydra.get_code2path(vstate.parameters)
 
         #### INITIALIZE SCHEDULE ####
         schedule = Schedule(schedule_setup, code2path)
@@ -372,9 +347,16 @@ for i, size in enumerate(sizes):
         dump_setup = {
             **sim_config,
             "results": results,
-            "optimizer": "Sgd",
-            "_artifacts": {"callback": callback_artifacts},
+            "optimizer": "sgd_optax",
+            "_artifacts": {
+                "callback": callback_artifacts,
+            },
         }
+        if config["callback"]["checkpoint"]:
+            dump_setup["_artifacts"]["checkpoint"] = callback_objects[
+                -1
+            ].checkpoint_path
+
         dump_setup = make_setup_serializable(dump_setup)
 
         save_results(

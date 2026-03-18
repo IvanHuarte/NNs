@@ -12,12 +12,12 @@ class SplitTraining(nn.Module):
     Flax module to train modulus and phase separately
     """
 
-    ModulusNet: nn.Module
-    PhaseNet: nn.Module
+    Modulus: nn.Module
+    Phase: nn.Module
 
     def setup(self):
-        self.Modulus_model = self.ModulusNet
-        self.Phase_model = self.PhaseNet
+        self.Modulus_model = self.Modulus
+        self.Phase_model = self.Phase
 
     def __call__(self, x: jnp.ndarray) -> jnp.ndarray:
 
