@@ -76,9 +76,11 @@ class NeuralNetwork:
 
         setup = insert_external_kwargs(setup, external_args)
         self.setup = preprocess_setup(setup)
+
         print("\nBuilding Neural Network from setup...\n")
-        print_tree(setup, values=True)
-        self.model = self.build_model(deepfreeze(self.setup), external_args)
+        print_tree(self.setup, values=True)
+
+        self.model = self.build_model(self.setup, external_args)
 
     def get_model(self):
         return self.model
@@ -136,7 +138,7 @@ class NeuralNetwork:
             print(f"Getting wrapped model for symmetrization...")
             clss = self.get_model_class("SymmWrapper")
             NN_model = self.build_model(setup, external_args, depth=1)
-            print(f"Model wrapped")
+            print(f"Model built and wrapped")
             return clss(NN_model)
 
         module_name = setup["module"]

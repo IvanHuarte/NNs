@@ -1,6 +1,6 @@
 {
 
-    "selection": "ViT2DComplexHead",
+    "selection": "ViT2DCHPhase",
 
     "load_model": {
 
@@ -10,8 +10,59 @@
         "checkpoint": 0,
         
         "load_from": [
-            "/home/ihuarte/Escritorio/Ivan/NNs/Simulations/J1J2Square/CvTMarshall_SplitTraining_CvT_MarshallSign/Size_8x8/ST_5000-0/UUID_54894601/J1J2Square_CvTMarshall_simulation_8x8_J1J2_1.0_0.5_XYZ_0.0_0.0_0.0_date_20260223T063722_UUID_54894601_vstate_parameters.orbax"
+            "/home/ihuarte/Escritorio/Ivan/NNs/pruebas/J1J2Square/ViT2DOutputHead_stage0/Size_6x6/ST_800-A_200-A/UUID_58ca8e4d/J1J2Square_ViT2DOutputHead_simulation_6x6_J1J2_1.0_0.5_XYZ_0.0_0.0_0.0_date_20260312T093035_UUID_58ca8e4d_checkpoint.orbax"
         ]
+    },
+
+    "ViT2DOH":{
+
+        "stage0":{
+             "template":{
+
+                "Sequential": {
+                    "ViT2D":{},
+                    "OutputHead":{}
+                }
+            },
+            "load": [
+                ["stageX0", "0", "0"],
+                ["stageX0", "1", "1"]
+            ],
+            "save_params": true
+        }
+    },
+
+    "ViT2DCHPhase":{
+
+        "stage0":{
+             "template":{
+
+                "Sequential": {
+                    "CvT":{},
+                    "CMLP":{},
+                    "Mean":{},
+                    "Sum":{}
+                }
+            },
+            "load": [
+                ["stageX0", "0", "0"],
+                ["stageX0", "1", "1"]
+            ],
+            "save_params": true
+        },
+
+         "stage1": {
+            "template":{
+                "stage0":{}
+            },   
+            "change_attr":{
+                "ComplexHead":{
+                    "only_phase": false
+                }
+            },
+
+            "save_params": true
+        }
     },
 
     "ViT2DCNNSzabo":{

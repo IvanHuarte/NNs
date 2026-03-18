@@ -239,6 +239,7 @@ class Hydra(NeuralNetwork):
         return new_params
 
     def load_vstate(self, vstate):
+        from NN_module.ST_utils import compare_params
 
         paths = self.load_model["load_from"]
         checkpoint = self.load_model["checkpoint"]
@@ -260,17 +261,25 @@ class Hydra(NeuralNetwork):
                 self.params_history[f"stageX{i}"] = load_from_file(
                     path, checkpoint, "parameters"
                 )
+            
             vstate.parameters = self.weight_transplantation(vstate.parameters)
+            print_tree(self.params_history["stageX0"])
+            print('\n\n')
+            print_tree(vstate.parameters)
             self.params_history = {}
 
         if self.load_model["sampler"]:  # vstate.sampler_state
             sampler_data = load_from_file(paths[0], checkpoint, "sampler_state")
+
             sampler_state = MetropolisSamplerState(
                 σ=sampler_data["σ"],
                 rng=sampler_data["rng"],
                 rule_state=sampler_data["rule_state"],
                 log_prob=sampler_data["log_prob"],
             )
+            print(sampler_data, '\n')
+            print(sampler_state, '\n')
             vstate.sampler_state = sampler_state
+            print(vstate.sampler_state)
 
         return vstate

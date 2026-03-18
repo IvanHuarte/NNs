@@ -146,7 +146,6 @@ LATTICE_SIZE = {
         "MarshallSign",
         "CarreteSign",
         "MLP",
-        "CMLP",
         "ViT2D",
         "ViT",
         "Factorized",

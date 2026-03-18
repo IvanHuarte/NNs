@@ -2,7 +2,7 @@ import flax.linen as nn
 import jax
 import jax.numpy as jnp
 import jax.typing as jt
-from typing import Tuple
+from typing import Tuple, Callable
 
 from netket.nn.activation import log_cosh
 
@@ -14,9 +14,13 @@ DTYPE = jnp.float64
 class Sum(nn.Module):
 
     axis: int = -1
+    activation: Callable = None
 
     @nn.compact
     def __call__(self, x):
+
+        if self.activation is not None:
+            x = self.activation[0](x)
         return jnp.sum(x, axis=self.axis)
 
 

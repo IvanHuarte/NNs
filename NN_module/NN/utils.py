@@ -119,7 +119,8 @@ def preprocess_setup(setup: dict) -> dict:
         elif isinstance(v, list):
             v = recursive_list_to_tuple(v)
 
-        elif "activation" in k:
+        if "activation" in k:
+
             if all([type(act) in [str, int] for act in v]):
                 v = tuple([activation_dict[act] if act != 0 else 0 for act in v])
 
