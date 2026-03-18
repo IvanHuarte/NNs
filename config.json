@@ -31,7 +31,7 @@
             }
         },
         "checkpoint_setup":{
-            "do_each":100,
+            "do_each":300,
             "async": false
         }
             
@@ -55,7 +55,7 @@
             "epochs_struct":[
                 
                 [ 
-                    [300]
+                    [500]
                 ],
                 [
                     [1000]

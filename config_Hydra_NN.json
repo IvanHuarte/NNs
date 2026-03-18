@@ -51,9 +51,9 @@
             "final_architecture": null
         },
         "CvT":{
-            "n_CP_blocks":[1],
-            "channels": [64],
-            "attn_heads":[8],
+            "n_CP_blocks":[1, 1],
+            "channels": [64, 32],
+            "attn_heads":[8, 4],
             "kernel": [3, 3],
             "final_architecture": null
         },
@@ -138,12 +138,12 @@
         
 
         "Sum":{
-            "axis": 1,
-            "activation": ["logcosh"]
+            "axis": 1
         },
 
         "Sum_1":{
-            "axis": -1
+            "axis": 1,
+            "activation": ["logcosh"]
         },
 
         "Mean":{
@@ -151,8 +151,8 @@
         },
 
         "ComplexHead":{
-            "d_model": 60,
-            "only_phase": false
+            "d_model": 32,
+            "only_phase": true
         },
         "OutputHead":{
             "d_model": 60,
