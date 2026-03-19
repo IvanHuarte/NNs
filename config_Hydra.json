@@ -38,9 +38,9 @@
              "template":{
 
                 "Sequential": {
-                    "CvT":{},
+                    "ViT2D":{},
                     "CMLP":{},
-                    "Mean":{},
+                    "Sum":{},
                     "Sum_1":{}
                 }
             },

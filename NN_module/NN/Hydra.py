@@ -177,7 +177,7 @@ class Hydra(NeuralNetwork):
         setup = setup_from_template(self.template, self.storage, self.symm_wrapper)
 
         # Save the stage architecture setup
-        self.save_stage_setup(setup, return_setup=True)
+        self.save_stage_setup(setup)
 
         # Create new NN model
         self.initialize_from_setup(setup, self.external_args)
