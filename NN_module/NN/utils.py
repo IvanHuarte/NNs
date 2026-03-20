@@ -692,7 +692,7 @@ def load_from_artifact(artifact_path, checkpoint=0, tag="parameters"):
 def load_from_file(path, checkpoint=0, tag="parameters"):
 
     if ".json" in path:  # Best results
-        data = load_from_artifact(path, tag)
+        data = load_from_artifact(path, checkpoint=checkpoint, tag=tag)
         if isinstance(data, str):
             data = load_from_file(data, checkpoint=checkpoint, tag=tag)
 

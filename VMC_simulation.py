@@ -180,7 +180,6 @@ for i, size in enumerate(sizes):
         if hydra.load_model:
             vstate = hydra.load_vstate(vstate)
         code2path = hydra.get_code2path(vstate.parameters)
-        sys.exit(0)
 
         #### INITIALIZE SCHEDULE ####
         schedule = Schedule(schedule_setup, code2path)

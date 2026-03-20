@@ -29,7 +29,7 @@
         },
         "ViT2D":{
             "token_size": [2, 2],
-            "embedding_d": 60,
+            "embedding_d": 30,
             "n_heads": 10,
             "n_blocks": 2,
             "n_ffn_layers": 2,
