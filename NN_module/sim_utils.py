@@ -21,7 +21,7 @@ def measureNdump(keeper, time_exe, exact_diag=False, S_operators=False):
     best_step = keeper.best_step
     E_best = float(keeper.best_state_energy) / s_factor
     E_best_per_site = E_best / N
-    vscore = s_factor * float(keeper.best_state_vscore)
+    vscore = float(keeper.best_state_vscore)
 
     modphase_results = {}
     if exact_diag:

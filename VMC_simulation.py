@@ -118,7 +118,7 @@ for i, size in enumerate(sizes):
     write_folder = write_folder_training + f"UUID_{sim_uuid}/"
 
     ###  Reseting Hilbert space object and the observables ###
-    hi = nk.hilbert.Spin(s=1 / 2, N=N, total_sz=0)
+    hi = nk.hilbert.Spin(s=1 / 2, N=N, total_sz=config["sz_total"])
     model_factory = ModelFactory(size, config_cm)
 
     for params in model_factory.get_params():
@@ -134,7 +134,6 @@ for i, size in enumerate(sizes):
         if exact_diag:
             print("Running exact diagonalization...")
             E_ED, x_ED = eng.exact_energy_lanczos(hi, eigenstates=True)
-
             # x_ED = full_basis_state(x_ED, hi) if hi._total_sz is not None else x_ED
             E_ED = float(E_ED.squeeze(-1))
             print(f"Energy ED: {E_ED}")
@@ -181,6 +180,7 @@ for i, size in enumerate(sizes):
         if hydra.load_model:
             vstate = hydra.load_vstate(vstate)
         code2path = hydra.get_code2path(vstate.parameters)
+        sys.exit(0)
 
         #### INITIALIZE SCHEDULE ####
         schedule = Schedule(schedule_setup, code2path)

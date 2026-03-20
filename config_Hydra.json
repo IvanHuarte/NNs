@@ -1,20 +1,20 @@
 {
 
-    "selection": "ViT2DCHPhase",
+    "selection": "ViT2DOHRefineTZ2",
 
     "load_model": {
 
-        "parameters": false,
+        "parameters": true,
         "sampler": false,
 
         "checkpoint": 0,
         
         "load_from": [
-            "/home/ihuarte/Escritorio/Ivan/NNs/pruebas/J1J2Square/ViT2DOutputHead_stage0/Size_6x6/ST_800-A_200-A/UUID_58ca8e4d/J1J2Square_ViT2DOutputHead_simulation_6x6_J1J2_1.0_0.5_XYZ_0.0_0.0_0.0_date_20260312T093035_UUID_58ca8e4d_checkpoint.orbax"
+            "/home/ihuarte/Escritorio/Ivan/NNs/pruebas/Oxalate/ViT2DOH_Sequential_ViT2D_OutputHead/Size_4x4/ST_1000-A_500-A/UUID_4dc094e2/Oxalate_ViT2DOH_results_4x4_strength_0.2_theta_9.0_phi_72.0_date_20260320T003803_UUID_4dc094e2.json"
         ]
     },
 
-    "ViT2DOH":{
+    "ViT2DOHRefineTZ2":{
 
         "stage0":{
              "template":{

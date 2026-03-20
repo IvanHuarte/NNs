@@ -34,6 +34,7 @@ class TraslationExplicit(nn.Module):
             )
         )
 
+
         # 2D traslation
         trasl_x = traslations_2D(
             x,
@@ -45,7 +46,6 @@ class TraslationExplicit(nn.Module):
         trasl_x = trasl_x.reshape(trasl_x.shape[0], x.shape[0], trasl_x.shape[-1])
 
         ffw = jax.vmap(self.worker, in_axes=0)(trasl_x).transpose((1, 0, 2)).squeeze(-1)
-
         x = ffw * characters
         x = x.mean(axis=-1, keepdims=True)
 

@@ -1,10 +1,11 @@
 {
 
-   "write_folder_sim":"/home/ihuarte/Escritorio/Ivan/NNs/pruebas/",
+    "write_folder_sim":"/home/ihuarte/Escritorio/Ivan/NNs/pruebas/",
 
-   "vmc_sr":false,
+    "sz_total": null,
+    "vmc_sr":true,
 
-   "callback":{
+    "callback":{
         "keeper": true,
         "energy_plot": false,
         "modphase": false,
@@ -31,7 +32,7 @@
             }
         },
         "checkpoint_setup":{
-            "do_each":300,
+            "do_each":200,
             "async": false
         }
             
@@ -39,8 +40,8 @@
 
     "sampler":{
         "sampler":{
-            "rules": ["Exchange"],
-            "prules": [1.0]
+            "rules": ["LocalRule","Exchange", "InvertMagnetization"],
+            "prules": [0.7, 0.1, 0.2]
         },
         "n_ranks": 1,
         "n_chains_per_rank": 4096,
@@ -49,16 +50,13 @@
         "chunk_vstate": 1024
     },
 
-     "schedule":{
+        "schedule":{
 
         "learning_rate":{
             "epochs_struct":[
                 
                 [ 
-                    [500]
-                ],
-                [
-                    [300]
+                    [1, 1]
                 ]
                 
             ],
@@ -66,20 +64,14 @@
             "modes_struct":[
                 
                 [
-                    [ ["A"] ]
-                ],
-                [
-                    [ ["A"] ]
+                    [ ["A"], ["A"] ]
                 ]
                 
             ],
             "lr_struct":[
                 
                 [
-                    [ [0.03] ]
-                ],
-                [
-                    [ [0.005] ]
+                    [ ["lin(0.0001, 0.1)"], [0.1] ]
                 ]
                 
             ],
@@ -90,7 +82,7 @@
         "sampler":{
 
         }
-    
+
     }
 
 

@@ -9,7 +9,7 @@
             "trivial_Z2": true
         },
         "Traslation": {
-            "on": false,
+            "on": true,
             "irrep": [0, 0],
             "use_anchor": false,
             "save_memory": false
