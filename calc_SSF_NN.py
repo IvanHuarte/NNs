@@ -12,7 +12,7 @@ import ast
 import sys
 from pathlib import Path
 
-from NN_module.sim_utils import load_vstate
+from NN_module.saveNload import load_vstate
 from NN_module.correlations import correlations_ED, correlations_vstate
 from NN_module.label_utils import get_filenames_from_settings
 
@@ -38,11 +38,9 @@ from chebyoxa_functions import *
 
 parser = argparse.ArgumentParser()
 parser.add_argument("-a", '--artifact_path', type=str, required=True, help='Path al artefacto principal que recoge los resultados de la simulacion')
-parser.add_argument("-exp", '--explore_mode', type=str, help='Modo para discriminar simulaciones con los mismos parametros')
 args=parser.parse_args()
 
 path_artifact= args.artifact_path
-explore_mode = args.explore_mode
 write = os.path.dirname(path_artifact) + "/"
 
 with open(path_artifact,'r') as f:
@@ -99,18 +97,6 @@ if not os.path.isfile(artifact["results"]["vstate"]):
 # artifact["model_NN"]["dense_dim"] = ast.literal_eval(artifact["model_NN"]["dense_dim"])
 
 vstate=load_vstate(artifact)
-
-# Verify there is no previous simulations, to earn time
-if explore_mode:                    # If True checks sucessive files and assign a new one
-    
-    i=1
-    file_temp = file + f"_{i}.txt"
-    while(os.path.isfile(write + file_temp)):
-        file_temp = file + f"_{i}.txt"
-        i+=1
-        print(f"_{i}.txt")
-    
-    files[0] += f"_{i}.txt"
 
 
 if os.path.isfile(write + file_ED): 
