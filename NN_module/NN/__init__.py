@@ -29,6 +29,7 @@ from .SingleModels import (
     Sum,
     Mean,
     OutputHead,
+    DeepOutputHead,
     ComplexHead,
     SzaboOutput,
 )
@@ -72,6 +73,7 @@ __all_single__ = [
     "FactorMod",
     "Jastrow_wrap",
     "OutputHead",
+    "DeepOutputHead",
     "ComplexHead",
     "SzaboOutput",
     "Sum",
@@ -117,6 +119,7 @@ REGISTRY_SINGLE = {
     "FactorMod": FactorMod,
     "Jastrow_wrap": Jastrow_wrap,
     "OutputHead": OutputHead,
+    "DeepOutputHead": DeepOutputHead,
     "ComplexHead": ComplexHead,
     "SzaboOutput": SzaboOutput,
     "Sum": Sum,

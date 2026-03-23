@@ -40,8 +40,8 @@
 
     "sampler":{
         "sampler":{
-            "rules": ["LocalRule","Exchange", "InvertMagnetization"],
-            "prules": [0.7, 0.1, 0.2]
+            "rules": ["LocalRule","Exchange"],
+            "prules": [0.8, 0.2]
         },
         "n_ranks": 1,
         "n_chains_per_rank": 4096,
@@ -50,13 +50,13 @@
         "chunk_vstate": 1024
     },
 
-        "schedule":{
+    "schedule":{
 
         "learning_rate":{
             "epochs_struct":[
                 
                 [ 
-                    [2000, 1000]
+                    [1000, 500]
                 ]
                 
             ],
@@ -71,7 +71,7 @@
             "lr_struct":[
                 
                 [
-                    [ [0.1], ["exp(0.1,0.0001)"] ]
+                    [ ["lin(0.1, 0.05,2)"], ["exp(0.05, 0.001)"] ]
                 ]
                 
             ],

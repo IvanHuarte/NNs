@@ -80,9 +80,65 @@ class OutputHead(nn.Module):
         return out
 
 
+class DeepOutputHead(nn.Module):
+    d_model: Tuple[int, ...]
+    activations_real: Tuple[Callable, ...]
+    activations_imag: Tuple[Callable, ...]
+    param_dtype = DTYPE
+    only_phase: bool = False
+
+    @nn.compact
+    def __call__(self, x):
+
+        x = x.reshape(x.shape[0], -1, x.shape[-1])
+        x = nn.LayerNorm(param_dtype=self.param_dtype)(x.sum(axis=1))
+
+        x_real = x.copy()
+        x_imag = x.copy()
+
+        # Real sequential
+        for d, act in zip(self.d_model, self.activations_real):
+            norm = nn.LayerNorm(
+                use_scale=True, use_bias=True, param_dtype=self.param_dtype
+            )
+            x_real = nn.Dense(
+                d,
+                param_dtype=self.param_dtype,
+                kernel_init=nn.initializers.xavier_uniform(),
+                bias_init=jax.nn.initializers.zeros,
+            )(x_real)
+            x_real = norm(x_real)
+            if callable(self.activations_real):
+                x_real = act(x_imag)
+
+        # Imag sequential
+        for d, act in zip(self.d_model, self.activations_imag):
+            norm = nn.LayerNorm(
+                use_scale=True, use_bias=True, param_dtype=self.param_dtype
+            )
+            x_imag = nn.Dense(
+                d,
+                param_dtype=self.param_dtype,
+                kernel_init=nn.initializers.xavier_uniform(),
+                bias_init=jax.nn.initializers.zeros,
+            )(x_imag)
+            x_imag = norm(x_imag)
+            if callable(self.activations_real):
+                x_imag = act(x_imag)
+
+        z = x_real + 1.0j * x_imag
+
+        if self.only_phase:
+            z = jnp.ones(z.shape, dtype=DTYPE) + 1.0j * z.imag
+
+        z = jnp.sum(log_cosh(z), axis=-1, keepdims=True)
+
+        return z
+
+
 class ComplexHead(nn.Module):
     d_model: int  # dimensionality of the embedding space
-    param_dtype = jnp.float64
+    param_dtype = DTYPE
     only_phase: bool = False
 
     @nn.compact

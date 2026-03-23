@@ -24,27 +24,37 @@ import chebyoxa.utils as utils
 from NNs.NN_module.label_utils import get_filenames_from_settings
 
 parser = argparse.ArgumentParser()
-parser.add_argument("-a",'--artifact_path', type=str, required=True, help='Path al artefacto principal que recoge los resultados de la simulacion')
-parser.add_argument("-exp",'--explore_mode', type=bool, help='Modo para discriminar simulaciones con los mismos parametros', default=False)
-parser.add_argument("-err",'--plot_error', type=bool, help='Plotear el error relativo entre el SSF obtenido y el de ED', default=False)
-args=parser.parse_args()
+parser.add_argument(
+    "-a",
+    "--artifact_path",
+    type=str,
+    required=True,
+    help="Path al artefacto principal que recoge los resultados de la simulacion",
+)
+parser.add_argument(
+    "-e",
+    "--plot_error",
+    type=bool,
+    help="Plotear el error relativo entre el SSF obtenido y el de ED",
+    default=False,
+)
+args = parser.parse_args()
 
-path_artifact= args.artifact_path
-explore_mode = args.explore_mode
+path_artifact = args.artifact_path
 plot_error = args.plot_error
 
 write_folder = os.path.dirname(path_artifact) + "/"
 
-with open(path_artifact,'r') as f:
+with open(path_artifact, "r") as f:
     artifact = json.load(f)
+size = artifact["CM"]["size"]
+N = int(np.array(size).prod())
 
-size = artifact['lattice']['size']
-
-ssf_path = artifact['_artifacts']['SSF']['OPT']
+ssf_path = artifact["_artifacts"]["SSF"]["OPT"]
 if not os.path.isfile(ssf_path):
     exit(1, f"File {ssf_path} not found")
-if 'ED' in artifact['_artifacts']['SSF'] :
-    ssf_ED_path = artifact['_artifacts']['SSF']['ED']
+if "ED" in artifact["_artifacts"]["SSF"]:
+    ssf_ED_path = artifact["_artifacts"]["SSF"]["ED"]
 else:
     ssf_ED_path = None
 
@@ -52,27 +62,24 @@ write_folder_fig = write_folder + f"SSF_plots/"
 if not os.path.exists(write_folder_fig):
     os.makedirs(write_folder_fig)
 
-model_label = artifact['model_label']
-cm_name = model_label.split("_",1)[0]
-nn_name = model_label.split("_",1)[1]
+cm_name = artifact["CM"]["name"]
+nn_name = artifact["NN"]["name"]
+model_label = cm_name + " " + nn_name
 
-kwargs ={
-    'size':size,
-    **artifact['coupling_model'],
-    **artifact['model_NN']
-}
-
-sim_label, _, _, callback = get_filenames_from_settings(cm_name, nn_name, **kwargs )
-title = callback.replace("Callback","").lstrip().replace(" ","\\quad")
+uuid = artifact["metadata"]["uuid"]
+sim_label, ED_label, _, callback = get_filenames_from_settings(
+    artifact["CM"], {"name": nn_name, "setup": {}}, sim_uuid=uuid
+)
+title = callback.replace("Callback", "").lstrip().replace(" ", "\\quad")
 
 
-file = f"SSF_plot_{sim_label}_OPT"
-file_ED = f"SSF_plot_{sim_label}_ED"
-file_error = f"SSF_plot_{sim_label}_error"
+file = f"{sim_label}_SSF_plot_OPT"
+file_ED = f"{sim_label}_SSF_plot_ED"
+file_error = f"{sim_label}_SSF_plot_error"
 files = [file]
 
 # Check exact diagonalization mode
-SSF_label=[artifact["model_NN"]["name"]]
+SSF_label = [artifact["NN"]["name"].split("_")[0]]
 if artifact["results"]["E_ED"] is not None:
     exact_diag = True
 else:
@@ -82,37 +89,22 @@ if os.path.isfile(write_folder_fig + file_ED):
     exact_diag = False
 
 if exact_diag:
-    SSF_label.append('ED')
+    SSF_label.append("ED")
     files.append(file_ED)
 
-#Some Sebas's stuff
+# Some Sebas's stuff
 N_Q_A = 48 * 3
 N_Q_B = 48 * 3
 
 graph = nk.graph.Triangular(size, pbc=True)
 qs_mapping, direct_qs = utils.get_q_mesh(N_Q_A, N_Q_B, graph)
 
-# Verify there is no previous simulations, to earn time
-if explore_mode:                    # If True checks sucessive files and assign a new one
-    i=1
-    file_temp = file + f"_{i}.jpeg"
-    while(os.path.isfile(write_folder_fig + file_temp)):
-        i+=1
-        file_temp = file + f"_{i}.jpeg"
-    
-    files[0] += f"_{i}"
-    file_error += f"_{i}"
-
-else:
-    if os.path.isfile(write_folder_fig + file): 
-        exit(0, f"File {write_folder_fig + file} already exists")
-
 # Plotting the SSF
 SSF = np.loadtxt(ssf_path)
 
 plots_ssf = [SSF]
 E_best = artifact["results"]["E_best"]
-label=[]
+label = []
 
 # Sim results
 E_ED = artifact["results"]["E_ED"]
@@ -124,23 +116,25 @@ if ssf_ED_path is not None:
     plots_ssf.append(SSF_ED)
 
     if plot_error:
-        
-        SSF_label.append('Error')  
+
+        SSF_label.append("Error")
         SSF_error = np.abs(SSF - SSF_ED) / np.abs(SSF_ED)
         plots_ssf.append(SSF_error)
         files.append(file_error)
 
 # Add normalization in plots between OPT
-#vmax=max([np.max(ssf) for ssf in plots_ssf]) # El mayor de todos
-vmax= np.max(plots_ssf[1]) if len(plots_ssf)>1 else np.max(plots_ssf[0]) # ED por defecto. Si no existe, entonces OPT
-vmin= np.min(plots_ssf[1]) if len(plots_ssf)>1 else np.min(plots_ssf[0])
+# vmax=max([np.max(ssf) for ssf in plots_ssf]) # El mayor de todos
+vmax = (
+    np.max(plots_ssf[1]) if len(plots_ssf) > 1 else np.max(plots_ssf[0])
+)  # ED por defecto. Si no existe, entonces OPT
+vmin = np.min(plots_ssf[1]) if len(plots_ssf) > 1 else np.min(plots_ssf[0])
 
 cmap = sns.color_palette("mako", as_cmap=True)
 
-model_data=""
-for i, data in enumerate(artifact["model_NN"].values()):
+model_data = ""
+for i, data in enumerate(artifact["NN"].values()):
     model_data += str(data)
-    if i < len(artifact["model_NN"].values()) - 1:
+    if i < len(artifact["NN"].values()) - 1:
         model_data += "\n"
 
 
@@ -156,15 +150,15 @@ for j, SSF in enumerate(plots_ssf):
     plt.figure(j)
     ax = plt.gca()
     if j == 2:
-        vmax = np.max(SSF) 
-        vmin = np.min(SSF) 
-    
+        vmax = np.max(SSF)
+        vmin = np.min(SSF)
+
     im = plt.imshow(
         tiled_structure_factors,
         origin="lower",
         extent=(-1.5, 1.5, -1.5, 1.5),
         cmap=cmap,
-        #norm=mcolors.Normalize(vmin=vmin, vmax=vmax),
+        # norm=mcolors.Normalize(vmin=vmin, vmax=vmax),
         interpolation="none",
     )
 
@@ -184,23 +178,51 @@ for j, SSF in enumerate(plots_ssf):
     plt.colorbar(im, ax=ax)
     plt.xlabel(r"$k_x/\pi$")
     plt.ylabel(r"$k_y/\pi$")
-    plt.title(r"$%s\quad%s$"%(title, SSF_label[j]), fontsize=8)
+    plt.title(r"$%s\quad%s$" % (title, SSF_label[j]), fontsize=8)
 
     if j == 0:
-        
+
         if E_ED is None:
-            ax.text(-0.1, -0.18, f"                 OPT\nEnergy: {E_best:3.4f} \nE/N:    {E_best/np.prod(size):3.4f}",transform=ax.transAxes,fontsize=8,bbox=dict(facecolor="white", alpha=0.4))
+            ax.text(
+                -0.1,
+                -0.18,
+                f"                 OPT\nEnergy: {E_best:3.4f} \nE/N:    {E_best/np.prod(size):3.4f}",
+                transform=ax.transAxes,
+                fontsize=8,
+                bbox=dict(facecolor="white", alpha=0.4),
+            )
         else:
-            ax.text(-0.1, -0.18, f"                 OPT            ED            error \nEnergy: {E_best:3.5f}   {E_ED:3.5f}   {error:3.3e} \nE/N:      {E_best/np.prod(size):3.5f}   {E_ED/np.prod(size):3.5f}   {error/np.prod(size):.3e}",transform=ax.transAxes,fontsize=8,bbox=dict(facecolor="white", alpha=0.4))
-        #ax.text(0.90, -0.18, f"{model_data}", transform=ax.transAxes, fontsize=8, bbox=dict(facecolor="white", alpha=0.4))
+            ax.text(
+                -0.1,
+                -0.18,
+                f"                 OPT            ED            error \nEnergy: {E_best:3.5f}   {E_ED:3.5f}   {error:3.3e} \nE/N:      {E_best/np.prod(size):3.5f}   {E_ED/np.prod(size):3.5f}   {error/np.prod(size):.3e}",
+                transform=ax.transAxes,
+                fontsize=8,
+                bbox=dict(facecolor="white", alpha=0.4),
+            )
+        # ax.text(0.90, -0.18, f"{model_data}", transform=ax.transAxes, fontsize=8, bbox=dict(facecolor="white", alpha=0.4))
 
     if j == 1:
-        ax.text(-0.1, -0.18, f"                 ED\nEnergy: {E_ED:3.4f} \nE/N:      {E_ED/np.prod(size):3.4f}",transform=ax.transAxes,fontsize=8,bbox=dict(facecolor="white", alpha=0.4))
+        ax.text(
+            -0.1,
+            -0.18,
+            f"                 ED\nEnergy: {E_ED:3.4f} \nE/N:      {E_ED/np.prod(size):3.4f}",
+            transform=ax.transAxes,
+            fontsize=8,
+            bbox=dict(facecolor="white", alpha=0.4),
+        )
 
     if j == 2:
-        ax.text(-0.1, -0.18, f"                  OPT           ED           error \nEnergy: {E_best:3.5f}  {E_ED:3.5f}  {error:3.3e} \nE/N:      {E_best/np.prod(size):.5f}   {E_ED/np.prod(size):.5f}   {error/np.prod(size):.3e}",transform=ax.transAxes,fontsize=8,bbox=dict(facecolor="white", alpha=0.4))
+        ax.text(
+            -0.1,
+            -0.18,
+            f"                  OPT           ED           error \nEnergy: {E_best:3.5f}  {E_ED:3.5f}  {error:3.3e} \nE/N:      {E_best/np.prod(size):.5f}   {E_ED/np.prod(size):.5f}   {error/np.prod(size):.3e}",
+            transform=ax.transAxes,
+            fontsize=8,
+            bbox=dict(facecolor="white", alpha=0.4),
+        )
 
     plt.tight_layout()
-    #plt.show()
+    # plt.show()
     plt.savefig(write_folder_fig + files[j] + ".jpeg", dpi=600, bbox_inches="tight")
     plt.close(j)

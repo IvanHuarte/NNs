@@ -230,7 +230,7 @@ def display_simulation_settings(settings, n_cols=5):
     console.rule("[bold green]")
 
 
-def get_filenames_from_settings(cm_setup, nn_setup, sim_uuid=None, **kwargs):
+def get_filenames_from_settings(cm_setup, nn_setup=None, sim_uuid=None, **kwargs):
 
     cm_name, nn_name = cm_setup["name"], nn_setup["name"]
 

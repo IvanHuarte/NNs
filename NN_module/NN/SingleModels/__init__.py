@@ -11,4 +11,4 @@ from .ViT2D import ViT2D
 from .ViT import ViT
 from .VViT import VViT
 from .Ansatz import Factorized, FactorMod, Jastrow_wrap
-from .FluxFunc import Sum, Mean, OutputHead, ComplexHead, SzaboOutput
+from .FluxFunc import Sum, Mean, OutputHead, DeepOutputHead, ComplexHead, SzaboOutput

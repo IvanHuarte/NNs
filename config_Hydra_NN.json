@@ -9,7 +9,7 @@
             "trivial_Z2": true
         },
         "Traslation": {
-            "on": true,
+            "on": false,
             "irrep": [0, 0],
             "use_anchor": false,
             "save_memory": false
@@ -29,7 +29,7 @@
         },
         "ViT2D":{
             "token_size": [2, 2],
-            "embedding_d": 30,
+            "embedding_d": 60,
             "n_heads": 10,
             "n_blocks": 2,
             "n_ffn_layers": 2,
@@ -150,12 +150,20 @@
             "axis": 1
         },
 
+
+
         "ComplexHead":{
             "d_model": 32,
             "only_phase": true
         },
         "OutputHead":{
             "d_model": 60,
+            "only_phase": false
+        },        
+        "DeepOutputHead":{
+            "d_model": [60, 30],
+            "activations_real": ["relu", 0],
+            "activations_imag": ["relu", 0],
             "only_phase": false
         },
         "SzaboOutput":{}

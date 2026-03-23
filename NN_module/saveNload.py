@@ -6,7 +6,8 @@ import flax
 import jax
 import orbax.checkpoint as ocp
 import netket as nk
-from flax.serialization import to_bytes, from_bytes
+from netket.sampler.metropolis import MetropolisSamplerState
+
 from datetime import date
 from platform import architecture, python_version
 from pathlib import Path
@@ -15,10 +16,11 @@ from VA_project.initialize_model import ModelFactory
 from .NN.NN import NeuralNetwork
 from .sampler.sampler import SamplerFactory
 
+
 def save_pytree(path, pytree):
     """
     Save PyTree with structure via Orbax
-    
+
     :param path: Absolute path to the target
     :param pytree_dict: Pytree
     """
@@ -26,9 +28,11 @@ def save_pytree(path, pytree):
     jax.tree_util.tree_map(lambda x: jax.block_until_ready(x), pytree)
     cp.save(path, pytree)
 
+
 def load_pytree(path):
     cp = ocp.PyTreeCheckpointer()
     return cp.restore(path)
+
 
 def save_results(
     vstate,
@@ -161,18 +165,27 @@ def load_vstate(setup, tree_data=False):
     params_path = setup["_artifacts"]["parameters"]
     sampler_path = setup["_artifacts"]["sampler_state"]
 
-    parameters = load_pytree(params_path)  
-    sampler_state = load_pytree(sampler_path)   
+    parameters = load_pytree(params_path)
+    sampler_data = load_pytree(sampler_path)
 
     if tree_data:  # For debugging
-        params_ok = jax.tree_util.tree_structure(parameters) == jax.tree_util.tree_structure(vs.parameters)
-        sampler_ok = jax.tree_util.tree_structure(sampler_state) == jax.tree_util.tree_structure(vs.sampler_state)
+        params_ok = jax.tree_util.tree_structure(
+            parameters
+        ) == jax.tree_util.tree_structure(vs.parameters)
+        sampler_ok = jax.tree_util.tree_structure(
+            sampler_state
+        ) == jax.tree_util.tree_structure(vs.sampler_state)
         print(f"Parameter structure{" " if params_ok else " DOESN'T "}fit")
-        print(f"Sampler State structure{" " if params_ok else " DOESN'T "}fit")
+        print(f"Sampler State structure{" " if sampler_ok else " DOESN'T "}fit")
+
+    sampler_state = MetropolisSamplerState(
+        σ=sampler_data["σ"],
+        rng=sampler_data["rng"],
+        rule_state=sampler_data["rule_state"],
+        log_prob=sampler_data["log_prob"],
+    )
 
     vs.parameters = parameters
     vs.sampler_state = sampler_state
 
     return vs
-
-

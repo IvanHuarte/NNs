@@ -261,12 +261,14 @@ class Hydra(NeuralNetwork):
                 self.params_history[f"stageX{i}"] = load_from_file(
                     path, checkpoint=checkpoint, tag="parameters"
                 )
-            
+
             vstate.parameters = self.weight_transplantation(vstate.parameters)
             self.params_history = {}
 
         if self.load_model["sampler"]:  # vstate.sampler_state
-            sampler_data = load_from_file(paths[0], checkpoint=checkpoint, tag="sampler_state")
+            sampler_data = load_from_file(
+                paths[0], checkpoint=checkpoint, tag="sampler_state"
+            )
 
             sampler_state = MetropolisSamplerState(
                 σ=sampler_data["σ"],

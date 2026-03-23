@@ -1,6 +1,6 @@
 {
 
-    "selection": "ViT2DOHRefineTZ2",
+    "selection": "ViT2DOHTZ2Tests",
 
     "load_model": {
 
@@ -14,14 +14,14 @@
         ]
     },
 
-    "ViT2DOHRefineTZ2":{
+    "ViT2DOHTZ2Tests":{
 
         "stage0":{
              "template":{
 
                 "Sequential": {
                     "ViT2D":{},
-                    "OutputHead":{}
+                    "DeepOutputHead":{}
                 }
             },
             "load": [

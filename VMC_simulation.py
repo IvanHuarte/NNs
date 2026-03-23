@@ -356,6 +356,13 @@ for i, size in enumerate(sizes):
                 -1
             ].checkpoint_path
 
+        dump_setup["labels"] = {
+            "sim_label": sim_label,
+            "ED_label": ED_label,
+            "json_label": json_label,
+            "title_label_callback": title_label_callback,
+        }
+
         dump_setup = make_setup_serializable(dump_setup)
 
         save_results(
