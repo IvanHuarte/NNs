@@ -54,10 +54,10 @@ args = parser.parse_args()
 
 if args.config is None:
     args.config = [
-        "/home/ihuarte/Escritorio/Ivan/NNs/config.json",
-        "/home/ihuarte/Escritorio/Ivan/NNs/config_CM.json",
-        "/home/ihuarte/Escritorio/Ivan/NNs/config_Hydra.json",
-        "/home/ihuarte/Escritorio/Ivan/NNs/config_Hydra_NN.json",
+        "/home/ihuarte/Escritorio/Ivan/NNs/config0.json",
+        "/home/ihuarte/Escritorio/Ivan/NNs/config1_CM.json",
+        "/home/ihuarte/Escritorio/Ivan/NNs/config2_Hydra.json",
+        "/home/ihuarte/Escritorio/Ivan/NNs/config3_Hydra_NN.json",
     ]
 configurations = args.config
 
@@ -76,6 +76,7 @@ with open(configurations[3], "r") as f:
     config_hydra_nn = json.load(f)
 
 config_nn = {**config_hydra, **config_hydra_nn}
+
 
 cm_model_name = config_cm["CM"]["selection"]
 nn_evol_name = config_nn["selection"]
