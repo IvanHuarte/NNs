@@ -36,7 +36,16 @@ class Traslation:
 
 def c4_operation(lattice_size):
     def _operation(configuration):
-        configuration = configuration.reshape(lattice_size).T[::-1]
+        configuration = configuration.reshape(lattice_size)
+        configuration = configuration.T[::-1]
+        return configuration.reshape(-1)
+
+    return _operation
+
+def c2_operation(lattice_size):
+    def _operation(configuration):
+        configuration = configuration.reshape(lattice_size)
+        configuration = configuration.T[::-1].T[::-1]
         return configuration.reshape(-1)
 
     return _operation
