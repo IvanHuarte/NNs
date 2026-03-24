@@ -1,0 +1,173 @@
+{
+
+    "print_arch": true,
+
+    "symm_wrapper":{
+
+        "Z2": {
+            "on": false,
+            "trivial_Z2": true
+        },
+        "Traslation": {
+            "on": false,
+            "irrep": [0, 0],
+            "use_anchor": false,
+            "save_memory": false
+        }
+    },
+    
+    
+    "storage":{
+        
+        "CNN":{
+            "channels":[32],
+            "strides":[[1,1]],
+            "kernel":[3,3],
+            "use_pooling":false,
+            "pooling_strides":[[1,1]],
+            "final_architecture":[]
+        },
+        "ViT2D":{
+            "token_size": [2, 2],
+            "embedding_d": 60,
+            "n_heads": 10,
+            "n_blocks": 2,
+            "n_ffn_layers": 2,
+            "final_architecture": null
+        },
+        "VViT":{
+            "num_layers": 2,
+            "d_model": 30,
+            "n_heads": 5,
+            "patch_size": 2,
+            "transl_invariant": true
+        },
+        
+        "CvT2":{
+            "n_CP_blocks":[1, 1],
+            "channels": [32, 32],
+            "attn_heads":[4, 4],
+            "kernel": [3, 3],
+            "final_architecture": null
+        },
+        "CvT":{
+            "n_CP_blocks":[1, 1],
+            "channels": [64, 32],
+            "attn_heads":[8, 4],
+            "kernel": [3, 3],
+            "final_architecture": null
+        },
+        "CMLP":{
+            "hidden_alpha": [1],
+            "activation": ["Crelu"],
+            "final_architecture": null,
+            "only_phase": true
+        },
+        
+        "MLP":{
+            "hidden_alpha": [1],
+            "activation": ["0"],
+            "final_architecture": null,
+            "only_phase": true
+        },
+
+        "MLP_2":{
+            "hidden_alpha": [1],
+            "activation": ["0"],
+            "final_architecture": null,
+            "only_phase": true
+        },
+
+        "CvTaps":{
+            "n_CP_blocks": [2, 2, 2],
+            "channels": [32, 16, 4],
+            "attn_heads": [4, 4, 4],
+            "strides": [[2,2], [1,1], [1,1]],
+            "kernel": [3, 3],
+            "final_architecture": [128, 5]
+        },
+        
+        "CNN_2":{
+            "channels":[32],
+            "strides":[[1,1]],
+            "kernel":[3,3],
+            "use_pooling":false,
+            "pooling_strides":[[1,1]],
+            "final_architecture":[]
+        },
+        
+        "CNNLiang":{
+            "M1_channels": [20, 10, 10, 10, 10, 10],
+            "M2_channels": [10, 10, 10, 10, 10, 1],
+            "kernel": [[3, 3],[3, 3],[3, 3],[3, 3],[3, 3],[3, 3]],
+            "window_pooling": 2,
+            "use_bias": false,
+            "mask": null
+        },
+        
+        
+        
+        "CNNSzabo":{
+            "channels": 30,
+            "use_bias": true
+        },
+        
+        "CNNbinClsf":{
+            "channels": [64, 32],
+            "marshall": true,
+            "pooling": false
+            
+        },
+        
+        
+        
+        
+        "MarshallSign":{
+            "radians":true
+        },
+        
+        "Jastrow_wrap": {},
+        
+        "Factorized":{
+            "complex": false
+        },
+
+        "FactorMod":{
+        },
+        
+        
+
+        "Sum":{
+            "axis": 1
+        },
+
+        "Sum_1":{
+            "axis": 1,
+            "activation": ["logcosh"]
+        },
+
+        "Mean":{
+            "axis": 1
+        },
+
+
+
+        "ComplexHead":{
+            "d_model": 32,
+            "only_phase": true
+        },
+        "OutputHead":{
+            "d_model": 60,
+            "only_phase": false
+        },        
+        "DeepOutputHead":{
+            "d_model": [60, 30, 10],
+            "activations_real": [0, 0, 0],
+            "activations_imag": [0, 0, 0],
+            "only_phase": false
+        },
+        "SzaboOutput":{}
+}
+    
+
+}
