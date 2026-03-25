@@ -1,6 +1,6 @@
 {
 
-    "selection": "ViT2DOHTZ2Tests",
+    "selection": "ViT2DDeepOHTestsSeed0",
 
     "load_model": {
 
@@ -14,7 +14,7 @@
         ]
     },
 
-    "ViT2DOHTZ2Tests":{
+    "ViT2DDeepOHTestsSeed0":{
 
         "stage0":{
              "template":{

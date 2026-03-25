@@ -161,9 +161,9 @@
             "only_phase": false
         },        
         "DeepOutputHead":{
-            "d_model": [60, 30, 10],
-            "activations_real": [0, 0, 0],
-            "activations_imag": [0, 0, 0],
+            "d_model": [60, 30, 15],
+            "activations_real": ["swish", "glu", 0],
+            "activations_imag": ["tanh", "glu", 0],
             "only_phase": false
         },
         "SzaboOutput":{}

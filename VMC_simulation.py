@@ -167,7 +167,7 @@ for i, size in enumerate(sizes):
 
         #### INITIALIZE VSTATE ####
         print("Initializing Variational State...")
-        seed = int(time.time())
+        seed = 0 # int(time.time())
         key = jax.random.key(seed)
         vstate = nk.vqs.MCState(
             sampler=sampler,
