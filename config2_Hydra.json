@@ -1,6 +1,6 @@
 {
 
-    "selection": "ViT2DDeepOHTestsSeed0",
+    "selection": "ViT2DOHRepetition",
 
     "load_model": {
 
@@ -14,14 +14,14 @@
         ]
     },
 
-    "ViT2DDeepOHTestsSeed0":{
+    "ViT2DOHRepetition":{
 
         "stage0":{
              "template":{
 
                 "Sequential": {
                     "ViT2D":{},
-                    "DeepOutputHead":{}
+                    "OutputHead":{}
                 }
             },
             "load": [

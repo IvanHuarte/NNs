@@ -169,6 +169,7 @@ for i, size in enumerate(sizes):
         print("Initializing Variational State...")
         seed = 0 # int(time.time())
         key = jax.random.key(seed)
+        # key = jnp.array([0, 1773936479], dtype=jnp.uint32)
         vstate = nk.vqs.MCState(
             sampler=sampler,
             model=model,
@@ -339,6 +340,7 @@ for i, size in enumerate(sizes):
         results["key"] = jax.random.key_data(key).tolist()
 
         sim_config["SIM"]["sampler"]["nsamples"] = n_samples
+        sim_config["SIM"] = seed
         sim_config["SIM"]["sampler"]["final_rng"] = jax.random.key_data(
             vstate.sampler_state.rng
         ).tolist()
