@@ -1,6 +1,6 @@
 {
 
-    "selection": "ViT2DOHRepetition",
+    "selection": "CvTComplexHead",
 
     "load_model": {
 
@@ -14,7 +14,7 @@
         ]
     },
 
-    "ViT2DOHRepetition":{
+    "ViT2DOHLongPlay":{
 
         "stage0":{
              "template":{
@@ -65,14 +65,14 @@
         }
     },
 
-    "ViT2DCNNSzabo":{
+    "CvTComplexHead":{
 
          "stage0": {
             "template":{
 
-            "SplitTraining": {
-                "ViT2D":{},
-                "CNNSzabo":{}
+            "Sequential": {
+                "CvT":{},
+                "ComplexHead":{}
             }
             },   
 

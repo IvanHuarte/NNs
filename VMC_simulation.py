@@ -1,4 +1,5 @@
 #!/home/ihuarte/miniconda3/envs/conda_env/bin/python
+
 import numpy as np
 import jax
 import jax.numpy as jnp
@@ -8,12 +9,14 @@ import json
 import time
 import argparse
 import uuid
-import sys
 
 # os.environ["XLA_PYTHON_CLIENT_PREALLOCATE"] = "false"
 jax.config.update("jax_enable_x64", True)
 jax.config.update("jax_platform_name", "gpu")
-print(jax.devices())
+
+print("Ranks:", jax.process_count())        # debe mostrar 2
+print("Devices:", jax.devices())       # debe mostrar 2 GPUs
+print("Devices:", jax.device_count())       # debe mostrar 2 GPUs
 
 # Añadir los directorios necesarios
 import sys
@@ -93,12 +96,12 @@ schedule_setup = config["schedule"]
 
 ### MC sampling rules ###
 sampler_setup = config["sampler"]
+n_ranks = jax.device_count()
 n_samples = (
-    sampler_setup["n_samples_per_chain"]
+    n_ranks
+    * sampler_setup["n_samples_per_chain"]
     * sampler_setup["n_chains_per_rank"]
-    * sampler_setup["n_ranks"]
 )
-
 write = get_write_folder_from_model({**config, **config_cm, **config_nn})
 
 for i, size in enumerate(sizes):
@@ -167,9 +170,10 @@ for i, size in enumerate(sizes):
 
         #### INITIALIZE VSTATE ####
         print("Initializing Variational State...")
-        seed = 0 # int(time.time())
+        seed = int(time.time())
         key = jax.random.key(seed)
         # key = jnp.array([0, 1773936479], dtype=jnp.uint32)
+        print(n_samples)
         vstate = nk.vqs.MCState(
             sampler=sampler,
             model=model,
@@ -338,9 +342,9 @@ for i, size in enumerate(sizes):
             S_operators=config_cm["S_operators"],
         )
         results["key"] = jax.random.key_data(key).tolist()
+        results["seed"] = seed
 
         sim_config["SIM"]["sampler"]["nsamples"] = n_samples
-        sim_config["SIM"] = seed
         sim_config["SIM"]["sampler"]["final_rng"] = jax.random.key_data(
             vstate.sampler_state.rng
         ).tolist()
