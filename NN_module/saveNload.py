@@ -132,15 +132,15 @@ def print_tree_keys(obj, indent=0):
             print_tree_keys(item, indent + 1)
 
 
-def load_vstate(setup, tree_data=False):
+def load_vstate(artifact, params_path=None, sampler_path=None, tree_data=False):
 
     # Initialize model
-    size = setup["CM"]["size"]
+    size = artifact["CM"]["size"]
     N = int(np.prod(size))
-    cm_model = ModelFactory.init(setup["CM"]).get_model()
+    cm_model = ModelFactory.init(artifact["CM"]).get_model()
 
     model = NeuralNetwork(
-        setup["NN"]["setup"], **{"lattice_size": setup["CM"]["size"]}
+        artifact["NN"]["setup"], **{"lattice_size": artifact["CM"]["size"]}
     ).get_model()
 
     # Initialize hilbert space
@@ -151,22 +151,26 @@ def load_vstate(setup, tree_data=False):
     # dummy_params = model.init(rng, jnp.ones((1, N)))
 
     # Initialize sampler
-    sampler = SamplerFactory(setup["SIM"]["sampler"], cm_model=cm_model).get_sampler(hi)
+    sampler = SamplerFactory(artifact["SIM"]["sampler"], cm_model=cm_model).get_sampler(hi)
 
-    n_samples = (
-        setup["SIM"]["sampler"]["n_samples_per_chain"]
-        * setup["SIM"]["sampler"]["n_chains_per_rank"]
-        * setup["SIM"]["sampler"]["n_ranks"]
-    )
+    n_samples = artifact["SIM"]["sampler"]["nsamples"]
 
     # Variational State
     vs = nk.vqs.MCState(sampler, model, n_samples=n_samples, seed=0)
 
-    params_path = setup["_artifacts"]["parameters"]
-    sampler_path = setup["_artifacts"]["sampler_state"]
+    params_path = artifact["_artifacts"]["parameters"] if params_path is None else params_path
+    sampler_path = artifact["_artifacts"]["sampler_state"] if sampler_path is None else sampler_path
 
     parameters = load_pytree(params_path)
     sampler_data = load_pytree(sampler_path)
+
+
+    sampler_state = MetropolisSamplerState(
+        σ=sampler_data["σ"],
+        rng=sampler_data["rng"],
+        rule_state=sampler_data["rule_state"],
+        log_prob=sampler_data["log_prob"],
+    )
 
     if tree_data:  # For debugging
         params_ok = jax.tree_util.tree_structure(
@@ -178,12 +182,6 @@ def load_vstate(setup, tree_data=False):
         print(f"Parameter structure{" " if params_ok else " DOESN'T "}fit")
         print(f"Sampler State structure{" " if sampler_ok else " DOESN'T "}fit")
 
-    sampler_state = MetropolisSamplerState(
-        σ=sampler_data["σ"],
-        rng=sampler_data["rng"],
-        rule_state=sampler_data["rule_state"],
-        log_prob=sampler_data["log_prob"],
-    )
 
     vs.parameters = parameters
     vs.sampler_state = sampler_state

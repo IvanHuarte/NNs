@@ -1,6 +1,6 @@
 {
 
-    "selection": "ViT2DOHLongPlay3GPUReload",
+    "selection": "ViT2DOHLongPlayGPUReload",
 
     "load_model": {
 

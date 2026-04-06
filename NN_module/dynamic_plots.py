@@ -6,29 +6,30 @@ import jax
 jax.config.update("jax_enable_x64", True)
 
 from NN_module.label_utils import get_filenames_from_settings
-from NN_module.NN_utils import modphase
+from NN_module.observables import modphase
 
+def plot_modphase(artifact, modphase_vs, step=None, modphase_ED=None):
 
-def plot_modphase_from_vstate(vstate, sim_config, x_ED=None):
     """
 
     Returns a plot of module and phase given a variational state
 
     """
 
-    (mod_ED, phase_ED), stats_ED = modphase(x_ED)
-    if x_ED is not None:
-        (mod_vs, phase_vs), stats_vs = modphase(vstate)
+    (mod_vs, phase_vs), stats_vs = modphase_vs
+    if modphase_ED is not None:
+        (mod_ED, phase_ED), stats_ED = modphase_ED
 
-    kwargs = {**sim_config["CM"], **sim_config["NN"]["setup"]}
     _, _, _, callback = get_filenames_from_settings(
-        sim_config["CM"]["name"], sim_config["NN"]["name"], **kwargs
+        artifact["CM"], {"name": artifact["NN"]["name"], "setup": {}}
     )
     title = callback.replace("Callback", "").lstrip().replace(" ", "\\quad")
 
+    title += f" (step {step})" if step is not None else ""
+
     # Plot
     # If ED exists
-    if x_ED is not None:
+    if modphase_ED is not None:
 
         fig, ax = plt.subplots(4, 1, figsize=[15, 10])
 
@@ -178,5 +179,20 @@ def plot_modphase_from_vstate(vstate, sim_config, x_ED=None):
                 )
         ax[2].legend()
         plt.tight_layout()
+
+    return fig, ax
+
+def plot_modphase_from_vstate(vstate, artifact, x_ED=None, step=None):
+    """
+
+    Returns a plot of module and phase given a variational state
+
+    """
+
+    modphase_vs = modphase(vstate)
+    if x_ED is not None:
+        modphase_ED = modphase(x_ED)
+
+    fig, ax = plot_modphase(artifact, modphase_vs, step=step, modphase_ED=modphase_ED)
 
     return fig, ax

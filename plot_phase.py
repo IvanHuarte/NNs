@@ -22,6 +22,8 @@ from NN_module.correlations import correlations_ED, correlations_vstate
 sys.path.append(str(Path(__file__).resolve().parent.parent / "chebyoxa"))
 sys.path.append(str(Path(__file__).resolve().parent.parent / "ATMOS_VA"))
 
+#### MAIN ####
+
 parser = argparse.ArgumentParser()
 parser.add_argument(
     "-a",
@@ -53,6 +55,22 @@ explore_mode = args.explore_mode
 with open(path_artifact, "r") as f:
     artifact = json.load(f)
 
+# Get main result's modulus and phase 
+vs_file = artifact["_artifacts"]["modphase"]["vstate"]
+mod_vs, phase_vs = np.loadtxt(vs_file)
+stats_vs = artifact["results"]["modphase"]["vstate"]
+
+ED_file = None
+if "xED" in artifact["_artifacts"]["modphase"]:
+    ED_file = artifact["_artifacts"]["modphase"]["xED"]
+    mod_ED, phase_ED = np.loadtxt(ED_file)
+    stats_ED = artifact["results"]["modphase"]["xED"]
+
+modphase = [(mod_vs, phase_vs), stats_vs]
+modphase_ED = [(mod_ED, phase_ED), stats_ED]
+
+
+
 if not "modphase" in artifact["_artifacts"]:
     print("ERROR: Artifact has no modulus and phase files")
     sys.exit(1, f"Exiting...")
@@ -76,30 +94,6 @@ sim_label, _, _, callback = get_filenames_from_settings(
 title = callback.replace("Callback", "").lstrip().replace(" ", "\\quad")
 
 filename = f"Modphase_plot_{sim_label}"
-
-# Verify there is no previous simulations, add an int label otherwise.
-if explore_mode:  # If True checks sucessive files and assign a new one
-    if os.path.isfile(write_folder + filename + ".jpeg"):
-        i = 1
-        file_temp = filename + f"_{i}.txt"
-        while os.path.isfile(write_folder + file_temp):
-            file_temp = filename + f"_{i}.txt"
-            i += 1
-            print(f"_{i}.txt")
-
-        filename += f"_{i}.txt"
-
-
-# Get modulus and phase
-vs_file = artifact["_artifacts"]["modphase"]["vstate"]
-mod_vs, phase_vs = np.loadtxt(vs_file)
-stats_vs = artifact["results"]["modphase"]["vstate"]
-
-ED_file = None
-if "xED" in artifact["_artifacts"]["modphase"]:
-    ED_file = artifact["_artifacts"]["modphase"]["xED"]
-    mod_ED, phase_ED = np.loadtxt(ED_file)
-    stats_ED = artifact["results"]["modphase"]["xED"]
 
 if mod_vs.shape[-1] != 2**N:
     vstate_label = f"Approximated ({artifact['SIM']['sampler']['nsamples']} samples)"
