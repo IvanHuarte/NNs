@@ -7,10 +7,6 @@ from netket.nn.activation import log_cosh
 from ..toolbox import (
     MultiLayerPerceptron,
     DepthPointwiseConv,
-    two_heads,
-    two_heads_phasors,
-    glu_phasor,
-    get_mask,
 )
 
 DTYPE = jnp.float64
@@ -21,7 +17,7 @@ class ConvProjectionBlock(nn.Module):
     channels: int
     n_heads: int = 1
     kernel: Tuple = (3, 3)
-    strides_qkv: Tuple[Tuple, Tuple, Tuple] = ((1, 1), (2, 2), (2, 2))
+    strides_qkv: Tuple[Tuple, Tuple, Tuple] = ((1, 1), (1, 1), (1, 1))
     n_mlp_layers: int = 1
 
     @nn.compact

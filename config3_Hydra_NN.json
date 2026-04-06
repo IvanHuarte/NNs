@@ -31,7 +31,7 @@
             "token_size": [2, 2],
             "embedding_d": 60,
             "n_heads": 10,
-            "n_blocks": 2,
+            "n_blocks": 6,
             "n_ffn_layers": 2,
             "final_architecture": null
         },

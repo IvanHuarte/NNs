@@ -1,7 +1,7 @@
 {
     "mode": "zip",
     
-    "sizes":[[6, 6]],
+    "sizes":[[10, 10]],
 
     "kwargs_lattice" : {
         "bc":"periodic",
@@ -12,7 +12,7 @@
 
 
     "CM": {
-            "selection": "J1J2Square",
+            "selection": "Oxalate",
 
             "Oxalate":{
                 "strength": 0.2,

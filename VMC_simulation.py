@@ -1,5 +1,4 @@
 #!/home/ihuarte/miniconda3/envs/conda_env/bin/python
-
 import numpy as np
 import jax
 import jax.numpy as jnp
@@ -14,9 +13,9 @@ import uuid
 jax.config.update("jax_enable_x64", True)
 jax.config.update("jax_platform_name", "gpu")
 
-print("Ranks:", jax.process_count())        # debe mostrar 2
-print("Devices:", jax.devices())       # debe mostrar 2 GPUs
-print("Devices:", jax.device_count())       # debe mostrar 2 GPUs
+print("Ranks:", jax.process_count())      
+print("Devices:", jax.devices())       
+print("Devices:", jax.device_count())       
 
 # Añadir los directorios necesarios
 import sys

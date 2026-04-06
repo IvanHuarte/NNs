@@ -1,19 +1,38 @@
 {
 
-    "selection": "CvTComplexHead",
+    "selection": "ViT2DOHLongPlay3GPUReload",
 
     "load_model": {
 
-        "parameters": false,
-        "sampler": false,
+        "parameters": true,
+        "sampler": true,
 
-        "checkpoint": 0,
+        "checkpoint": 400,
         
         "load_from": [
-            "/home/ihuarte/Escritorio/Ivan/NNs/pruebas/Oxalate/ViT2DOH_Sequential_ViT2D_OutputHead/Size_4x4/ST_1000-A_500-A/UUID_4dc094e2/Oxalate_ViT2DOH_results_4x4_strength_0.2_theta_9.0_phi_72.0_date_20260320T003803_UUID_4dc094e2.json"
+            "/home/ihuarte/Escritorio/Ivan/NNs/Simulations/Oxalate/ViT2DOHLongPlay3GPU_Sequential_ViT2D_OutputHead/Size_10x10/ST_500-A_500-A/UUID_e6e8e7a9/Oxalate_ViT2DOHLongPlay3GPU_simulation_10x10_strength_0.2_theta_9.0_phi_72.0_date_20260401T142302_UUID_e6e8e7a9_checkpoint.orbax"
         ]
     },
-    "CvTComplexHead":{
+
+    "CvTOutputHeadNostride":{
+
+         "stage0": {
+            "template":{
+
+            "Sequential": {
+                "CvT":{},
+                "OutputHead":{}
+            }
+            },   
+
+            "load": [
+                ["stageX0", "0", "0"]
+            ],
+            "save_params": true
+        }
+    },
+
+    "CvTComplexHeadNostride":{
 
          "stage0": {
             "template":{
@@ -31,7 +50,7 @@
         }
     },
     
-    "ViT2DOHLongPlay":{
+    "ViT2DOHLongPlay3GPUReload":{
 
         "stage0":{
              "template":{
