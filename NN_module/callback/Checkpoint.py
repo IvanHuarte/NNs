@@ -31,7 +31,7 @@ class Checkpoint:
 
         self.step += 1
 
-        if self.step % self.do_each != 0 or self.step == 0:
+        if self.step % self.do_each != 0:
             return True
 
         print(f"\n CHECKPOINT!!! --> step {self.step}\n")

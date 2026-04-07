@@ -8,8 +8,8 @@ jax.config.update("jax_enable_x64", True)
 from NN_module.label_utils import get_filenames_from_settings
 from NN_module.observables import modphase
 
-def plot_modphase(artifact, modphase_vs, step=None, modphase_ED=None):
 
+def plot_modphase(artifact, modphase_vs, step=None, modphase_ED=None):
     """
 
     Returns a plot of module and phase given a variational state
@@ -181,6 +181,7 @@ def plot_modphase(artifact, modphase_vs, step=None, modphase_ED=None):
         plt.tight_layout()
 
     return fig, ax
+
 
 def plot_modphase_from_vstate(vstate, artifact, x_ED=None, step=None):
     """

@@ -9,6 +9,9 @@ import warnings
 
 warnings.filterwarnings("ignore", message="qt.svg")
 
+from NN_module.label_utils import get_filenames_from_settings
+from NN_module.schedule.schedule import Schedule
+
 
 def plot_schedule_setup(ax, setup):
 
@@ -73,7 +76,7 @@ def plot_schedule_setup(ax, setup):
         )
 
 
-def dump_callback(logger, settings, write=False):
+def dump_callback(logger, settings):
 
     callback_artifacts = {}
 
@@ -188,7 +191,7 @@ def dump_callback(logger, settings, write=False):
         ax[e].plot(error, color="red", label="E")
         ax[e].plot(best_step, error[best_step], marker="o", ms=3, color="gold")
 
-        if do_each_checkpoint is not None :
+        if do_each_checkpoint is not None:
             ax[e].plot(
                 checkpoint_indices,
                 error[checkpoint_indices],
@@ -197,7 +200,7 @@ def dump_callback(logger, settings, write=False):
                 ms=3,
                 color="tan",
             )
-            
+
     if hasattr(logger, "E_ED"):
         ax[e].set_yscale("log")
         ax[e].legend()
@@ -215,3 +218,84 @@ def dump_callback(logger, settings, write=False):
     callback_artifacts["plot"] = figure_path
 
     return callback_artifacts
+
+
+def checkpoint_callback(artifact, steps, energy, vscore):
+
+    time_exe = artifact["results"]["time_exe"]
+    best_step = artifact["results"]["best_step"]
+    schedule_setup = Schedule(artifact["SIM"]["schedule"], {}).flat_setup()
+    total_epochs = artifact["SIM"]["schedule"]["total_epochs"]
+
+    E_ED = None
+    if "E_ED" in artifact["results"]:
+        E_ED = np.array(artifact["results"]["E_ED"]) * 4
+        error = np.abs(energy - E_ED) / np.abs(E_ED)
+
+    E_best = artifact["results"]["E_best"]
+
+    setup_sim = (
+        f"E_best: {E_best:.4f}\ntime_exe: {time_exe:.2f}\nBest step: {best_step:d}"
+    )
+
+    if E_ED is not None:
+        setup_sim = f"E_ED: {E_ED:.4f}\n" + setup_sim
+
+    # Plot
+    if E_ED is not None:
+        fig, ax = plt.subplots(3, 1, figsize=(8, 18))
+        v = 2
+        e = 1
+    else:
+        fig, ax = plt.subplots(2, 1, figsize=(8, 12))
+        v = 1
+        e = 2
+
+    _, _, _, callback = get_filenames_from_settings(
+        artifact["CM"], {"name": artifact["NN"]["name"], "setup": {}}
+    )
+    ax[0].set_title(callback)
+
+    if E_ED is not None:
+        ax[0].hlines(E_ED, 0, total_epochs, color="green", label="ED Energy")
+
+    ax[0].plot(steps, energy, color="blue", marker="o", ms=3, label="E")
+
+    ax[0].text(
+        0.9,
+        0.9,
+        setup_sim,
+        transform=ax[0].transAxes,
+        fontsize=10,
+        color="k",
+        ha="center",
+        va="center",
+        bbox=dict(boxstyle="round", facecolor="white", alpha=0.7),
+    )
+    # Plotting training setup
+    plot_schedule_setup(ax[0], schedule_setup) if schedule_setup is not None else None
+
+    ax[0].legend()
+    ax[0].set_xlim(0, total_epochs)
+    ax[0].set_xlabel("Iteration")
+    ax[0].set_ylabel("Energy", fontsize=12)
+    ax[0].grid()
+
+    ax[v].plot(steps, vscore, color="purple", label="Vscore")
+    ax[v].set_yscale("log")
+    ax[v].legend()
+    ax[v].set_xlim(0, total_epochs)
+    ax[v].set_xlabel("Iteration")
+    ax[v].set_ylabel("Vscore", fontsize=12)
+    ax[v].grid()
+
+    if E_ED is not None:
+        ax[e].plot(steps, error, color="red", label="E")
+        ax[e].set_yscale("log")
+        ax[e].legend()
+        ax[e].set_xlim(0, total_epochs)
+        ax[e].set_xlabel("Iteration")
+        ax[e].set_ylabel("Error", fontsize=12)
+        ax[e].grid()
+
+    return fig, ax
