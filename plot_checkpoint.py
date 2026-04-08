@@ -2,7 +2,9 @@
 import numpy as np
 import jax
 
+jax.config.update("jax_platform_name", "gpu")
 jax.config.update("jax_enable_x64", True)
+
 import os
 import argparse
 import json
@@ -44,37 +46,42 @@ path_artifact = args.artifact_path
 do_modphase = args.modphase if args.modphase is not None else False
 write_folder = os.path.dirname(path_artifact) + "/"
 
-# Load artifact and simulation params
-with open(path_artifact, "r") as f:
-    artifact = json.load(f)
+no_artifact = True if path_artifact.endswith(".orbax") else False
 
-size = artifact["CM"]["size"]
-N = int(np.array(size).prod())
-cm_model_name = artifact["CM"]["name"]
-nn_model_name = artifact["NN"]["name"]
-cm_model_setup = artifact["CM"]
-nn_model_setup = artifact["NN"]
-sim_uuid = artifact["metadata"]
-
-sim_label, _, _, callback = get_filenames_from_settings(
-    cm_model_setup, {"name": nn_model_name, "setup": {}}
-)
 
 x_ED = None
 modphase_ED = None
-if artifact["_artifacts"]["x_ED"] is not None:
-    x_ED = np.loadtxt(artifact["_artifacts"]["x_ED"], dtype=complex)
-    modphase_ED = modphase(x_ED)
+artifact = None
+# Load artifact and simulation params if provided
+if not no_artifact:
+    with open(path_artifact, "r") as f:
+        artifact = json.load(f)
 
-checkpoint_path = artifact["_artifacts"]["checkpoint"]
+    size = artifact["CM"]["size"]
+    N = int(np.array(size).prod())
+    cm_model_name = artifact["CM"]["name"]
+    nn_model_name = artifact["NN"]["name"]
+    cm_model_setup = artifact["CM"]
+    nn_model_setup = artifact["NN"]
+    sim_uuid = artifact["metadata"]
 
+    sim_label, _, _, callback = get_filenames_from_settings(
+        cm_model_setup, {"name": nn_model_name, "setup": {}}
+    )
+        
+    if artifact["_artifacts"]["x_ED"] is not None:
+        x_ED = np.loadtxt(artifact["_artifacts"]["x_ED"], dtype=complex)
+        modphase_ED = modphase(x_ED)
+
+else:
+    sim_label = "Broken simulation"
+
+checkpoint_path = path_artifact if no_artifact else artifact["_artifacts"]["checkpoint"]
 
 checkpointer = ocp.CheckpointManager(
     checkpoint_path,
     {
-        "metrics": ocp.PyTreeCheckpointer(),
-        "parameters": ocp.PyTreeCheckpointer(),
-        "sampler_state": ocp.PyTreeCheckpointer(),
+        "metrics": ocp.PyTreeCheckpointer()
     },
 )
 
@@ -98,15 +105,19 @@ vscore = []
 
 for step, path in zip(steps, checkPath):
 
-    metrics = checkpointer.restore(step)["metrics"]
+    metrics = checkpointer.restore(
+        step,
+        items={"metrics": None},
+    )["metrics"]
+
+    print(metrics)
     energy.append(metrics["energy"])
     vscore.append(metrics["vscore"])
 
-    params_path = path + "/" + "parameters"
-    sampler_path = path + "/" + "sampler_state"
-
     if do_modphase:
 
+        params_path = path + "/" + "parameters"
+        sampler_path = path + "/" + "sampler_state"
         reload_vstate = load_vstate(
             artifact, params_path=params_path, sampler_path=sampler_path
         )
@@ -130,6 +141,7 @@ figure_path = file_path + ".jpeg"
 fig2.tight_layout()
 fig2.savefig(figure_path, dpi=600, bbox_inches="tight")
 
-artifact["_artifacts"]["checkpoint_figures"] = write_folder
-with open(path_artifact, "w") as f:
-    json.dump(artifact, f, separators=(",", ":"), sort_keys=True, indent=4)
+if not no_artifact:
+    artifact["_artifacts"]["checkpoint_figures"] = write_folder
+    with open(path_artifact, "w") as f:
+        json.dump(artifact, f, separators=(",", ":"), sort_keys=True, indent=4)

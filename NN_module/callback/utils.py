@@ -222,17 +222,31 @@ def dump_callback(logger, settings):
 
 def checkpoint_callback(artifact, steps, energy, vscore):
 
-    time_exe = artifact["results"]["time_exe"]
-    best_step = artifact["results"]["best_step"]
-    schedule_setup = Schedule(artifact["SIM"]["schedule"], {}).flat_setup()
-    total_epochs = artifact["SIM"]["schedule"]["total_epochs"]
-
     E_ED = None
-    if "E_ED" in artifact["results"]:
-        E_ED = np.array(artifact["results"]["E_ED"]) * 4
-        error = np.abs(energy - E_ED) / np.abs(E_ED)
 
-    E_best = artifact["results"]["E_best"]
+
+    if artifact is not None:
+        time_exe = artifact["results"]["time_exe"]
+        best_step = artifact["results"]["best_step"]
+        schedule_setup = Schedule(artifact["SIM"]["schedule"], {}).flat_setup()
+        total_epochs = artifact["SIM"]["schedule"]["total_epochs"]
+        E_best = artifact["results"]["E_best"]
+        if "E_ED" in artifact["results"]:
+            E_ED = np.array(artifact["results"]["E_ED"]) * 4
+            error = np.abs(energy - E_ED) / np.abs(E_ED)
+        _, _, _, callback = get_filenames_from_settings(
+            artifact["CM"], {"name": artifact["NN"]["name"], "setup": {}}
+        )
+
+    else:
+        time_exe = 0.0
+        best_step = 0
+        schedule_setup = None
+        total_epochs = steps[-1]
+        E_best = 0.0
+        error = None
+        callback = "Callback"
+
 
     setup_sim = (
         f"E_best: {E_best:.4f}\ntime_exe: {time_exe:.2f}\nBest step: {best_step:d}"
@@ -251,9 +265,6 @@ def checkpoint_callback(artifact, steps, energy, vscore):
         v = 1
         e = 2
 
-    _, _, _, callback = get_filenames_from_settings(
-        artifact["CM"], {"name": artifact["NN"]["name"], "setup": {}}
-    )
     ax[0].set_title(callback)
 
     if E_ED is not None:
@@ -276,7 +287,7 @@ def checkpoint_callback(artifact, steps, energy, vscore):
     plot_schedule_setup(ax[0], schedule_setup) if schedule_setup is not None else None
 
     ax[0].legend()
-    ax[0].set_xlim(0, total_epochs)
+    ax[0].set_xlim(0, 1.01 * total_epochs)
     ax[0].set_xlabel("Iteration")
     ax[0].set_ylabel("Energy", fontsize=12)
     ax[0].grid()
@@ -284,7 +295,7 @@ def checkpoint_callback(artifact, steps, energy, vscore):
     ax[v].plot(steps, vscore, color="purple", label="Vscore")
     ax[v].set_yscale("log")
     ax[v].legend()
-    ax[v].set_xlim(0, total_epochs)
+    ax[v].set_xlim(0, 1.01 * total_epochs)
     ax[v].set_xlabel("Iteration")
     ax[v].set_ylabel("Vscore", fontsize=12)
     ax[v].grid()
@@ -293,7 +304,7 @@ def checkpoint_callback(artifact, steps, energy, vscore):
         ax[e].plot(steps, error, color="red", label="E")
         ax[e].set_yscale("log")
         ax[e].legend()
-        ax[e].set_xlim(0, total_epochs)
+        ax[e].set_xlim(0, 1.01 * total_epochs)
         ax[e].set_xlabel("Iteration")
         ax[e].set_ylabel("Error", fontsize=12)
         ax[e].grid()

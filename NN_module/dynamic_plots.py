@@ -16,13 +16,19 @@ def plot_modphase(artifact, modphase_vs, step=None, modphase_ED=None):
 
     """
 
+
     (mod_vs, phase_vs), stats_vs = modphase_vs
     if modphase_ED is not None:
         (mod_ED, phase_ED), stats_ED = modphase_ED
 
-    _, _, _, callback = get_filenames_from_settings(
-        artifact["CM"], {"name": artifact["NN"]["name"], "setup": {}}
-    )
+    
+    if artifact is not None:
+        _, _, _, callback = get_filenames_from_settings(
+            artifact["CM"], {"name": artifact["NN"]["name"], "setup": {}}
+        )
+    else:
+        callback = "Callback"
+        
     title = callback.replace("Callback", "").lstrip().replace(" ", "\\quad")
 
     title += f" (step {step})" if step is not None else ""
