@@ -165,6 +165,17 @@ for size in sizes:
         ax2.hlines(global_min, -0.5, len(Q) - 0.5, linestyles="dashed", color="green")
         ax2.set_ylim(global_min - 0.2 * span, global_max + 0.2 * span)
 
+        # Save manually
+        fig1.savefig(
+            folder_path + f"BlockHamiltonian_{sim_label}.png",
+            dpi=600,
+        )
+        fig2.savefig(
+            folder_path + f"SpectraPerIrrep_{sim_label}.png",
+            dpi=600,
+        )
+        exit(0)
+
         print("\nContinue [Enter] | Save&Continue [s] | Exit [q]: ")
 
         def on_key(event):
