@@ -1,20 +1,20 @@
 {
 
-    "selection": "ViT2DOHLongPlayGPUReload",
+    "selection": "CvTOHNoStrideNoLog",
 
     "load_model": {
 
-        "parameters": true,
-        "sampler": true,
+        "parameters": false,
+        "sampler": false,
 
-        "checkpoint": 400,
+        "checkpoint": 0,
         
         "load_from": [
             "/home/ihuarte/Escritorio/Ivan/NNs/Simulations/Oxalate/ViT2DOHLongPlay3GPU_Sequential_ViT2D_OutputHead/Size_10x10/ST_500-A_500-A/UUID_e6e8e7a9/Oxalate_ViT2DOHLongPlay3GPU_simulation_10x10_strength_0.2_theta_9.0_phi_72.0_date_20260401T142302_UUID_e6e8e7a9_checkpoint.orbax"
         ]
     },
 
-    "CvTOutputHeadNostride":{
+    "CvTOHNostrideNoLog":{
 
          "stage0": {
             "template":{
@@ -32,7 +32,7 @@
         }
     },
 
-    "CvTComplexHeadNostride":{
+    "CvTCHNoStrideNoLog":{
 
          "stage0": {
             "template":{
@@ -50,7 +50,7 @@
         }
     },
     
-    "ViT2DOHLongPlay3GPUReload":{
+    "ViT2DOH":{
 
         "stage0":{
              "template":{
