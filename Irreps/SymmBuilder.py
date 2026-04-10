@@ -4,8 +4,7 @@ import jax.numpy.linalg as jla
 from typing import List
 from itertools import product
 
-import NNs.Irreps.Symmetry
-from NNs.Irreps.Symmetry import SIMMETRY, EXTERNAL_ARGS
+from Irreps.Symmetry import SIMMETRY, EXTERNAL_ARGS
 
 
 def _all_idx_combinations(N: List):
