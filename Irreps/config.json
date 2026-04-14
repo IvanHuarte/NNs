@@ -1,6 +1,16 @@
 {
     "write_folder":"/home/ihuarte/Escritorio/Ivan/NNs/Irreps/Figures/",
 
+    "basis_builder": {
+        "mode": "dense",
+
+        "dense_setup":{},
+        "action_setup":{
+            "k_max": 30
+        },
+        "orbit_setup":{}
+    },
+
     "symmetries":{
         
         "Traslation":{
@@ -35,18 +45,18 @@
 
         "mode": "zip",
         
-        "sizes":[[3,3]],
+        "sizes":[[4,4]],
 
         "kwargs_lattice" : {
             "bc":"periodic",
             "order": "default_2"
         },
 
-        "S_operators": true,
+        "S_operators": false,
 
 
         "CM": {
-            "selection": "J1J2Square",
+            "selection": "Oxalate",
 
             "Oxalate":{
                 "strength": 0.2,

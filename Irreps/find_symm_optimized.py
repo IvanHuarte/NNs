@@ -25,10 +25,10 @@ cmap = colors.LinearSegmentedColormap.from_list(
 
 matplotlib.rcParams["font.size"] = 12
 
-from Irreps.utils import svds_orth
 from VA_project.initialize_model import ModelFactory
 from VA_project.engine.runners import Runner
 from Irreps.SymmBuilder import SymmGroup, _all_idx_combinations
+from Irreps.utils import estimate_dim_q, build_irrep_basis
 
 path = str(Path(__file__).resolve().parent) + "/"
 with open(path + "config.json", "r") as f:
@@ -39,6 +39,8 @@ config_cm = config["config_cm"]
 symmetries_config = config["symmetries"]
 
 sizes = config_cm["sizes"]
+
+k_max = config["k_max"]
 
 for size in sizes:
 
@@ -74,102 +76,76 @@ for size in sizes:
         cm_model = model_factory.get_model()
         eng = Runner(cm_model.cm, S_operators=model_factory.S_operators)
 
-        # Build the Hamiltonian
+
+        # --------------------------------------------------
+        # Construcción del Hamiltoniano y del grupo
+        # --------------------------------------------------
+
         H = eng.build_hamiltonian(hilbert)
+        H_dense = H.to_dense() if hasattr(H, "to_dense") else H
 
         configurations = hilbert.all_states()
-        n_configurations = configurations.shape[0]
-
-        print(f"Initializing symmetry group...")
+        D = configurations.shape[0]
 
         group = SymmGroup(
-            symmetries_config, 
+            symmetries_config,
             lattice_size=size,
             all_states=configurations
         )
 
-        print(f"Calculation unitary representations...\n")
-        # Generate the unitary representations for all symmetry operations
-        representations = group.get_unitary_representations(configurations)
-
-        # Compute irrep projectors
-
-        # k_vec = []
-        # q_idx_generator = _all_idx_combinations(group.N_group)
-        # for q_vector in q_idx_generator:
-        #     print(f"Processing q_vector: {q_vector}")
-        #     irrep_dim_est = dim = int(round(np.real(np.trace(projector))/ group._group_norm()))
-        #     k_vec.append(irrep_dim_est)
-        #     print(f"k =  {irrep_dim_est}\n")
-
-
         q_idx_generator = _all_idx_combinations(group.N_group)
-        Q = {}
-        for i, q_vector in enumerate(q_idx_generator):
-            print(f"Processing q_vector: {q_vector}")
-            projector = group.get_irrep_projector(representations, q_vector)
-            np.savetxt(folder_path + f"{sim_label}_irrep_{q_vector}_projector.txt", projector)
 
-            print("Estimating irrep dimension...")
-            irrep_dim_est = int(round(np.real(np.trace(projector))/ group._group_norm()))
-            print(f"Building irrep basis via svds_orth k={irrep_dim_est}\n")
-            Q[q_vector] = svds_orth(projector, k=irrep_dim_est)
-            np.savetxt(folder_path + f"{sim_label}_irrep_{q_vector}_Qmatrix.txt", Q[q_vector])
+        # --------------------------------------------------
+        # Diagonalización por irreps
+        # --------------------------------------------------
 
-        # Summarize the results.
-        print("Dimensions of the projector basis:")
-        for irrep in Q:
-            print(f"{irrep}:\t{Q[irrep].shape[1]}")
+        eigvals = {}
+        irrep_dim = {}
 
-        print("TOTAL:", sum(Q[irrep].shape[1] for irrep in Q))
+        global_min = np.inf
+        global_max = -np.inf
+        for q_vector in q_idx_generator:
+            print(f"\nirrep: {q_vector}")
 
-        # Build the joint basis.
-        adapted_basis = np.concatenate(list(Q.values()), axis=1)
-        print("RANK OF THE BASIS MATRIX:", np.linalg.matrix_rank(adapted_basis))
+            projector = group.get_irrep_projector_action(q_vector, norm=True)
 
-        # Transform the Hamiltonian to the symmetry-adapted basis.
-        H_dense = H.to_dense()
-        adapted_matrix = adapted_basis.conj().T @ H_dense @ adapted_basis
+            v = np.random.randn(D) + 1j*np.random.randn(D)
+            lhs = projector(H @ v)
+            rhs = H @ projector(v)
+            print("|| [H, P] v || =", np.linalg.norm(lhs - rhs))
 
-        ############
-        # PLOTTING
-        ############
+            # -------- construir base de la irrep --------
+            print(f"Building irrep basis...")
+            Qq = build_irrep_basis(projector, D)
+            dim_q = Qq.shape[1]
+            irrep_dim[q_vector] = dim_q 
+            print("dim(q) =", dim_q)
 
-        # Visually check if the matrix is block-diagonal.
-        abs_matrix = np.abs(adapted_matrix)
+            # -------- sanity checks --------
+            err_proj = np.linalg.norm(projector(Qq[:, 0]) - Qq[:, 0])
+            err_orth = np.linalg.norm(Qq.conj().T @ Qq - np.eye(dim_q))
 
-        # --- Figura 1: matriz adaptada ---
-        fig1, ax1 = plt.subplots()
-        cax = ax1.matshow(abs_matrix)
-        fig1.colorbar(cax)
-        count = 0
-        for irrep in list(Q.keys())[:-1]:
-            count += Q[irrep].shape[1]
-            ax1.axhline(count - 0.5, color="white")
-            ax1.axvline(count - 0.5, color="white")
-        ax1.set_title("Symmetry-adapted Hamiltonian")
-        ax1.set_xticklabels([])
-        ax1.set_yticklabels([])
-        # fig1.show()  # muestra la figura
+            print("||Pψ - ψ|| =", err_proj)
+            print("||Q†Q - I|| =", err_orth)
+
+            # -------- Hamiltoniano restringido --------
+
+            Hq = Qq.conj().T @ H_dense @ Qq
+
+            # -------- diagonalización --------
+            print("Diagonalizing...")
+            eigvals[q_vector] = np.linalg.eigvalsh(Hq)[:k_max]
+            print("E =", eigvals[q_vector])
+            np.savetxt(folder_path + f"Spectrum_{sim_label}_irrep_{q_vector}.txt", eigvals[q_vector])
+
+            global_min = min(global_min, eigvals[q_vector].min())
+            global_max = max(global_max, eigvals[q_vector].max())
+
 
         # --- Figura 2: eigenvalues ---
         fig2, ax2 = plt.subplots(figsize=(20, 20))
 
-        eigvals = {}
-        global_min = np.inf
-        global_max = -np.inf
-        for i, q_vector in enumerate(Q):
-            print(f"Diagonalizing {q_vector}...")
-            basis = Q[q_vector]
-            block = basis.conj().T @ H_dense @ basis
-            eigvals[q_vector] = sp.linalg.eigvalsh(block)
-            np.savetxt(folder_path + f"Spectrum_{sim_label}_irrep_{q_vector}.txt", eigvals[q_vector])
-
-            print("E =", eigvals[q_vector])
-            global_min = min(global_min, eigvals[q_vector].min())
-            global_max = max(global_max, eigvals[q_vector].max())
-
-        for i, q_vector in enumerate(Q):
+        for i, q_vector in enumerate(eigvals.keys()):
             ax2.scatter(
                 [i] * len(eigvals[q_vector]),
                 eigvals[q_vector],
@@ -187,22 +163,22 @@ for size in sizes:
         )
         ax2.set_xlabel(r"$q$", fontsize=15)
         ax2.set_ylabel(r"$E$", fontsize=15)
-        ax2.set_xticks(range(len(Q)))
-        ax2.set_xticklabels([str(q) for q in Q.keys()], rotation=45, ha="right")
+        ax2.set_xticks(range(len(eigvals)))
+        ax2.set_xticklabels([str(q) for q in eigvals.keys()], rotation=45, ha="right")
         span = global_max - global_min
-        ax2.hlines(global_min, -0.5, len(Q) - 0.5, linestyles="dashed", color="green")
+        ax2.hlines(global_min, -0.5, len(eigvals) - 0.5, linestyles="dashed", color="green")
         ax2.set_ylim(global_min - 0.2 * span, global_max + 0.2 * span)
 
         # Save manually
-        fig1.savefig(
-            folder_path + f"BlockHamiltonian_{sim_label}.png",
-            dpi=600,
-        )
+        # fig1.savefig(
+        #     folder_path + f"BlockHamiltonian_{sim_label}.png",
+        #     dpi=600,
+        # )
         fig2.savefig(
             folder_path + f"SpectraPerIrrep_{sim_label}.png",
             dpi=600,
         )
-        continue
+        exit(0)
 
         print("\nContinue [Enter] | Save&Continue [s] | Exit [q]: ")
 

@@ -3,7 +3,7 @@
     "write_folder_sim":"/home/ihuarte/Escritorio/Ivan/NNs/Simulations/",
 
     "sz_total": null,
-    "vmc_sr":false,
+    "vmc_sr":true,
 
     "callback":{
         "keeper": true,
@@ -70,7 +70,7 @@
             "lr_struct":[
                 
                 [
-                    [ ["lin(0.05, 0.01)"], ["exp(0.01, 0.00001)"] ]
+                    [ ["lin(0.1, 0.01)"], ["exp(0.05, 0.00001)"] ]
                 ]
                 
             ],

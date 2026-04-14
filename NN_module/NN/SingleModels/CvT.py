@@ -17,7 +17,7 @@ class ConvProjectionBlock(nn.Module):
     channels: int
     n_heads: int = 1
     kernel: Tuple = (3, 3)
-    strides_qkv: Tuple[Tuple, Tuple, Tuple] = ((1, 1), (1, 1), (1, 1))
+    strides_qkv: Tuple[Tuple, Tuple, Tuple] = ((1, 1), (2, 2), (2, 2))
     n_mlp_layers: int = 1
 
     @nn.compact
