@@ -8,8 +8,6 @@ from Irreps.Symmetry import SIMMETRY, EXTERNAL_ARGS
 from Irreps.utils import _all_idx_combinations
 
 
-
-
 class SymmGroup:
 
     def __init__(self, setup, **kwargs):
@@ -26,7 +24,6 @@ class SymmGroup:
         # elif setup["basis_builder"] == "orbit":
         #     self.basis_builder = OrbitBasisBuilder(self)
 
-
         # self.perms = []
         # self.perm_powers = []
 
@@ -36,7 +33,6 @@ class SymmGroup:
         #     perm = self._unitary_permutation(symmetry.operation, kwargs["all_states"])
         #     self.perms.append(perm)
         #     self.perm_powers.append(self.compute_perm_powers(perm, symmetry.N))
-
 
     def initialize_symmetries(self, setup, **kwargs):
 
@@ -65,10 +61,6 @@ class SymmGroup:
                 group_label.append(f"{symm_name}")
 
         return group, group_label
-    
-
-
-
 
     def _character(self, q_vector: List[int,], n_vector: List[int,]) -> complex:
 
@@ -83,10 +75,12 @@ class SymmGroup:
         for symmetry in self.group:
             norm *= symmetry.N
         return norm
-    
+
+
+
     def _unitary_representation(
-            self, operation: callable, all_states: jax.typing.ArrayLike
-        ) -> jax.typing.ArrayLike:
+        self, operation: callable, all_states: jax.typing.ArrayLike
+    ) -> jax.typing.ArrayLike:
         """
         Calculates U(g) as the unitary representation of the symmetry operation g acting
         on the Hilbert space, which is a permutation matrix in the real-space basis.
@@ -137,9 +131,7 @@ class SymmGroup:
             nruter /= self.norm
 
         return nruter
-    
-    
-    
+
     def compute_perm_powers(self, perm, N):
         perm_powers = [perm]
         current = perm
@@ -147,7 +139,6 @@ class SymmGroup:
             current = current[current]
             perm_powers.append(current)
         return perm_powers
-    
 
     def _unitary_permutation(self, operation, all_states):
         perm = jnp.zeros(len(all_states), dtype=int)
@@ -181,18 +172,17 @@ class SymmGroup:
                 y += jnp.conj(char) * v
 
             return y / norm_factor
-        
+
         self.sanity_check(Pq_action)
 
         return Pq_action
 
-    
     def sanity_check(self, Pq):
 
-        v= jax.random.uniform(jax.random.PRNGKey(0),self.hilbert_dim) + 1.0j * jax.random.uniform(jax.random.PRNGKey(1),self.hilbert_dim) 
-        print(f"norm(Pq(Pq(v)) - Pq(v)) : {jnp.allclose(Pq(Pq(v)), Pq(v), atol=1e-15)}  (idempotente)")  
-        print(f"norm(Pq(v) - v) : {jnp.linalg.norm(Pq(v) - v)}  (cercania)") 
-        
-    
-
-
+        v = jax.random.uniform(
+            jax.random.PRNGKey(0), self.hilbert_dim
+        ) + 1.0j * jax.random.uniform(jax.random.PRNGKey(1), self.hilbert_dim)
+        print(
+            f"norm(Pq(Pq(v)) - Pq(v)) : {jnp.allclose(Pq(Pq(v)), Pq(v), atol=1e-15)}  (idempotente)"
+        )
+        print(f"norm(Pq(v) - v) : {jnp.linalg.norm(Pq(v) - v)}  (cercania)")

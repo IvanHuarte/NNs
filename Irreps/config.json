@@ -15,7 +15,7 @@
         
         "Traslation":{
             "on": true,
-            "subgroup":[0,1]
+            "subgroup":[1, 0]
         },
 
         "Z2":{
@@ -45,7 +45,7 @@
 
         "mode": "zip",
         
-        "sizes":[[4,4]],
+        "sizes":[[3,3]],
 
         "kwargs_lattice" : {
             "bc":"periodic",
@@ -60,8 +60,8 @@
 
             "Oxalate":{
                 "strength": 0.2,
-                "theta_list":[ 9.0, 54.0, 54.0, 54.0, 90.0],
-                "phi_list":[ 72.0, 0.0, 216.0, 315.0, 115.2]
+                "theta_list":[ 9.0],
+                "phi_list":[ 72.0]
             },
 
             "LRChain":{

@@ -76,6 +76,7 @@ for size in sizes:
 
         # Build the Hamiltonian
         H = eng.build_hamiltonian(hilbert)
+        print(H)
 
         configurations = hilbert.all_states()
         n_configurations = configurations.shape[0]

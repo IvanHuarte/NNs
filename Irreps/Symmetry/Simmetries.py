@@ -1,4 +1,6 @@
 import jax.numpy as jnp
+import jax
+from functools import partial
 
 
 class Z2:
@@ -27,6 +29,7 @@ class Traslation:
 
         assert self.N != 1, f"Group size too low. N = 1"
 
+    @partial(jax.jit, static_argnums=0)
     def operation(self, configuration):
         "Translate a give spin configuration bz one position along an axis."
         configuration = configuration.reshape(self.lattice_size)
@@ -41,6 +44,7 @@ def c4_operation(lattice_size):
         return configuration.reshape(-1)
 
     return _operation
+
 
 def c2_operation(lattice_size):
     def _operation(configuration):
