@@ -4,16 +4,11 @@ import json
 from pathlib import Path
 import sys
 
-import jax
-import jax.nn
 import jax.numpy as jnp
 import jax.numpy.linalg as jla
-import jax.typing
 import netket as nk
 import numpy as np
-import numpy.linalg
 import scipy as sp
-import scipy.linalg
 import matplotlib
 import matplotlib.pyplot as plt
 import matplotlib.colors as colors
