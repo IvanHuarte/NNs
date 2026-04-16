@@ -3,7 +3,6 @@ import jax.numpy as jnp
 import jax.numpy.linalg as jla
 from typing import List
 
-from Irreps.BasisBuilder import DenseBasisBuilder, ActionBasisBuilder, OrbitBasisBuilder
 from Irreps.Symmetry import SIMMETRY, EXTERNAL_ARGS
 from Irreps.utils import _all_idx_combinations
 
@@ -16,23 +15,6 @@ class SymmGroup:
 
         self.N_group = [symmetry.N for symmetry in self.group]
         self.norm = self._group_norm()
-
-        # if setup["basis_builder"] == "dense":
-        #     self.basis_builder = DenseBasisBuilder(self, kwargs["all_states"])
-        # elif setup["basis_builder"] == "action":
-        #     self.basis_builder = ActionBasisBuilder(self)
-        # elif setup["basis_builder"] == "orbit":
-        #     self.basis_builder = OrbitBasisBuilder(self)
-
-        # self.perms = []
-        # self.perm_powers = []
-
-        # self.hilbert_dim = kwargs["all_states"].shape[0] if "all_states" in kwargs else None
-
-        # for symmetry in self.group:
-        #     perm = self._unitary_permutation(symmetry.operation, kwargs["all_states"])
-        #     self.perms.append(perm)
-        #     self.perm_powers.append(self.compute_perm_powers(perm, symmetry.N))
 
     def initialize_symmetries(self, setup, **kwargs):
 
@@ -68,6 +50,7 @@ class SymmGroup:
         for i, symmetry in enumerate(self.group):
             character *= symmetry.character(q_vector[i], n_vector[i])
         return character
+    
 
     def _group_norm(self):
 
@@ -75,8 +58,6 @@ class SymmGroup:
         for symmetry in self.group:
             norm *= symmetry.N
         return norm
-
-
 
     def _unitary_representation(
         self, operation: callable, all_states: jax.typing.ArrayLike
