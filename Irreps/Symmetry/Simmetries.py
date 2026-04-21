@@ -25,7 +25,7 @@ class Traslation:
 
         self.dim = 1
         self.N = lattice_size[self.axis]
-        self.character = lambda q, n: jnp.exp(-2j * jnp.pi * q * n / self.N)
+        self.character = lambda q, n: jnp.exp(-2.0j * jnp.pi * q * n / self.N)
 
         assert self.N != 1, f"Group size too low. N = 1"
 
@@ -65,8 +65,8 @@ class Cn:
         self.lattice_size = lattice_size
 
         self.dim = 1
-        self.N = 4
-        self.character = lambda q, m: jnp.exp(2 * jnp.pi * q * m / n)
+        self.N = n
+        self.character = lambda q, m: jnp.exp(2.0j * jnp.pi * q * m / n)
 
         assert self.N != 1, f"Group size too low. N = 1"
         assert all(L != 1 for L in self.lattice_size)
@@ -74,6 +74,8 @@ class Cn:
         if n == 4:
             self.operation = c4_operation(lattice_size)
 
+        if n == 2:
+            self.operation = c2_operation(lattice_size)
 
 class Refl_H:
 

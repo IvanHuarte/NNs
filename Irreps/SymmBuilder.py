@@ -48,7 +48,9 @@ class SymmGroup:
 
         character = 1.0
         for i, symmetry in enumerate(self.group):
-            character *= symmetry.character(q_vector[i], n_vector[i])
+            symm_character = symmetry.character(q_vector[i], n_vector[i])
+            print(f"symm_char: {symm_character}")
+            character *= symm_character
         return character
     
 
@@ -92,7 +94,10 @@ class SymmGroup:
         q_vector: List[int,],
         norm: bool = False,
     ) -> jax.typing.ArrayLike:
-        assert len(q_vector) == len(representations) == len(self.group)
+    
+        assert (
+            len(q_vector) == len(representations) == len(self.group)
+        ), f"{len(q_vector)} != {len(representations)} != {len(self.group)} " 
 
         dim = len(representations[0])
         nruter = jnp.zeros((dim, dim), dtype=complex)
@@ -100,6 +105,7 @@ class SymmGroup:
         for n_vector in _all_idx_combinations(self.N_group):
 
             character = self._character(q_vector, n_vector)
+            print(f"n_vector: {n_vector}  --> char:  {character}")
             nruter_2 = jnp.eye(dim)
             for i, representation in enumerate(representations):
                 nruter_2 @= jla.matrix_power(representation, n_vector[i])

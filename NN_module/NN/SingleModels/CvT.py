@@ -127,7 +127,7 @@ class StageBlock(nn.Module):
                 kernel=self.kernel,
             )(x)
 
-        return x
+        return log_cosh(x)
 
 
 class CvT(nn.Module):

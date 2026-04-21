@@ -73,10 +73,14 @@ for size in sizes:
 
         cm_model = model_factory.get_model()
         eng = Runner(cm_model.cm, S_operators=model_factory.S_operators)
+        E_ED = eng.exact_energy_lanczos(hilbert, k=5)
+        print(f"Full H: {np.sort(E_ED)}")
+
 
         # Build the Hamiltonian
         H = eng.build_hamiltonian(hilbert)
-        print(H)
+        H_dense = H.to_dense()
+
 
         configurations = hilbert.all_states()
         n_configurations = configurations.shape[0]
@@ -93,28 +97,39 @@ for size in sizes:
         # Generate the unitary representations for all symmetry operations
         representations = group.get_unitary_representations(configurations)
 
+        n_symmetries = len(representations)
+        for i in range(n_symmetries):
+            U = representations[i]
+            conmutes = np.allclose(H_dense @ U - U @ H_dense, np.zeros(H_dense.shape, dtype=np.complex128))
+            print(f"Conmutes with H?: {conmutes}")
+            
+        if n_symmetries > 1:
+            for i, j in np.unravel_index(
+                np.arange(n_symmetries * n_symmetries), (n_symmetries, n_symmetries)
+                ):
+                U_i, U_j = representations[i], representations[j]
+                conmutes = np.allclose(U_i @ U_j - U_j @ U_i, np.zeros(U_i.shape, dtype=np.complex128))
+                print(f"Conmutes U_{i} with U_{j}?: {conmutes}")
+    
+
+
         # Compute irrep projectors
-
-        # k_vec = []
-        # q_idx_generator = _all_idx_combinations(group.N_group)
-        # for q_vector in q_idx_generator:
-        #     print(f"Processing q_vector: {q_vector}")
-        #     irrep_dim_est = dim = int(round(np.real(np.trace(projector))/ group._group_norm()))
-        #     k_vec.append(irrep_dim_est)
-        #     print(f"k =  {irrep_dim_est}\n")
-
-
         q_idx_generator = _all_idx_combinations(group.N_group)
         Q = {}
         for i, q_vector in enumerate(q_idx_generator):
             print(f"Processing q_vector: {q_vector}")
             projector = group.get_irrep_projector(representations, q_vector)
+            print(f"Conmutes?: {np.allclose(H_dense @ projector - projector @ H_dense, np.zeros(H_dense.shape, dtype=complex))}")
+            print(np.linalg.matrix_rank(projector))
+
             np.savetxt(folder_path + f"{sim_label}_irrep_{q_vector}_projector.txt", projector)
 
             print("Estimating irrep dimension...")
             irrep_dim_est = int(round(np.real(np.trace(projector))/ group._group_norm()))
             print(f"Building irrep basis via svds_orth k={irrep_dim_est}\n")
-            Q[q_vector] = svds_orth(projector, k=irrep_dim_est)
+
+            # Q[q_vector] = svds_orth(projector, k=irrep_dim_est)
+            Q[q_vector] = sp.linalg.orth(projector)
             np.savetxt(folder_path + f"{sim_label}_irrep_{q_vector}_Qmatrix.txt", Q[q_vector])
 
         # Summarize the results.
@@ -129,7 +144,6 @@ for size in sizes:
         print("RANK OF THE BASIS MATRIX:", np.linalg.matrix_rank(adapted_basis))
 
         # Transform the Hamiltonian to the symmetry-adapted basis.
-        H_dense = H.to_dense()
         adapted_matrix = adapted_basis.conj().T @ H_dense @ adapted_basis
 
         ############
@@ -166,7 +180,7 @@ for size in sizes:
             eigvals[q_vector] = sp.linalg.eigvalsh(block)
             np.savetxt(folder_path + f"Spectrum_{sim_label}_irrep_{q_vector}.txt", eigvals[q_vector])
 
-            print("E =", eigvals[q_vector])
+            print("E =", eigvals[q_vector][:5])
             global_min = min(global_min, eigvals[q_vector].min())
             global_max = max(global_max, eigvals[q_vector].max())
 

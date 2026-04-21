@@ -14,7 +14,7 @@
     "symmetries":{
         
         "Traslation":{
-            "on": true,
+            "on": false,
             "subgroup":[1, 0]
         },
 
@@ -24,11 +24,11 @@
 
         "Cn":{
             "on": false,
-            "n": 4
+            "n": 2
         },
 
         "Refl_H":{
-            "on": false
+            "on": true
         },
         "Refl_V":{
             "on": false
@@ -45,7 +45,7 @@
 
         "mode": "zip",
         
-        "sizes":[[4,4]],
+        "sizes":[[3,3]],
 
         "kwargs_lattice" : {
             "bc":"periodic",
