@@ -4,7 +4,7 @@ import flax.linen as nn
 
 # Wrapper over other symmetry modules.
 
-from .Traslations import Traslation, TraslationAnchor
+from .Traslations import Traslation
 from .Z2 import Z2
 
 

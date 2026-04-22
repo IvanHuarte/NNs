@@ -1,7 +1,9 @@
+import os
 import matplotlib.pyplot as plt
 import matplotlib.transforms as mtransforms
 import numpy as np
 import jax
+import jax.numpy as jnp
 
 jax.config.update("jax_enable_x64", True)
 
@@ -16,19 +18,17 @@ def plot_modphase(artifact, modphase_vs, step=None, modphase_ED=None):
 
     """
 
-
     (mod_vs, phase_vs), stats_vs = modphase_vs
     if modphase_ED is not None:
         (mod_ED, phase_ED), stats_ED = modphase_ED
 
-    
     if artifact is not None:
         _, _, _, callback = get_filenames_from_settings(
             artifact["CM"], {"name": artifact["NN"]["name"], "setup": {}}
         )
     else:
         callback = "Callback"
-        
+
     title = callback.replace("Callback", "").lstrip().replace(" ", "\\quad")
 
     title += f" (step {step})" if step is not None else ""
@@ -203,3 +203,87 @@ def plot_modphase_from_vstate(vstate, artifact, x_ED=None, step=None):
     fig, ax = plot_modphase(artifact, modphase_vs, step=step, modphase_ED=modphase_ED)
 
     return fig, ax
+
+
+def single_modphase_plot(x, label, write_folder):
+
+    (mod, phase), stats = modphase(x)
+
+    mod = mod - mod[::-1]
+    phase = phase - phase[::-1]
+
+    fig, ax = plt.subplots(3, 1, figsize=[20, 10])
+
+    ax[0].set_title(r"$Modulus\;and\;Phase\qquad %s$" % (label), fontsize=15)
+    ax[0].set_xticks([])
+    ax[0].set_ylabel(r"$Modulus$")
+    ax[0].set_ylim(-0.00001, max(max(mod), max(mod)) * 9 / 8)
+    ax[0].plot(mod, alpha=0.6, color="r", label=f"vstate")
+    ax[0].legend()
+
+    ax[1].set_xticks([])
+    ax[1].set_yticks([-np.pi, -np.pi / 2, 0, np.pi / 2, np.pi])
+    ax[1].set_yticklabels([r"$-\pi$", r"$-\pi/2$", r"$0$", r"$\pi/2$", r"$\pi$"])
+    ax[1].set_ylabel(r"$Phase \;vstate$")
+    ax[1].set_ylim(-np.pi - 0.1, np.pi + 0.1)
+    ax[1].plot(phase, alpha=0.15, ls="", marker="o", ms=0.1, color="r", label="vstate")
+    ax[1].set_xlabel(r"$C_i$")
+    ax[1].legend(loc="upper right")
+
+    ax[2].set_xlabel(r"$Phase\;(radians)$")
+    ax[2].set_ylabel(r"$Phase \;histogram$")
+
+    ax[2].hist(
+        phase,
+        bins=1000,
+        range=(-np.pi, np.pi),
+        color="r",
+        density=True,
+        alpha=0.7,
+        label=f"vstate ({stats['type']})",
+    )
+    ax[2].text(
+        0.8,
+        0.7,
+        r"$\varphi=%.2f \pm %.2f$" % (stats["phase"]["mean"], stats["phase"]["std"]),
+        transform=ax[2].transAxes,
+        fontsize=10,
+        bbox=dict(facecolor="white", alpha=0.4),
+    )
+
+    transform = mtransforms.blended_transform_factory(ax[2].transData, ax[2].transAxes)
+    if stats["peaks"] is not None:
+        for peak in stats["peaks"]["values"]:
+            ax[2].text(
+                peak - 0.1,
+                0.9,
+                r"%.2f" % peak,
+                color="b",
+                transform=transform,
+                fontsize=8,
+                alpha=0.7,
+            )
+
+    ax[2].legend()
+    plt.tight_layout()
+    if write_folder is not None:
+        os.makedirs(write_folder, exist_ok=True)
+        plt.savefig(write_folder + label + ".jpeg", dpi=600, bbox_inches="tight")
+
+    return fig, ax
+
+
+def batch_modphase_plotter(
+    x_batch, labels=None, write_folder=None, return_figure=False
+):
+
+    if labels is None:
+        labels = [f"State\;\#{i}" for i in range(len(x_batch))]
+
+    if return_figure:
+        for i, x in enumerate(x_batch):
+            yield single_modphase_plot(x, labels[i], write_folder=write_folder)
+    else:
+        for i, x in enumerate(x_batch):
+            fig, _ = single_modphase_plot(x, labels[i], write_folder=write_folder)
+            fig.show()

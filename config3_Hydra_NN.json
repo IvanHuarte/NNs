@@ -5,8 +5,9 @@
     "symm_wrapper":{
 
         "Z2": {
-            "on": false,
-            "trivial_Z2": true
+            "on": true,
+            "trivial_Z2": true,
+            "symm_modulus":true
         },
         "Traslation": {
             "on": false,

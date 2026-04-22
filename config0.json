@@ -3,7 +3,7 @@
     "write_folder_sim":"/home/ihuarte/Escritorio/Ivan/NNs/Simulations/",
 
     "sz_total": null,
-    "vmc_sr":true,
+    "vmc_sr":false,
 
     "callback":{
         "keeper": true,
@@ -43,10 +43,10 @@
             "rules": ["LocalRule", "Exchange"],
             "prules": [0.8, 0.2]
         },
-        "n_chains_per_rank": 4096,
+        "n_chains_per_rank": 2048,
         "n_samples_per_chain": 1,
         "chunk_sampler": null,
-        "chunk_vstate": 2048
+        "chunk_vstate": 1024
     },
 
     "schedule":{
