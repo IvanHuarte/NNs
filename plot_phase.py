@@ -65,10 +65,6 @@ if "xED" in artifact["_artifacts"]["modphase"]:
     ED_file = artifact["_artifacts"]["modphase"]["xED"]
     mod_ED, phase_ED = np.loadtxt(ED_file)
     stats_ED = artifact["results"]["modphase"]["xED"]
-    modphase_ED = [(mod_ED, phase_ED), stats_ED]
-
-modphase = [(mod_vs, phase_vs), stats_vs]
-
 
 
 if not "modphase" in artifact["_artifacts"]:

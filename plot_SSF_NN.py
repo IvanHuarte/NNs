@@ -21,7 +21,7 @@ from pathlib import Path
 sys.path.append(str(Path(__file__).resolve().parent.parent / "chebyoxa"))
 
 import chebyoxa.utils as utils
-from NNs.NN_module.label_utils import get_filenames_from_settings
+from NN_module.label_utils import get_filenames_from_settings
 
 parser = argparse.ArgumentParser()
 parser.add_argument(
