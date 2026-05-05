@@ -13,9 +13,9 @@ import uuid
 jax.config.update("jax_enable_x64", True)
 jax.config.update("jax_platform_name", "gpu")
 
-print("Ranks:", jax.process_count())      
-print("Devices:", jax.devices())       
-print("Devices:", jax.device_count())       
+print("Ranks:", jax.process_count())
+print("Devices:", jax.devices())
+print("Devices:", jax.device_count())
 
 # Añadir los directorios necesarios
 import sys
@@ -97,9 +97,7 @@ schedule_setup = config["schedule"]
 sampler_setup = config["sampler"]
 n_ranks = jax.device_count()
 n_samples = (
-    n_ranks
-    * sampler_setup["n_samples_per_chain"]
-    * sampler_setup["n_chains_per_rank"]
+    n_ranks * sampler_setup["n_samples_per_chain"] * sampler_setup["n_chains_per_rank"]
 )
 write = get_write_folder_from_model({**config, **config_cm, **config_nn})
 
@@ -172,7 +170,6 @@ for i, size in enumerate(sizes):
         seed = int(time.time())
         key = jax.random.key(seed)
         # key = jnp.array([0, 1773936479], dtype=jnp.uint32)
-        print(n_samples)
         vstate = nk.vqs.MCState(
             sampler=sampler,
             model=model,
@@ -181,6 +178,8 @@ for i, size in enumerate(sizes):
             n_discard_per_chain=0,
             chunk_size=sampler_setup["chunk_vstate"],
         )
+        print("Variational state initialized.")
+
         ## Transplant loaded parameters to the current architecture
         if hydra.load_model:
             vstate = hydra.load_vstate(vstate)

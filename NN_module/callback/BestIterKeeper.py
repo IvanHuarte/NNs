@@ -64,6 +64,9 @@ class BestIterKeeper:
         self.step += 1
 
         vstate = driver.state
+
+        print(vstate.samples.reshape(-1, 16).sum(axis=1))
+
         energy_step = np.real(vstate.expect(self.Hamiltonian).mean)
         var = np.real(getattr(log_data[driver._loss_name], "variance"))
         mean = np.real(getattr(log_data[driver._loss_name], "mean"))

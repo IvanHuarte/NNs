@@ -53,7 +53,7 @@ def neel_callback(hamiltonian, N):
         if step > 200:
             vstate = driver.state
             energy_step = np.real(vstate.expect(hamiltonian).mean)
-            if energy_step > -N/2+2:
+            if energy_step > -N / 2 + 2:
                 survive = False
 
         return survive
@@ -356,9 +356,7 @@ for i, size in enumerate(sizes):
         callback_artifacts = dump_callback(log, callback_args)
 
         ## Calculate some observables
-        results, mp_array_vs, mp_array_ED = measureNdump(
-            keeper, time_exe, exact_diag
-        )
+        results, mp_array_vs, mp_array_ED = measureNdump(keeper, time_exe, exact_diag)
 
         sim_config["SIM"]["sampler"]["nsamples"] = n_samples
         sim_config["SIM"]["sampler"]["rng"] = jax.random.key_data(

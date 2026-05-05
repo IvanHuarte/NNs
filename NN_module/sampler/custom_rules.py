@@ -6,7 +6,7 @@ from netket.utils.types import PyTree, PRNGKeyT
 from netket.utils.struct import dataclass
 from netket.hilbert.random import flip_state
 from netket.utils import struct
-from typing import Tuple, override
+from typing import Any, Tuple, override
 
 
 @dataclass
@@ -84,15 +84,23 @@ class Exchange(MetropolisRule):
         key: PRNGKeyT,
     ):
 
-        raw_samples = sampler.hilbert.random_state(
-            key, size=sampler.n_batches, dtype=sampler.dtype
-        )
-        return raw_samples
+        if sampler.hilbert._total_sz is not None:
+            samples = sampler.hilbert.random_state(
+                key, size=sampler.n_batches, dtype=sampler.dtype
+            )
+        else:
+            x0 = (-1) ** jnp.arange(sampler.hilbert.size)
+            key_set = jax.random.split(key, num=sampler.n_batches)
+            samples = jax.vmap(lambda k: jax.random.permutation(k, x0))(key_set).astype(
+                sampler.dtype
+            )
+
+        return samples
 
     @override
     def transition(self, sampler, machine, parameters, state, key, σ):
 
-        (key1, key2, key3) = jax.random.split(key, (3,))
+        key1, key2, key3 = jax.random.split(key, (3,))
 
         n_samples = σ.shape[0]
         N = sampler.hilbert.size
@@ -127,6 +135,9 @@ class Exchange(MetropolisRule):
 
         return σ_new, None
 
+    def __repr__(self):
+        return "Exchange()"
+
 
 @struct.dataclass
 class ExchangeJ1J2(MetropolisRule):
@@ -156,7 +167,7 @@ class ExchangeJ1J2(MetropolisRule):
     @override
     def transition(self, sampler, machine, parameters, state, key, σ):
 
-        (key1, key2, key3) = jax.random.split(key, (3,))
+        key1, key2, key3 = jax.random.split(key, (3,))
 
         n_samples = σ.shape[0]
         N = sampler.hilbert.size
