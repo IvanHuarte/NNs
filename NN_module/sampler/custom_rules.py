@@ -1,12 +1,15 @@
 import jax
 import jax.numpy as jnp
 from flax import linen as nn
+import netket
 from netket.sampler.rules import MetropolisRule
 from netket.utils.types import PyTree, PRNGKeyT
 from netket.utils.struct import dataclass
 from netket.hilbert.random import flip_state
 from netket.utils import struct
-from typing import Any, Tuple, override
+from typing import override
+
+from .initial_states import hilbert_state, M0_state, Mmax_state
 
 
 @dataclass
@@ -203,3 +206,30 @@ class ExchangeJ1J2(MetropolisRule):
         )
 
         return σ_new, None
+
+
+class MultipleRules(netket.sampler.rules.MultipleRules):
+
+    initial_state: str | None = None
+
+    def __init__(self, rules, prules, initial_state=None):
+        super().__init__(rules, prules)
+        self.initial_state = initial_state
+
+    def random_state(
+        self,
+        sampler,
+        machine,
+        params,
+        sampler_state,
+        key,
+    ):
+
+        if self.initial_state == "M0":
+            return M0_state(sampler, machine, params, sampler_state, key)
+        elif self.initial_state == "Mmax":
+            return Mmax_state(sampler, machine, params, sampler_state, key)
+        elif self.initial_state == "hilbert":
+            return hilbert_state(sampler, machine, params, sampler_state, key)
+        else:
+            return super().random_state(sampler, machine, params, sampler_state, key)

@@ -286,9 +286,9 @@ def batch_modphase_plotter(
             fig.show()
 
 
-
 def plot_M_sector_hist(x, hilbert):
 
+    N = hilbert.size
 
     mod = jnp.abs(x)
     configs = hilbert.all_states()
@@ -297,11 +297,11 @@ def plot_M_sector_hist(x, hilbert):
     sorted_modulus = mod[max_contr_idx]
     sorted_configs = configs[max_contr_idx, :]
 
-    config_magnetization = jnp.sum(sorted_configs, axis=-1)/2
-
+    config_magnetization = jnp.sum(sorted_configs, axis=-1) / 2
 
     import matplotlib.pyplot as plt
-    fig, ax = plt.subplots(2, 1,  figsize=[20, 10])
+
+    fig, ax = plt.subplots(2, 1, figsize=[20, 10])
 
     fig.suptitle("J1-J2 Model  (J2/J1 = 0.5)", fontsize=30)
     fig.suptitle("Oxalate  (QSL)", fontsize=30)
@@ -311,27 +311,25 @@ def plot_M_sector_hist(x, hilbert):
     ax[0].hist(
         config_magnetization,
         bins=33,
-        range=(-16, 16),
+        range=(-N // 2 - 1, N // 2 + 1),
         density=True,
         alpha=0.7,
         label=f"ED",
-        edgecolor='black',
-
+        edgecolor="black",
     )
     ax[1].hist(
         config_magnetization,
         bins=33,
-        range=(-16, 16),
+        range=(-N // 2 - 1, N // 2 + 1),
         weights=sorted_modulus,
         density=True,
         alpha=0.7,
         label=f"ED",
-        edgecolor='black',
-        
+        edgecolor="black",
     )
 
-    ax[0].set_xticks(jnp.arange(-16,18,2))
-    ax[1].set_xticks(jnp.arange(-16,18,2))
+    ax[0].set_xticks(jnp.arange(-N // 2 - 1, N // 2 + 2, 1))
+    ax[1].set_xticks(jnp.arange(-N // 2 - 1, N // 2 + 2, 1))
     # ax[0].set_yscale('log')
     # ax[1].set_yscale('log')
     # ax[0].set_ylim(1e-2, 1e2)
@@ -351,16 +349,17 @@ def plot_cum_contributors(x):
     perc_under_x = []
 
     for x in tramos:
-        perc_under_x.append((sorted_modulus < x).sum()/sorted_modulus.shape[0] * 100)
-    
-    fig, ax = plt.subplots(figsize=(10,6))
+        perc_under_x.append((sorted_modulus < x).sum() / sorted_modulus.shape[0] * 100)
+
+    fig, ax = plt.subplots(figsize=(10, 6))
     ax.plot(tramos, perc_under_x)
     ax.set_title("Percentage of total components under modulus ", fontsize=20)
     ax.set_xlabel("Modulus", fontsize=15)
     ax.set_ylabel("Percentage", fontsize=15)
-    ax.set_xscale('log')
+    ax.set_xscale("log")
 
     return fig, ax
+
 
 def plot_weighted_phase_hist(x):
 
@@ -370,7 +369,7 @@ def plot_weighted_phase_hist(x):
     no_null_mod_mask = mod > 1e-12
     phase_mask = phase[no_null_mod_mask]
 
-    fig, ax = plt.subplots(3, 1,  figsize=[20, 10])
+    fig, ax = plt.subplots(3, 1, figsize=[20, 10])
     ax[0].set_title("Phase histogram")
     ax[1].set_title("Phase histogram with no null modulus")
     ax[2].set_title("Phase histogram weighted by modulus")
@@ -400,9 +399,9 @@ def plot_weighted_phase_hist(x):
         label=f"ED",
     )
 
-    ax[0].set_yscale('log')
-    ax[1].set_yscale('log')
-    ax[2].set_yscale('log')
+    ax[0].set_yscale("log")
+    ax[1].set_yscale("log")
+    ax[2].set_yscale("log")
     ax[0].set_ylim(1e-2, 1e2)
     ax[1].set_ylim(1e-2, 1e2)
     ax[2].set_ylim(1e-2, 1e2)

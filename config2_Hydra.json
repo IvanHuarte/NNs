@@ -1,6 +1,6 @@
 {
 
-    "selection": "CvTOHStrideLog",
+    "selection": "CvTCHStrideLog90",
 
     "load_model": {
 
@@ -32,7 +32,7 @@
         }
     },
 
-    "CvTCHStrideLog":{
+    "CvTCHStrideLog90":{
 
          "stage0": {
             "template":{

@@ -1,8 +1,5 @@
 from NN_module.sampler import RULES
-
-from NN_module.sampler.MultipleRulesCustom import MultipleRules
-
-# from netket.sampler.rules import MultipleRules
+from NN_module.sampler.custom_rules import MultipleRules
 
 import jax.numpy as jnp
 from netket.sampler import MetropolisSampler
