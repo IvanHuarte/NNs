@@ -303,15 +303,12 @@ def plot_M_sector_hist(x, hilbert):
 
     fig, ax = plt.subplots(2, 1, figsize=[20, 10])
 
-    fig.suptitle("J1-J2 Model  (J2/J1 = 0.5)", fontsize=30)
-    fig.suptitle("Oxalate  (QSL)", fontsize=30)
-
     ax[0].set_title("Magnetization histogram (raw histogram)")
     ax[1].set_title("Magnetization histogram (weighted by modulus)")
     ax[0].hist(
         config_magnetization,
-        bins=33,
-        range=(-N // 2 - 1, N // 2 + 1),
+        bins=N,
+        range=(-N // 2 - 0.5, N // 2 - 0.5),
         density=True,
         alpha=0.7,
         label=f"ED",
@@ -319,8 +316,8 @@ def plot_M_sector_hist(x, hilbert):
     )
     ax[1].hist(
         config_magnetization,
-        bins=33,
-        range=(-N // 2 - 1, N // 2 + 1),
+        bins=N,
+        range=(-N // 2 - 0.5, N // 2 - 0.5),
         weights=sorted_modulus,
         density=True,
         alpha=0.7,
