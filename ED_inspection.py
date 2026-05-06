@@ -109,7 +109,7 @@ for size in sizes:
         # Ground State issues
         # Magnetization histogram
         fig_M, ax_M = plot_M_sector_hist(x_ED[0], hilbert)
-        fig_M.suptitle(f"{cm_model_name}  {sim_label}", fontsize=30)
+        fig_M.suptitle(title, fontsize=30)
 
         fig_M.savefig(write_folder + f"Magnetization_histogram{sim_label}.png", dpi=600)
 
