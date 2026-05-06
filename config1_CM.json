@@ -1,7 +1,7 @@
 {
     "mode": "zip",
     
-    "sizes":[[4,4]],
+    "sizes":[[4,4], [4,5]],
 
     "kwargs_lattice" : {
         "bc":"periodic",
@@ -16,8 +16,8 @@
 
             "Oxalate":{
                 "strength": 0.2,
-                "theta_list":[ 90.0],
-                "phi_list":[ 115.2]
+                "theta_list":[ 9.0, 54.0, 54.0, 54.0, 90.0],
+                "phi_list":[ 72.0, 0.0, 216.0, 315.0, 115.2]
             },
 
             "LRChain":{
