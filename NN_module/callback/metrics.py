@@ -228,6 +228,26 @@ def sampling_autocorr_metrics(hamiltonian, vstate):
     return acorr_metrics
 
 
+def sample_magnetization_histogram(vstate):
+    """Compute the histogram of magnetization values from the samples.
+
+    Args:
+        vstate: The variational state containing the samples.
+    Returns:
+        A dictionary containing the magnetization values and their corresponding counts.
+    """
+    N = vstate.hilbert.size
+    ms = vstate.samples.reshape(-1, N).sum(axis=1) // 2
+
+    counts, x = np.histogram(
+        ms,
+        bins=np.arange(-N // 2 - 0.5, N // 2 + 1.5, 1),
+    )
+
+    histogram = {"magnetization": (x[::-1] + 0.5).astype(int), "counts": counts[::-1]}
+    return histogram
+
+
 def phase_metrics(vstate, q_max=4):
     """Compute relevant metrics of the phase of the wavefunction.
 
@@ -273,6 +293,7 @@ def phase_metrics(vstate, q_max=4):
 metrics_dict = {
     "gradients": gradient_metrics,
     "sampling": sampling_autocorr_metrics,
+    "sample_histogram": sample_magnetization_histogram,
     "phase": phase_metrics,
 }
 

@@ -1,5 +1,4 @@
 import flax.linen as nn
-import jax
 import jax.typing as jt
 import jax.numpy as jnp
 from typing import Tuple

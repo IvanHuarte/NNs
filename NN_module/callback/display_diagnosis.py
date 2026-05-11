@@ -78,6 +78,32 @@ def display_phase(data, verbose, message_counter):
     return table, message_counter
 
 
+def display_samples_histogram(data):
+
+    data = data["histogram"]["label"]
+    table = Table(box=None)
+
+    table.add_column("Magnetization", style="red", justify="center")
+    table.add_column(
+        "Number of samples",
+        style="bold red",
+        header_style="#8B1A1A",
+        highlight=True,
+        justify="center",
+    )
+
+    magnetization, counts = (
+        data["magnetization"],
+        data["counts"],
+    )
+
+    for m, count in zip(magnetization, counts):
+        table.add_row(
+            f"{m}",
+            f"{count}",
+        )
+    return table
+
 
 def display_diagnosis_sanity_monitor(diagnosis: dict, verbose: int = 3) -> None:
     """
@@ -432,6 +458,10 @@ def display_diagnosis_sanity_monitor(diagnosis: dict, verbose: int = 3) -> None:
                     )
                     break
 
+                if left_metric == "sample_histogram":
+                    left_text = display_samples_histogram(left_metric_data)
+                    break
+
                 if isinstance(submetric_data, dict) and "status" in submetric_data:
                     left_text.append(
                         submetric_data["label"], style=THEME["text_primary"]
@@ -522,6 +552,10 @@ def display_diagnosis_sanity_monitor(diagnosis: dict, verbose: int = 3) -> None:
                         )
                         break
 
+                    if right_metric == "sample_histogram":
+                        left_text = display_samples_histogram(right_metric_data)
+                        break
+
                     if isinstance(submetric_data, dict) and "status" in submetric_data:
                         right_text.append(
                             submetric_data["label"], style=THEME["text_primary"]
@@ -557,6 +591,18 @@ def display_diagnosis_sanity_monitor(diagnosis: dict, verbose: int = 3) -> None:
                             right_text.append(
                                 f"{subsubmetric_name}:\n", style=THEME["subtitle_color"]
                             )
+
+                            if (
+                                subsubmetric_name == "histogram"
+                                and left_metric == "sampling"
+                            ):
+                                left_text.append("\n")
+                                left_text.append(
+                                    display_samples_histogram(subsubmetric_data),
+                                    style=THEME["text_primary"],
+                                )
+                                left_text.append("\n")
+                                continue
 
                             if (
                                 isinstance(subsubmetric_data, dict)
@@ -654,7 +700,12 @@ def display_diagnosis_sanity_monitor(diagnosis: dict, verbose: int = 3) -> None:
 def display_diagnosis_simple(diagnosis: dict, verbose: int = 3):
     """Display simple sin Rich - Adaptado a estructura real"""
 
-    verbose_priorities = {1: ["❓", "🔴"], 2: ["🔴", "🟡", "⚠️", "⚠️⚠️"], 3: None, 4: None}
+    verbose_priorities = {
+        1: ["❓", "🔴"],
+        2: ["🔴", "🟡", "⚠️", "⚠️⚠️"],
+        3: None,
+        4: None,
+    }
     priorities = verbose_priorities.get(verbose, None)
     messages = []
     msg_counter = 0

@@ -9,8 +9,8 @@
         "keeper": true,
         "energy_plot": false,
         "modphase": false,
-        "sanity": false,
-        "checkpoint":true,
+        "sanity": true,
+        "checkpoint":false,
         
         "keeper_setup":{
             "baseline": 1e-8,
@@ -22,13 +22,14 @@
             "logscale": false
         },
         "sanity_setup":{
-            "do_each": 50,
-            "mode": "simple",
+            "do_each": 2,
+            "mode": "rich",
             "verbose": 3,
             "metrics": {
-                "gradients": true,
+                "gradients": false,
                 "sampling":  true,
-                "phase":     true
+                "sample_histogram": true,
+                "phase":     false
             }
         },
         "checkpoint_setup":{
@@ -41,8 +42,8 @@
     "sampler":{
         "sampler":{
             "rules": ["LocalRule", "Exchange"],
-            "prules": [0.1, 0.9],
-            "initial_state": "hilbert"
+            "prules": [0.2, 0.8],
+            "initial_state": "MMax"
         },
         "n_chains_per_rank": 2048,
         "n_samples_per_chain": 1,
@@ -71,7 +72,7 @@
             "lr_struct":[
                 
                 [
-                    [ ["exp(0.3, 0.01)"], ["exp(0.01, 0.00001)"] ]
+                    [ ["exp(0.02, 0.01)"], ["exp(0.01, 0.00001)"] ]
                 ]
                 
             ],

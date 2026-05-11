@@ -65,10 +65,10 @@ class BestIterKeeper:
 
         vstate = driver.state
 
-        ms = vstate.samples.reshape(-1, 16).sum(axis=1)
+        ms = vstate.samples.reshape(-1, self.N).sum(axis=1) // 2
         counts, x = np.histogram(
             ms,
-            bins=np.arange(-16.5, 16.5, 2),
+            bins=np.arange(-self.N // 2 - 0.5, self.N // 2 + 1.5, 1),
         )
         print(f"{'M':>4} {'count':>6}")
         for xi, ci in zip((x + 0.5).astype(int), counts):

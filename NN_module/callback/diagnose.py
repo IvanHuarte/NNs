@@ -235,6 +235,29 @@ def diagnose_sampling(metrics):
     return diagnosis
 
 
+def diagnose_sample_histogram(histogram):
+
+    diagnosis = {}
+
+    magnetization, counts = (
+        histogram["sample_histogram"]["magnetization"],
+        histogram["sample_histogram"]["counts"],
+    )
+
+    label_hist = {
+        "magnetization": [f"M = {m}" for m in magnetization],
+        "counts": [f"{c}" for c in counts],
+    }
+
+    diagnosis["histogram"] = {
+        "label": label_hist,
+        "status": "🟢",
+        "message": "Histograma de magnetización OK",
+    }
+
+    return diagnosis
+
+
 def diagnose_phase(metrics):
 
     diagnosis = {}
@@ -286,6 +309,7 @@ def diagnose_phase(metrics):
 diagnose_dict = {
     "gradients": diagnose_gradients,
     "sampling": diagnose_sampling,
+    "sample_histogram": diagnose_sample_histogram,
     "phase": diagnose_phase,
 }
 
