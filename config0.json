@@ -45,10 +45,10 @@
             "prules": [0.2, 0.8],
             "initial_state": "MMax"
         },
-        "n_chains_per_rank": 2048,
+        "n_chains_per_rank": 4096,
         "n_samples_per_chain": 1,
         "chunk_sampler": null,
-        "chunk_vstate": 1024
+        "chunk_vstate": 2048
     },
 
     "schedule":{
@@ -72,7 +72,7 @@
             "lr_struct":[
                 
                 [
-                    [ ["exp(0.02, 0.01)"], ["exp(0.01, 0.00001)"] ]
+                    [ ["exp(0.005, 0.001)"], ["exp(0.001, 0.00001)"] ]
                 ]
                 
             ],
