@@ -3,7 +3,7 @@
     "write_folder_sim":"/home/ihuarte/Escritorio/Ivan/NNs/Simulations/",
 
     "sz_total": null,
-    "vmc_sr":true,
+    "vmc_sr":false,
 
     "callback":{
         "keeper": true,
