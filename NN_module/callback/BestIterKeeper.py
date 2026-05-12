@@ -65,15 +65,6 @@ class BestIterKeeper:
 
         vstate = driver.state
 
-        ms = vstate.samples.reshape(-1, self.N).sum(axis=1) // 2
-        counts, x = np.histogram(
-            ms,
-            bins=np.arange(-self.N // 2 - 0.5, self.N // 2 + 1.5, 1),
-        )
-        print(f"{'M':>4} {'count':>6}")
-        for xi, ci in zip((x + 0.5).astype(int), counts):
-            print(f"{xi:>4} {ci:>6}")
-
         energy_step = np.real(vstate.expect(self.Hamiltonian).mean)
         var = np.real(getattr(log_data[driver._loss_name], "variance"))
         mean = np.real(getattr(log_data[driver._loss_name], "mean"))
