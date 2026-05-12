@@ -236,15 +236,18 @@ def sample_magnetization_histogram(vstate):
     Returns:
         A dictionary containing the magnetization values and their corresponding counts.
     """
+
     N = vstate.hilbert.size
     ms = vstate.samples.reshape(-1, N).sum(axis=1) // 2
 
-    counts, x = np.histogram(
+    counts, m = np.histogram(
         ms,
         bins=np.arange(-N // 2 - 0.5, N // 2 + 1.5, 1),
     )
+    magnetization = (m[:-1] + 0.5).astype(int)[::-1]
+    counts = counts[::-1]
 
-    histogram = {"magnetization": (x[::-1] + 0.5).astype(int), "counts": counts[::-1]}
+    histogram = {"magnetization": magnetization, "counts": counts}
     return histogram
 
 

@@ -6,8 +6,7 @@ from rich.columns import Columns
 from rich import box
 
 import shutil
-
-import sys
+from NN_module.ST_utils import print_tree
 
 THEME = {
     # Colores de bordes
@@ -118,17 +117,17 @@ def display_diagnosis_sanity_monitor(diagnosis: dict, verbose: int = 3) -> None:
 
     Args:
         diagnosis (dict): Dictionary containing diagnostic metrics with structure:
-                         {
-                             'gradients': {
-                                 'norm_per_sample': {'mean': {...}, 'std': {...}},
-                                 'global_norm': {...},
-                                 'ReIm_norms': {'global': {...}, 'ModulusNet': {...}, 'PhaseNet': {...}},
-                                 'percentage_norm_intervals': {...}
-                             },
-                             'sampling': {...},
-                             'phase': {...},
-                             'overall': {'status': '🔴', 'message': '...'}
-                         }
+            {
+                'gradients': {
+                    'norm_per_sample': {'mean': {...}, 'std': {...}},
+                    'global_norm': {...},
+                    'ReIm_norms': {'global': {...}, 'ModulusNet': {...}, 'PhaseNet': {...}},
+                    'percentage_norm_intervals': {...}
+                },
+                'sampling': {...},
+                'phase': {...},
+                'overall': {'status': '🔴', 'message': '...'}
+            }
 
         verbose (int): Control output verbosity (default: 3)
                       - 0: No output
@@ -553,7 +552,7 @@ def display_diagnosis_sanity_monitor(diagnosis: dict, verbose: int = 3) -> None:
                         break
 
                     if right_metric == "sample_histogram":
-                        left_text = display_samples_histogram(right_metric_data)
+                        right_text = display_samples_histogram(right_metric_data)
                         break
 
                     if isinstance(submetric_data, dict) and "status" in submetric_data:
@@ -818,6 +817,15 @@ def display_diagnosis_simple(diagnosis: dict, verbose: int = 3):
                 if verbose == 4 and s_msg:
                     messages.append((msg_num, s_msg))
                     msg_counter += 1
+
+    # SAMPLING HISTOGRAM
+    if "sample_histogram" in diagnosis:
+        print("\n📊 SAMPLE HISTOGRAM")
+        hist_data = diagnosis["sample_histogram"]["histogram"]["label"]
+        magnetization = hist_data["magnetization"]
+        counts = hist_data["counts"]
+        for m, count in zip(magnetization, counts):
+            print(f"{m} --> {count}")
 
     # PHASE
     if "phase" in diagnosis:
