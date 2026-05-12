@@ -10,7 +10,7 @@
         "energy_plot": false,
         "modphase": false,
         "sanity": false,
-        "checkpoint":false,
+        "checkpoint":true,
         
         "keeper_setup":{
             "baseline": 1e-8,
