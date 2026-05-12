@@ -49,7 +49,6 @@ class SymmGroup:
         character = 1.0
         for i, symmetry in enumerate(self.group):
             symm_character = symmetry.character(q_vector[i], n_vector[i])
-            print(f"symm_char: {symm_character}")
             character *= symm_character
         return character
     
@@ -105,7 +104,6 @@ class SymmGroup:
         for n_vector in _all_idx_combinations(self.N_group):
 
             character = self._character(q_vector, n_vector)
-            print(f"n_vector: {n_vector}  --> char:  {character}")
             nruter_2 = jnp.eye(dim)
             for i, representation in enumerate(representations):
                 nruter_2 @= jla.matrix_power(representation, n_vector[i])

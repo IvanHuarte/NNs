@@ -3,13 +3,13 @@
     "write_folder_sim":"/home/ihuarte/Escritorio/Ivan/NNs/pruebas/",
 
     "sz_total": null,
-    "vmc_sr":false,
+    "vmc_sr":true,
 
     "callback":{
         "keeper": true,
         "energy_plot": false,
         "modphase": false,
-        "sanity": true,
+        "sanity": false,
         "checkpoint":false,
         
         "keeper_setup":{
@@ -22,7 +22,7 @@
             "logscale": false
         },
         "sanity_setup":{
-            "do_each": 2,
+            "do_each": 50,
             "mode": "rich",
             "verbose": 3,
             "metrics": {
@@ -43,7 +43,7 @@
         "sampler":{
             "rules": ["LocalRule", "Exchange"],
             "prules": [0.2, 0.8],
-            "initial_state": "MMax"
+            "initial_state": "hilbert"
         },
         "n_chains_per_rank": 4096,
         "n_samples_per_chain": 1,
@@ -72,7 +72,7 @@
             "lr_struct":[
                 
                 [
-                    [ ["exp(0.005, 0.001)"], ["exp(0.001, 0.00001)"] ]
+                    [ ["exp(0.1, 0.01)"], ["exp(0.01, 0.00001)"] ]
                 ]
                 
             ],

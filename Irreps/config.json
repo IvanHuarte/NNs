@@ -23,12 +23,12 @@
         },
 
         "Cn":{
-            "on": false,
+            "on": true,
             "n": 2
         },
 
         "Refl_H":{
-            "on": true
+            "on": false
         },
         "Refl_V":{
             "on": false
@@ -45,7 +45,7 @@
 
         "mode": "zip",
         
-        "sizes":[[4,4]],
+        "sizes":[[3,3], [3,4]],
 
         "kwargs_lattice" : {
             "bc":"periodic",
@@ -54,14 +54,13 @@
 
         "S_operators": false,
 
-
         "CM": {
             "selection": "Oxalate",
 
             "Oxalate":{
                 "strength": 0.2,
-                "theta_list":[ 9.0],
-                "phi_list":[ 72.0]
+                "theta_list":[ 9.0, 54.0, 54.0, 54.0, 90.0],
+                "phi_list":[ 72.0, 0.0, 216.0, 315.0, 115.2]
             },
 
             "LRChain":{

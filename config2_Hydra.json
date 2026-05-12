@@ -1,6 +1,6 @@
 {
 
-    "selection": "ViT2DOH",
+    "selection": "ViT2DOHI00",
 
     "load_model": {
 
@@ -50,7 +50,7 @@
         }
     },
     
-    "ViT2DOH":{
+    "ViT2DOHI00":{
 
         "stage0":{
              "template":{

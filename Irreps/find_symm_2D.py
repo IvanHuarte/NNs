@@ -5,6 +5,8 @@ from pathlib import Path
 import sys
 
 import jax
+jax.config.update("jax_enable_x64", True)
+jax.config.update("jax_platform_name", "cpu")
 import jax.nn
 import jax.numpy as jnp
 import jax.numpy.linalg as jla
@@ -63,7 +65,7 @@ for size in sizes:
         )
 
         write_folder = write + f"{cm_model_name}/"
-        folder_path = write + f"Size_{size[0]}x{size[1]}/"
+        folder_path = write_folder + f"Size_{size[0]}x{size[1]}/"
         Path(folder_path).mkdir(parents=True, exist_ok=True)
 
         print(f"\n************************ {cm_model_name} ************************")
@@ -93,20 +95,28 @@ for size in sizes:
             all_states=configurations
         )
 
+
         print(f"Calculation unitary representations...\n")
         # Generate the unitary representations for all symmetry operations
         representations = group.get_unitary_representations(configurations)
 
         n_symmetries = len(representations)
+        all_conmutes = True
         for i in range(n_symmetries):
             U = representations[i]
             conmutes = np.allclose(H_dense @ U - U @ H_dense, np.zeros(H_dense.shape, dtype=np.complex128))
             print(f"Conmutes with H?: {conmutes}")
+            all_conmutes = all_conmutes and conmutes
+
+        print(f"All symmetries commute with H?: {all_conmutes}")
+        print(np.unravel_index(
+                np.arange(n_symmetries * n_symmetries), (n_symmetries, n_symmetries)
+                ))
             
         if n_symmetries > 1:
-            for i, j in np.unravel_index(
+            for i, j in zip(*np.unravel_index(
                 np.arange(n_symmetries * n_symmetries), (n_symmetries, n_symmetries)
-                ):
+                )):
                 U_i, U_j = representations[i], representations[j]
                 conmutes = np.allclose(U_i @ U_j - U_j @ U_i, np.zeros(U_i.shape, dtype=np.complex128))
                 print(f"Conmutes U_{i} with U_{j}?: {conmutes}")
@@ -122,7 +132,7 @@ for size in sizes:
             print(f"Conmutes?: {np.allclose(H_dense @ projector - projector @ H_dense, np.zeros(H_dense.shape, dtype=complex))}")
             print(np.linalg.matrix_rank(projector))
 
-            np.savetxt(folder_path + f"{sim_label}_irrep_{q_vector}_projector.txt", projector)
+            # np.savetxt(folder_path + f"{sim_label}_irrep_{q_vector}_projector.txt", projector)
 
             print("Estimating irrep dimension...")
             irrep_dim_est = int(round(np.real(np.trace(projector))/ group._group_norm()))
@@ -130,7 +140,7 @@ for size in sizes:
 
             # Q[q_vector] = svds_orth(projector, k=irrep_dim_est)
             Q[q_vector] = sp.linalg.orth(projector)
-            np.savetxt(folder_path + f"{sim_label}_irrep_{q_vector}_Qmatrix.txt", Q[q_vector])
+            # np.savetxt(folder_path + f"{sim_label}_irrep_{q_vector}_Qmatrix.txt", Q[q_vector])
 
         # Summarize the results.
         print("Dimensions of the projector basis:")
@@ -167,6 +177,13 @@ for size in sizes:
         ax1.set_yticklabels([])
         # fig1.show()  # muestra la figura
 
+        if all_conmutes:
+            conmute_label = r"$[H,G]\;=\;0$"
+        else:
+            conmute_label = r"$[H,G]\;\neq\;0$"
+
+        ax1.text(0.5, -0.1, conmute_label, ha="center", va="center", transform=ax1.transAxes, fontsize=10)
+
         # --- Figura 2: eigenvalues ---
         fig2, ax2 = plt.subplots(figsize=(20, 20))
 
@@ -178,9 +195,9 @@ for size in sizes:
             basis = Q[q_vector]
             block = basis.conj().T @ H_dense @ basis
             eigvals[q_vector] = sp.linalg.eigvalsh(block)
-            np.savetxt(folder_path + f"Spectrum_{sim_label}_irrep_{q_vector}.txt", eigvals[q_vector])
+            # np.savetxt(folder_path + f"Spectrum_{sim_label}_irrep_{q_vector}.txt", eigvals[q_vector])
 
-            print("E =", eigvals[q_vector][:5])
+            # print("E =", eigvals[q_vector][:5])
             global_min = min(global_min, eigvals[q_vector].min())
             global_max = max(global_max, eigvals[q_vector].max())
 
@@ -208,13 +225,15 @@ for size in sizes:
         ax2.hlines(global_min, -0.5, len(Q) - 0.5, linestyles="dashed", color="green")
         ax2.set_ylim(global_min - 0.2 * span, global_max + 0.2 * span)
 
+        group_label = "".join([str(g) for g in group.group_label])
+
         # Save manually
         fig1.savefig(
-            folder_path + f"BlockHamiltonian_{sim_label}.png",
+            folder_path + f"BlockHamiltonian_{group_label}_{sim_label}.png",
             dpi=600,
         )
         fig2.savefig(
-            folder_path + f"SpectraPerIrrep_{sim_label}.png",
+            folder_path + f"SpectraPerIrrep_{group_label}_{sim_label}.png",
             dpi=600,
         )
         continue
@@ -230,11 +249,11 @@ for size in sizes:
             if event.key == "s":
                 print("Save & continue")
                 fig1.savefig(
-                    folder_path + f"BlockHamiltonian_{sim_label}.png",
+                    folder_path + f"BlockHamiltonian_{group_label}_{sim_label}.png",
                     dpi=600,
                 )
                 fig2.savefig(
-                    folder_path + f"SpectraPerIrrep_{sim_label}.png",
+                    folder_path + f"SpectraPerIrrep_{group_label}_{sim_label}.png",
                     dpi=600,
                 )
                 plt.close("all")
