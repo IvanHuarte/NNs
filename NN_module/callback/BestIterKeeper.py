@@ -189,7 +189,7 @@ class BestIterKeeper:
             survive = False
             self.exit_msg = f"Vscore {vscore} is below baseline {self.baseline}"
             print(self.exit_msg)
-        if energy == float("nan"):
+        if not np.isfinite(energy):
             survive = False
             self.exit_msg = f"Energy has diverged. Simulation crashed."
             print(self.exit_msg)
