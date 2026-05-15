@@ -6,6 +6,7 @@
 
 # Ignorar entornos virtuales
 venv/
+.venv/
 env/
 
 # Ignorar archivos de configuración de VS Code
