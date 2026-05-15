@@ -4,6 +4,9 @@ import jax.numpy as jnp
 import netket as nk
 import numpy as np
 import matplotlib
+matplotlib.rcParams['agg.path.chunksize'] = 10000
+matplotlib.rcParams['path.simplify'] = True
+matplotlib.rcParams['path.simplify_threshold'] = 1.0
 import matplotlib.pyplot as plt
 import matplotlib.colors as colors
 import seaborn as sns
