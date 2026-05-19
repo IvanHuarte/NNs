@@ -1,6 +1,6 @@
 {
 
-    "selection": "1HalfViT2DOH",
+    "selection": "1HalfCvTCHStrideLog",
 
     "load_model": {
 
@@ -32,7 +32,7 @@
         }
     },
 
-    "2HalfCvTCHStrideLog":{
+    "1HalfCvTCHStrideLog":{
 
          "stage0": {
             "template":{
