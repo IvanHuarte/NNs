@@ -1,4 +1,4 @@
-#!/home/ihuarte/miniconda3/envs/conda_env/bin/python
+#!/home/ihuarte/Escritorio/Ivan/NNs/.venv/bin/python
 
 import matplotlib.pyplot as plt
 import numpy as np

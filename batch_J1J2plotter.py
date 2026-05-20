@@ -1,5 +1,4 @@
-#!/home/ihuarte/miniconda3/envs/conda_env/bin/python
-# -*- coding: utf-8 -*-
+#!/home/ihuarte/Escritorio/Ivan/NNs/.venv/bin/python
 
 import os
 

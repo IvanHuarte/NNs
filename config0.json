@@ -22,7 +22,7 @@
             "logscale": false
         },
         "sanity_setup":{
-            "do_each": 50,
+            "do_each": 1,
             "mode": "rich",
             "verbose": 3,
             "metrics": {
