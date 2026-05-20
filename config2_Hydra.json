@@ -1,6 +1,6 @@
 {
 
-    "selection": "1HalfCvTCHStrideLog",
+    "selection": "ViT2DOH3GPU",
 
     "load_model": {
 
@@ -50,7 +50,7 @@
         }
     },
     
-    "1HalfViT2DOH":{
+    "ViT2DOH3GPU":{
 
         "stage0":{
              "template":{

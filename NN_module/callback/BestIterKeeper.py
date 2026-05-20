@@ -182,7 +182,7 @@ class BestIterKeeper:
             print(self.exit_msg)
         if not np.isfinite(energy):
             survive = False
-            self.exit_msg = f"Energy has diverged. Simulation crashed."
+            self.exit_msg = f"Energy has diverged ({energy}). Simulation crashed."
             print(self.exit_msg)
 
         return survive

@@ -2,8 +2,8 @@
 
     "write_folder_sim":"/home/ihuarte/Escritorio/Ivan/NNs/Simulations/",
 
-    "sz_total": null,
-    "vmc_sr":false,
+    "sz_total": 0,
+    "vmc_sr":true,
 
     "callback":{
         "keeper": true,
@@ -33,7 +33,7 @@
             }
         },
         "checkpoint_setup":{
-            "do_each":100,
+            "do_each":50,
             "async": false
         }
             
@@ -41,8 +41,8 @@
 
     "sampler":{
         "sampler":{
-            "rules": ["LocalRule", "Exchange"],
-            "prules": [0.2, 0.8],
+            "rules": ["Exchange"],
+            "prules": [1.0],
             "initial_state": "hilbert"
         },
         "n_chains_per_rank": 4096,
@@ -72,7 +72,7 @@
             "lr_struct":[
                 
                 [
-                    [ ["exp(0.1, 0.01)"], ["exp(0.01, 0.00001)"] ]
+                    [ [0.01], ["exp(0.01, 0.00001)"] ]
                 ]
                 
             ],
@@ -89,5 +89,3 @@
 
 
 }
-
-
