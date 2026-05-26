@@ -1,6 +1,6 @@
 {
 
-    "selection": "ViT2DOH3GPU",
+    "selection": "ViT2DOH",
 
     "load_model": {
 
@@ -50,7 +50,7 @@
         }
     },
     
-    "ViT2DOH3GPU":{
+    "ViT2DOH":{
 
         "stage0":{
              "template":{

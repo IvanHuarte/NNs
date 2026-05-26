@@ -14,12 +14,12 @@
     "symmetries":{
         
         "Traslation":{
-            "on": true,
+            "on": false,
             "subgroup":[1, 0]
         },
 
         "Z2":{
-            "on":false
+            "on":true
         },
 
         "Cn":{
