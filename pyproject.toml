@@ -39,4 +39,5 @@ dependencies = [
     "pyside6>=6.11.1",
     "scipy==1.17.0",
     "seaborn>=0.13.2",
+    "spglib>=2.7.0",
 ]

@@ -1,9 +1,9 @@
 {
 
-    "write_folder_sim":"/home/ihuarte/Escritorio/Ivan/NNs/Simulations/",
+    "write_folder_sim":"/home/ihuarte/Escritorio/Ivan/NNs/pruebas/",
 
     "sz_total": 0,
-    "vmc_sr":true,
+    "vmc_sr":false,
 
     "callback":{
         "keeper": true,
@@ -42,13 +42,13 @@
     "sampler":{
         "sampler":{
             "rules": ["Exchange"],
-            "prules": [1.0],
+            "prules": [0.8],
             "initial_state": "hilbert"
         },
         "n_chains_per_rank": 4096,
         "n_samples_per_chain": 1,
         "chunk_sampler": null,
-        "chunk_vstate": 2048
+        "chunk_vstate": 4096
     },
 
     "schedule":{
@@ -57,7 +57,7 @@
             "epochs_struct":[
                 
                 [ 
-                    [1000, 500]
+                    [1000], [500]
                 ]
                 
             ],
@@ -65,14 +65,14 @@
             "modes_struct":[
                 
                 [
-                    [ ["A"], ["A"] ]
+                    [ ["A"], ["A"]]
                 ]
                 
             ],
             "lr_struct":[
                 
                 [
-                    [ [0.01], ["exp(0.01, 0.00001)"] ]
+                    [ [0.01], ["exp(0.01, 0.0001)"]]
                 ]
                 
             ],

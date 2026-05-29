@@ -1,7 +1,7 @@
 {
     "mode": "zip",
     
-    "sizes":[[10, 10]],
+    "sizes":[[6, 6]],
 
     "kwargs_lattice" : {
         "bc":"periodic",
@@ -16,8 +16,8 @@
 
             "Oxalate":{
                 "strength": 0.2,
-                "theta_list":[9.0],
-                "phi_list":[   0.0]
+                "theta_list":[54.0],
+                "phi_list":[  216.0]
             },
 
             "LRChain":{
@@ -41,7 +41,7 @@
             "J1J2Square":{
                 "J1": 1.0,
                 "J2_list": [
-                    0.0, 0.1, 0.2, 0.3, 0.4, 0.45, 0.5, 0.55, 0.6, 0.65, 0.7, 0.8, 0.9, 1.0
+                    0.5
             ],
                 "fields": [0.0,0.0,0.0]
             }

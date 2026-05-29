@@ -32,7 +32,7 @@
             "token_size": [2, 2],
             "embedding_d": 60,
             "n_heads": 10,
-            "n_blocks": 6,
+            "n_blocks": 4,
             "n_ffn_layers": 2,
             "final_architecture": null
         },
@@ -44,17 +44,24 @@
             "transl_invariant": true
         },
         
-        "CvT2":{
-            "n_CP_blocks":[1, 1],
-            "channels": [32, 32],
-            "attn_heads":[4, 4],
+        "CvT":{
+            "n_CP_blocks":[1, 1, 1, 1, 1],
+            "channels": [30, 30, 30, 30, 30],
+            "attn_heads":[10, 10, 10, 10, 10],
             "kernel": [3, 3],
             "final_architecture": null
         },
-        "CvT":{
+        "CvT2":{
             "n_CP_blocks":[1, 1, 1, 1],
             "channels": [30, 30, 30, 30],
             "attn_heads":[10, 10, 10, 10],
+            "kernel": [3, 3],
+            "final_architecture": null
+        },
+        "CvT3":{
+            "n_CP_blocks":[1, 1, 1],
+            "channels": [60, 60, 60],
+            "attn_heads":[10, 10, 10],
             "kernel": [3, 3],
             "final_architecture": null
         },

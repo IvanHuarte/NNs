@@ -3,6 +3,7 @@ from .CNN import CNN
 from .CNNLiang import CNNLiang
 from .CvT import CvT
 from .CvT2 import CvT2
+from .CvT3 import CvT3
 from .CvTaps import CvTaps
 from .MLP import MLP
 from .CMLP import CMLP

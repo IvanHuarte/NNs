@@ -1,6 +1,6 @@
 {
 
-    "selection": "ViT2DOH",
+    "selection": "CvT3OHStrideLogCvTLike",
 
     "load_model": {
 
@@ -14,13 +14,13 @@
         ]
     },
 
-    "CvTOHStrideLog":{
+    "CvT3OHStrideLogCvTLike":{
 
          "stage0": {
             "template":{
 
             "Sequential": {
-                "CvT":{},
+                "CvT3":{},
                 "OutputHead":{}
             }
             },   
@@ -32,13 +32,13 @@
         }
     },
 
-    "1HalfCvTCHStrideLog":{
+    "CvT3CHNoStrideNoLog":{
 
          "stage0": {
             "template":{
 
             "Sequential": {
-                "CvT":{},
+                "CvT3":{},
                 "ComplexHead":{}
             }
             },   
