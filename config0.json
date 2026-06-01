@@ -48,7 +48,7 @@
         "n_chains_per_rank": 4096,
         "n_samples_per_chain": 1,
         "chunk_sampler": null,
-        "chunk_vstate": 4096
+        "chunk_vstate": 2048
     },
 
     "schedule":{

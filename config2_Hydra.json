@@ -1,6 +1,6 @@
 {
 
-    "selection": "CvT3OHStrideLogCvTLike",
+    "selection": "CvT3OHStrideLog30deep",
 
     "load_model": {
 
@@ -14,7 +14,7 @@
         ]
     },
 
-    "CvT3OHStrideLogCvTLike":{
+    "CvT3OHStrideLog30deep":{
 
          "stage0": {
             "template":{

@@ -75,6 +75,7 @@ class OutputHead(nn.Module):
         if self.only_phase:
             out = jnp.ones(out.shape, dtype=DTYPE) + 1.0j * out.imag
 
+        # out = jnp.sum(out, axis=-1, keepdims=True)
         out = jnp.sum(log_cosh(out), axis=-1, keepdims=True)
 
         return out
