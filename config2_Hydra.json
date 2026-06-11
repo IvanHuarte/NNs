@@ -1,6 +1,6 @@
 {
 
-    "selection": "CvT2OHStrideLog",
+    "selection": "ViT2DOH",
 
     "load_model": {
 
@@ -14,7 +14,7 @@
         ]
     },
 
-    "ViT2D":{
+    "ViT2DMLP":{
          "stage0": {
             "template":{
 
@@ -71,11 +71,7 @@
 
         "stage0":{
              "template":{
-
-                "Sequential": {
-                    "ViT2D":{},
-                    "OutputHead":{}
-                }
+                "VViT":{}
             },
             "load": [
                 ["stageX0", "0", "0"],

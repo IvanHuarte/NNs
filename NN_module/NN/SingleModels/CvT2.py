@@ -93,7 +93,7 @@ class ConvProjectionBlock(nn.Module):
             param_dtype=DTYPE,
             kernel_init=nn.initializers.xavier_uniform(),
         )(x_ffn)
-        
+
         x_ffn = nn.LayerNorm(param_dtype=DTYPE)(x_ffn)
 
         x_ffn = x_ffn.reshape((B, Hq, Wq, self.channels))
@@ -205,5 +205,4 @@ class CvT2(nn.Module):
             x = x.reshape(B, -1, x.shape[-1]).mean(axis=1)  # Mean pooling over spins
             for hi in self.final_architecture:
                 x = nn.Dense(features=hi, param_dtype=DTYPE)(x)
-            x = nn.Dense(features=1, param_dtype=DTYPE)(x)
             return x

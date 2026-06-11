@@ -2,13 +2,13 @@
 
     "write_folder_sim":"/home/ihuarte/Escritorio/Ivan/NNs/pruebas/",
 
-    "sz_total": null,
+    "sz_total": 0,
     "vmc_sr":true,
 
     "callback":{
         "keeper": true,
         "energy_plot": false,
-        "modphase": false,
+        "modphase": true,
         "sanity": false,
         "checkpoint":true,
         
@@ -17,9 +17,10 @@
             "mode": "best_energy"
         },        
         "modphase_setup": {
-            "plot_each": 10,
+            "plot_each": 20,
             "no_null_mod": false,
-            "logscale": false
+            "logscale": false,
+            "savefig": true
         },
         "sanity_setup":{
             "do_each": 1,
@@ -41,11 +42,11 @@
 
     "sampler":{
         "sampler":{
-            "rules": ["LocalRule"],
+            "rules": ["Exchange"],
             "prules": [1.0],
             "initial_state": "hilbert"
         },
-        "n_chains_per_rank": 4096,
+        "n_chains_per_rank": 2048,
         "n_samples_per_chain": 1,
         "chunk_sampler": null,
         "chunk_vstate": 2048
@@ -73,7 +74,7 @@
             "lr_struct":[
                 
                 [
-                    [ ["lin(0.01, 0.001)"], ["lin(0.001, 0.0005)"]]
+                    [ [0.01], ["lin(0.01, 0.0005)"]]
                 ]
                 
             ],

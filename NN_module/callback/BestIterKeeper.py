@@ -71,7 +71,9 @@ class BestIterKeeper:
         vscore_step = self.N * var / mean**2
 
         if self.step > self.step_threshold or self.best_state is None:
-            if (self.best_state_energy > energy_step and vscore_step < 0.05) or self.best_state is None:
+            if (
+                self.best_state_energy > energy_step and vscore_step < 0.05
+            ) or self.best_state is None:
                 self.best_state = copy.copy(vstate)
                 self.best_state_energy = energy_step
                 self.best_state_vscore = vscore_step
@@ -176,10 +178,10 @@ class BestIterKeeper:
     def survive_condition(self, energy, vscore):
 
         survive = True
-        if vscore < self.baseline:
-            survive = False
-            self.exit_msg = f"Vscore {vscore} is below baseline {self.baseline}"
-            print(self.exit_msg)
+        # if vscore < self.baseline:
+        #     survive = False
+        #     self.exit_msg = f"Vscore {vscore} is below baseline {self.baseline}"
+        #     print(self.exit_msg)
         if not np.isfinite(energy):
             survive = False
             self.exit_msg = f"Energy has diverged ({energy}). Simulation crashed."

@@ -248,23 +248,51 @@ def get_filenames_from_settings(cm_setup, nn_setup=None, sim_uuid=None, **kwargs
             phi,
         )
 
-    elif cm_name == "Chain_YYZZ":
+    elif cm_name == "IsingSquare":
         fields = cm_setup["params"]["fields"]
-        couplings = cm_setup["params"]["couplings"]
+        field_ops = cm_setup["params"]["ops"][0]
+        couplings = cm_setup["params"]["J"]
+        coupling_ops = cm_setup["params"]["ops"][1]
+
         flat_fields = ""
         field_values = ""
         call_params = ""
-        for f, v in zip(["X", "Y", "Z"], fields):
+        for f, v in zip(field_ops, fields):
             flat_fields += f + "_"
             field_values += f"{v}" + "_"
             call_params += f"{f}:{v}  "
 
         flat_couplings = ""
         coupling_values = ""
-        for f, v in zip(["XX", "YY", "ZZ"], couplings):
+
+        # Just 1 coupling for Ising
+        flat_couplings += coupling_ops[0] + "_"
+        coupling_values += f"{couplings}" + "_"
+        call_params += f"{coupling_ops[0]}:{couplings}  "
+
+        cparams = f"_{flat_fields}{field_values}_{flat_couplings}{coupling_values}"
+
+    elif cm_name == "Chain_YYZZ":
+        fields = cm_setup["params"]["fields"]
+        couplings = cm_setup["params"]["couplings"]
+        field_ops = cm_setup["params"]["ops"][0]
+        coupling_ops = cm_setup["params"]["ops"][1]
+        flat_fields = ""
+        field_values = ""
+        call_params = ""
+        for f, v in zip(field_ops, fields):
+            flat_fields += f + "_"
+            field_values += f"{v}" + "_"
+            call_params += f"{f}:{v}  "
+
+        flat_couplings = ""
+        coupling_values = ""
+        for f, v in zip(coupling_ops, couplings):
             flat_couplings += f + "_"
             coupling_values += f"{v}" + "_"
             call_params += f"{f}:{v}  "
+
+        cparams = f"_{flat_fields}{field_values}_{flat_couplings}{coupling_values}"
 
     elif cm_name in ["LRChain", "LRSquare"]:
         J = cm_setup["params"]["J"]

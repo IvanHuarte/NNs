@@ -21,14 +21,20 @@ class ModPhasePlotter:
     """
 
     def __init__(
-        self, sim_config, x_ED=None, no_null_mod=True, logscale=False, plot_each=10
+        self,
+        sim_config,
+        x_ED=None,
+        no_null_mod=True,
+        logscale=False,
+        plot_each=10,
+        savefig=False,
     ):
         self.plot_each = plot_each
         self.sim_config = sim_config
         self.x_ED = x_ED
         self.no_null_mod = no_null_mod
         self.logscale = logscale
-
+        self.savefig = savefig
         size = sim_config["CM"]["size"]
         self.N = size[0] * size[1]
 
@@ -37,11 +43,12 @@ class ModPhasePlotter:
 
         n_comp = x_ED.shape[0] if x_ED is not None else 4000
         msize = 0.1 * 65000 / n_comp
+        self.margins = n_comp // 200
 
         _, _, _, callback = get_filenames_from_settings(
             sim_config["CM"], sim_config["NN"]
         )
-        title = callback.replace("Callback", "").lstrip().replace(" ", "\\quad")
+        self.title = callback.replace("Callback", "").lstrip().replace(" ", "\\quad")
 
         plt.ion()
         nplots = 4 if x_ED is not None else 3
@@ -84,11 +91,16 @@ class ModPhasePlotter:
             self.sc_phase_ed = None
 
         # Configuración de ejes
-        self.ax[0].set_title(r"$Modulus\;and\;Phase\qquad %s$" % (title), fontsize=10)
+        self.ax[0].set_title(
+            r"$Modulus\;and\;Phase\qquad %s \qquad (step: 0)$" % (self.title),
+            fontsize=10,
+        )
+        self.ax[0].set_xlim(-self.margins, n_comp + self.margins)
         self.ax[0].set_xticks([])
         self.ax[0].set_ylabel(r"$Modulus$")
         self.ax[0].legend(loc="upper right")
 
+        self.ax[1].set_xlim(-self.margins, n_comp + self.margins)
         self.ax[1].set_xticks([])
         self.ax[1].set_yticks([-np.pi, -np.pi / 2, 0, np.pi / 2, np.pi])
         self.ax[1].set_yticklabels(
@@ -102,7 +114,7 @@ class ModPhasePlotter:
             self.ax[2].set_xlabel(r"$C_i$")
             self.ax[2].set_ylabel(r"$Phase \;ED$")
             self.ax[2].set_ylim(-np.pi - 0.1, np.pi + 0.1)
-            self.ax[2].set_xlim(0, len(phase_ED))
+            self.ax[2].set_xlim(-self.margins, n_comp + self.margins)
 
             self.ax[2].set_yticks([-np.pi, -np.pi / 2, 0, np.pi / 2, np.pi])
             self.ax[2].set_yticklabels(
@@ -148,6 +160,11 @@ class ModPhasePlotter:
         if step % self.plot_each != 0:
             return True
 
+        self.ax[0].set_title(
+            r"$Modulus\;and\;Phase\qquad %s \qquad (step: %d)$" % (self.title, step),
+            fontsize=10,
+        )
+
         vstate = driver.state
         (mod_vs, phase_vs), stats_vs = modphase(vstate)
 
@@ -159,7 +176,7 @@ class ModPhasePlotter:
         x_mod = np.arange(len(mod_vs))
         self.line_mod_vs[0].set_data(x_mod, mod_vs)
         # Asegurar que el eje X muestre toda la señal
-        self.ax[0].set_xlim(0, max(1, x_mod[-1]))
+        self.ax[0].set_xlim(-self.margins, max(1, x_mod[-1]) + self.margins)
         # Actualizar límites Y a partir de los datos nuevos
         ymin_vlines_pos = -0.2 * max(self.max_mod_ED, float(np.max(mod_vs))) * 9 / 8
         self.ax[0].set_ylim(
@@ -206,7 +223,7 @@ class ModPhasePlotter:
         # y set_data funciona: aseguramos set_data y ajustamos xlim para que entren los puntos.
         x_vs = np.arange(len(phase_vs))
         self.sc_phase_vs[0].set_data(x_vs, phase_vs)
-        self.ax[1].set_xlim(0, max(1, x_vs[-1]))
+        self.ax[1].set_xlim(-self.margins, max(1, x_vs[-1]) + self.margins)
         # Mantener el eje Y fijado a [-pi, pi] (como en init), no autoscale en Y
         self.ax[1].set_ylim(-np.pi - 0.1, np.pi + 0.1)
         self.ax[1].relim()
@@ -316,5 +333,12 @@ class ModPhasePlotter:
         self.fig.canvas.draw_idle()
         self.fig.canvas.flush_events()
         plt.pause(0.01)
+
+        # plt.ioff()
+        if self.savefig:
+            plt.savefig(
+                f"/home/ihuarte/Escritorio/Ivan/NNs/Figures/ModPhase/ModPhase_{step}.png",
+                dpi=300,
+            )
 
         return True

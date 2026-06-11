@@ -37,9 +37,9 @@
             "final_architecture": null
         },
         "VViT":{
-            "num_layers": 2,
-            "d_model": 30,
-            "n_heads": 5,
+            "num_layers": 4,
+            "d_model": 60,
+            "n_heads": 10,
             "patch_size": 2,
             "transl_invariant": true
         },
@@ -74,9 +74,9 @@
         
         "MLP":{
             "hidden_alpha": [1],
-            "activation": ["0"],
-            "final_architecture": null,
-            "only_phase": true
+            "activation": ["relu"],
+            "final_architecture": [1],
+            "only_phase": false
         },
 
         "MLP_2":{
@@ -165,7 +165,7 @@
             "only_phase": false
         },
         "OutputHead":{
-            "d_model": 30,
+            "d_model": 60,
             "only_phase": false
         },        
         "DeepOutputHead":{

@@ -152,7 +152,6 @@ LATTICE_SIZE = {
         "CNNSzabo",
         "MarshallSign",
         "CarreteSign",
-        "MLP",
         "ViT2D",
         "ViT",
         "Factorized",

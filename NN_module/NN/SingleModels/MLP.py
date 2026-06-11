@@ -8,7 +8,7 @@ from NN_module.NN_utils import traslations_2D
 RDTYPE = jnp.float64
 CDTYPE = jnp.complex128
 
-DTYPE = CDTYPE
+DTYPE = RDTYPE
 
 
 class MLP(nn.Module):
@@ -36,7 +36,7 @@ class MLP(nn.Module):
             x = x.reshape(B, -1, x.shape[-1]).mean(axis=1)
             for hi in self.final_architecture:
                 x = nn.Dense(features=hi, param_dtype=DTYPE)(x)
-                if not self.is_complex:
+                if not jnp.issubdtype(DTYPE, jnp.complexfloating):
                     x = nn.LayerNorm(param_dtype=DTYPE)(x)
 
         if self.only_phase:

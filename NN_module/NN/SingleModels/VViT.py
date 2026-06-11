@@ -4,6 +4,7 @@ import flax.linen as nn
 import netket as nk
 from einops import rearrange
 
+
 def extract_patches2d(x, patch_size):
     batch = x.shape[0]
     n_patches = int((x.shape[1] // patch_size**2) ** 0.5)
@@ -31,7 +32,8 @@ class Embed(nn.Module):
         x = self.embed(x)
 
         return x
-    
+
+
 class FactoredAttention(nn.Module):
     n_patches: int  # lenght of the input sequence
     d_model: int  # dimensionality of the embedding space (d in the equations)
@@ -47,7 +49,8 @@ class FactoredAttention(nn.Module):
     def __call__(self, x):
         y = jnp.einsum("i j, a b, M j b-> M i a", self.alpha, self.V, x)
         return y
-    
+
+
 from functools import partial
 
 
@@ -128,7 +131,8 @@ class FMHA(nn.Module):
         x = self.W(x)
 
         return x
-    
+
+
 class EncoderBlock(nn.Module):
     d_model: int  # dimensionality of the embedding space
     n_heads: int  # number of heads
@@ -168,7 +172,8 @@ class EncoderBlock(nn.Module):
 
         x = x + self.ff(self.layer_norm_2(x))
         return x
-    
+
+
 class Encoder(nn.Module):
     num_layers: int  # number of layers
     d_model: int  # dimensionality of the embedding space
@@ -193,7 +198,8 @@ class Encoder(nn.Module):
             x = l(x)
 
         return x
-    
+
+
 log_cosh = (
     nk.nn.activation.log_cosh
 )  # Logarithm of the hyperbolic cosine, implemented in a more stable way
@@ -236,7 +242,8 @@ class OuputHead(nn.Module):
         out = out_real + 1j * out_imag
 
         return jnp.sum(log_cosh(out), axis=-1)
-    
+
+
 class VViT(nn.Module):
     num_layers: int  # number of layers
     d_model: int  # dimensionality of the embedding space

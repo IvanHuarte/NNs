@@ -98,5 +98,4 @@ class CNN(nn.Module):
             x = x.reshape(B, -1, x.shape[-1]).sum(axis=1)  # Mean pooling over spins
             for hi in self.final_architecture:
                 x = nn.Dense(features=hi, param_dtype=DTYPE)(x)
-            x = nn.Dense(features=1, param_dtype=DTYPE)(x)
             return x

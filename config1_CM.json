@@ -12,7 +12,7 @@
 
 
     "CM": {
-            "selection": "IsingSquare",
+            "selection": "J1J2Square",
 
             "Oxalate":{
                 "strength": 0.2,
@@ -32,7 +32,7 @@
             },
 
             "IsingSquare":{
-                "J_list": [ -2.0, 0.0],
+                "J_list": [ -2.0],
                 "fields": [0.0],
                 "ops": [["X"],["ZZ"]]
             },
