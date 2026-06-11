@@ -2,8 +2,8 @@
 
     "write_folder_sim":"/home/ihuarte/Escritorio/Ivan/NNs/pruebas/",
 
-    "sz_total": 0,
-    "vmc_sr":false,
+    "sz_total": null,
+    "vmc_sr":true,
 
     "callback":{
         "keeper": true,
@@ -41,8 +41,8 @@
 
     "sampler":{
         "sampler":{
-            "rules": ["Exchange"],
-            "prules": [0.8],
+            "rules": ["LocalRule"],
+            "prules": [1.0],
             "initial_state": "hilbert"
         },
         "n_chains_per_rank": 4096,
@@ -51,13 +51,14 @@
         "chunk_vstate": 2048
     },
 
+
     "schedule":{
 
         "learning_rate":{
             "epochs_struct":[
                 
                 [ 
-                    [1000], [500]
+                    [1000, 500]
                 ]
                 
             ],
@@ -65,14 +66,14 @@
             "modes_struct":[
                 
                 [
-                    [ ["A"], ["A"]]
+                    [["A"], ["A"]]
                 ]
                 
             ],
             "lr_struct":[
                 
                 [
-                    [ [0.01], ["exp(0.01, 0.0001)"]]
+                    [ ["lin(0.01, 0.001)"], ["lin(0.001, 0.0005)"]]
                 ]
                 
             ],
@@ -85,7 +86,6 @@
         }
 
     }
-
 
 
 }

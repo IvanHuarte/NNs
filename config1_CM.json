@@ -1,7 +1,7 @@
 {
     "mode": "zip",
     
-    "sizes":[[6, 6]],
+    "sizes":[[4, 4]],
 
     "kwargs_lattice" : {
         "bc":"periodic",
@@ -12,7 +12,7 @@
 
 
     "CM": {
-            "selection": "J1J2Square",
+            "selection": "IsingSquare",
 
             "Oxalate":{
                 "strength": 0.2,
@@ -29,6 +29,12 @@
                 "alpha_list": [2.5],
                 "fields": [1.0, 0.0],
                 "ops": [["Y","Z"],["ZZ"]]
+            },
+
+            "IsingSquare":{
+                "J_list": [ -2.0, 0.0],
+                "fields": [0.0],
+                "ops": [["X"],["ZZ"]]
             },
 
             "LRSquare":{

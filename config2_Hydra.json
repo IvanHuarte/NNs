@@ -1,6 +1,6 @@
 {
 
-    "selection": "CvT3OHStrideLog30deep",
+    "selection": "CvT2OHStrideLog",
 
     "load_model": {
 
@@ -14,13 +14,30 @@
         ]
     },
 
-    "CvT3OHStrideLog30deep":{
+    "ViT2D":{
+         "stage0": {
+            "template":{
+
+            "SplitTraining": {
+                "ViT2D":{},
+                "MLP":{}
+            }
+            },   
+
+            "load": [
+                ["stageX0", "0", "0"]
+            ],
+            "save_params": true
+        }
+    },
+
+    "CvT2OHStrideLog":{
 
          "stage0": {
             "template":{
 
             "Sequential": {
-                "CvT3":{},
+                "CvT2":{},
                 "OutputHead":{}
             }
             },   

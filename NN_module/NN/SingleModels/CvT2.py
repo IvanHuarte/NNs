@@ -1,12 +1,15 @@
 import flax.linen as nn
+import jax
 import jax.typing as jt
 import jax.numpy as jnp
-from typing import Tuple
 from netket.nn.activation import log_cosh
+
 from ..toolbox import (
     MultiLayerPerceptron,
     DepthPointwiseConv,
 )
+
+from typing import Tuple
 
 DTYPE = jnp.float64
 
@@ -16,11 +19,12 @@ class ConvProjectionBlock(nn.Module):
     channels: int
     n_heads: int = 1
     kernel: Tuple = (3, 3)
-    strides_qkv: Tuple[Tuple, Tuple, Tuple] = ((1, 1), (2,2), (2,2))  
+    strides_qkv: Tuple[Tuple, Tuple, Tuple] = ((1, 1), (2, 2), (2, 2))
     n_mlp_layers: int = 1
 
     @nn.compact
     def __call__(self, x: jt.ArrayLike) -> jt.ArrayLike:
+
         # print(f"Begging ConvProjectionBlock")
         # print(f"Input shape: {x.shape}")
 
@@ -65,7 +69,7 @@ class ConvProjectionBlock(nn.Module):
         QKt = jnp.matmul(Q, jnp.swapaxes(K, -2, -1)) / jnp.sqrt(
             head_dim
         )  # QKt = (B, heads, Nq, Nk)
-        atten = nn.softmax(QKt)
+        atten = nn.softmax(QKt, axis=-1)
         # (B, heads, Nq, head_dim) --> (B, Nq, heads, head_dim) --> (B, Hq, Wq, channels)
         attention = (
             jnp.matmul(atten, V)
@@ -73,15 +77,26 @@ class ConvProjectionBlock(nn.Module):
             .reshape((B, Hq, Wq, self.channels))
         )
 
-        x = nn.LayerNorm(dtype=DTYPE, param_dtype=DTYPE)(x + attention)
+        x = nn.LayerNorm(param_dtype=DTYPE)(x + attention)
 
-        # MLP
+        # FFN block
         x_ffn = x.reshape((B, Nq, self.channels))  # Reshape to (B, Hq*Wq, channels)
-        x_ffn = MultiLayerPerceptron(
-            layer_widths=tuple([x_ffn.shape[-1]] * self.n_mlp_layers),
+
+        x_ffn = nn.Dense(
+            self.channels,
+            param_dtype=DTYPE,
+            kernel_init=nn.initializers.xavier_uniform(),
         )(x_ffn)
+        x_ffn = nn.gelu(x_ffn)
+        x_ffn = nn.Dense(
+            self.channels,
+            param_dtype=DTYPE,
+            kernel_init=nn.initializers.xavier_uniform(),
+        )(x_ffn)
+        
+        x_ffn = nn.LayerNorm(param_dtype=DTYPE)(x_ffn)
+
         x_ffn = x_ffn.reshape((B, Hq, Wq, self.channels))
-        # x_ffn = nn.LayerNorm(dtype=DTYPE, param_dtype=DTYPE)(x_ffn)
         # print(f"After MLP: {x_ffn.shape}")
         return x + x_ffn
 
@@ -119,12 +134,12 @@ class StageBlock(nn.Module):
         # print(f"After Conv embedding: {x.shape}")
         # Convolutional projection blocks
         for _ in range(self.n_CP_blocks):
+            # x = nn.LayerNorm(param_dtype=DTYPE)(x)
             x = ConvProjectionBlock(
                 channels=self.channels,
                 n_heads=self.n_heads,
                 kernel=self.kernel,
             )(x)
-            # x = nn.LayerNorm(dtype=DTYPE, param_dtype=DTYPE)(x)
 
         return log_cosh(x)
 
@@ -159,10 +174,6 @@ class CvT2(nn.Module):
     ]  # Number of heads for each convolutional projection block in each stage.
     kernel: Tuple = (3, 3)  # Kernel size for the convolutional operations (must be 3x3)
     final_architecture: Tuple | None = None
-    two_heads: bool = (
-        False  # If True, the output will be a complex number with modulus and phase
-    )
-    phasors: bool = False  # If True, apply GLU phasor activation before the final MLP
 
     @nn.compact
     def __call__(self, x: jt.ArrayLike) -> jt.ArrayLike:

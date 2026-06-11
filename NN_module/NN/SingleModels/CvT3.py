@@ -37,34 +37,6 @@ class ConvProjectionBlock(nn.Module):
         ), "Channels must be divisible by the number of heads"
         head_dim = self.channels // self.n_heads
 
-        # Q = nn.Conv(
-        #     features=self.channels,
-        #     kernel_size=self.kernel,
-        #     strides=self.strides_qkv[0],
-        #     padding="CIRCULAR",
-        #     dtype=DTYPE,
-        #     kernel_init=nn.initializers.xavier_uniform(),
-        #     bias_init=jax.nn.initializers.zeros,
-        # )(x)
-        # K = nn.Conv(
-        #     features=self.channels,
-        #     kernel_size=self.kernel,
-        #     strides=self.strides_qkv[1],
-        #     padding="CIRCULAR",
-        #     dtype=DTYPE,
-        #     kernel_init=nn.initializers.xavier_uniform(),
-        #     bias_init=jax.nn.initializers.zeros,
-        # )(x)
-        # V = nn.Conv(
-        #     features=self.channels,
-        #     kernel_size=self.kernel,
-        #     strides=self.strides_qkv[2],
-        #     padding="CIRCULAR",
-        #     dtype=DTYPE,
-        #     kernel_init=nn.initializers.xavier_uniform(),
-        #     bias_init=jax.nn.initializers.zeros,
-        # )(x)
-
         Q = DepthPointwiseConv(
             self.channels, kernel=self.kernel, strides=self.strides_qkv[0]
         )(x)
@@ -116,8 +88,13 @@ class ConvProjectionBlock(nn.Module):
             kernel_init=nn.initializers.xavier_uniform(),
         )(x_ffn)
         x_ffn = nn.gelu(x_ffn)
-        x_ffn = nn.LayerNorm(param_dtype=DTYPE)(x_ffn)
+        x_ffn = nn.Dense(
+            self.channels,
+            param_dtype=DTYPE,
+            kernel_init=nn.initializers.xavier_uniform(),
+        )(x_ffn)
         
+        x_ffn = nn.LayerNorm(param_dtype=DTYPE)(x_ffn)
 
         x_ffn = x_ffn.reshape((B, Hq, Wq, self.channels))
         # print(f"After MLP: {x_ffn.shape}")
