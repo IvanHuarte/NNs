@@ -1,7 +1,7 @@
 {
     "mode": "zip",
     
-    "sizes":[[4, 4]],
+    "sizes":[[10, 10]],
 
     "kwargs_lattice" : {
         "bc":"periodic",

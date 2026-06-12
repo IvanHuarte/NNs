@@ -32,7 +32,7 @@
             "token_size": [2, 2],
             "embedding_d": 60,
             "n_heads": 10,
-            "n_blocks": 2,
+            "n_blocks": 4,
             "n_ffn_layers": 2,
             "final_architecture": null
         },
@@ -73,8 +73,8 @@
         },
         
         "MLP":{
-            "hidden_alpha": [1],
-            "activation": ["relu"],
+            "hidden_alpha": [2, 1],
+            "activation": ["swish", "sigmoid"],
             "final_architecture": [1],
             "only_phase": false
         },

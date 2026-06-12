@@ -10,7 +10,7 @@
         "checkpoint": 0,
         
         "load_from": [
-            "/home/ihuarte/Escritorio/Ivan/NNs/Simulations/Oxalate/ViT2DOHLongPlay3GPU_Sequential_ViT2D_OutputHead/Size_10x10/ST_500-A_500-A/UUID_e6e8e7a9/Oxalate_ViT2DOHLongPlay3GPU_simulation_10x10_strength_0.2_theta_9.0_phi_72.0_date_20260401T142302_UUID_e6e8e7a9_checkpoint.orbax"
+            "/home/ihuarte/Escritorio/Ivan/NNs/pruebas/J1J2Square/ViT2DOH_Sequential_ViT2D_OutputHead/Size_4x4/ST_2000-A/UUID_5c8eb479/J1J2Square_ViT2DOH_simulation_4x4_J1J2_1.0_0.5_XYZ_0.0_0.0_0.0_date_20260611T165120_UUID_5c8eb479_checkpoint.orbax"
         ]
     },
 
@@ -71,7 +71,11 @@
 
         "stage0":{
              "template":{
-                "VViT":{}
+
+                "Sequential": {
+                    "ViT2D":{},
+                    "OutputHead":{}
+                }
             },
             "load": [
                 ["stageX0", "0", "0"],
