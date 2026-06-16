@@ -45,9 +45,9 @@
         },
         
         "CvT":{
-            "n_CP_blocks":[1, 1, 1, 1, 1],
-            "channels": [30, 30, 30, 30, 30],
-            "attn_heads":[10, 10, 10, 10, 10],
+            "n_CP_blocks":[1, 1, 1, 1],
+            "channels": [30, 30, 30, 30],
+            "attn_heads":[10, 10, 10, 10],
             "kernel": [3, 3],
             "final_architecture": null
         },
@@ -161,11 +161,11 @@
 
 
         "ComplexHead":{
-            "d_model": 60,
+            "d_model": 30,
             "only_phase": false
         },
         "OutputHead":{
-            "d_model": 60,
+            "d_model": 30,
             "only_phase": false
         },        
         "DeepOutputHead":{

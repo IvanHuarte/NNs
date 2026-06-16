@@ -1,23 +1,27 @@
 {
 
-    "write_folder_sim":"/home/ihuarte/Escritorio/Ivan/NNs/Simulations/",
+    "write_folder_sim":"/home/ihuarte/Escritorio/Ivan/NNs/pruebas/",
 
-    "sz_total": 0,
-    "vmc_sr":true,
+    "sz_total": null,
+    "vmc_sr":false,
 
     "callback":{
         "keeper": true,
-        "energy_plot": false,
+        "energy_plot": true,
         "modphase": true,
         "sanity": false,
-        "checkpoint":true,
+        "checkpoint":false,
         
         "keeper_setup":{
             "baseline": 1e-8,
             "mode": "best_energy"
-        },        
+        },   
+        "energy_plot_setup":{
+            "savefig": true
+        },
+
         "modphase_setup": {
-            "plot_each": 20,
+            "plot_each": 10,
             "no_null_mod": false,
             "logscale": false,
             "savefig": true
@@ -42,14 +46,14 @@
 
     "sampler":{
         "sampler":{
-            "rules": ["Exchange"],
-            "prules": [0.9, 0.1],
+            "rules": ["Exchange", "LocalRule"],
+            "prules": [0.8, 0.2],
             "initial_state": "hilbert"
         },
         "n_chains_per_rank": 4096,
         "n_samples_per_chain": 1,
         "chunk_sampler": null,
-        "chunk_vstate": 2048
+        "chunk_vstate": 4096
     },
 
 
@@ -59,7 +63,7 @@
             "epochs_struct":[
                 
                 [ 
-                    [1000, 500]
+                    [800]
                 ]
                 
             ],
@@ -67,14 +71,14 @@
             "modes_struct":[
                 
                 [
-                    [["A"], ["A"]]
+                    [["A"]]
                 ]
                 
             ],
             "lr_struct":[
                 
                 [
-                    [ [0.01], ["exp(0.01, 0.00001)"]]
+                    [ ["exp(0.1, 0.001)"]]
                 ]
                 
             ],

@@ -27,6 +27,7 @@ def Callback(
     vs_prev=None,
     error_prev=None,
     sim_label_folder=None,
+    sim_folder=None,
 ):
 
     callback_funcs = []
@@ -50,7 +51,14 @@ def Callback(
         assert all([variable is not None for variable in [H, N]])
         print(f"Adding EnergyPlotter")
         energy_plotter = EnergyPlotter(
-            H, N, E_prev=E_prev, E_ED=E_ED, vs_prev=vs_prev, error_prev=error_prev
+            H,
+            N,
+            E_prev=E_prev,
+            E_ED=E_ED,
+            vs_prev=vs_prev,
+            error_prev=error_prev,
+            sim_folder=sim_folder,
+            savefig=config["energy_plot_setup"]["savefig"],
         )
         callback_objects.append(energy_plotter)
         callback_funcs.append(energy_plotter)
@@ -65,6 +73,7 @@ def Callback(
             plot_each=config["modphase_setup"]["plot_each"],
             savefig=config["modphase_setup"]["savefig"],
             logscale=config["modphase_setup"]["logscale"],
+            sim_folder=sim_folder,
         )
         callback_objects.append(modphase)
         callback_funcs.append(modphase)

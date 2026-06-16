@@ -1,3 +1,4 @@
+import os
 import numpy as np
 import jax.numpy as jnp
 
@@ -28,6 +29,7 @@ class ModPhasePlotter:
         logscale=False,
         plot_each=10,
         savefig=False,
+        sim_folder=None,
     ):
         self.plot_each = plot_each
         self.sim_config = sim_config
@@ -35,6 +37,14 @@ class ModPhasePlotter:
         self.no_null_mod = no_null_mod
         self.logscale = logscale
         self.savefig = savefig
+        self.write_folder = (
+            sim_folder + "ModPhasePlotter/" if sim_folder is not None else None
+        )
+        (
+            os.makedirs(self.write_folder, exist_ok=True)
+            if self.write_folder is not None
+            else None
+        )
         size = sim_config["CM"]["size"]
         self.N = size[0] * size[1]
 
@@ -50,7 +60,7 @@ class ModPhasePlotter:
         )
         self.title = callback.replace("Callback", "").lstrip().replace(" ", "\\quad")
 
-        plt.ion()
+        # plt.ion()
         nplots = 4 if x_ED is not None else 3
         self.fig, self.ax = plt.subplots(nplots, 1, figsize=[15, 10])
 
@@ -153,7 +163,7 @@ class ModPhasePlotter:
         for axis in self.ax:
             axis.grid(True)
 
-        plt.show()
+        # plt.show()
 
     def __call__(self, step, log_data, driver):
         # Solo plotear cada plot_each iteraciones
@@ -330,15 +340,15 @@ class ModPhasePlotter:
             self.ax[-1].set_yscale("log")
 
         # --- Redibujar canvas de forma eficiente ---
-        self.fig.canvas.draw_idle()
-        self.fig.canvas.flush_events()
-        plt.pause(0.01)
+        # self.fig.canvas.draw_idle()
+        # self.fig.canvas.flush_events()
+        # plt.pause(0.01)
 
         # plt.ioff()
         if self.savefig:
-            plt.savefig(
-                f"/home/ihuarte/Escritorio/Ivan/NNs/Figures/ModPhase/ModPhase_{step}.png",
-                dpi=300,
+            self.fig.savefig(
+                self.write_folder + f"ModPhase_{step}.jpeg",
+                dpi=600,
             )
 
         return True
