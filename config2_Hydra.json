@@ -49,13 +49,13 @@
         }
     },
 
-    "CvT3CHNoStrideNoLog":{
+    "CvTCHStrideLog":{
 
          "stage0": {
             "template":{
 
             "Sequential": {
-                "CvT3":{},
+                "CvT":{},
                 "ComplexHead":{}
             }
             },   

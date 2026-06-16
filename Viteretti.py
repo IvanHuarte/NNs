@@ -12,8 +12,71 @@ from einops import rearrange
 from NN_module.NN.utils import make_setup_serializable
 from NN_module.callback.utils import dump_callback
 from NN_module.sim_utils import measureNdump
+from NN_module.callback import Callback
+from NN_module.label_utils import (
+    get_filenames_from_settings,
+    get_write_folder_from_model,
+    display_simulation_settings,
+    get_sim_config,
+)
+from NN_module.saveNload import save_results
 
 print(jax.devices())
+
+import json
+import argparse
+
+import os
+
+parser = argparse.ArgumentParser()
+parser.add_argument(
+    "-c",
+    "--config",
+    action="append",
+    required=False,
+    help="Parse configuration files in order. Simulation/CM/NN",
+)
+args = parser.parse_args()
+
+if args.config is None:
+    args.config = [
+        "/home/ihuarte/Escritorio/Ivan/NNs/config0.json",
+        "/home/ihuarte/Escritorio/Ivan/NNs/config1_CM.json",
+        "/home/ihuarte/Escritorio/Ivan/NNs/config2_Hydra.json",
+        "/home/ihuarte/Escritorio/Ivan/NNs/config3_Hydra_NN.json",
+    ]
+configurations = args.config
+
+print(f"Configurations:")
+for c in configurations:
+    print(f" - {c}")
+
+# Cargamos configuraciones de archivos json
+with open(configurations[0], "r") as f:
+    config = json.load(f)
+with open(configurations[1], "r") as f:
+    config_cm = json.load(f)
+with open(configurations[2], "r") as f:
+    config_hydra = json.load(f)
+with open(configurations[3], "r") as f:
+    config_hydra_nn = json.load(f)
+
+config_nn = {**config_hydra, **config_hydra_nn}
+
+
+cm_model_name = config_cm["CM"]["selection"]
+nn_evol_name = config_nn["selection"]
+
+cm_model_setup = config_cm["CM"][cm_model_name]
+nn_evol_setup = config_nn[nn_evol_name]
+
+model_label = cm_model_name + "_" + nn_evol_name
+
+sim_config = {
+    "SIM": config,
+    "CM": cm_model_setup,
+    "NN": {"name": nn_evol_name, "setup": nn_evol_setup},
+}
 
 
 def extract_patches2d(x, patch_size):
@@ -291,29 +354,27 @@ class ViT(nn.Module):
 seed = 0
 key = jax.random.key(seed)
 
-M = 200
-
 # Model
-L = 6
+L = 4
 n_dim = 2
 J2 = 0.5
 
 # sampler and vstate
 N_samples = 4096
-chunk_size = 2048
-learning_rate = 0.0075
+chunk_size = 4096
+learning_rate = 0.01
 
 # ViT
-num_layers = 4
-d_model = 60
-n_heads = 10
+num_layers = 2
+d_model = 40
+n_heads = 8
 patch_size = 2
 transl_invariant = True
 
 ds = 1e-4
 
 # Run
-epochs = 800
+epochs = 2000
 
 
 print(f"L = {L}  || J2 = {J2}")
@@ -335,6 +396,14 @@ hamiltonian = nk.operator.Heisenberg(
     hilbert=hilbert, graph=lattice, J=[1.0, J2], sign_rule=[False, False]
 ).to_jax_operator()  # No Mar
 
+print("Running exact diagonalization...")
+from scipy.sparse.linalg import eigsh
+
+E_ED, x_ED = eigsh(hamiltonian.to_sparse(), k=1, return_eigenvectors=True, which="SA")
+# x_ED = full_basis_state(x_ED, hi) if hi._total_sz is not None else x_ED
+E_ED = float(E_ED.squeeze(-1))
+print(f"Energy ED: {E_ED}")
+
 # Intiialize the ViT variational wave function
 vit_module = ViT(
     num_layers=num_layers,
@@ -345,7 +414,9 @@ vit_module = ViT(
 )
 
 key, subkey = jax.random.split(key)
-spin_configs = jax.random.randint(subkey, shape=(M, L * L), minval=0, maxval=1) * 2 - 1
+spin_configs = (
+    jax.random.randint(subkey, shape=(N_samples, L * L), minval=0, maxval=1) * 2 - 1
+)
 params = vit_module.init(subkey, spin_configs)
 
 # Metropolis Local Sampling
@@ -372,9 +443,39 @@ vvstate = nk.vqs.MCState(
 
 N_params = nk.jax.tree_size(vvstate.parameters)
 print("Number of parameters = ", N_params, flush=True)
+sim_uuid = str(uuid.uuid4())[:8]
+write_folder = f"/home/ihuarte/Escritorio/Ivan/NNs/Viteretti_{L}x{L}/UUID_{sim_uuid}/"
+os.makedirs(write_folder, exist_ok=True)
+
 
 # Variational monte carlo driver
 from netket._src.driver.vmc_sr import VMC_SR
+
+#### INITIALIZE CALLBACKS ####
+cm_model_setup["name"] = "J1J2Square"
+cm_model_setup["size"] = [L, L]
+cm_model_setup["params"] = {"J1": 1.0, "J2": 0.5, "fields": [0.0, 0.0, 0.0]}
+if config["callback"]["checkpoint"]:
+    sim_label, _, _, _ = get_filenames_from_settings(
+        cm_model_setup, {"name": nn_evol_name, "setup": {}}, sim_uuid
+    )
+    sim_label_folder = write_folder + sim_label
+    do_each_checkpoint = config["callback"]["checkpoint_setup"]["do_each"]
+else:
+    sim_label_folder = ""
+    do_each_checkpoint = None
+
+callback_objects, callback_funcs = Callback(
+    config["callback"],
+    sim_config=sim_config,
+    total_epochs=epochs,
+    H=hamiltonian,
+    N=L * L,
+    E_ED=E_ED,
+    x_ED=x_ED,
+    sim_label_folder=sim_label_folder,
+    sim_folder=write_folder,
+)
 
 vmc = VMC_SR(
     hamiltonian=hamiltonian,
@@ -389,7 +490,7 @@ log = nk.logging.RuntimeLog()
 
 # sys.exit(0)
 time_in = time()
-vmc.run(n_iter=epochs, out=log)
+vmc.run(n_iter=epochs, out=log, callback=callback_funcs, show_progress=True)
 time_out = time()
 
 time_exe = time_out - time_in
@@ -403,15 +504,8 @@ print(f"Energy: {energy}")
 print(f"Vscore: {vscore}")
 print(f"Energy per site: {energy_per_site}")
 
-import os
-from NN_module.saveNload import save_results
 
-
-path = "/home/ihuarte/Escritorio/Ivan/NNs/Viteretti_10x10/"
-os.makedirs(path, exist_ok=True)
-
-sim_uuid = str(uuid.uuid4())[:8]
-sim_label = "Viteretti_simulation_10x10_"
+sim_label = f"Viteretti_simulation_{L}x{L}_"
 
 log.best_state = vvstate
 log.best_step = epochs - 1
@@ -422,10 +516,10 @@ print(hasattr(log, "E_ED"))
 
 callback_args = {
     "size": [L, L],
-    "write_folder": path,
+    "write_folder": write_folder,
     "time_exe": time_exe,
     "sim_label": sim_label,
-    "title_label_callback": "Viteretti 10 x 10",
+    "title_label_callback": f"Viteretti {L} x {L}",
     "best_step": epochs - 1,
     "schedule_setup": None,
     "do_each_checkpoint": None,
@@ -456,7 +550,7 @@ save_results(
     x_ED=None,
     modphase=mp_array_vs,
     modphase_ED=None,
-    write_folder=path,
+    write_folder=write_folder,
     sim_label=sim_label,
     ED_label=None,
     json_label="_results_",
