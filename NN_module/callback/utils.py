@@ -76,7 +76,7 @@ def plot_schedule_setup(ax, setup):
         )
 
 
-def dump_callback(logger, settings):
+def dump_callback(logger, settings, write_callback=True):
 
     callback_artifacts = {}
 
@@ -207,7 +207,8 @@ def dump_callback(logger, settings):
         ax[e].set_xlabel("Iteration")
         ax[e].set_ylabel("Error", fontsize=12)
         ax[e].grid()
-
+  
+   
     file_path = write_folder + f"Callback_" + sim_label
     figure_path = file_path + ".jpeg"
 
@@ -216,6 +217,26 @@ def dump_callback(logger, settings):
     plt.close()
 
     callback_artifacts["plot"] = figure_path
+   
+
+    if write_callback:
+        file_path_energy = file_path + "_energy.txt"
+        file_path_energy_dev = file_path + "_energy_dev.txt"
+        file_path_vscore = file_path + "_vscore.txt"
+
+        np.savetxt(file_path_energy, E_hist)
+        np.savetxt(file_path_energy_dev, dev_E_hist)
+        np.savetxt(file_path_vscore, vscore)
+
+        callback_artifacts["energy"] = file_path_energy
+        callback_artifacts["energy_dev"] = file_path_energy_dev
+        callback_artifacts["vscore"] = file_path_vscore
+
+
+        if hasattr(logger, "E_ED"):
+            file_path_error = file_path + "_error.txt"
+            np.savetxt(file_path_error, error)
+            callback_artifacts["error"] = file_path_error
 
     return callback_artifacts
 

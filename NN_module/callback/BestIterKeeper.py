@@ -178,10 +178,10 @@ class BestIterKeeper:
     def survive_condition(self, energy, vscore):
 
         survive = True
-        # if vscore < self.baseline:
-        #     survive = False
-        #     self.exit_msg = f"Vscore {vscore} is below baseline {self.baseline}"
-        #     print(self.exit_msg)
+        if vscore < self.baseline:
+            survive = False
+            self.exit_msg = f"Vscore {vscore} is below baseline {self.baseline}"
+            print(self.exit_msg)
         if not np.isfinite(energy):
             survive = False
             self.exit_msg = f"Energy has diverged ({energy}). Simulation crashed."
