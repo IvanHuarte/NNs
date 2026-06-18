@@ -1,19 +1,14 @@
 {
 
-    "write_folder_sim":"/home/ihuarte/Escritorio/Ivan/NNs/pruebas/",
+    "write_folder_sim":"/home/ihuarte/Escritorio/Ivan/NNs/Simulations/",
 
     "sz_total": null,
     "vmc_sr":false,
 
     "callback":{
         "keeper": true,
-<<<<<<< HEAD
-        "energy_plot": false,
-        "modphase": false,
-=======
         "energy_plot": true,
         "modphase": true,
->>>>>>> origin/dev
         "sanity": false,
         "checkpoint":false,
         
@@ -51,8 +46,8 @@
 
     "sampler":{
         "sampler":{
-            "rules": ["Exchange", "LocalRule"],
-            "prules": [0.8, 0.2],
+            "rules": ["Exchange"],
+            "prules": [0.9, 0.1],
             "initial_state": "hilbert"
         },
         "n_chains_per_rank": 4096,
@@ -68,7 +63,7 @@
             "epochs_struct":[
                 
                 [ 
-                    [800]
+                    [1000, 500]
                 ]
                 
             ],
@@ -76,14 +71,14 @@
             "modes_struct":[
                 
                 [
-                    [["A"]]
+                    [["A"], ["A"]]
                 ]
                 
             ],
             "lr_struct":[
                 
                 [
-                    [ ["exp(0.1, 0.001)"]]
+                    [ [0.01], ["exp(0.01, 0.00001)"]]
                 ]
                 
             ],
@@ -96,6 +91,5 @@
         }
 
     }
-
 
 }
