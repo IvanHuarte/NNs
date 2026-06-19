@@ -16,7 +16,7 @@ class ConvMultiheadAttentionHead(nn.Module):
     channels: int
     n_heads_per_kernel: Tuple = (1,)
     kernel: Tuple[Tuple[int, int], ...] = ((3, 3),)
-    strides_qkv: Tuple[Tuple[int, int], Tuple[int, int], Tuple[int, int]] = ((1, 1), (2, 2), (2, 2))
+    strides_kv: Tuple[int, int] = (2, 2)
 
     def setup(self):
 
@@ -26,39 +26,49 @@ class ConvMultiheadAttentionHead(nn.Module):
             self.channels % total_heads == 0
         ), "Channels must be divisible by the number of total heads"
 
-        self.W_q, self.W_k, self.W_v = [], [], []
-        self.norm_factor = []
+        W_q, W_k, W_v = [], [], []
+        norm_factor = []
 
         for i, kernel in enumerate(self.kernel):
             head_dim = self.channels // total_heads
             for _ in range(self.n_heads_per_kernel[i]):
 
-                self.norm_factor.append(jnp.sqrt(kernel[0]*kernel[1]))
+                norm_factor.append(1.0)
 
-                self.W_q.append( 
+                W_q.append( 
                     DepthPointwiseConv(
-                        head_dim, kernel=self.kernel, strides=self.strides_qkv[0]
+                        head_dim, kernel=kernel, strides=(1, 1)
                     )
                 )
-                self.W_k.append( 
+                W_k.append( 
                     DepthPointwiseConv(
-                        head_dim, kernel=self.kernel, strides=self.strides_qkv[1]
+                        head_dim, kernel=kernel, strides=self.strides_kv
                     )
                 )
-                self.W_v.append( 
+                W_v.append( 
                     DepthPointwiseConv(
-                        head_dim, kernel=self.kernel, strides=self.strides_qkv[2]
+                        head_dim, kernel=kernel, strides=self.strides_kv
                     )
                 )
+
+        self.W_q = tuple(W_q)
+        self.W_k = tuple(W_k)
+        self.W_v = tuple(W_v)
+        self.norm_factor = tuple(norm_factor)
 
 
     def __call__(self, x: jt.ArrayLike) -> jt.ArrayLike:
         # print(f"Begging ConvMultiheadAttentionHead")
         # print(f"Input shape: {x.shape}")
 
-        Q = jnp.stack([self.W_q[i](x) / self.norm_factor[i] for i in range(len(self.norm_factor))])
-        K = jnp.stack([self.W_k[i](x) / self.norm_factor[i] for i in range(len(self.norm_factor))])
-        V = jnp.stack([self.W_v[i](x) / self.norm_factor[i] for i in range(len(self.norm_factor))])
+        Q = jnp.stack([self.W_q[i](x) / self.norm_factor[i] for i in range(len(self.norm_factor))], axis=1)
+        K = jnp.stack([self.W_k[i](x) / self.norm_factor[i] for i in range(len(self.norm_factor))], axis=1)
+        V = jnp.stack([self.W_v[i](x) / self.norm_factor[i] for i in range(len(self.norm_factor))], axis=1)
+
+
+        Q = Q.reshape(*Q.shape[0:2], Q.shape[2]*Q.shape[3], Q.shape[4])
+        K = K.reshape(*K.shape[0:2], K.shape[2]*K.shape[3], K.shape[4])
+        V = V.reshape(*V.shape[0:2], V.shape[2]*V.shape[3], V.shape[4])
 
         return Q, K, V
 
@@ -67,116 +77,58 @@ class ConvProjectionBlock(nn.Module):
     channels: int
     n_heads_per_kernel: Tuple = (1,)
     kernel: Tuple[Tuple[int, int], ...] = ((3, 3),)
-    strides_qkv: Tuple[Tuple[int, int], Tuple[int, int], Tuple[int, int]] = ((1, 1), (2, 2), (2, 2))
+    strides_kv: Tuple[int, int] = (2, 2)
     n_mlp_layers: int = 1
 
     def setup(self):
         self.layer_norm_ini = nn.LayerNorm(dtype=DTYPE, param_dtype=DTYPE)
         self.layer_norm_res_1 = nn.LayerNorm(dtype=DTYPE, param_dtype=DTYPE)
-        self.layer_norm_res_2 = nn.LayerNorm(dtype=DTYPE, param_dtype=DTYPE)
-
         
-        CMHA = ConvMultiheadAttentionHead(
+        self.CMHA = ConvMultiheadAttentionHead(
             channels=self.channels,
             n_heads_per_kernel=self.n_heads_per_kernel,
             kernel=self.kernel,
-            strides_qkv=self.strides_qkv,
+            strides_kv=self.strides_kv,
         )
 
         self.ff = nn.Sequential(
             [
                 nn.Dense(
-                    4 * self.d_model,
+                    self.channels,
                     kernel_init=nn.initializers.xavier_uniform(),
-                    param_dtype=self.param_dtype,
+                    param_dtype=DTYPE,
                 ),
                 nn.gelu,
                 nn.Dense(
-                    self.d_model,
+                    self.channels,
                     kernel_init=nn.initializers.xavier_uniform(),
-                    param_dtype=self.param_dtype,
+                    param_dtype=DTYPE,
                 ),
             ]
         )
 
     def __call__(self, x: jt.ArrayLike) -> jt.ArrayLike:
 
+        B, H, W, _ = x.shape
+
         x = self.layer_norm_ini(x)
         Q, K, V = self.CMHA(x)
-        # Q, K, V = (B, heads, Nq, head_dim), (B, heads, Nk, head_dim), (B, heads, Nk, head_dim)
 
         # Self-attention block
-        QKt = jnp.matmul(Q, jnp.swapaxes(K, -2, -1))  # QKt = (B, heads, Nq, Nk)
+        QKt = jnp.matmul(Q, jnp.swapaxes(K, -2, -1))  # QKt = (B, heads, N, Nk)
         atten = nn.softmax(QKt, axis=-1)
-        attention = jnp.matmul(atten, V)  # (B, heads, Nq, head_dim)
+        attention = attention = (
+            jnp.matmul(atten, V)
+            .transpose((0, 2, 1, 3))
+            .reshape((B, H, W, self.channels))
+        )  # (B, heads, N, head_dim)
 
-        x = x + attention.transpose((0, 2, 1, 3)).reshape(x.shape)  # Residual connection
+        x = x + attention
 
-        x = x + self.ff(self.layer_norm_res_2(x))  # Residual connection
+        x = x + self.ff(self.layer_norm_res_1(x))  # Residual connection
 
         return x
         
-
-
-    # def __call__(self, x: jt.ArrayLike) -> jt.ArrayLike:
-    #     # print(f"Begging ConvProjectionBlock")
-    #     # print(f"Input shape: {x.shape}")
-
-    #     # Convolutional projection
-    #     # x (B,H,W,Ch_in)
-
-    #     x = nn.LayerNorm(dtype=DTYPE, param_dtype=DTYPE)(x)
-        
-
-    #     B = x.shape[0]
-    #     assert (
-    #         self.channels % self.n_heads == 0
-    #     ), "Channels must be divisible by the number of heads"
-    #     head_dim = self.channels // self.n_heads
-
-       
-
-    #     _, Hq, Wq, _ = (
-    #         Q.shape
-    #     )  # If strides_qkv[0] != (1,1) then Hq and Wq different to H and W
-    #     _, Hk, Wk, _ = K.shape
-    #     Nq = Hq * Wq
-    #     Nk = Hk * Wk
-
-    #     # Reshape and transpose for multi-head attention
-    #     Q = Q.reshape((B, Nq, self.n_heads, head_dim)).transpose(
-    #         (0, 2, 1, 3)
-    #     )  # Q = (B, heads, Nq, head_dim)
-    #     K = K.reshape((B, Nk, self.n_heads, head_dim)).transpose(
-    #         (0, 2, 1, 3)
-    #     )  # K = (B, heads, Nk, head_dim)
-    #     V = V.reshape((B, Nk, self.n_heads, head_dim)).transpose(
-    #         (0, 2, 1, 3)
-    #     )  # V = (B, heads, Nk, head_dim)
-
-    #     # Self-attention block
-    #     QKt = jnp.matmul(Q, jnp.swapaxes(K, -2, -1)) / jnp.sqrt(
-    #         head_dim
-    #     )  # QKt = (B, heads, Nq, Nk)
-    #     atten = nn.softmax(QKt, axis=-1)
-    #     # (B, heads, Nq, head_dim) --> (B, Nq, heads, head_dim) --> (B, Hq, Wq, channels)
-    #     attention = (
-    #         jnp.matmul(atten, V)
-    #         .transpose((0, 2, 1, 3))
-    #         .reshape((B, Hq, Wq, self.channels))
-    #     )
-
-    #     x = nn.LayerNorm(dtype=DTYPE, param_dtype=DTYPE)(x + attention)
-
-    #     # MLP
-    #     x_ffn = x.reshape((B, Nq, self.channels))  # Reshape to (B, Hq*Wq, channels)
-    #     x_ffn = MultiLayerPerceptron(
-    #         layer_widths=tuple([x_ffn.shape[-1]] * self.n_mlp_layers),
-    #     )(x_ffn)
-    #     x_ffn = x_ffn.reshape((B, Hq, Wq, self.channels))
-    #     x_ffn = nn.LayerNorm(dtype=DTYPE, param_dtype=DTYPE)(x_ffn)
-    #     # print(f"After MLP: {x_ffn.shape}")
-    #     return x + x_ffn
 
 
 class StageBlock(nn.Module):
@@ -192,31 +144,38 @@ class StageBlock(nn.Module):
 
     n_CP_blocks: int  # Number of convolutional projection blocks in the stage
     channels: Tuple[int, ...]  # Number of channels in each stage
-    n_heads: int  # Number of heads for each block
+    n_heads_per_kernel: Tuple[int, ...]  # Number of heads for each block
     kernel: Tuple = (3, 3)  # Kernel size for the convolutional operations (must be 3x3)
 
-    @nn.compact
-    def __call__(self, x: jt.ArrayLike) -> jt.ArrayLike:
-        # print(f"Beginning Stage")
-        # print(f"Input shape: {x.shape}")
+    def setup(self):
 
         # Convolutional token embedding
-        x = nn.Conv(
+        self.embedding = nn.Conv(
             features=self.channels,
-            kernel_size=self.kernel,
+            kernel_size=(3, 3),
             strides=(1, 1),
             padding="CIRCULAR",
             dtype=DTYPE,
-        )(x)
+        )
+
+        # Convolutional projection blocks
+        self.conv_proj_blocks = [
+            ConvProjectionBlock(
+                channels=self.channels,
+                n_heads_per_kernel=self.n_heads_per_kernel,
+                kernel=self.kernel,
+            )
+            for _ in range(self.n_CP_blocks)
+        ]
+
+    def __call__(self, x: jt.ArrayLike) -> jt.ArrayLike:
+        # print(f"Beginning Stage")
+
+        x = self.embedding(x)
 
         # print(f"After Conv embedding: {x.shape}")
-        # Convolutional projection blocks
-        for _ in range(self.n_CP_blocks):
-            x = ConvProjectionBlock(
-                channels=self.channels,
-                n_heads=self.n_heads,
-                kernel=self.kernel,
-            )(x)
+        for i in range(self.n_CP_blocks):
+            x = self.conv_proj_blocks[i](x)
 
         return log_cosh(x)
 
@@ -246,15 +205,11 @@ class CvTexp(nn.Module):
         int, ...
     ]  # Number of convolutional projection blocks in each stage
     channels: Tuple[int, ...]  # Number of channels in each stage
-    attn_heads: Tuple[
-        int, ...
-    ]  # Number of heads for each convolutional projection block in each stage.
-    kernel: Tuple = (3, 3)  # Kernel size for the convolutional operations (must be 3x3)
+    attn_heads_per_kernel: Tuple[
+        Tuple[Tuple[int, int], ...], ...
+    ]  # Number of heads per kernel for each in each stage.
+    kernels_per_stage: Tuple = ((3, 3),)  # Kernel size for the convolutional operations (must be 3x3)
     final_architecture: Tuple | None = None
-    two_heads: bool = (
-        False  # If True, the output will be a complex number with modulus and phase
-    )
-    phasors: bool = False  # If True, apply GLU phasor activation before the final MLP
 
     @nn.compact
     def __call__(self, x: jt.ArrayLike) -> jt.ArrayLike:
@@ -270,8 +225,8 @@ class CvTexp(nn.Module):
             x = StageBlock(
                 n_CP_blocks=self.n_CP_blocks[i],
                 channels=self.channels[i],
-                n_heads=self.attn_heads[i],
-                kernel=self.kernel,
+                n_heads_per_kernel=self.attn_heads_per_kernel[i],
+                kernel=self.kernels_per_stage[i],
             )(x)
 
         # To work only with this module, we distinguish between real output
@@ -284,6 +239,7 @@ class CvTexp(nn.Module):
 
         else:
             x = x.reshape(B, -1, x.shape[-1]).mean(axis=1)  # Mean pooling over spins
-            for hi in self.final_architecture:
-                x = nn.Dense(features=hi, param_dtype=DTYPE)(x)
+            x = jnp.sum(log_cosh(x), axis=-1)
+            # for hi in self.final_architecture:
+            #     x = nn.Dense(features=hi, param_dtype=DTYPE)(x)
             return x

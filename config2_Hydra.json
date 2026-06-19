@@ -1,6 +1,6 @@
 {
 
-    "selection": "ViT2DOH",
+    "selection": "CvTexp",
 
     "load_model": {
 
@@ -12,6 +12,21 @@
         "load_from": [
             "/home/ihuarte/Escritorio/Ivan/NNs/pruebas/J1J2Square/ViT2DOH_Sequential_ViT2D_OutputHead/Size_4x4/ST_2000-A/UUID_5c8eb479/J1J2Square_ViT2DOH_simulation_4x4_J1J2_1.0_0.5_XYZ_0.0_0.0_0.0_date_20260611T165120_UUID_5c8eb479_checkpoint.orbax"
         ]
+    },
+
+    "CvTexp":{
+
+         "stage0": {
+            "template":{
+
+            "CvTexp":{}
+            },   
+
+            "load": [
+                ["stageX0", "0", "0"]
+            ],
+            "save_params": true
+        }
     },
 
     "ViT2DMLP":{

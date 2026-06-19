@@ -7,8 +7,8 @@
 
     "callback":{
         "keeper": true,
-        "energy_plot": true,
-        "modphase": true,
+        "energy_plot": false,
+        "modphase": false,
         "sanity": false,
         "checkpoint":false,
         
@@ -46,8 +46,8 @@
 
     "sampler":{
         "sampler":{
-            "rules": ["Exchange"],
-            "prules": [0.9, 0.1],
+            "rules": ["Exchange", "LocalRule"],
+            "prules": [0.7, 0.3],
             "initial_state": "hilbert"
         },
         "n_chains_per_rank": 4096,
@@ -78,7 +78,7 @@
             "lr_struct":[
                 
                 [
-                    [ [0.01], ["exp(0.01, 0.00001)"]]
+                    [ [0.05], ["exp(0.005, 0.00001)"]]
                 ]
                 
             ],
