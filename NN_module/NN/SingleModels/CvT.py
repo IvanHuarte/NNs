@@ -16,7 +16,7 @@ class ConvProjectionBlock(nn.Module):
     channels: int
     n_heads: int = 1
     kernel: Tuple = (3, 3)
-    strides_qkv: Tuple[Tuple, Tuple, Tuple] = ((1, 1), (2, 2), (2, 2))
+    strides_qkv: Tuple[Tuple, Tuple, Tuple] = ((1, 1), (2,2), (2,2))
     n_mlp_layers: int = 1
 
     @nn.compact
@@ -81,7 +81,7 @@ class ConvProjectionBlock(nn.Module):
             layer_widths=tuple([x_ffn.shape[-1]] * self.n_mlp_layers),
         )(x_ffn)
         x_ffn = x_ffn.reshape((B, Hq, Wq, self.channels))
-        x_ffn = nn.LayerNorm(dtype=DTYPE, param_dtype=DTYPE)(x_ffn)
+        # x_ffn = nn.LayerNorm(dtype=DTYPE, param_dtype=DTYPE)(x_ffn)
         # print(f"After MLP: {x_ffn.shape}")
         return x + x_ffn
 
@@ -192,6 +192,7 @@ class CvT(nn.Module):
 
         else:
             x = x.reshape(B, -1, x.shape[-1]).mean(axis=1)  # Mean pooling over spins
+            
             for hi in self.final_architecture:
                 x = nn.Dense(features=hi, param_dtype=DTYPE)(x)
             return x

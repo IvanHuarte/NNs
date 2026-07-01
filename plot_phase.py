@@ -188,7 +188,7 @@ if ED_file is not None:
             )
     ax[3].legend()
     plt.tight_layout()
-    plt.savefig(write_folder + filename + ".jpeg", dpi=600, bbox_inches="tight")
+    plt.savefig(write_folder + filename + ".png", dpi=600, bbox_inches="tight")
 
 else:
 
@@ -247,9 +247,9 @@ else:
             )
     ax[2].legend()
     plt.tight_layout()
-    plt.savefig(write_folder + filename + ".jpeg", dpi=600, bbox_inches="tight")
+    plt.savefig(write_folder + filename + ".png", dpi=600, bbox_inches="tight")
 
 
-artifact["_artifacts"]["modphase_plot"] = write_folder + filename + ".jpeg"
+artifact["_artifacts"]["modphase_plot"] = write_folder + filename + ".png"
 with open(path_artifact, "w") as f:
     json.dump(artifact, f, separators=(",", ":"), sort_keys=True, indent=4)

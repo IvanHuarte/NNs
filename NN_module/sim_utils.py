@@ -10,7 +10,7 @@ from NN_module.observables import (
 
 def measureNdump(keeper, time_exe, exact_diag=False, S_operators=False):
 
-    s_factor = 1 if S_operators else 4
+    s_factor = 4 if S_operators else 1
 
     E_ED = keeper.E_ED / s_factor if hasattr(keeper, "E_ED") else None
     x_ED = keeper.x_ED if hasattr(keeper, "x_ED") else None

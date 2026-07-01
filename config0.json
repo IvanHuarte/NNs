@@ -3,7 +3,7 @@
     "write_folder_sim":"/home/ihuarte/Escritorio/Ivan/NNs/Simulations/",
 
     "sz_total": null,
-    "vmc_sr":false,
+    "vmc_sr": false,
 
     "callback":{
         "keeper": true,
@@ -46,8 +46,8 @@
 
     "sampler":{
         "sampler":{
-            "rules": ["Exchange", "LocalRule"],
-            "prules": [0.7, 0.3],
+            "rules": ["LocalRule", "Exchange", "InvertMagnetization"],
+            "prules": [0.5, 0.4, 0.1],
             "initial_state": "hilbert"
         },
         "n_chains_per_rank": 4096,
@@ -63,7 +63,7 @@
             "epochs_struct":[
                 
                 [ 
-                    [1000, 500]
+                    [100, 200]
                 ]
                 
             ],
@@ -78,7 +78,7 @@
             "lr_struct":[
                 
                 [
-                    [ [0.05], ["exp(0.005, 0.00001)"]]
+                    [ [0.01], ["exp(0.01, 0.0001)"]]
                 ]
                 
             ],

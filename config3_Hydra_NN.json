@@ -32,9 +32,9 @@
             "token_size": [2, 2],
             "embedding_d": 60,
             "n_heads": 10,
-            "n_blocks": 4,
+            "n_blocks": 2,
             "n_ffn_layers": 2,
-            "final_architecture": null
+            "final_architecture": [1]
         },
         "VViT":{
             "num_layers": 4,
@@ -45,11 +45,11 @@
         },
         
         "CvT":{
-            "n_CP_blocks":[1, 1, 1, 1],
-            "channels": [30, 30, 30, 30],
-            "attn_heads":[10, 10, 10, 10],
-            "kernel": [3, 3],
-            "final_architecture": null
+            "n_CP_blocks":[1, 1],
+            "channels": [16, 16],
+            "attn_heads":[4, 4],
+            "kernel": [5, 5],
+            "final_architecture": [1]
         },
         "CvT2":{
             "n_CP_blocks":[1, 1],
@@ -66,10 +66,10 @@
             "final_architecture": null
         },
         "CvTexp":{
-            "n_CP_blocks":[1],
-            "channels": [60],
-            "attn_heads_per_kernel":[[6, 3, 1]],
-            "kernels_per_stage": [[[3, 3], [5, 5], [7, 7]]  ],
+            "n_CP_blocks":[1, 1],
+            "channels": [12, 30],
+            "attn_heads_per_kernel":[[4], [10]],
+            "kernels_per_stage": [[[5, 5]] ,[[3, 3]]],
             "final_architecture": [1]
         },
 
@@ -173,7 +173,7 @@
             "only_phase": false
         },
         "OutputHead":{
-            "d_model": 30,
+            "d_model": 60,
             "only_phase": false
         },        
         "DeepOutputHead":{

@@ -1,6 +1,6 @@
 {
 
-    "selection": "CvTexp",
+    "selection": "CvT",
 
     "load_model": {
 
@@ -14,13 +14,34 @@
         ]
     },
 
-    "CvTexp":{
+    "ViT2DOH":{
+
+        "stage0":{
+            "template":{
+
+                "SingleModule": {
+                    "ViT2D":{},
+                    "mode":"modulus"
+                }
+            },
+            "load": [
+                ["stageX0", "0", "0"],
+                ["stageX0", "1", "1"]
+            ],
+            "save_params": true
+        }
+    },
+
+    "CvT":{
 
          "stage0": {
             "template":{
 
-            "CvTexp":{}
-            },   
+                "SingleModule": {
+                    "CvT":{},
+                    "mode":"modulus"
+                }
+            },
 
             "load": [
                 ["stageX0", "0", "0"]
@@ -45,6 +66,25 @@
             "save_params": true
         }
     },
+    
+    "CvTCHStrideLog":{
+
+        "stage0": {
+            "template":{
+
+                "SingleModule": {
+                    "CvT":{},
+                    "mode":"modulus"
+                }
+            },
+
+            "load": [
+                ["stageX0", "0", "0"]
+            ],
+            "save_params": true
+        }
+    },
+    
 
     "CvT2OHStrideLog":{
 
@@ -64,41 +104,6 @@
         }
     },
 
-    "CvTCHStrideLog":{
-
-         "stage0": {
-            "template":{
-
-            "Sequential": {
-                "CvT":{},
-                "ComplexHead":{}
-            }
-            },   
-
-            "load": [
-                ["stageX0", "0", "0"]
-            ],
-            "save_params": true
-        }
-    },
-    
-    "ViT2DOH":{
-
-        "stage0":{
-             "template":{
-
-                "Sequential": {
-                    "ViT2D":{},
-                    "OutputHead":{}
-                }
-            },
-            "load": [
-                ["stageX0", "0", "0"],
-                ["stageX0", "1", "1"]
-            ],
-            "save_params": true
-        }
-    },
 
     "ViT2DCHPhase":{
 

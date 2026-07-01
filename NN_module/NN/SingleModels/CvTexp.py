@@ -239,7 +239,7 @@ class CvTexp(nn.Module):
 
         else:
             x = x.reshape(B, -1, x.shape[-1]).mean(axis=1)  # Mean pooling over spins
-            x = jnp.sum(log_cosh(x), axis=-1)
+            x = jnp.sum(log_cosh(x), axis=-1, keepdims=True)
             # for hi in self.final_architecture:
             #     x = nn.Dense(features=hi, param_dtype=DTYPE)(x)
             return x

@@ -74,6 +74,7 @@ class NeuralNetwork:
             External parameters to be propagated into the setup.
         """
 
+
         setup = insert_external_kwargs(setup, external_args)
         self.setup = preprocess_setup(setup)
 

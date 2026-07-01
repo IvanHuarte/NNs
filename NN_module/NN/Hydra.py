@@ -66,7 +66,6 @@ class Hydra(NeuralNetwork):
 
         # Build the initial NN model. Adapt first template 'model_0' to a configuration dictionary.
         setup = setup_from_template(self.template, self.storage, self.symm_wrapper)
-
         self.save_stage_setup(setup)
 
         super().__init__(setup, **self.external_args)
