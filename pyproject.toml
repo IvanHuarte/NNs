@@ -40,4 +40,5 @@ dependencies = [
     "scipy==1.17.0",
     "seaborn>=0.13.2",
     "spglib>=2.7.0",
+    "pytest>=9.1.1",
 ]

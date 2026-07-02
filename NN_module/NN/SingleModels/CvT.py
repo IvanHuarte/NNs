@@ -1,11 +1,13 @@
-import flax.linen as nn
-import jax.typing as jt
-import jax.numpy as jnp
 from typing import Tuple
+
+import flax.linen as nn
+import jax.numpy as jnp
+import jax.typing as jt
 from netket.nn.activation import log_cosh
+
 from ..toolbox import (
-    MultiLayerPerceptron,
     DepthPointwiseConv,
+    MultiLayerPerceptron,
 )
 
 DTYPE = jnp.float64
@@ -16,7 +18,7 @@ class ConvProjectionBlock(nn.Module):
     channels: int
     n_heads: int = 1
     kernel: Tuple = (3, 3)
-    strides_qkv: Tuple[Tuple, Tuple, Tuple] = ((1, 1), (2,2), (2,2))
+    strides_qkv: Tuple[Tuple, Tuple, Tuple] = ((1, 1), (2, 2), (2, 2))
     n_mlp_layers: int = 1
 
     @nn.compact
@@ -159,10 +161,6 @@ class CvT(nn.Module):
     ]  # Number of heads for each convolutional projection block in each stage.
     kernel: Tuple = (3, 3)  # Kernel size for the convolutional operations (must be 3x3)
     final_architecture: Tuple | None = None
-    two_heads: bool = (
-        False  # If True, the output will be a complex number with modulus and phase
-    )
-    phasors: bool = False  # If True, apply GLU phasor activation before the final MLP
 
     @nn.compact
     def __call__(self, x: jt.ArrayLike) -> jt.ArrayLike:
@@ -184,15 +182,15 @@ class CvT(nn.Module):
 
         # To work only with this module, we distinguish between real output
         # and imaginary output (modulus + phase).
+        if self.final_architecture is None:
+            return x
         x = x.reshape(B, -1, x.shape[-1])
 
         # Works with termination module by default
-        if self.final_architecture is None:
-            return x
 
-        else:
-            x = x.reshape(B, -1, x.shape[-1]).mean(axis=1)  # Mean pooling over spins
-            
-            for hi in self.final_architecture:
-                x = nn.Dense(features=hi, param_dtype=DTYPE)(x)
-            return x
+        # else:
+        #     x = x.reshape(B, -1, x.shape[-1]).mean(axis=1)  # Mean pooling over spins
+
+        #     for hi in self.final_architecture:
+        #         x = nn.Dense(features=hi, param_dtype=DTYPE)(x)
+        #     return x

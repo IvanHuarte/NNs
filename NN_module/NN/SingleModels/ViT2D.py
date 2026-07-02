@@ -15,13 +15,10 @@
 from typing import Tuple
 
 import flax.linen as nn
-import jax
 import jax.numpy as jnp
 import jax.typing as jt
-import netket as nk
 
-from NN_module.NN_utils import traslations_2D
-from ..toolbox import MultiLayerPerceptron
+from ..toolbox import MultiLayerPerceptron, traslations_2D
 
 DTYPE = jnp.float64
 
@@ -56,7 +53,6 @@ class AffinityPosWeight(nn.Module):
         # print(x.shape)
 
         # Traslation 2D
-        # if self.token_lattice_size is not None:
         weight_row = self.param(
             "alpha_delta",
             nn.initializers.truncated_normal(stddev=jnp.sqrt(1.0 / x.shape[-2])),
@@ -66,15 +62,9 @@ class AffinityPosWeight(nn.Module):
         weight = traslations_2D(
             x=weight_row, size=self.token_lattice_size, memory=False
         )
-        # else:
-        #     weight = self.param(
-        #         "alpha_delta_nosymm",
-        #         nn.initializers.truncated_normal(stddev=jnp.sqrt(1.0 / x.shape[-2])),
-        #         (x.shape[-2], x.shape[-2]),
-        #         DTYPE,
-        #     )
-        # weight = jnp.tile(weight_row, (x.shape[-2], 1))
 
+        print(weight)
+        print((weight @ x).shape)
         return weight @ x
 
 
@@ -113,6 +103,7 @@ class MultiHeadPositionalAttention(nn.Module):
 
     @nn.compact
     def __call__(self, x: jt.ArrayLike) -> jt.ArrayLike:
+        # print(f"x.shape: {x.shape}")
         heads = [
             PositionalHead(self.token_lattice_size, self.head_size)
             for _ in range(self.n_heads)
@@ -148,7 +139,8 @@ class ViT2DBlock(nn.Module):
         sa = MultiHeadPositionalAttention(
             self.token_lattice_size, self.n_heads, head_size
         )
-        x += sa(nn.LayerNorm(dtype=DTYPE, param_dtype=DTYPE)(x))
+        sax = sa(nn.LayerNorm(dtype=DTYPE, param_dtype=DTYPE)(x))
+        x += sax
         # print(f"After attention: {x.shape}")
         ffn = MultiLayerPerceptron(
             [
@@ -216,16 +208,15 @@ class ViT2D(nn.Module):
             x = cb(x)
             # print(f"After CoreBlock: {x.shape}")
 
+        # Works with termination module by default
+        if self.final_architecture is None:
+            return x
         # To work only with this module, we distinguish between real output
         # and imaginary output (modulus + phase).
         x = x.reshape(B, -1, x.shape[-1])
 
-        # Works with termination module by default
-        if self.final_architecture is None:
-            return x
-
-        else:
-            x = x.reshape(B, -1, x.shape[-1]).mean(axis=1)  # Mean pooling over spins
-            for hi in self.final_architecture:
-                x = nn.Dense(features=hi, param_dtype=DTYPE)(x)
-            return x
+        # else:
+        #     x = x.reshape(B, -1, x.shape[-1]).mean(axis=1)  # Mean pooling over spins
+        #     for hi in self.final_architecture:
+        #         x = nn.Dense(features=hi, param_dtype=DTYPE)(x)
+        #     return x

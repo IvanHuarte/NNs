@@ -57,6 +57,8 @@ def equivariance_traslation_test(x0, lattice_size, params, model, atol=1e-5, v=0
         if v > 0:
             print(f"Traslation #{i}: {shift}")
             print(f"|T_i(f(x)) - f(T_i(x))|² = {jnp.sum((y0_shift-y_roll)**2)}\n\n")
+            # print(f"y0_shift:\n {y0_shift.reshape(1, -1, 4, 4)}\n")
+            # print(f"y_roll:\n {y_roll.reshape(1, -1, 4, 4)}\n")
 
     if success:
         print("✅ El modelo es equivariante!")
