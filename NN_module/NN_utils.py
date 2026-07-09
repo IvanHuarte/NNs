@@ -1,14 +1,12 @@
-import numpy as np
-import jax
-import jax.numpy as jnp
-import optax
-import flax.linen as nn
-import netket as nk
-import numpy.typing as npt
-from typing import Optional, Tuple
 import sys
 from pathlib import Path
-import itertools
+from typing import Optional, Tuple
+
+import jax
+import jax.numpy as jnp
+import netket as nk
+import numpy.typing as npt
+import optax
 
 sys.path.append(
     str(
@@ -18,7 +16,6 @@ sys.path.append(
 )
 
 from transformer_LR_WF.utils import InvertMagnetization
-
 
 REAL_DTYPE = jnp.asarray(1.0).dtype
 
@@ -166,16 +163,23 @@ def traslations_2D(
     if token_size is None:
         token_size = size
 
-    if x.shape[1] != size[0] * size[1]:
-        raise ValueError(
-            "`x` dimension must be equal to `prod(size)`, "
-            + f"but got {x.shape[0]} and {size[0] * size[1]}."
-        )
+    if len(x.shape) == 4:
+        x = x.reshape(x.shape[0], x.shape[1] * x.shape[2], x.shape[-1])
+
+    if len(x.shape) == 3:
+        if x.shape[1] != size[0] * size[1]:
+            raise ValueError(
+                "`x` dimension must be equal to `prod(size)`, "
+                + f"but got {x.shape[0]} and {size[0] * size[1]}."
+            )
 
     if memory:
         x = traslations_2D_scan(x, size)
     else:
         x = traslations_2D_vmap(x, size)
+
+    print(x.shape)
+    print(x)
 
     sub_lat = (size[0] // token_size[0], size[1] // token_size[1])
 
@@ -186,7 +190,6 @@ def traslations_2D(
         .reshape(
             size[0] * size[1], B, sub_lat[0] * sub_lat[1], token_size[0] * token_size[1]
         )
-        .squeeze()
     )
 
     return x

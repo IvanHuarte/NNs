@@ -348,7 +348,6 @@ class CvTaps(nn.Module):
     def __call__(self, x: jt.ArrayLike) -> jt.ArrayLike:
         # print(f"Begging CvT")
         # print(f"Input shape: {x.shape}")
-        x = x.reshape((-1, *self.lattice_size, 1))
         B = x.shape[0]
 
         n_stages = len(self.n_CP_blocks)

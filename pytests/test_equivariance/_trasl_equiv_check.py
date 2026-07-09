@@ -44,10 +44,13 @@ def equivariance_traslation_test(x0, lattice_size, params, model, atol=1e-5, v=0
     y0 = model.apply(params, x0)
     out_shape = y0.shape
 
+    if len(x0.shape) == 3:
+        x0 = x0.reshape(x0.shape[0], *lattice_size, x0.shape[-1])
+
     for i, shift in enumerate(shifts):
 
         x_roll = jnp.roll(x0, shift=shift, axis=(1, 2))
-        y_roll = model.apply(params, x_roll)
+        y_roll = model.apply(params, x_roll.reshape(1, 16, -1))
         y0_shift = jnp.roll(y0.reshape(*out_shape), shift=shift, axis=(1, 2))
 
         if not jnp.allclose(y0_shift, y_roll, atol=atol):
@@ -66,7 +69,7 @@ def equivariance_traslation_test(x0, lattice_size, params, model, atol=1e-5, v=0
         print("❌ Alguna operación rompe la equivarianza")
 
 
-def equivariance_traslation_all_test(x0, lattice_size, params, model, atol=1e-5, v=0):
+def equivariance_traslation_all_test(x0, lattice_size, params, model, atol=1e-7, v=0):
     """
     Test translational equivariance of a 2D lattice model.
 
@@ -130,3 +133,7 @@ def equivariance_traslation_all_test(x0, lattice_size, params, model, atol=1e-5,
         print("✅ El modelo es equivariante!")
     else:
         print("❌ Alguna operación rompe la equivarianza")
+
+
+def traslation_equivariant(x0, lattice_size, stride, params, model, atol=1e-7, v=0):
+    pass

@@ -181,7 +181,6 @@ class CvT2(nn.Module):
         # print(f"Input shape: {x.shape}")
 
         B = x.shape[0]
-        x = x.reshape((B, *self.lattice_size, -1))
 
         n_stages = len(self.n_CP_blocks)
         for i in range(n_stages):
@@ -193,9 +192,7 @@ class CvT2(nn.Module):
                 kernel=self.kernel,
             )(x)
 
-        # To work only with this module, we distinguish between real output
-        # and imaginary output (modulus + phase).
-        x = x.reshape(B, -1, x.shape[-1])
+
 
         # Works with termination module by default
         if self.final_architecture is None:

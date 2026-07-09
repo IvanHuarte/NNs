@@ -217,7 +217,6 @@ class CvTexp(nn.Module):
         # print(f"Input shape: {x.shape}")
 
         B = x.shape[0]
-        x = x.reshape((B, *self.lattice_size, -1))
 
         n_stages = len(self.n_CP_blocks)
         for i in range(n_stages):

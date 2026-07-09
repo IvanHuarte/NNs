@@ -94,8 +94,6 @@ class CNNLiang(nn.Module):
     @nn.compact
     def __call__(self, x: jnp.ndarray) -> jnp.ndarray:
 
-        x = x.reshape((-1, *self.lattice_size, 1))
-
         n_blocks = len(self.M1_channels)
         # Entering convolutional blocks
         for i in range(n_blocks):

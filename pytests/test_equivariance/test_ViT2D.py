@@ -15,6 +15,8 @@ from NN_module.NN.SingleModels.ViT2D import (
     AffinityPosWeight,
     MultiHeadPositionalAttention,
     PositionalHead,
+    PositionalHead2D,
+    TestModule,
     ViT2D,
     ViT2DBlock,
 )
@@ -24,7 +26,7 @@ equivariance_test = equivariance_traslation_test
 equivariance_test = equivariance_traslation_all_test
 
 key = jax.random.PRNGKey(int(time()))
-lattice_size = (4, 1)
+lattice_size = (4, 4)
 token_size = (1, 1)
 token_lattice_size = (
     lattice_size[0] // token_size[0],
@@ -40,6 +42,39 @@ final_architecture = None
 
 atol = 1e-10
 verbosity = 1
+
+
+def test_Jesus():
+    print("\nTesting Jesus...\n")
+
+    head_size = embedding_d // n_heads
+    model = PositionalHead2D(head_size)
+
+    x0_shape = (token_lattice_size[0], token_lattice_size[1], 1)
+    # x0 = jax.random.uniform(key, shape=x0_shape, minval=-2.0, maxval=2.0)
+    x0 = jax.random.choice(key, jnp.array([-1, 1]), shape=x0_shape)
+
+    params = model.init(key, x0)
+    return equivariance_test(x0, lattice_size, params, model, atol=atol, v=verbosity)
+
+
+def test_module():
+    print("\nTesting Module...\n")
+
+    model = TestModule(
+        lattice_size=lattice_size,
+        token_lattice_size=token_lattice_size,
+        head_size=head_size,
+        embedding_d=embedding_d,
+        token_size=token_size,
+        n_heads=n_heads,
+    )
+    x0_shape = (1, token_lattice_size[0] * token_lattice_size[1], 1)
+    # x0 = jax.random.uniform(key, shape=x0_shape, minval=-2.0, maxval=2.0)
+    x0 = jax.random.choice(key, jnp.array([-1, 1]), shape=x0_shape)
+
+    params = model.init(key, x0)
+    return equivariance_test(x0, lattice_size, params, model, atol=atol, v=verbosity)
 
 
 def test_EncoderBlock():
@@ -63,7 +98,7 @@ def test_AffPosWeight():
     model = AffinityPosWeight(
         token_lattice_size=token_lattice_size,
     )
-    x0_shape = (1, token_lattice_size[0] * token_lattice_size[1], head_size)
+    x0_shape = (1, token_lattice_size[0], token_lattice_size[1], head_size)
     x0 = jax.random.uniform(key, shape=x0_shape, minval=-2.0, maxval=2.0)
     params = model.init(key, x0)
     return equivariance_test(x0, lattice_size, params, model, atol=atol, v=verbosity)
@@ -75,7 +110,7 @@ def test_PositionalHead():
         token_lattice_size=token_lattice_size,
         head_size=head_size,
     )
-    x0_shape = (1, token_lattice_size[0] * token_lattice_size[1], head_size)
+    x0_shape = (1, token_lattice_size[0], token_lattice_size[1], embedding_d)
     x0 = jax.random.uniform(key, shape=x0_shape, minval=-2.0, maxval=2.0)
     params = model.init(key, x0)
     return equivariance_test(x0, lattice_size, params, model, atol=atol, v=verbosity)

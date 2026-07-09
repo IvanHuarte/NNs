@@ -252,8 +252,8 @@ class VViT(nn.Module):
     transl_invariant: bool = False
 
     @nn.compact
-    def __call__(self, spins):
-        x = jnp.atleast_2d(spins)
+    def __call__(self, x):
+        x = x.reshape(-1, x.shape[1]*x.shape[2], x.shape[-1])
 
         Ns = x.shape[-1]  # number of sites
         n_patches = Ns // self.patch_size**2  # lenght of the input sequence

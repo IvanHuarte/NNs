@@ -23,7 +23,7 @@ class MLP(nn.Module):
     def __call__(self, x):
 
         B = x.shape[0]
-        hidden_dims = tuple([int(ha * x.shape[1]) for ha in self.hidden_alpha])
+        hidden_dims = tuple([int(ha * x.shape[1]* x.shape[2]) for ha in self.hidden_alpha])
 
         for hi, act in zip(hidden_dims, self.activation):
             x = nn.Dense(features=hi, param_dtype=DTYPE)(x)

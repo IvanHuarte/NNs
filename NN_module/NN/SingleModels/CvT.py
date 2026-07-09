@@ -168,7 +168,6 @@ class CvT(nn.Module):
         # print(f"Input shape: {x.shape}")
 
         B = x.shape[0]
-        x = x.reshape((B, *self.lattice_size, -1))
 
         n_stages = len(self.n_CP_blocks)
         for i in range(n_stages):
@@ -184,13 +183,12 @@ class CvT(nn.Module):
         # and imaginary output (modulus + phase).
         if self.final_architecture is None:
             return x
-        x = x.reshape(B, -1, x.shape[-1])
 
         # Works with termination module by default
 
-        # else:
-        #     x = x.reshape(B, -1, x.shape[-1]).mean(axis=1)  # Mean pooling over spins
+        else:
+            x = x.reshape(B, -1, x.shape[-1]).mean(axis=1)  # Mean pooling over spins
 
-        #     for hi in self.final_architecture:
-        #         x = nn.Dense(features=hi, param_dtype=DTYPE)(x)
-        #     return x
+            for hi in self.final_architecture:
+                x = nn.Dense(features=hi, param_dtype=DTYPE)(x)
+            return x

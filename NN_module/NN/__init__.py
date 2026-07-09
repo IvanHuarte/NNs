@@ -18,7 +18,6 @@ from .SingleModels import (
     MLP,
     CMLP,
     ViT2D,
-    ViT,
     VViT,
     CNNPh,
     EDPPh,
@@ -71,7 +70,6 @@ __all_single__ = [
     "MLP",
     "CMLP",
     "ViT2D",
-    "ViT",
     "VViT",
     "Factorized",
     "FactorMod",
@@ -119,7 +117,6 @@ REGISTRY_SINGLE = {
     "MLP": MLP,
     "CMLP": CMLP,
     "ViT2D": ViT2D,
-    "ViT": ViT,
     "VViT": VViT,
     "Factorized": Factorized,
     "FactorMod": FactorMod,
@@ -165,7 +162,8 @@ LATTICE_SIZE = {
 }
 
 # Modulos de simetrizacion
-LATTICE_SIZE["lattice_size"].append(*("Traslation",))
+LATTICE_SIZE["lattice_size"].extend(("SymmWrapper", "Traslation",))
+print(LATTICE_SIZE)
 
 EXTERNAL_ARGS = {**LATTICE_SIZE}
 

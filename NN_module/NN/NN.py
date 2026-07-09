@@ -49,6 +49,8 @@ class NeuralNetwork:
             (e.g. lattice_size, symmetry flags, etc).
             These are automatically injected into the setup tree.
         """
+        # print(kwargs)
+        # print(setup)
 
         self.initialize_from_setup(setup, kwargs)
 
@@ -80,6 +82,9 @@ class NeuralNetwork:
 
         print("\nBuilding Neural Network from setup...\n")
         print_tree(self.setup, values=True)
+
+        print(external_args)
+        print(setup)
 
         self.model = self.build_model(self.setup, external_args)
 
@@ -135,12 +140,13 @@ class NeuralNetwork:
         flax.linen.Module
             Instantiated Flax module corresponding to this subtree.
         """
+        # print(external_args)
         if depth == 0:
             print(f"Getting wrapped model for symmetrization...")
             clss = self.get_model_class("SymmWrapper")
             NN_model = self.build_model(setup, external_args, depth=1)
             print(f"Model built and wrapped")
-            return clss(NN_model)
+            return clss(NN_model, lattice_size=(4,4))
 
         module_name = setup["module"]
         setup = setup["setup"]
