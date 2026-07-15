@@ -1,21 +1,22 @@
+import os
+import sys
+from time import time
+
 import jax
 import jax.numpy as jnp
-from time import time
-import sys
-import os
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../")))
 from NN_module.NN.SingleModels.CvT import (
-    DepthPointwiseConv,
     ConvProjectionBlock,
-    StageBlock,
     CvTWorker,
+    DepthPointwiseConv,
+    StageBlock,
 )
 from pytests.test_equivariance._trasl_equiv_check import (
-    equivariance_traslation_all_test,
+    traslation_equivariant,
 )
 
-equivariance_test = equivariance_traslation_all_test  # equivariance_traslation_test
+equivariance_test = traslation_equivariant
 
 key = jax.random.PRNGKey(int(time()))
 lattice_size = (4, 4)

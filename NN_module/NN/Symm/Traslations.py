@@ -1,10 +1,11 @@
-import jax
-import jax.numpy as jnp
-import flax.linen as nn
 from typing import Tuple
 
-from NN_module.NN_utils import traslations_2D
-from NN_module.NN.toolbox import CarreteSign, AddPhase
+import flax.linen as nn
+import jax
+import jax.numpy as jnp
+
+from NN_module.NN.toolbox import AddPhase, CarreteSign
+from NN_module.NN_utils import Translations2D
 
 
 class TraslationExplicit(nn.Module):
@@ -34,9 +35,8 @@ class TraslationExplicit(nn.Module):
             )
         )
 
-
-        # 2D traslation
-        trasl_x = traslations_2D(
+        # 2D translation
+        trasl_x = Translations2D(
             x,
             size=self.lattice_size,
             token_size=None,

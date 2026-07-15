@@ -29,12 +29,12 @@
             "final_architecture":[]
         },
         "ViT2D":{
-            "token_size": [2, 2],
+            "token_size": [1, 1],
             "embedding_d": 60,
             "n_heads": 10,
-            "n_blocks": 2,
+            "n_blocks": 1,
             "n_ffn_layers": 2,
-            "final_architecture": [1]
+            "final_architecture": null
         },
         "VViT":{
             "num_layers": 4,

@@ -1,10 +1,7 @@
-import jax
-import jax.numpy as jnp
-import flax.linen as nn
-from typing import Tuple, AnyStr, Callable
+from typing import AnyStr, Callable, Tuple
 
-from NN_module.NN_utils import traslations_2D
-from NN_module.NN.toolbox import CarreteSign, AddPhase
+import flax.linen as nn
+import jax.numpy as jnp
 
 
 def final_ensemble(ensem_mode: AnyStr = "sum") -> Callable:

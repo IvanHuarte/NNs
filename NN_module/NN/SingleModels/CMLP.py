@@ -1,10 +1,9 @@
-import flax.linen as nn
-import jax
-import jax.numpy as jnp
 from typing import Callable, Tuple
 
+import flax.linen as nn
+import jax.numpy as jnp
+
 from ..toolbox import CDense
-from NN_module.NN_utils import traslations_2D
 
 DTYPE = jnp.float64
 

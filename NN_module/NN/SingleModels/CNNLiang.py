@@ -1,8 +1,7 @@
-import flax.linen as nn
-import netket as nk
-import jax.numpy as jnp
-import jax.typing as jt
 from typing import Tuple
+
+import flax.linen as nn
+import jax.numpy as jnp
 
 from ..toolbox import get_mask
 

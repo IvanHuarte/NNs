@@ -1,17 +1,14 @@
+from typing import Any, Tuple
+
 import flax.linen as nn
 import jax
-import jax.typing as jt
 import jax.numpy as jnp
-from typing import Tuple, Any
+import jax.typing as jt
 from netket.nn.activation import log_cosh
 
 from ..toolbox import (
-    MultiLayerPerceptron,
     DepthPointwiseConv,
-    two_heads,
-    two_heads_phasors,
-    glu_phasor,
-    get_mask,
+    MultiLayerPerceptron,
 )
 
 DTYPE = jnp.float64

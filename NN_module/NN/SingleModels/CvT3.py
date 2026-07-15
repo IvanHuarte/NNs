@@ -1,15 +1,13 @@
+from typing import Tuple
+
 import flax.linen as nn
-import jax
-import jax.typing as jt
 import jax.numpy as jnp
+import jax.typing as jt
 from netket.nn.activation import log_cosh
 
 from ..toolbox import (
-    MultiLayerPerceptron,
     DepthPointwiseConv,
 )
-
-from typing import Tuple
 
 DTYPE = jnp.float64
 
@@ -191,7 +189,6 @@ class CvT3(nn.Module):
                 n_heads=self.attn_heads[i],
                 kernel=self.kernel,
             )(x)
-
 
         # Works with termination module by default
         if self.final_architecture is None:

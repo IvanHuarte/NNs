@@ -1,5 +1,3 @@
-from frozendict import deepfreeze
-import flax.linen as nn
 import jax
 import jax.numpy as jnp
 
@@ -8,12 +6,12 @@ from NN_module.NN import (
     __all_factories__,
     __all_single__,
     __all_symm__,
-    symm_submodule_dict,
     factory_submodule_dict,
     factory_submodule_tags,
+    symm_submodule_dict,
     undefined_submodule_number,
 )
-from NN_module.NN.utils import preprocess_setup, insert_external_kwargs
+from NN_module.NN.utils import insert_external_kwargs, preprocess_setup
 from NN_module.ST_utils import print_tree
 
 
@@ -76,15 +74,11 @@ class NeuralNetwork:
             External parameters to be propagated into the setup.
         """
 
-
         setup = insert_external_kwargs(setup, external_args)
         self.setup = preprocess_setup(setup)
 
         print("\nBuilding Neural Network from setup...\n")
         print_tree(self.setup, values=True)
-
-        print(external_args)
-        print(setup)
 
         self.model = self.build_model(self.setup, external_args)
 
@@ -140,13 +134,12 @@ class NeuralNetwork:
         flax.linen.Module
             Instantiated Flax module corresponding to this subtree.
         """
-        # print(external_args)
         if depth == 0:
-            print(f"Getting wrapped model for symmetrization...")
+            print("Getting wrapped model for symmetrization...")
             clss = self.get_model_class("SymmWrapper")
             NN_model = self.build_model(setup, external_args, depth=1)
-            print(f"Model built and wrapped")
-            return clss(NN_model, lattice_size=(4,4))
+            print("Model built and wrapped\n\n")
+            return clss(NN_model, lattice_size=tuple(external_args["lattice_size"]))
 
         module_name = setup["module"]
         setup = setup["setup"]

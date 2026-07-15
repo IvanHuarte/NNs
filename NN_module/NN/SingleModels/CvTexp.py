@@ -1,10 +1,11 @@
-import flax.linen as nn
-import jax.typing as jt
-import jax.numpy as jnp
 from typing import Tuple
+
+import flax.linen as nn
+import jax.numpy as jnp
+import jax.typing as jt
 from netket.nn.activation import log_cosh
+
 from ..toolbox import (
-    MultiLayerPerceptron,
     DepthPointwiseConv,
 )
 
@@ -35,20 +36,12 @@ class ConvMultiheadAttentionHead(nn.Module):
 
                 norm_factor.append(1.0)
 
-                W_q.append( 
-                    DepthPointwiseConv(
-                        head_dim, kernel=kernel, strides=(1, 1)
-                    )
+                W_q.append(DepthPointwiseConv(head_dim, kernel=kernel, strides=(1, 1)))
+                W_k.append(
+                    DepthPointwiseConv(head_dim, kernel=kernel, strides=self.strides_kv)
                 )
-                W_k.append( 
-                    DepthPointwiseConv(
-                        head_dim, kernel=kernel, strides=self.strides_kv
-                    )
-                )
-                W_v.append( 
-                    DepthPointwiseConv(
-                        head_dim, kernel=kernel, strides=self.strides_kv
-                    )
+                W_v.append(
+                    DepthPointwiseConv(head_dim, kernel=kernel, strides=self.strides_kv)
                 )
 
         self.W_q = tuple(W_q)
@@ -56,21 +49,38 @@ class ConvMultiheadAttentionHead(nn.Module):
         self.W_v = tuple(W_v)
         self.norm_factor = tuple(norm_factor)
 
-
     def __call__(self, x: jt.ArrayLike) -> jt.ArrayLike:
         # print(f"Begging ConvMultiheadAttentionHead")
         # print(f"Input shape: {x.shape}")
 
-        Q = jnp.stack([self.W_q[i](x) / self.norm_factor[i] for i in range(len(self.norm_factor))], axis=1)
-        K = jnp.stack([self.W_k[i](x) / self.norm_factor[i] for i in range(len(self.norm_factor))], axis=1)
-        V = jnp.stack([self.W_v[i](x) / self.norm_factor[i] for i in range(len(self.norm_factor))], axis=1)
+        Q = jnp.stack(
+            [
+                self.W_q[i](x) / self.norm_factor[i]
+                for i in range(len(self.norm_factor))
+            ],
+            axis=1,
+        )
+        K = jnp.stack(
+            [
+                self.W_k[i](x) / self.norm_factor[i]
+                for i in range(len(self.norm_factor))
+            ],
+            axis=1,
+        )
+        V = jnp.stack(
+            [
+                self.W_v[i](x) / self.norm_factor[i]
+                for i in range(len(self.norm_factor))
+            ],
+            axis=1,
+        )
 
-
-        Q = Q.reshape(*Q.shape[0:2], Q.shape[2]*Q.shape[3], Q.shape[4])
-        K = K.reshape(*K.shape[0:2], K.shape[2]*K.shape[3], K.shape[4])
-        V = V.reshape(*V.shape[0:2], V.shape[2]*V.shape[3], V.shape[4])
+        Q = Q.reshape(*Q.shape[0:2], Q.shape[2] * Q.shape[3], Q.shape[4])
+        K = K.reshape(*K.shape[0:2], K.shape[2] * K.shape[3], K.shape[4])
+        V = V.reshape(*V.shape[0:2], V.shape[2] * V.shape[3], V.shape[4])
 
         return Q, K, V
+
 
 class ConvProjectionBlock(nn.Module):
 
@@ -83,7 +93,7 @@ class ConvProjectionBlock(nn.Module):
     def setup(self):
         self.layer_norm_ini = nn.LayerNorm(dtype=DTYPE, param_dtype=DTYPE)
         self.layer_norm_res_1 = nn.LayerNorm(dtype=DTYPE, param_dtype=DTYPE)
-        
+
         self.CMHA = ConvMultiheadAttentionHead(
             channels=self.channels,
             n_heads_per_kernel=self.n_heads_per_kernel,
@@ -128,7 +138,6 @@ class ConvProjectionBlock(nn.Module):
         x = x + self.ff(self.layer_norm_res_1(x))  # Residual connection
 
         return x
-        
 
 
 class StageBlock(nn.Module):
@@ -208,7 +217,9 @@ class CvTexp(nn.Module):
     attn_heads_per_kernel: Tuple[
         Tuple[Tuple[int, int], ...], ...
     ]  # Number of heads per kernel for each in each stage.
-    kernels_per_stage: Tuple = ((3, 3),)  # Kernel size for the convolutional operations (must be 3x3)
+    kernels_per_stage: Tuple = (
+        (3, 3),
+    )  # Kernel size for the convolutional operations (must be 3x3)
     final_architecture: Tuple | None = None
 
     @nn.compact

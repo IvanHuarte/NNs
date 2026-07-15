@@ -1,14 +1,45 @@
+from typing import Callable, Tuple
+
 import flax.linen as nn
 import jax
 import jax.numpy as jnp
 import jax.typing as jt
-from typing import Tuple, Callable
-
 from netket.nn.activation import log_cosh
 
 from ..toolbox import CDense
 
 DTYPE = jnp.float64
+
+
+def sumation(axis):
+    def nruter(x):
+        return jnp.sum(x, axis=axis)
+
+    return nruter
+
+
+def product(axis):
+    def nruter(x):
+        return jnp.prod(x, axis=axis)
+
+    return nruter
+
+
+def average(axis):
+    def nruter(x):
+        return jnp.mean(x, axis=axis)
+
+    return nruter
+
+
+def set_operations(operation, axis):
+
+    if operation == "sum":
+        return sumation(axis)
+    if operation == "prod":
+        return product(axis)
+    if operation == "mean":
+        return average(axis)
 
 
 class Sum(nn.Module):
@@ -30,6 +61,20 @@ class Mean(nn.Module):
 
     @nn.compact
     def __call__(self, x):
+        return jnp.mean(x, axis=self.axis)
+
+
+class FinalFF(nn.Module):
+
+    operation_1: str
+    operation_2: str
+
+    def setup(self):
+        self.operation_1 = set_operations(self.operation_1, axis=(-2, -1))
+        self.operation_2 = set_operations(self.operation_2, axis=-1)
+
+    def __call__(self, x):
+        x = self
         return jnp.mean(x, axis=self.axis)
 
 

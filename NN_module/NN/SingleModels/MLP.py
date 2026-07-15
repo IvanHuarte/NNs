@@ -1,9 +1,7 @@
-import flax.linen as nn
-import jax
-import jax.numpy as jnp
 from typing import Callable, Tuple
 
-from NN_module.NN_utils import traslations_2D
+import flax.linen as nn
+import jax.numpy as jnp
 
 RDTYPE = jnp.float64
 CDTYPE = jnp.complex128
@@ -23,7 +21,9 @@ class MLP(nn.Module):
     def __call__(self, x):
 
         B = x.shape[0]
-        hidden_dims = tuple([int(ha * x.shape[1]* x.shape[2]) for ha in self.hidden_alpha])
+        hidden_dims = tuple(
+            [int(ha * x.shape[1] * x.shape[2]) for ha in self.hidden_alpha]
+        )
 
         for hi, act in zip(hidden_dims, self.activation):
             x = nn.Dense(features=hi, param_dtype=DTYPE)(x)

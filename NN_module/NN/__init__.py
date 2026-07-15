@@ -1,45 +1,44 @@
 # Importation of factories
 from .Factories import (
+    Sequential,
+    Sequivariant,
     SingleModule,
     SplitTraining,
-    Sequential,
     Transversal,
 )
 
 # Importation of single modules
 from .SingleModels import (
+    CMLP,
     CNN,
+    MLP,
+    CNNbinClsf,
+    CNNClsf,
     CNNLiang,
+    CNNPh,
+    CNNSzabo,
+    ComplexHead,
     CvT,
     CvT2,
     CvT3,
     CvTaps,
     CvTexp,
-    MLP,
-    CMLP,
-    ViT2D,
-    VViT,
-    CNNPh,
+    DeepOutputHead,
     EDPPh,
-    CNNClsf,
-    CNNbinClsf,
-    CNNSzabo,
     Factorized,
     FactorMod,
     Jastrow_wrap,
-    Sum,
     Mean,
     OutputHead,
-    DeepOutputHead,
-    ComplexHead,
+    Sum,
     SzaboOutput,
+    ViT2D,
+    VViT,
 )
 
-from .toolbox import MarshallSign, CarreteSign
-
 # Importation of symmetrization modules
-from .Symm import SymmWrapper
-from .Symm import Z2, Traslation
+from .Symm import Z2, SymmWrapper, Traslation
+from .toolbox import CarreteSign, MarshallSign
 
 # Final Architecture modules
 
@@ -49,6 +48,7 @@ __all_factories__ = [
     "SingleModule",
     "SplitTraining",
     "Sequential",
+    "Sequivariant",
     "Transversal",
 ]
 
@@ -96,6 +96,7 @@ REGISTRY_FACTORIES = {
     "SingleModule": SingleModule,
     "SplitTraining": SplitTraining,
     "Sequential": Sequential,
+    "Sequivariant": Sequivariant,
     "Transversal": Transversal,
 }
 
@@ -139,13 +140,6 @@ REGISTRY = {None: None, **REGISTRY_SINGLE, **REGISTRY_FACTORIES, **REGISTRY_SYMM
 # Diccionarios de modulos que necesitan argumentos externos
 LATTICE_SIZE = {
     "lattice_size": [
-        "CNN",
-        "CNNLiang",
-        "CvT",
-        "CvT2",
-        "CvT3",
-        "CvTaps",
-        "CvTexp",
         "CNNPh",
         "EDPPh",
         "CNNClsf",
@@ -153,8 +147,6 @@ LATTICE_SIZE = {
         "CNNSzabo",
         "MarshallSign",
         "CarreteSign",
-        "ViT2D",
-        "ViT",
         "Factorized",
         "FactorMod",
         "SzaboOutput",
@@ -162,8 +154,12 @@ LATTICE_SIZE = {
 }
 
 # Modulos de simetrizacion
-LATTICE_SIZE["lattice_size"].extend(("SymmWrapper", "Traslation",))
-print(LATTICE_SIZE)
+LATTICE_SIZE["lattice_size"].extend(
+    (
+        "SymmWrapper",
+        "Traslation",
+    )
+)
 
 EXTERNAL_ARGS = {**LATTICE_SIZE}
 
@@ -172,6 +168,7 @@ factory_submodule_dict = {
     "SingleModule": "Single",
     "SplitTraining": ["Modulus", "Phase"],
     "Sequential": "Seq",
+    "Sequivariant": "SeqV",
     "Transversal": "Trans",
 }
 symm_submodule_dict = {
@@ -180,6 +177,20 @@ symm_submodule_dict = {
     "Traslation": "TWrap",
 }
 
-undefined_submodule_number = ["Sequential", "Transversal"]
+undefined_submodule_number = ["Sequential", "Sequivariant", "Transversal"]
 
-factory_submodule_tags = ["Wrap", "Single", "Modulus", "Phase", "Seq", "Trans"]
+factory_submodule_tags = ["Wrap", "Single", "Modulus", "Phase", "Seq", "SeqV", "Trans"]
+
+
+def get_submodules(father, n_mod):
+    if father == "Sequential":
+        submodules = [f"Seq_{i}" for i in range(n_mod)]
+    if father == "Sequivariant":
+        submodules = [f"SeqV_{i}" for i in range(n_mod)]
+    elif father == "Transversal":
+        submodules = [f"Trans_{i}" for i in range(n_mod)]
+    elif father == "SplitTraining":
+        submodules = ["Modulus", "Phase"]
+    elif father == "SingleModule":
+        submodules = ["Single"]
+    return submodules

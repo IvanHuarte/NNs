@@ -1,15 +1,7 @@
-import flax.linen as nn
-import jax
-import jax.numpy as jnp
-import jax.typing as jt
 from typing import Callable, Tuple
 
-from ..toolbox import (
-    MultiLayerPerceptron,
-    two_heads,
-    two_heads_phasors,
-    glu_phasor,
-)
+import flax.linen as nn
+import jax.numpy as jnp
 
 DTYPE = jnp.float64
 

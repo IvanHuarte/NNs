@@ -1,22 +1,23 @@
-import jax
-import flax.linen as nn
+from typing import Callable, Sequence, Tuple
 
+import flax.linen as nn
+import jax
+import jax.numpy as jnp
+import jax.typing as jt
+from flax.linen.dtypes import promote_dtype
+from flax.linen.linear import PromoteDtypeFn
 from flax.typing import (
     Dtype,
     Initializer,
+)
+from flax.typing import (
     PRNGKey as PRNGKey,
+)
+from flax.typing import (
     Shape as Shape,
 )
-import jax
-import jax.typing as jt
-import jax.numpy as jnp
-from flax.linen.dtypes import promote_dtype
-from flax.linen.linear import PromoteDtypeFn
-from typing import Callable, Sequence, Tuple, Any
 
-from optax import log_cosh
-
-from NN_module.NN_utils import traslations_2D
+from NN_module.NN_utils import Translations2D
 
 REAL_DTYPE = jnp.float64
 
@@ -72,7 +73,7 @@ def get_min_idx(x):
 def batched_get_anchor(size, memory=True):
     def core(_, x):
         x = jnp.atleast_2d(x)  # (1, N)
-        x = traslations_2D(x, size, memory=memory)  # (N, N)
+        x = Translations2D(x, size, memory=memory)  # (N, N)
         idx = get_min_idx(x)
         return _, idx
 
@@ -363,7 +364,7 @@ class CarreteSign(nn.Module):
 
         else:
             x = (
-                traslations_2D(x, self.size, memory=True)
+                Translations2D(x, self.size, memory=True)
                 .reshape(N, B, N)
                 .transpose((1, 0, 2))
             )

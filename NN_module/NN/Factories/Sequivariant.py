@@ -10,15 +10,21 @@ def get_characters(
     """
     Get the characters of the irrep for the given input x
     """
-    n, m = jnp.unravel_index(
-        jnp.arange(jnp.prod(jnp.array(lattice_size))), lattice_size
-    )
+    ys = jnp.arange(0, lattice_size[0])
+    xs = jnp.arange(0, lattice_size[1])
+
+    yy, xx = jnp.meshgrid(ys, xs, indexing="ij")
+    indexes = jnp.stack([yy, xx], axis=-1)
+
+    n = indexes[..., 0].flatten()
+    m = indexes[..., 1].flatten()
 
     characters = jnp.exp(
         2j * jnp.pi * (irrep[0] * n / lattice_size[0] + irrep[1] * m / lattice_size[1])
-    )
+    ).reshape(1, *lattice_size)
+    print(characters)
 
-    return characters[None, :, None]
+    return characters
 
 
 class Sequivariant(nn.Module):
@@ -26,30 +32,25 @@ class Sequivariant(nn.Module):
     Flax module to project an equivariant module to an irrep
     """
 
-    lattice_size: Tuple[int, int]
-
-    Seq: Tuple[nn.Module, ...]
+    SeqV: Tuple[nn.Module, ...]
     irrep: Tuple[int, int] = (0, 0)
-
-    def setup(self):
-
-        self.backbone = self.Seq[:-1]
-        self.final_head = self.Seq[-1]
-        self.irrep = self.irrep
-        self.lattice_size = self.lattice_size
-        self.chars = get_characters(self.lattice_size, self.irrep)
 
     def __call__(self, x: jnp.ndarray) -> jnp.ndarray:
 
-        for module in self.backbone:
+        for module in self.SeqV[:-1]:
             x = module(x)
-        # x = (B, N, C)
-        log_psi = self.final_head(x)
-        # log_psi = (B, 1)
+
+        _, H, W, _ = x.shape
+
+        characters = get_characters((H, W), self.irrep)  # (B, H, W)
 
         # Get Theta_K
-        phase_k = jnp.angle((self.chars * x[:, :, 0]).sum(axis=1))  # (B, 1)
+        phase_k = jnp.angle((characters * x[:, :, :, 0]).sum(axis=(1, 2)))[
+            :, None
+        ]  # phase_k = (B, 1)
 
-        log_psi_k = log_psi + 1j * phase_k
+        log_psi = self.SeqV[-1](x)  # log_psi = (B, 1)
+
+        log_psi_k = log_psi + 1j * phase_k  # log_psi_k = (B, 1)
 
         return log_psi_k

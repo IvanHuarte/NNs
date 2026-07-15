@@ -15,12 +15,10 @@
 from typing import Tuple
 
 import flax.linen as nn
-import jax
 import jax.numpy as jnp
 import jax.typing as jt
-import numpy.typing as npt
 
-from ..toolbox import MultiLayerPerceptron, traslations_2D
+from ..toolbox import MultiLayerPerceptron, Translations2D
 
 DTYPE = jnp.float64
 
@@ -39,165 +37,20 @@ def Tokenize(token_size, tok_lat_size, token_dim):
                 order="C",
             )
             .transpose((0, 1, 3, 2, 4))
-            .reshape(x.shape[0], -1, token_dim)
+            .reshape(x.shape[0], *tok_lat_size, token_dim)
         )
 
     return nruter
 
 
-def make_circulant(tile: npt.ArrayLike, roll_axis: int = -1) -> npt.ArrayLike:
-    """Add an axis to an array making it circulant.
-
-    Args:
-        tile: the building block of the circulant array.
-        roll_axis: axis over which to roll the tile each time it is repeated.
-
-    Returns:
-        A new array with all the offset versions of the tile.
-    """
-    tile = jnp.asarray(tile)
-
-    def scan_arg(carry, _):
-        new_carry = jnp.roll(carry, -1, axis=roll_axis)
-        return (new_carry, new_carry)
-
-    nruter = jax.lax.scan(scan_arg, tile, length=tile.shape[roll_axis])[1][::-1, ...]
-
-    return nruter
-
-
-def create_2D_circulant_from_motif(motif: npt.ArrayLike) -> npt.ArrayLike:
-    """Create a circulant attention array for a 2D system from a 2D motif.
-
-    Args:
-        motif: the repeating motif.
-
-    Returns:
-        The attention (a 4D array).
-    """
-    with_three_axes = make_circulant(motif, 1)
-    with_four_axes = make_circulant(with_three_axes, 1)
-
-    return with_four_axes
-
-
-class AffinityPosWeight2D(nn.Module):
-    "Flax module that implements a circular positional attention in 2D."
-
-    @nn.compact
-    def __call__(self, x: jt.ArrayLike) -> jt.ArrayLike:
-        weight_motif = self.param(
-            "alpha_delta",
-            nn.initializers.glorot_normal(),
-            (x.shape[-3], x.shape[-2]),
-            DTYPE,
-        )
-        print(x.shape)
-        # weight = create_2D_circulant_from_motif(weight_motif)
-
-        # MY WAY
-        weight_motif = weight_motif[None, ...].reshape(1, x.shape[-3] * x.shape[-2], -1)
-        weight = (
-            traslations_2D(x=weight_motif, size=(4, 4), memory=False)
-            .reshape(1, x.shape[-3], x.shape[-2], x.shape[-3], x.shape[-2])
-            .squeeze()
-        )
-        print(weight.shape)
-
-        return jnp.einsum("ijkl,klm->ijm", weight, x)
-
-
-class PositionalHead2D(nn.Module):
-    """Flax module that implements a single head of linearized attention in 2D.
-
-    Args:
-        head_size: The dimension of the head.
-    """
-
-    head_size: int
-
-    @nn.compact
-    def __call__(self, x: jt.ArrayLike) -> jt.ArrayLike:
-        value = nn.Dense(self.head_size, use_bias=False, param_dtype=DTYPE)
-        aff = AffinityPosWeight2D()
-
-        return aff(value(x))
-
-
-class TestModule(nn.Module):
-
-    lattice_size: Tuple[int, int]
-    token_lattice_size: Tuple[int, int]
-    head_size: int
-    n_heads: int
-    embedding_d: int
-    token_size: Tuple
-
-    @nn.compact
-    def __call__(self, x: jt.ArrayLike) -> jt.ArrayLike:
-        print(x.shape, self.token_lattice_size)
-        token_dim = self.token_size[0] * self.token_size[1]
-        token_lattice_size = (
-            self.lattice_size[0] // self.token_size[0],
-            self.lattice_size[1] // self.token_size[1],
-        )
-
-        x = Tokenize(self.token_size, token_lattice_size, token_dim)(x)
-        x = nn.Dense(self.embedding_d, param_dtype=DTYPE)(x)
-        # Equivariante hasta aqui
-
-        head_size = self.embedding_d // self.n_heads
-
-        # x = MultiHeadPositionalAttention(
-        #     self.token_lattice_size, self.n_heads, head_size
-        # )(x)
-
-        return x
-
-
-# class AffinityPosWeight(nn.Module):
-#     "Flax module that multiplies by a circulant matrix."
-
-#     token_lattice_size: Tuple[int, int]
-
-#     @nn.compact
-#     def __call__(self, x: jt.ArrayLike) -> jt.ArrayLike:
-
-#         # Traslation 2D
-#         weight_row = self.param(
-#             "alpha_delta",
-#             nn.initializers.truncated_normal(stddev=jnp.sqrt(1.0 / x.shape[-2])),
-#             (x.shape[-2],),
-#             DTYPE,
-#         )
-#         weight = traslations_2D(
-#             x=weight_row, size=self.token_lattice_size, memory=False
-#         )
-
-#         print(f"weight: {weight.shape}")
-#         print(f"x: {x.shape}")
-#         # print((weight @ x).shape)
-#         y = jnp.einsum("mn,inc->imc", weight, x)
-#         print(y.shape)
-#         return y.reshape(y.shape[0], *self.token_lattice_size, y.shape[-1])
-
-
-# return weight @ x.
-#
-#
 class AffinityPosWeight(nn.Module):
     "Flax module that multiplies by a circulant matrix."
 
-    #
     token_lattice_size: Tuple[int, int]
 
-    #
     @nn.compact
     def __call__(self, x: jt.ArrayLike) -> jt.ArrayLike:
-        x_in_shape = x.shape
-        x = x.reshape(x.shape[0], *self.token_lattice_size, x.shape[-1])
-        #
-        # Traslation 2D
+
         weight_row = self.param(
             "alpha_delta",
             nn.initializers.truncated_normal(stddev=jnp.sqrt(1.0 / x.shape[-2])),
@@ -205,19 +58,16 @@ class AffinityPosWeight(nn.Module):
             DTYPE,
         )
         #
-        weight = weight_row[None, ...].reshape(1, x.shape[-3] * x.shape[-2], -1)
-        weight = (
-            traslations_2D(x=weight, size=(4, 4), memory=False)
-            .reshape(1, x.shape[-3], x.shape[-2], x.shape[-3], x.shape[-2])
-            .squeeze()
-        )
-        #
-        print(f"weight: {weight.shape}")
-        print(f"x: {x.shape}")
-        # print((weight @ x).shape)
+        weight = Translations2D(
+            x=weight_row[None, ..., None], save_memory=False
+        ).squeeze((-1, 0))
+
+        # print(f"weight: {weight.shape}")
+        # print(f"x: {x.shape}")
+
         y = jnp.einsum("ijkl,Bklc->Bijc", weight, x)
-        print(y.shape)
-        return y.reshape(*x_in_shape)
+        # print(y.shape)
+        return y
 
 
 class PositionalHead(nn.Module):
@@ -345,9 +195,7 @@ class ViT2D(nn.Module):
 
         x = Tokenize(self.token_size, token_lattice_size, token_dim)(x)
         embedding = nn.Dense(self.embedding_d, param_dtype=DTYPE)
-
         x = embedding(x)
-        # print(f"x_embedd: {x.shape}")
 
         blocks = [
             ViT2DBlock(token_lattice_size, self.n_heads, self.n_ffn_layers)

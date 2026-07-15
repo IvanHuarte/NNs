@@ -14,12 +14,12 @@
     "symmetries":{
         
         "Traslation":{
-            "on": false,
+            "on": true,
             "subgroup":[1, 0]
         },
 
         "Z2":{
-            "on":true
+            "on":false
         },
 
         "Cn":{
@@ -55,7 +55,7 @@
         "S_operators": false,
 
         "CM": {
-            "selection": "Oxalate",
+            "selection": "IsingSquare",
 
             "Oxalate":{
                 "strength": 0.2,
@@ -72,6 +72,14 @@
                 "alpha_list": [2.5],
                 "fields": [1.0, 0.0],
                 "ops": [["Y","Z"],["ZZ"]]
+            },
+
+            "IsingSquare":{
+                "J_list": [ 
+                    -1.2, -0.7, -0.1, 0.1, 0.7, 1.2
+                ],
+                "fields": [-1.0],
+                "ops": [["X"],["ZZ"]]
             },
 
             "LRSquare":{

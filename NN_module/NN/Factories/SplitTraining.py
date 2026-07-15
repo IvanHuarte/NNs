@@ -1,10 +1,5 @@
-import jax
-import jax.numpy as jnp
 import flax.linen as nn
-from typing import Tuple, Callable
-
-from NN_module.NN_utils import traslations_2D
-from NN_module.NN.toolbox import CarreteSign, AddPhase
+import jax.numpy as jnp
 
 
 class SplitTraining(nn.Module):

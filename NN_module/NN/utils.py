@@ -1,9 +1,7 @@
-import os
 import json
-import jax
-import jax.numpy as jnp
-import flax
+
 import flax.linen as nn
+import jax.numpy as jnp
 import netket as nk
 import orbax.checkpoint as ocp
 
@@ -12,6 +10,8 @@ from NN_module.NN import (
     __all_single__,
     factory_submodule_dict,
     factory_submodule_tags,
+    get_submodules,
+    symm_submodule_dict,
 )
 
 
@@ -179,18 +179,6 @@ def insert_external_kwargs(setup: dict, external_args: dict):
 #############################################
 
 
-def get_submodules(father, n_mod):
-    if father == "Sequential":
-        submodules = [f"Seq_{i}" for i in range(n_mod)]
-    elif father == "Transversal":
-        submodules = [f"Trans_{i}" for i in range(n_mod)]
-    elif father == "SplitTraining":
-        submodules = ["Modulus", "Phase"]
-    elif father == "SingleModule":
-        submodules = ["Single"]
-    return submodules
-
-
 def recursive_build_NN(template, storage, father="", depth=0):
 
     config = {}
@@ -344,8 +332,6 @@ get_code_dict:{                get_code2path:{                        get_code2p
 }                              }                                      }
                                     
 """
-
-from NN_module.NN import symm_submodule_dict
 
 
 def get_leafcode_dict(node, idx=""):
