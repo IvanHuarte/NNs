@@ -22,7 +22,7 @@ def get_characters(
     characters = jnp.exp(
         2j * jnp.pi * (irrep[0] * n / lattice_size[0] + irrep[1] * m / lattice_size[1])
     ).reshape(1, *lattice_size)
-    print(characters)
+    # print(characters)
 
     return characters
 

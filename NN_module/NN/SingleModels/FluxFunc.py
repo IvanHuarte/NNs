@@ -9,6 +9,7 @@ from netket.nn.activation import log_cosh
 from ..toolbox import CDense
 
 DTYPE = jnp.float64
+CDTYPE = jnp.complex128
 
 
 def sumation(axis):
@@ -66,16 +67,27 @@ class Mean(nn.Module):
 
 class FinalFF(nn.Module):
 
+    channels: int
     operation_1: str
     operation_2: str
 
     def setup(self):
-        self.operation_1 = set_operations(self.operation_1, axis=(-2, -1))
-        self.operation_2 = set_operations(self.operation_2, axis=-1)
+        self.op_1 = set_operations(self.operation_1, axis=(-2, -1))
+        self.op_2 = set_operations(self.operation_2, axis=-1)
+        self.norm = nn.LayerNorm(param_dtype=DTYPE)
+
+        self.ffw = nn.Dense(
+            self.channels, 
+            use_bias=True,
+            param_dtype=DTYPE,
+            kernel_init=nn.initializers.xavier_uniform(),
+            bias_init=jax.nn.initializers.zeros,    
+        )
 
     def __call__(self, x):
-        x = self
-        return jnp.mean(x, axis=self.axis)
+        x = self.op_1(self.norm(x))
+        x = self.ffw(x)
+        return self.op_2(log_cosh(x)).astype(dtype=CDTYPE)[:, None]
 
 
 class OutputHead(nn.Module):

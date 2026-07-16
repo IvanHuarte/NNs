@@ -34,6 +34,7 @@ from .SingleModels import (
     SzaboOutput,
     ViT2D,
     VViT,
+    FinalFF,
 )
 
 # Importation of symmetrization modules
@@ -80,6 +81,7 @@ __all_single__ = [
     "SzaboOutput",
     "Sum",
     "Mean",
+    "FinalFF",
 ]
 
 __all_symm__ = [
@@ -125,6 +127,7 @@ REGISTRY_SINGLE = {
     "OutputHead": OutputHead,
     "DeepOutputHead": DeepOutputHead,
     "ComplexHead": ComplexHead,
+    "FinalFF": FinalFF,
     "SzaboOutput": SzaboOutput,
     "Sum": Sum,
     "Mean": Mean,
