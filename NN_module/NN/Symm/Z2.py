@@ -16,14 +16,14 @@ class Z2Standard(nn.Module):
         output_inv_x = jnp.atleast_1d(self.worker(-x))
 
         # Concatenamos las dos contribuciones
-        z2_stack = jnp.stack([output_x, output_inv_x], axis=0)
+        z2_stack = jnp.stack([output_x, output_inv_x], axis=1)
 
         if self.trivial_Z2:
-            res = jax.nn.logsumexp(z2_stack, axis=0)
+            res = jax.nn.logsumexp(z2_stack, axis=1)
             return res
         else:
-            b = jnp.array([1.0, -1.0])[:, None]
-            res = jax.nn.logsumexp(z2_stack, b=b, axis=0)
+            b = jnp.array([1.0, -1.0])[None, :, None]
+            res = jax.nn.logsumexp(z2_stack, b=b, axis=1)
             return res
 
 

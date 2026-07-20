@@ -50,10 +50,10 @@
             "prules": [0.7, 0.1, 0.2],
             "initial_state": "hilbert"
         },
-        "n_chains_per_rank": 2048,
+        "n_chains_per_rank": 1024,
         "n_samples_per_chain": 1,
         "chunk_sampler": null,
-        "chunk_vstate": 2048
+        "chunk_vstate": 1024
     },
 
 
@@ -63,7 +63,7 @@
             "epochs_struct":[
                 
                 [ 
-                    [100, 200]
+                    [400, 100, 300]
                 ]
                 
             ],
@@ -71,14 +71,14 @@
             "modes_struct":[
                 
                 [
-                    [["A"], ["A"]]
+                    [["A"], ["A"], ["A"]]
                 ]
                 
             ],
             "lr_struct":[
                 
                 [
-                    [ [0.01], ["exp(0.01, 0.0001)"]]
+                    [ [0.005], ["exp(0.005, 0.0005)"], ["lin(0.0005, 0.0001)"]]
                 ]
                 
             ],
