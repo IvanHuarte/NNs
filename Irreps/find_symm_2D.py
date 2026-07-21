@@ -1,24 +1,24 @@
 #!/home/ihuarte/Escritorio/Ivan/NNs/.venv/bin/python
 
 import json
-from pathlib import Path
 import sys
+from pathlib import Path
 
 import jax
+
 jax.config.update("jax_enable_x64", True)
 jax.config.update("jax_platform_name", "cpu")
 import jax.nn
 import jax.numpy as jnp
-import jax.numpy.linalg as jla
 import jax.typing
+import matplotlib
+import matplotlib.colors as colors
+import matplotlib.pyplot as plt
 import netket as nk
 import numpy as np
 import numpy.linalg
 import scipy as sp
 import scipy.linalg
-import matplotlib
-import matplotlib.pyplot as plt
-import matplotlib.colors as colors
 import seaborn as sns
 
 cmap = colors.LinearSegmentedColormap.from_list(
@@ -27,9 +27,9 @@ cmap = colors.LinearSegmentedColormap.from_list(
 
 matplotlib.rcParams["font.size"] = 12
 
-from Irreps.utils import svds_orth
-from VA_project.initialize_model import ModelFactory
 from VA_project.engine.runners import Runner
+from VA_project.initialize_model import ModelFactory
+
 from Irreps.SymmBuilder import SymmGroup, _all_idx_combinations
 
 path = str(Path(__file__).resolve().parent) + "/"
@@ -71,32 +71,27 @@ for size in sizes:
         print(f"\n************************ {cm_model_name} ************************")
         print(f"Size: {size}")
         print(f"Parameters: \n{params}")
-        print(f"*************************************************************\n")
+        print("*************************************************************\n")
 
         cm_model = model_factory.get_model()
         eng = Runner(cm_model.cm, S_operators=model_factory.S_operators)
         E_ED = eng.exact_energy_lanczos(hilbert, k=5)
         print(f"Full H: {np.sort(E_ED)}")
 
-
         # Build the Hamiltonian
         H = eng.build_hamiltonian(hilbert)
         H_dense = H.to_dense()
 
-
         configurations = hilbert.all_states()
         n_configurations = configurations.shape[0]
 
-        print(f"Initializing symmetry group...")
+        print("Initializing symmetry group...")
 
         group = SymmGroup(
-            symmetries_config, 
-            lattice_size=size,
-            all_states=configurations
+            symmetries_config, lattice_size=size, all_states=configurations
         )
 
-
-        print(f"Calculation unitary representations...\n")
+        print("Calculation unitary representations...\n")
         # Generate the unitary representations for all symmetry operations
         representations = group.get_unitary_representations(configurations)
 
@@ -104,24 +99,30 @@ for size in sizes:
         all_conmutes = True
         for i in range(n_symmetries):
             U = representations[i]
-            conmutes = np.allclose(H_dense @ U - U @ H_dense, np.zeros(H_dense.shape, dtype=np.complex128))
+            conmutes = np.allclose(
+                H_dense @ U - U @ H_dense, np.zeros(H_dense.shape, dtype=np.complex128)
+            )
             print(f"Conmutes with H?: {conmutes}")
             all_conmutes = all_conmutes and conmutes
 
         print(f"All symmetries commute with H?: {all_conmutes}")
-        print(np.unravel_index(
+        print(
+            np.unravel_index(
                 np.arange(n_symmetries * n_symmetries), (n_symmetries, n_symmetries)
-                ))
-            
-        if n_symmetries > 1:
-            for i, j in zip(*np.unravel_index(
-                np.arange(n_symmetries * n_symmetries), (n_symmetries, n_symmetries)
-                )):
-                U_i, U_j = representations[i], representations[j]
-                conmutes = np.allclose(U_i @ U_j - U_j @ U_i, np.zeros(U_i.shape, dtype=np.complex128))
-                print(f"Conmutes U_{i} with U_{j}?: {conmutes}")
-    
+            )
+        )
 
+        if n_symmetries > 1:
+            for i, j in zip(
+                *np.unravel_index(
+                    np.arange(n_symmetries * n_symmetries), (n_symmetries, n_symmetries)
+                )
+            ):
+                U_i, U_j = representations[i], representations[j]
+                conmutes = np.allclose(
+                    U_i @ U_j - U_j @ U_i, np.zeros(U_i.shape, dtype=np.complex128)
+                )
+                print(f"Conmutes U_{i} with U_{j}?: {conmutes}")
 
         # Compute irrep projectors
         q_idx_generator = _all_idx_combinations(group.N_group)
@@ -129,13 +130,17 @@ for size in sizes:
         for i, q_vector in enumerate(q_idx_generator):
             print(f"Processing q_vector: {q_vector}")
             projector = group.get_irrep_projector(representations, q_vector)
-            print(f"Conmutes?: {np.allclose(H_dense @ projector - projector @ H_dense, np.zeros(H_dense.shape, dtype=complex))}")
+            print(
+                f"Conmutes?: {np.allclose(H_dense @ projector - projector @ H_dense, np.zeros(H_dense.shape, dtype=complex))}"
+            )
             print(np.linalg.matrix_rank(projector))
 
             # np.savetxt(folder_path + f"{sim_label}_irrep_{q_vector}_projector.txt", projector)
 
             print("Estimating irrep dimension...")
-            irrep_dim_est = int(round(np.real(np.trace(projector))/ group._group_norm()))
+            irrep_dim_est = int(
+                round(np.real(np.trace(projector)) / group._group_norm())
+            )
             print(f"Building irrep basis via svds_orth k={irrep_dim_est}\n")
 
             # Q[q_vector] = svds_orth(projector, k=irrep_dim_est)
@@ -182,7 +187,15 @@ for size in sizes:
         else:
             conmute_label = r"$[H,G]\;\neq\;0$"
 
-        ax1.text(0.5, -0.1, conmute_label, ha="center", va="center", transform=ax1.transAxes, fontsize=10)
+        ax1.text(
+            0.5,
+            -0.1,
+            conmute_label,
+            ha="center",
+            va="center",
+            transform=ax1.transAxes,
+            fontsize=10,
+        )
 
         # --- Figura 2: eigenvalues ---
         fig2, ax2 = plt.subplots(figsize=(20, 20))
@@ -194,8 +207,16 @@ for size in sizes:
             print(f"Diagonalizing {q_vector}...")
             basis = Q[q_vector]
             block = basis.conj().T @ H_dense @ basis
-            eigvals[q_vector] = sp.linalg.eigvalsh(block)
-            # np.savetxt(folder_path + f"Spectrum_{sim_label}_irrep_{q_vector}.txt", eigvals[q_vector])
+            evals, evect = sp.linalg.eigh(
+                block,
+            )
+            eigvals[q_vector] = evals
+            # print(evals.shape)
+            # print(evect.shape)
+            np.savetxt(
+                folder_path + f"Spectrum_{sim_label}_irrep_{q_vector}.txt",
+                eigvals[q_vector],
+            )
 
             # print("E =", eigvals[q_vector][:5])
             global_min = min(global_min, eigvals[q_vector].min())
@@ -213,6 +234,10 @@ for size in sizes:
                 marker="o",
                 s=100,
             )
+            irrep_gr = min(eigvals[q_vector])
+            irrep_max = max(eigvals[q_vector])
+            interval = irrep_max - irrep_gr
+            ax2.text(i - 0.3, irrep_gr - interval / 20, f"{irrep_gr:.4f}")
 
         ax2.set_title(
             f"Eigenvalues per irrep {cm_model_name} {params} {size[0]}x{size[1]}"
