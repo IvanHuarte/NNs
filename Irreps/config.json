@@ -15,7 +15,7 @@
         
         "Traslation":{
             "on": true,
-            "subgroup":[1, 0]
+            "subgroup":[0, 1]
         },
 
         "Z2":{
@@ -45,7 +45,7 @@
 
         "mode": "zip",
         
-        "sizes":[[3,3], [3,4]],
+        "sizes":[[3,4]],
 
         "kwargs_lattice" : {
             "bc":"periodic",

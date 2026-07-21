@@ -10,14 +10,17 @@ def get_characters(
     """
     Get the characters of the irrep for the given input x
     """
-    ys = jnp.arange(0, lattice_size[0])
     xs = jnp.arange(0, lattice_size[1])
+    ys = jnp.arange(0, lattice_size[0])
 
     yy, xx = jnp.meshgrid(ys, xs, indexing="ij")
     indexes = jnp.stack([yy, xx], axis=-1)
 
     n = indexes[..., 0].flatten()
     m = indexes[..., 1].flatten()
+
+    # print(f"n: \n{n}")
+    # print(f"m: \n{m}")
 
     characters = jnp.exp(
         2j * jnp.pi * (irrep[0] * n / lattice_size[0] + irrep[1] * m / lattice_size[1])
