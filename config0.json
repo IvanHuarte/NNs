@@ -28,12 +28,12 @@
         },
         "sanity_setup":{
             "do_each": 1,
-            "mode": "rich",
+            "mode": "simple",
             "verbose": 3,
             "metrics": {
-                "gradients": false,
-                "sampling":  true,
-                "sample_histogram": true,
+                "gradients": true,
+                "sampling":  false,
+                "sample_histogram": false,
                 "phase":     false
             }
         },
@@ -50,10 +50,10 @@
             "prules": [0.7, 0.1, 0.2],
             "initial_state": "hilbert"
         },
-        "n_chains_per_rank": 1024,
+        "n_chains_per_rank": 2048,
         "n_samples_per_chain": 1,
         "chunk_sampler": null,
-        "chunk_vstate": 1024
+        "chunk_vstate": 2048
     },
 
 
@@ -63,7 +63,7 @@
             "epochs_struct":[
                 
                 [ 
-                    [400, 100, 300]
+                    [100, 100, 400, 100, 300]
                 ]
                 
             ],
@@ -78,7 +78,7 @@
             "lr_struct":[
                 
                 [
-                    [ [0.005], ["exp(0.005, 0.0005)"], ["lin(0.0005, 0.0001)"]]
+                    [ ["lin(0.001, 0.001)"], ["lin(0.001, 0.005)"], [0.005], ["exp(0.005, 0.0005)"], ["lin(0.0005, 0.0001)"]]
                 ]
                 
             ],

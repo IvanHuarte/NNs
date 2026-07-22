@@ -150,8 +150,6 @@ class CvT(nn.Module):
            modulus and phase. Otherwise, it returns a real-valued output.
     """
 
-    lattice_size: Tuple[int, int]
-
     n_CP_blocks: Tuple[
         int, ...
     ]  # Number of convolutional projection blocks in each stage

@@ -1,6 +1,6 @@
 {
 
-    "selection": "TestViT2DOH23",
+    "selection": "TestViT2DOH10",
 
     "load_model": {
 
@@ -14,15 +14,33 @@
         ]
     },
 
-    "TestViT2DOH23":{
+    
+    "TestViT2DOH10":{
+        "stage0":{
+            "template":{
+                
+                "Sequivariant": {
+                    "ViT2D":{},
+                    "OutputHead":{},
+                    "irrep": [1, 0]
+                }
+            },
+            "load": [
+                ["stageX0", "0", "0"],
+                ["stageX0", "1", "1"]
+            ],
+            "save_params": true
+        }
+    },
+    "TestCvTOH10":{
 
         "stage0":{
             "template":{
 
                 "Sequivariant": {
-                    "ViT2D":{},
+                    "CvT":{},
                     "OutputHead":{},
-                    "irrep": [2, 3]
+                    "irrep": [1, 0]
                 }
             },
             "load": [

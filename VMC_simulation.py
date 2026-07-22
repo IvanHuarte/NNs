@@ -191,7 +191,7 @@ for i, size in enumerate(sizes):
         total_epochs = schedule.total_epochs
         schedule_setup["total_epochs"] = total_epochs
 
-        ds_schedule = jnp.linspace(2e-4, 1e-4, total_periods, dtype=jnp.float64)
+        ds_schedule = jnp.linspace(2e-1, 1e-4, total_periods, dtype=jnp.float64)
 
         #### INITIALIZE CALLBACKS ####
         if config["callback"]["checkpoint"]:

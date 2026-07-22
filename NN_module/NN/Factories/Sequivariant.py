@@ -1,4 +1,5 @@
 from typing import Tuple
+import jax
 
 import flax.linen as nn
 import jax.numpy as jnp
@@ -23,7 +24,7 @@ def get_characters(
     # print(f"m: \n{m}")
 
     characters = jnp.exp(
-        2j * jnp.pi * (irrep[0] * n / lattice_size[0] + irrep[1] * m / lattice_size[1])
+        -2.0j * jnp.pi * (irrep[0] * n / lattice_size[0] + irrep[1] * m / lattice_size[1])
     ).reshape(1, *lattice_size)
     # print(characters)
 
@@ -48,12 +49,18 @@ class Sequivariant(nn.Module):
         characters = get_characters((H, W), self.irrep)  # (B, H, W)
 
         # Get Theta_K
-        phase_k = jnp.angle((characters * x[:, :, :, 0]).sum(axis=(1, 2)))[
+        phase_k = jnp.angle((characters * x[:, :, :, 0].astype(jnp.complex128)).sum(axis=(1, 2)))[
             :, None
         ]  # phase_k = (B, 1)
 
         log_psi = self.SeqV[-1](x)  # log_psi = (B, 1)
 
         log_psi_k = log_psi + 1j * phase_k  # log_psi_k = (B, 1)
+
+        # jax.debug.print("x: \n{}",x[0].reshape(-1))
+        # jax.debug.print("characters: \n{}",characters[0].reshape(-1))
+        # jax.debug.print("phase_k: \n{}",phase_k[0].reshape(-1))
+        # jax.debug.print("log_psi: \n{}",log_psi[0].reshape(-1))
+        # jax.debug.print("log_psi_k: \n{}",log_psi_k[0].reshape(-1))
 
         return log_psi_k
