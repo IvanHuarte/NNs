@@ -49,9 +49,14 @@ class Sequivariant(nn.Module):
         characters = get_characters((H, W), self.irrep)  # (B, H, W)
 
         # Get Theta_K
-        phase_k = jnp.angle((characters * x[:, :, :, 0].astype(jnp.complex128)).sum(axis=(1, 2)))[
-            :, None
-        ]  # phase_k = (B, 1)
+        # phase_k = jnp.angle(
+            # (characters * x[:, :, :, 0].astype(jnp.complex128)
+        # ).sum(axis=(1, 2)))[:, None]  # phase_k = (B, 1)
+
+        # Get Theta_K
+        phase_k =  jnp.log(
+            (characters * x[:, :, :, 0].astype(jnp.complex128)).sum(axis=(1, 2))
+        )[:, None].imag  # phase_k = (B, 1)
 
         log_psi = self.SeqV[-1](x)  # log_psi = (B, 1)
 
