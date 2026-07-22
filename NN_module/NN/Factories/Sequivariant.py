@@ -21,7 +21,7 @@ def get_characters(
     m = indexes[..., 1].flatten()
 
     characters = jnp.exp(
-        -2.0j * jnp.pi * (irrep[0] * n / lattice_size[0] + irrep[1] * m / lattice_size[1])
+        2.0j * jnp.pi * (irrep[0] * n / lattice_size[0] + irrep[1] * m / lattice_size[1])
     ).reshape(1, *lattice_size)
 
     # characters = 2.0j * jnp.pi * (irrep[0] * n / lattice_size[0] + irrep[1] * m / lattice_size[1])
@@ -56,9 +56,9 @@ class Sequivariant(nn.Module):
         # Get Theta_K
         # x_convention = x[:, :, :, 0]
         # phase_k = jax.nn.logsumexp(characters, b=x_convention, axis=(-2, -1)).imag[:, None]
-        phase_k =  jnp.log(
-            (characters * x[:, :, :, 0].astype(jnp.complex128)).sum(axis=(1, 2))
-        )[:, None].imag  # phase_k = (B, 1)
+        # phase_k =  jnp.log(
+        #     (characters * x[:, :, :, 0].astype(jnp.complex128)).sum(axis=(1, 2))
+        # )[:, None].imag  # phase_k = (B, 1)
         
 
         log_psi = self.SeqV[-1](x)  # log_psi = (B, 1)
