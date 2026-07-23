@@ -1,9 +1,10 @@
 import os
 import warnings
-import numpy as np
+
 import jax
 import jax.numpy as jnp
 import netket as nk
+import numpy as np
 
 from NN_module.ST_utils import print_tree
 
@@ -78,6 +79,9 @@ def gradient_metrics(vstate):
     params = vstate.parameters
     apply_fun = vstate._apply_fun
     samples = vstate.samples
+    print("\nSANITY MONITOR\n")
+
+    print_tree(params)
 
     grad_metrics = {}
 

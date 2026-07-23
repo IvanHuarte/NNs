@@ -1,13 +1,14 @@
 #!/home/ihuarte/Escritorio/Ivan/NNs/.venv/bin/python
-import numpy as np
+import argparse
+import json
+import time
+import uuid
+
 import jax
 import jax.numpy as jnp
 import netket as nk
+import numpy as np
 import optax
-import json
-import time
-import argparse
-import uuid
 
 # os.environ["XLA_PYTHON_CLIENT_PREALLOCATE"] = "false"
 jax.config.update("jax_enable_x64", True)
@@ -19,29 +20,28 @@ print("Devices:", jax.device_count())
 
 # Añadir los directorios necesarios
 import sys
-from pathlib import Path
+
+from VA_project.engine.runners import Runner
 
 # Importar módulos necesarios
 from VA_project.initialize_model import ModelFactory
-from VA_project.engine.runners import Runner
+
 from NN_module.callback import Callback
 from NN_module.callback.utils import dump_callback
-
-from NN_module.saveNload import save_results
-from NN_module.NN.Hydra import Hydra
-from NN_module.NN.utils import make_setup_serializable
-from NN_module.sampler.sampler import SamplerFactory
-from NN_module.schedule.schedule import Schedule
 from NN_module.label_utils import (
+    display_simulation_settings,
     get_filenames_from_settings,
     get_write_folder_from_model,
-    display_simulation_settings,
-    get_sim_config,
 )
+from NN_module.NN.Hydra import Hydra
+from NN_module.NN.utils import make_setup_serializable
+from NN_module.observables import phase_stats_vstate
+from NN_module.sampler.sampler import SamplerFactory
+from NN_module.saveNload import save_results
+from NN_module.schedule.schedule import Schedule
 from NN_module.schedule.utils import get_schedule_label
 from NN_module.sim_utils import measureNdump
-from NN_module.observables import full_basis_state, phase_stats_vstate
-from NN_module.ST_utils import compare_params, print_tree
+from NN_module.ST_utils import print_tree
 
 parser = argparse.ArgumentParser()
 parser.add_argument(
@@ -63,7 +63,7 @@ if args.config is None:
     ]
 configurations = args.config
 
-print(f"Configurations:")
+print("Configurations:")
 for c in configurations:
     print(f" - {c}")
 
@@ -237,6 +237,8 @@ for i, size in enumerate(sizes):
                 vstate.parameters, optax.sgd, info, lr_period
             )
             # optimizer = nk.optimizer.Sgd(learning_rate=0.01)
+
+            sys.exit(0)
 
             if config["vmc_sr"]:
 

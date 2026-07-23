@@ -1,13 +1,15 @@
+import os
+
+import matplotlib
+
 from .BestIterKeeper import BestIterKeeper
+from .Checkpoint import Checkpoint
 from .EnergyPlotter import EnergyPlotter
 from .ModPhasePlotter import ModPhasePlotter
 from .SanityMonitor import SanityMonitor
-from .Checkpoint import Checkpoint
-import os
-import matplotlib
 
 if os.environ.get("DISPLAY"):
-    if not "localhost" in os.environ.get("DISPLAY"):
+    if "localhost" not in os.environ.get("DISPLAY"):
         matplotlib.use("QtAgg")
     else:
         matplotlib.use("Agg")
@@ -35,7 +37,7 @@ def Callback(
 
     if config["keeper"]:
         assert all([variable is not None for variable in [total_epochs, H, N]])
-        print(f"Adding BestIterKeeper")
+        print("Adding BestIterKeeper")
 
         keeper = BestIterKeeper(
             total_epochs,
@@ -49,7 +51,7 @@ def Callback(
 
     if config["energy_plot"]:
         assert all([variable is not None for variable in [H, N]])
-        print(f"Adding EnergyPlotter")
+        print("Adding EnergyPlotter")
         energy_plotter = EnergyPlotter(
             H,
             N,
@@ -65,7 +67,7 @@ def Callback(
 
     if config["modphase"]:
         # assert all([variable is not None for variable in [sim_config, x_ED]])
-        print(f"Adding Modphase")
+        print("Adding Modphase")
         modphase = ModPhasePlotter(
             sim_config,
             x_ED,
@@ -79,13 +81,13 @@ def Callback(
         callback_funcs.append(modphase)
 
     if config["sanity"]:
-        print(f"Adding SanityMonitor")
+        print("Adding SanityMonitor")
         sanity_monitor = SanityMonitor(config["sanity_setup"])
         callback_objects.append(sanity_monitor)
         callback_funcs.append(sanity_monitor)
 
     if config["checkpoint"]:
-        print(f"Adding OrbaxCheckpointing")
+        print("Adding OrbaxCheckpointing")
         checkpointing = Checkpoint(
             H=H, sim_label_folder=sim_label_folder, setup=config["checkpoint_setup"]
         )

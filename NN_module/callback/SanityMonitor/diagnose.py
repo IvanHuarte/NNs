@@ -1,6 +1,3 @@
-from NN_module.ST_utils import print_tree
-
-
 def msg_reim_ratio(ratio, name):
     if name == "global":
         if 0.5 < ratio < 5:
@@ -64,16 +61,16 @@ def diagnose_gradients(metrics):
     label_std = f"σ[||∇logψ||]_s = {norm_std:.2e}  (σ/μ={std_ratio:.2f})"
     if std_ratio < 1:
         std_status = "🟢"
-        std_msg = f"Variabilidad normal entre muestras."
+        std_msg = "Variabilidad normal entre muestras."
     elif std_ratio < 2:
         std_status = "🟡"
-        std_msg = f"Variabilidad moderada, posible sampling disbalanceado."
+        std_msg = "Variabilidad moderada, posible sampling disbalanceado."
     elif std_ratio < 5:
         std_status = "⚠️"
-        std_msg = f"Alta variabilidad entre muestras, revisar sampler."
+        std_msg = "Alta variabilidad entre muestras, revisar sampler."
     else:
         std_status = "🔴"
-        std_msg = f"Muy alta variabilidad, sampling problemático!"
+        std_msg = "Muy alta variabilidad, sampling problemático!"
 
     diagnosis["norm_per_sample"] = {
         "mean": {"label": label_mean, "status": norm_status, "message": norm_msg},
@@ -86,16 +83,16 @@ def diagnose_gradients(metrics):
 
     if global_norm < 1:
         global_status = "🟢"
-        global_msg = f"Escala de gradientes normal."
+        global_msg = "Escala de gradientes normal."
     elif global_norm < 10:
         global_status = "🟡"
-        global_msg = f"Escala moderada, monitorear entrenamiento."
+        global_msg = "Escala moderada, monitorear entrenamiento."
     elif global_norm < 100:
         global_status = "⚠️"
-        global_msg = f"Gradientes grandes, posible inestabilidad."
+        global_msg = "Gradientes grandes, posible inestabilidad."
     elif global_norm >= 100:
         global_status = "🔴"
-        global_msg = f"Gradientes explosivos, acción urgente!"
+        global_msg = "Gradientes explosivos, acción urgente!"
     else:
         global_status = "❓ DESCONOCIDO"
         global_msg = "Valor de gradientes inesperado → Revisa"

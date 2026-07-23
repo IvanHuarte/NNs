@@ -1,12 +1,11 @@
 import numpy as np
 
-from NN_module.ST_utils import print_tree
-from NN_module.callback.metrics import calc_metrics
-from NN_module.callback.diagnose import diagnose_metrics
-from NN_module.callback.display_diagnosis import (
+from .diagnose import diagnose_metrics
+from .display_diagnosis import (
     display_diagnosis_sanity_monitor,
     display_diagnosis_simple,
 )
+from .metrics import calc_metrics
 
 
 class SanityMonitor:
