@@ -238,7 +238,6 @@ for i, size in enumerate(sizes):
             )
             # optimizer = nk.optimizer.Sgd(learning_rate=0.01)
 
-            sys.exit(0)
 
             if config["vmc_sr"]:
 

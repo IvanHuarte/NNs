@@ -1,6 +1,6 @@
 {
 
-    "print_arch": true,
+    "print_arch": false,
 
     "symm_wrapper":{
 

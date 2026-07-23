@@ -10,6 +10,7 @@
         "energy_plot": false,
         "modphase": false,
         "sanity": false,
+        "leaves_gradient": true,
         "checkpoint":false,
         
         "keeper_setup":{
@@ -36,6 +37,11 @@
                 "sample_histogram": false,
                 "phase":     false
             }
+        },
+        "leaves_gradient_setup":{
+            "do_each": 1,
+            "metrics": "mean|std|max|min",
+            "show_parameters": true
         },
         "checkpoint_setup":{
             "do_each":100,

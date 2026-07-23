@@ -7,6 +7,7 @@ from .Checkpoint import Checkpoint
 from .EnergyPlotter import EnergyPlotter
 from .ModPhasePlotter import ModPhasePlotter
 from .SanityMonitor import SanityMonitor
+from .LeavesGradient import LeavesGradient
 
 if os.environ.get("DISPLAY"):
     if "localhost" not in os.environ.get("DISPLAY"):
@@ -85,6 +86,12 @@ def Callback(
         sanity_monitor = SanityMonitor(config["sanity_setup"])
         callback_objects.append(sanity_monitor)
         callback_funcs.append(sanity_monitor)
+
+    if config["leaves_gradient"]:
+        print("Adding LeavesGradient")
+        leaves_gradient = LeavesGradient(config["leaves_gradient_setup"])
+        callback_objects.append(leaves_gradient)
+        callback_funcs.append(leaves_gradient)
 
     if config["checkpoint"]:
         print("Adding OrbaxCheckpointing")
