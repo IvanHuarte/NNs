@@ -13,6 +13,7 @@ import optax
 # os.environ["XLA_PYTHON_CLIENT_PREALLOCATE"] = "false"
 jax.config.update("jax_enable_x64", True)
 jax.config.update("jax_platform_name", "gpu")
+# jax.config.update("jax_debug_nans", True)
 
 print("Ranks:", jax.process_count())
 print("Devices:", jax.devices())
@@ -256,6 +257,9 @@ for i, size in enumerate(sizes):
                     variational_state=vstate,
                     preconditioner=sr,
                 )
+
+            # import sys
+            # sys.exit(0)
 
             print(f"\nTraining {mode} for {epochs} epochs...")
             vmc.run(

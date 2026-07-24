@@ -1,9 +1,13 @@
 import jax
+import jax.numpy as jnp
 import netket as nk
 
 from NN_module.ST_utils import print_tree
 
 from .utils import append_tree_display, display_header
+
+# import traceback
+# jax.config.update("jax_debug_nans", True)
 
 
 class LeavesGradient:
@@ -26,6 +30,12 @@ class LeavesGradient:
             samples = vstate.samples
 
             samples = samples.reshape((-1, samples.shape[-1]))
+
+            logpsi = vstate.log_value(samples)
+            print(jnp.min(jnp.real(logpsi)))
+            print(jnp.max(jnp.real(logpsi)))
+            print(f"IsNan: {jnp.isnan(logpsi).any()}")
+
             gradient = nk.jax.jacobian(apply_fun, params, samples, mode="complex")
 
             display_tree = jax.tree_util.tree_map(lambda x: "", params)
