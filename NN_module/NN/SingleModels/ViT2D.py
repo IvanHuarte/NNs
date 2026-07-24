@@ -149,7 +149,8 @@ class ViT2DBlock(nn.Module):
             [
                 embedding_d,
             ]
-            * self.n_ffn_layers
+            * self.n_ffn_layers,
+            # activation_function=nn.gelu,
         )
         # print(f"After MLP: {ffn(x).shape}\n\n")
         # No LayerNorm here because it is already included in the perceptron.

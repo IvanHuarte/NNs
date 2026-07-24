@@ -19,7 +19,6 @@ print("Devices:", jax.devices())
 print("Devices:", jax.device_count())
 
 # Añadir los directorios necesarios
-import sys
 
 from VA_project.engine.runners import Runner
 
@@ -237,7 +236,6 @@ for i, size in enumerate(sizes):
                 vstate.parameters, optax.sgd, info, lr_period
             )
             # optimizer = nk.optimizer.Sgd(learning_rate=0.01)
-
 
             if config["vmc_sr"]:
 

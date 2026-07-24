@@ -1,6 +1,6 @@
 {
 
-    "selection": "TestViT2DOH10",
+    "selection": "TestViT2DOH10Clip1",
 
     "load_model": {
 
@@ -15,7 +15,7 @@
     },
 
     
-    "TestViT2DOH10":{
+    "TestViT2DOH10Clip1":{
         "stage0":{
             "template":{
                 
