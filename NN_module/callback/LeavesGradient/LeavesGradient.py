@@ -31,10 +31,18 @@ class LeavesGradient:
 
             samples = samples.reshape((-1, samples.shape[-1]))
 
+
+            # PSI
             logpsi = vstate.log_value(samples)
             print(jnp.min(jnp.real(logpsi)))
             print(jnp.max(jnp.real(logpsi)))
             print(f"IsNan: {jnp.isnan(logpsi).any()}")
+
+            # ELOC
+            Eloc = vstate.local_estimators(driver._ham)
+
+            print(jnp.isnan(Eloc).any())
+            print(jnp.isinf(Eloc).any())
 
             gradient = nk.jax.jacobian(apply_fun, params, samples, mode="complex")
 

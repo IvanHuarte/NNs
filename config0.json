@@ -1,16 +1,16 @@
 {
 
-    "write_folder_sim":"/home/ihuarte/Escritorio/Ivan/NNs/Simulations_irreps/",
+    "write_folder_sim":"/home/ihuarte/Escritorio/Ivan/NNs/Simulations_irreps_good/",
 
     "sz_total": null,
-    "vmc_sr": true,
+    "vmc_sr": false,
 
     "callback":{
         "keeper": true,
         "energy_plot": false,
         "modphase": false,
         "sanity": false,
-        "leaves_gradient": true,
+        "leaves_gradient": false,
         "checkpoint":false,
         
         "keeper_setup":{
@@ -62,6 +62,11 @@
         "chunk_vstate": 2048
     },
 
+    "optimizer":{
+        "optimizer": "sgd",
+        "clip": 1.0
+    },
+
 
     "schedule":{
 
@@ -69,7 +74,7 @@
             "epochs_struct":[
                 
                 [ 
-                    [200, 100, 400, 100, 300]
+                    [50, 300, 50, 100]
                 ]
                 
             ],
@@ -77,14 +82,14 @@
             "modes_struct":[
                 
                 [
-                    [["A"], ["A"], ["A"], ["A"], ["A"]]
+                    [["A"], ["A"], ["A"], ["A"]]
                 ]
                 
             ],
             "lr_struct":[
                 
                 [
-                    [ ["lin(0.00001, 0.001)"], ["lin(0.001, 0.005)"], [0.005], ["exp(0.005, 0.0005)"], ["lin(0.0005, 0.0001)"]]
+                    [ ["lin(0.001, 0.002)"], [0.002], ["lin(0.002, 0.0005)"], ["lin(0.0005,0.0001)"]]
                 ]
                 
             ],

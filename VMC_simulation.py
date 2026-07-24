@@ -7,6 +7,7 @@ import uuid
 import jax
 import jax.numpy as jnp
 import netket as nk
+from netket.optimizer import solver
 import numpy as np
 import optax
 
@@ -191,7 +192,7 @@ for i, size in enumerate(sizes):
         total_epochs = schedule.total_epochs
         schedule_setup["total_epochs"] = total_epochs
 
-        ds_schedule = jnp.linspace(2e-1, 1e-4, total_periods, dtype=jnp.float64)
+        ds_schedule = jnp.linspace(1e-2, 1e-4, total_periods, dtype=jnp.float64)
 
         #### INITIALIZE CALLBACKS ####
         if config["callback"]["checkpoint"]:
@@ -236,7 +237,7 @@ for i, size in enumerate(sizes):
             optimizer = schedule.transform_optimizer(
                 vstate.parameters, optax.sgd, info, lr_period
             )
-            # optimizer = nk.optimizer.Sgd(learning_rate=0.01)
+            # optimizer = optax.adam(0.005)
 
             if config["vmc_sr"]:
 
@@ -247,6 +248,7 @@ for i, size in enumerate(sizes):
                     variational_state=vstate,
                     diag_shift=ds_schedule[i],
                     mode="complex",
+                    linear_solver=solver.pinv_smooth
                 )
             else:
                 #### INITIALIZE OLD VMC WITH SEPARATED SR ####
