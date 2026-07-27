@@ -3,18 +3,19 @@
 import json
 import sys
 from pathlib import Path
-
 import jax
 
 jax.config.update("jax_enable_x64", True)
 jax.config.update("jax_platform_name", "cpu")
 import jax.nn
 import jax.numpy as jnp
+
 import jax.typing
 import matplotlib
 import matplotlib.colors as colors
 import matplotlib.pyplot as plt
 import netket as nk
+
 import numpy as np
 import numpy.linalg
 import scipy as sp
@@ -37,6 +38,7 @@ with open(path + "config.json", "r") as f:
     config = json.load(f)
 
 write = config["write_folder"]
+q_idx_generator = config["calc_irreps"]
 config_cm = config["config_cm"]
 symmetries_config = config["symmetries"]
 
@@ -71,6 +73,7 @@ for size in sizes:
         print(f"\n************************ {cm_model_name} ************************")
         print(f"Size: {size}")
         print(f"Parameters: \n{params}")
+        print(f"Irreps: \n{q_idx_generator}")
         print("*************************************************************\n")
 
         cm_model = model_factory.get_model()
@@ -125,7 +128,7 @@ for size in sizes:
                 print(f"Conmutes U_{i} with U_{j}?: {conmutes}")
 
         # Compute irrep projectors
-        q_idx_generator = _all_idx_combinations(group.N_group)
+        q_idx_generator = _all_idx_combinations(group.N_group) if q_idx_generator is None else q_idx_generator
         Q = {}
         for i, q_vector in enumerate(q_idx_generator):
             print(f"Processing q_vector: {q_vector}")

@@ -1,6 +1,8 @@
 {
     "write_folder":"/home/ihuarte/Escritorio/Ivan/NNs/Irreps/Figures/",
 
+    "calc_irreps": [[3, 1, 1]],
+
     "basis_builder": {
         "mode": "dense",
 
@@ -45,7 +47,7 @@
 
         "mode": "zip",
         
-        "sizes":[[3,4]],
+        "sizes":[[4, 4]],
 
         "kwargs_lattice" : {
             "bc":"periodic",
