@@ -64,7 +64,27 @@
 
     "optimizer":{
         "optimizer": "sgd",
-        "clip": 1.0
+        "modifications":{
+            "clip": null,
+            "clip_by_block_rms": null,
+            "scale": null,
+            "scale_by_rms": null,
+            "scale_by_learning_rate": null,
+            "add_noise": null,
+            "trace": null
+        }
+    },
+
+    "VMC": {
+        "selection": "vmc_sr",
+        "vmc": {
+            "SR": true,
+            "solver": "cg"
+        },
+        "vmc_sr": {
+            "mode": "complex",
+            "solver": "pinv_smooth"
+        }
     },
 
 

@@ -249,7 +249,7 @@ for i, size in enumerate(sizes):
                     variational_state=vstate,
                     diag_shift=ds_schedule[i],
                     mode="complex",
-                    linear_solver=solver.pinv
+                    linear_solver=solver.pinv_smooth
                 )
             else:
                 #### INITIALIZE OLD VMC WITH SEPARATED SR ####
@@ -275,9 +275,7 @@ for i, size in enumerate(sizes):
             mean, std, psi = phase_stats_vstate(vstate)
             print(f"VS phase: {mean} \u00b1 {std}  ({psi})")
 
-            # P1 = vstate.parameters
-            # compare_params(P0, P1)
-            # check_zero_grads(vstate, mask)
+
             if change:
                 print("Changing Architecture")
                 schedule.eon += 1
