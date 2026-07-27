@@ -4,6 +4,7 @@ import json
 import time
 import uuid
 
+import os
 import jax
 import jax.numpy as jnp
 import netket as nk
@@ -11,7 +12,7 @@ from netket.optimizer import solver
 import numpy as np
 import optax
 
-# os.environ["XLA_PYTHON_CLIENT_PREALLOCATE"] = "false"
+os.environ["XLA_PYTHON_CLIENT_PREALLOCATE"] = "false"
 jax.config.update("jax_enable_x64", True)
 jax.config.update("jax_platform_name", "gpu")
 # jax.config.update("jax_debug_nans", True)
@@ -192,7 +193,7 @@ for i, size in enumerate(sizes):
         total_epochs = schedule.total_epochs
         schedule_setup["total_epochs"] = total_epochs
 
-        ds_schedule = jnp.linspace(1e-2, 1e-4, total_periods, dtype=jnp.float64)
+        ds_schedule = jnp.linspace(1e-3, 1e-4, total_periods, dtype=jnp.float64)
 
         #### INITIALIZE CALLBACKS ####
         if config["callback"]["checkpoint"]:
@@ -248,7 +249,7 @@ for i, size in enumerate(sizes):
                     variational_state=vstate,
                     diag_shift=ds_schedule[i],
                     mode="complex",
-                    linear_solver=solver.pinv_smooth
+                    linear_solver=solver.pinv
                 )
             else:
                 #### INITIALIZE OLD VMC WITH SEPARATED SR ####
