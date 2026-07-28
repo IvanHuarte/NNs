@@ -1,16 +1,14 @@
 #!/home/ihuarte/Escritorio/Ivan/NNs/.venv/bin/python
 import argparse
 import json
+import os
 import time
 import uuid
 
-import os
 import jax
 import jax.numpy as jnp
 import netket as nk
-from netket.optimizer import solver
 import numpy as np
-import optax
 
 os.environ["XLA_PYTHON_CLIENT_PREALLOCATE"] = "false"
 jax.config.update("jax_enable_x64", True)
@@ -44,6 +42,7 @@ from NN_module.schedule.schedule import Schedule
 from NN_module.schedule.utils import get_schedule_label
 from NN_module.sim_utils import measureNdump
 from NN_module.ST_utils import print_tree
+from NN_module.VMC import VMCBuilder
 
 parser = argparse.ArgumentParser()
 parser.add_argument(
@@ -158,7 +157,7 @@ for i, size in enumerate(sizes):
         display_simulation_settings(sim_config)
 
         #### INITIALIZE NETWORK FRAMEWORK ####
-        hydra = Hydra(config_nn, **{"lattice_size": size})
+        hydra = Hydra(config_nn, lattice_size=size)
         model = hydra.model
         nparams, nbytes = hydra.n_params, hydra.nbytes
         print(f"Total samples: {n_samples}\n")
@@ -245,30 +244,15 @@ for i, size in enumerate(sizes):
                 vstate.parameters, config_optimizer, info, lr_period
             )
             # optimizer = optax.adam(0.005)
-
-            if config["vmc_sr"]:
-
-                #### INITIALIZING VMC RUN WITH STOCHASTIC RECONFIGURATION ####
-                vmc = nk.driver.VMC_SR(
-                    hamiltonian=H.to_jax_operator(),
-                    optimizer=optimizer,
-                    variational_state=vstate,
-                    diag_shift=ds_schedule[i],
-                    mode="complex",
-                    linear_solver=solver.pinv_smooth
-                )
-            else:
-                #### INITIALIZE OLD VMC WITH SEPARATED SR ####
-                sr = nk.optimizer.SR(diag_shift=ds_schedule[i])
-                vmc = nk.driver.VMC(
-                    H.to_jax_operator(),
-                    optimizer=optimizer,
-                    variational_state=vstate,
-                    preconditioner=sr,
-                )
-
-            # import sys
-            # sys.exit(0)
+            print(config_vmc)
+            vmc_builder = VMCBuilder(config_vmc)
+            vmc = vmc_builder.build(
+                hamiltonian=H.to_jax_operator(),
+                optimizer=optimizer,
+                variational_state=vstate,
+                diag_shift=ds_schedule[i],
+            )
+            print(f"\nVMC selection: {vmc_builder.selection}")
 
             print(f"\nTraining {mode} for {epochs} epochs...")
             vmc.run(
@@ -277,10 +261,10 @@ for i, size in enumerate(sizes):
                 callback=callback_funcs,
                 show_progress=True,
             )
+
             # vstate.sampler.reset(vstate.model.apply, vstate.variables["params"])
             mean, std, psi = phase_stats_vstate(vstate)
             print(f"VS phase: {mean} \u00b1 {std}  ({psi})")
-
 
             if change:
                 print("Changing Architecture")
@@ -356,6 +340,11 @@ for i, size in enumerate(sizes):
         sim_config["SIM"]["sampler"]["final_rng"] = jax.random.key_data(
             vstate.sampler_state.rng
         ).tolist()
+        sim_config["SIM"]["optimizer"] = config_optimizer
+        sim_config["SIM"]["VMC"] = {
+            "selection": vmc_builder.selection,
+            "setup": vmc_builder.config,
+        }
 
         ## Save the results
         dump_setup = {

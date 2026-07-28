@@ -36,11 +36,7 @@ def build_leaf_optimizer(optimizer_setup, lr_function):
         else:
             modifications_in_chain.append(mood_function(value))
 
-    if not modifications_in_chain:
-        print("No moods in gradients")
-        return optimizer_method(lr_function)
-    else:
-        return optax.chain(optimizer_method(lr_function), *modifications_in_chain)
+    return optax.chain(optimizer_method(lr_function), *modifications_in_chain)
 
 
 def get_transformed_optimizer(optimizer_setup, modes, lr_func):

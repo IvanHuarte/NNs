@@ -1,16 +1,14 @@
 import jax.numpy as jnp
 import optax
-import flax.linen as nn
 
 from NN_module.schedule.masks import masked_optimizer
 from NN_module.schedule.optimizer import get_transformed_optimizer
 from NN_module.schedule.utils import (
-    schedule_from_array,
     decode_arch_labels,
     eon_change,
     generate_period,
+    schedule_from_array,
 )
-from NN_module.ST_utils import print_tree
 
 
 class Schedule:
@@ -172,7 +170,6 @@ class Schedule:
         modes_path = [inf[1] for inf in info]
         modes_code = [self.eon_path2code[path] for path in modes_path]
 
-        
         trans_dict = get_transformed_optimizer(optimizer_setup, modes_code, lr_func)
         trans_tree = masked_optimizer(params, modes_path, self.eon_path2code)
 
@@ -181,8 +178,7 @@ class Schedule:
         clip_by_global_norm = optimizer_setup["modifications"]["clip_by_global_norm"]
         if clip_by_global_norm is not None:
             trans_optimizer = optax.chain(
-                trans_optimizer,
-                optax.clip_by_global_norm(clip_by_global_norm)
+                trans_optimizer, optax.clip_by_global_norm(clip_by_global_norm)
             )
         # print(print_tree(trans_tree, values=True))
 
