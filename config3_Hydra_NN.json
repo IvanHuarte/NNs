@@ -6,7 +6,7 @@
 
         "Z2": {
             "on": true,
-            "trivial_Z2": false,
+            "trivial_Z2": true,
             "symm_modulus":false
         },
         "Traslation": {

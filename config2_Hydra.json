@@ -1,6 +1,6 @@
 {
 
-    "selection": "TestViT2DOH-10",
+    "selection": "TestViT2DOH30",
 
     "load_model": {
 
@@ -15,14 +15,14 @@
     },
 
     
-    "TestViT2DOH-10":{
+    "TestViT2DOH30":{
         "stage0":{
             "template":{
                 
                 "Sequivariant": {
                     "ViT2D":{},
                     "OutputHead":{},
-                    "irrep": [-1, 0]
+                    "irrep": [3, 0]
                 }
             },
             "load": [

@@ -1,9 +1,8 @@
 {
 
-    "write_folder_sim":"/home/ihuarte/Escritorio/Ivan/NNs/Simulations_irreps_good/",
+    "write_folder_sim":"/home/ihuarte/Escritorio/Ivan/NNs/Simulations_irreps_VMCSR/",
 
     "sz_total": null,
-    "vmc_sr": false,
 
     "callback":{
         "keeper": true,
@@ -77,7 +76,7 @@
     },
 
     "VMC": {
-        "selection": "vmc_netket",
+        "selection": "vmc_sr_netket",
         "vmc_netket": {
             "SR": true,
             "solver": "cg"
@@ -95,7 +94,7 @@
             "epochs_struct":[
                 
                 [ 
-                    [100, 600]
+                    [50, 300, 50, 100]
                 ]
                 
             ],
@@ -110,7 +109,7 @@
             "lr_struct":[
                 
                 [
-                    [ [0.01], ["exp(0.01,0.0001)"], ["lin(0.005, 0.0005)"], ["lin(0.0005,0.0001)"]]
+                    [ ["lin(0.0005,0.005)"], [0.005], ["exp(0.005,0.0001)"], [0.0001]]
                 ]
                 
             ],

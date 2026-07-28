@@ -343,7 +343,7 @@ for i, size in enumerate(sizes):
         sim_config["SIM"]["optimizer"] = config_optimizer
         sim_config["SIM"]["VMC"] = {
             "selection": vmc_builder.selection,
-            "setup": vmc_builder.config,
+            "setup": vmc_builder.setup,
         }
 
         ## Save the results
