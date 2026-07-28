@@ -1,5 +1,4 @@
 import optax
-import jax.numpy as jnp
 
 optimizer_dict = {
     "sgd": optax.sgd,
@@ -14,8 +13,8 @@ leaf_gradient_modificators = {
     "scale_by_learning_rate": optax.scale_by_learning_rate,
     "add_noise": optax.add_noise,
     "trace": optax.trace,
-
 }
+
 
 def build_leaf_optimizer(optimizer_setup, lr_function):
 
@@ -37,9 +36,12 @@ def build_leaf_optimizer(optimizer_setup, lr_function):
         else:
             modifications_in_chain.append(mood_function(value))
 
-    return optax.chain(
-        optimizer_method(lr_function), *modifications_in_chain
-    )
+    if not modifications_in_chain:
+        print("No moods in gradients")
+        return optimizer_method(lr_function)
+    else:
+        return optax.chain(optimizer_method(lr_function), *modifications_in_chain)
+
 
 def get_transformed_optimizer(optimizer_setup, modes, lr_func):
 
