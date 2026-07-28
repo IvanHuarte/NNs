@@ -1,16 +1,6 @@
 import optax
 import jax.numpy as jnp
 
-def transformation_dictionary(optimizer, modes, lr_func):
-
-    transformation = {"freeze": optax.set_to_zero()}
-
-    for branch, lr_f in zip(modes, lr_func):
-        transformation[f"train_{branch}"] = optimizer(lr_f)
-
-    return transformation
-
-
 optimizer_dict = {
     "sgd": optax.sgd,
     "adam": optax.adam,
@@ -27,19 +17,19 @@ leaf_gradient_modificators = {
 
 }
 
-def build_leaf_optimizer(optimizer_setup):
+def build_leaf_optimizer(optimizer_setup, lr_function):
 
     opt_method = optimizer_setup["optimizer"]
     modifications = optimizer_setup["modifications"]
 
     optimizer_method = optimizer_dict[opt_method]
-    considered_modifications = {
-        (k, v) for k, v in modifications.items if (v is not None) or (v != False)
-    }
+    considered_modifications = dict(
+        [(k, v) for k, v in modifications.items() if v not in [None, False]]
+    )
 
     modifications_in_chain = []
     for mod, value in considered_modifications.items():
-        mood_function = leaf_gradient_modificators(mod)
+        mood_function = leaf_gradient_modificators[mod]
 
         if isinstance(value, list):
             modifications_in_chain.append(mood_function(*value))
@@ -48,5 +38,14 @@ def build_leaf_optimizer(optimizer_setup):
             modifications_in_chain.append(mood_function(value))
 
     return optax.chain(
-        optimizer_method, *modifications_in_chain
+        optimizer_method(lr_function), *modifications_in_chain
     )
+
+def get_transformed_optimizer(optimizer_setup, modes, lr_func):
+
+    transformation = {"freeze": optax.set_to_zero()}
+
+    for branch, lr_f in zip(modes, lr_func):
+        transformation[f"train_{branch}"] = build_leaf_optimizer(optimizer_setup, lr_f)
+
+    return transformation

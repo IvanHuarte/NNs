@@ -101,6 +101,12 @@ n_ranks = jax.device_count()
 n_samples = (
     n_ranks * sampler_setup["n_samples_per_chain"] * sampler_setup["n_chains_per_rank"]
 )
+
+### Optimizer settings
+config_optimizer = config["optimizer"]
+### VMC algorithm setup
+config_vmc = config["VMC"]
+
 write = get_write_folder_from_model({**config, **config_cm, **config_nn})
 
 for i, size in enumerate(sizes):
@@ -236,7 +242,7 @@ for i, size in enumerate(sizes):
             ###########################
 
             optimizer = schedule.transform_optimizer(
-                vstate.parameters, optax.sgd, info, lr_period
+                vstate.parameters, config_optimizer, info, lr_period
             )
             # optimizer = optax.adam(0.005)
 

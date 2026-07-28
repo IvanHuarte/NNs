@@ -3,7 +3,7 @@ import optax
 import flax.linen as nn
 
 from NN_module.schedule.masks import masked_optimizer
-from NN_module.schedule.optimizer import transformation_dictionary, build_leaf_optimizer
+from NN_module.schedule.optimizer import get_transformed_optimizer
 from NN_module.schedule.utils import (
     schedule_from_array,
     decode_arch_labels,
@@ -172,8 +172,8 @@ class Schedule:
         modes_path = [inf[1] for inf in info]
         modes_code = [self.eon_path2code[path] for path in modes_path]
 
-        optimizer = build_leaf_optimizer(optimizer_setup)
-        trans_dict = transformation_dictionary(optimizer, modes_code, lr_func)
+        
+        trans_dict = get_transformed_optimizer(optimizer_setup, modes_code, lr_func)
         trans_tree = masked_optimizer(params, modes_path, self.eon_path2code)
 
         trans_optimizer = optax.multi_transform(trans_dict, trans_tree)

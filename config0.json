@@ -71,7 +71,8 @@
             "scale_by_rms": null,
             "scale_by_learning_rate": null,
             "add_noise": null,
-            "trace": null
+            "trace": null,
+            "clip_by_global_norm": null
         }
     },
 
