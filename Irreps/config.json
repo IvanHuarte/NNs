@@ -1,7 +1,7 @@
 {
     "write_folder":"/home/ihuarte/Escritorio/Ivan/NNs/Irreps/Figures/",
 
-    "calc_irreps": [[3, 1, 1]],
+    "calc_irreps": [[2,3,1]],
 
     "basis_builder": {
         "mode": "dense",

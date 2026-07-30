@@ -39,6 +39,9 @@ with open(path + "config.json", "r") as f:
 
 write = config["write_folder"]
 q_idx_generator = config["calc_irreps"]
+if q_idx_generator is not None:
+    q_idx_generator = [tuple(irrep) for irrep in q_idx_generator]
+
 config_cm = config["config_cm"]
 symmetries_config = config["symmetries"]
 
@@ -133,19 +136,18 @@ for size in sizes:
         for i, q_vector in enumerate(q_idx_generator):
             print(f"Processing q_vector: {q_vector}")
             projector = group.get_irrep_projector(representations, q_vector)
-            print(
-                f"Conmutes?: {np.allclose(H_dense @ projector - projector @ H_dense, np.zeros(H_dense.shape, dtype=complex))}"
-            )
-            print(np.linalg.matrix_rank(projector))
+            # print(
+            #     f"Conmutes?: {np.allclose(H_dense @ projector - projector @ H_dense, np.zeros(H_dense.shape, dtype=complex))}"
+            # )
+            # print(np.linalg.matrix_rank(projector))
 
             # np.savetxt(folder_path + f"{sim_label}_irrep_{q_vector}_projector.txt", projector)
 
-            print("Estimating irrep dimension...")
-            irrep_dim_est = int(
-                round(np.real(np.trace(projector)) / group._group_norm())
-            )
-            print(f"Building irrep basis via svds_orth k={irrep_dim_est}\n")
-
+            # print("Estimating irrep dimension...")
+            # irrep_dim_est = int(
+            #     round(np.real(np.trace(projector)) / group._group_norm())
+            # )
+            # print(f"Building irrep basis via svds_orth k={irrep_dim_est}\n")
             # Q[q_vector] = svds_orth(projector, k=irrep_dim_est)
             Q[q_vector] = sp.linalg.orth(projector)
             # np.savetxt(folder_path + f"{sim_label}_irrep_{q_vector}_Qmatrix.txt", Q[q_vector])
