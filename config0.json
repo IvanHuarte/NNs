@@ -1,6 +1,6 @@
 {
 
-    "write_folder_sim":"/home/ihuarte/Escritorio/Ivan/NNs/Simulations_irreps_VMCSR/",
+    "write_folder_sim":"/home/ihuarte/Escritorio/Ivan/NNs/Simulations_irreps_1/",
 
     "sz_total": null,
 
@@ -83,7 +83,7 @@
         },
         "vmc_sr_netket": {
             "mode": "complex",
-            "linear_solver": "pinv_smooth"
+            "linear_solver": "cholesky"
         }
     },
 
@@ -94,7 +94,7 @@
             "epochs_struct":[
                 
                 [ 
-                    [500]
+                    [100, 300, 200]
                 ]
                 
             ],
@@ -102,14 +102,14 @@
             "modes_struct":[
                 
                 [
-                    [["A"]]
+                    [["A"], ["A"], ["A"]]
                 ]
                 
             ],
             "lr_struct":[
                 
                 [
-                    [ [0.005] ]
+                    [ ["lin(0.001,0.005)"], [0.005], ["exp(0.005,0.00005)"] ]
                 ]
                 
             ],
