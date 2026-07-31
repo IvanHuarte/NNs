@@ -6,7 +6,7 @@ from rich.columns import Columns
 from rich import box
 
 import shutil
-from NN_module.ST_utils import print_tree
+from NN_module.utils import print_tree
 
 THEME = {
     # Colores de bordes

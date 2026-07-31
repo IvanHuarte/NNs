@@ -14,7 +14,7 @@ from NN_module.NN.utils import (
     set_subtree,
     load_from_file,
 )
-from NN_module.ST_utils import print_tree
+from NN_module.utils import print_tree
 
 
 class Hydra(NeuralNetwork):
@@ -238,7 +238,7 @@ class Hydra(NeuralNetwork):
         return new_params
 
     def load_vstate(self, vstate):
-        from NN_module.ST_utils import compare_params
+        from NN_module.utils import compare_params
 
         paths = self.load_model["load_from"]
         checkpoint = self.load_model["checkpoint"]

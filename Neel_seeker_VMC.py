@@ -44,7 +44,7 @@ from NN_module.observables import (
     distance_with_neel,
     distance_with_stripped,
 )
-from NN_module.ST_utils import compare_params
+from NN_module.utils import compare_params
 
 
 def neel_callback(hamiltonian, N):

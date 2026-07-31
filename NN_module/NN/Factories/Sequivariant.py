@@ -1,9 +1,9 @@
 from typing import Tuple
-import jax
 
 import flax.linen as nn
 import jax.numpy as jnp
 
+from NN_module.utils import _angle
 
 def get_characters(
     lattice_size: Tuple[int, int], irrep: Tuple[int, int]
@@ -48,18 +48,18 @@ class Sequivariant(nn.Module):
 
         characters = get_characters((H, W), self.irrep)  # (B, H, W)
 
-        # Get Theta_K
-        phase_k = jnp.angle(
-            (characters * x[:, :, :, 0].astype(jnp.complex128)
-        ).sum(axis=(1, 2)))[:, None]  # phase_k = (B, 1)
 
         # Get Theta_K
-        # x_convention = x[:, :, :, 0]
-        # phase_k = jax.nn.logsumexp(characters, b=x_convention, axis=(-2, -1)).imag[:, None]
-        # phase_k =  jnp.log(
-        #     (characters * x[:, :, :, 0].astype(jnp.complex128)).sum(axis=(1, 2))
-        # )[:, None].imag  # phase_k = (B, 1)
-        
+        z = (characters * x[...,0].astype(jnp.complex128)).sum(axis=(1,2))  # phase_k = (B, 1)
+        phase_k = _angle(z)
+        # phase_k = jnp.arctan2(jnp.imag(z), jnp.real(z) + self.eps)[:, None]
+
+        # Get Theta_K
+        # eps = 1e-6
+        # z_eps = z + eps + 1e-10j
+        # phase_k = jnp.angle(z_eps)[:, None]
+
+
 
         log_psi = self.SeqV[-1](x)  # log_psi = (B, 1)
 

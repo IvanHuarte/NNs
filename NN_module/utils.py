@@ -1,3 +1,30 @@
+import jax
+
+
+def print_tree(tree, prefix="", values=False):
+    for key, val in tree.items():
+
+        if isinstance(val, dict):
+            print(prefix + str(key))
+            print_tree(val, prefix + "   ", values=values)
+        else:
+            if values:
+                print(prefix + f"{str(key)}: {str(val)}")
+            else:
+                print(prefix + str(key))
+
+
+def compare_params(old_params, new_params, atol=1e-13):
+    def compare_fn(p_old, p_new):
+        return not jax.numpy.allclose(p_old, p_new, atol=atol)
+
+    diffs = jax.tree_util.tree_map(compare_fn, old_params, new_params)
+
+    print(f"Ha cambiado: (True) //  No ha cambiado: (False) \n\n")
+    print_tree(diffs, values=True)
+    print("\n")
+
+
 import sys
 from pathlib import Path
 from typing import Optional, Tuple
@@ -76,6 +103,13 @@ def scheduler_initializer(name, setup):
             decay_rate=setup["decay_rate"],
         )
 
+
+
+####################################################################################
+#                                                                                  #
+#                                   SIMETRIES                                      #
+#                                                                                  #
+####################################################################################
 
 def circulant(row: npt.ArrayLike, times: Optional[int] = None) -> npt.ArrayLike:
     """Build a (full or partial) circulant matrix based on an array.
@@ -178,3 +212,56 @@ def Translations2D(
     )  # (Ht, Wt, B, H, W, Ch) ---> (B, Ht, Wt, H, W, Ch)
 
     return x
+
+####################################################################################
+#                                                                                  #
+#                               CUSTOM FUNCTIONS                                   #
+#                                                                                  #
+####################################################################################
+
+from jax._src.typing import Array, ArrayLike
+
+@jax.custom_jvp
+def _atan2(y, x):
+    "Wrapper for the regular atan2 function"
+    return jax.lax.atan2(y, x)
+
+@_atan2.defjvp
+def _atan2_jvp(primals, tangents):
+    "Custom jvp for _atan2 that avoids the singularity at z = 0 + 0j"
+
+    y, x = primals
+    ydot, xdot = tangents
+
+    primal_out = _atan2(y, x)
+    z_2 = x * x + y * y
+
+    tangent_out = jnp.where(z_2 == 0, 0.0, (-y * xdot + x * ydot) / z_2)
+
+    return (primal_out, tangent_out) * jnp.angle
+
+
+@jax.custom_jvp
+def _angle(z: ArrayLike, deg: bool = False) -> Array:
+    return jnp.angle(z, deg)
+
+@_angle.defjvp
+def _angle_jvp(primals, tangents):
+    (z,) = primals
+    (zdot,) = tangents
+
+    out = jnp.angle(z)
+
+    x, y = z.real, z.imag
+
+    dx, dy = zdot.real, zdot.imag
+
+    r2 = x * x + y * y
+
+    dout = jnp.where(
+        r2 == 0,
+        0.0,
+        (-y * dx + x * dy) / r2,
+    )
+
+    return out, dout

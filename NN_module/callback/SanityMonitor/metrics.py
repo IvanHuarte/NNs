@@ -6,7 +6,7 @@ import jax.numpy as jnp
 import netket as nk
 import numpy as np
 
-from NN_module.ST_utils import print_tree
+from NN_module.utils import print_tree
 
 os.environ["NETKET_EXPERIMENTAL_FFT_AUTOCORRELATION"] = "1"
 

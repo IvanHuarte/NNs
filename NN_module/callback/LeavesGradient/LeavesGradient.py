@@ -2,7 +2,7 @@ import jax
 import jax.numpy as jnp
 import netket as nk
 
-from NN_module.ST_utils import print_tree
+from NN_module.utils import print_tree
 
 from .utils import append_tree_display, display_header
 

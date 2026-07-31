@@ -12,7 +12,7 @@ from NN_module.NN import (
     undefined_submodule_number,
 )
 from NN_module.NN.utils import insert_external_kwargs, preprocess_setup
-from NN_module.ST_utils import print_tree
+from NN_module.utils import print_tree
 
 
 class NeuralNetwork:

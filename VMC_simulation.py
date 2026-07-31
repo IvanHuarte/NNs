@@ -35,13 +35,12 @@ from NN_module.label_utils import (
 )
 from NN_module.NN.Hydra import Hydra
 from NN_module.NN.utils import make_setup_serializable
-from NN_module.observables import phase_stats_vstate
+from NN_module.observables import phase_stats_vstate, measureNdump
 from NN_module.sampler.sampler import SamplerFactory
 from NN_module.saveNload import save_results
 from NN_module.schedule.schedule import Schedule
 from NN_module.schedule.utils import get_schedule_label
-from NN_module.sim_utils import measureNdump
-from NN_module.ST_utils import print_tree
+from NN_module.utils import print_tree
 from NN_module.VMC import VMCBuilder
 
 parser = argparse.ArgumentParser()

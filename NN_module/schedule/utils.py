@@ -4,7 +4,7 @@ import flax
 import ast
 
 from NN_module.schedule import SCHEDULES
-from NN_module.ST_utils import print_tree
+from NN_module.utils import print_tree
 
 
 def get_schedule_label(setup):
