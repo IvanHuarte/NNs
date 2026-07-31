@@ -38,6 +38,7 @@ class Sequivariant(nn.Module):
 
     SeqV: Tuple[nn.Module, ...]
     irrep: Tuple[int, int] = (0, 0)
+    eps: float = 1e-6
 
     def __call__(self, x: jnp.ndarray) -> jnp.ndarray:
 
@@ -48,6 +49,7 @@ class Sequivariant(nn.Module):
 
         characters = get_characters((H, W), self.irrep)  # (B, H, W)
 
+<<<<<<< HEAD
 
         # Get Theta_K
         z = (characters * x[...,0].astype(jnp.complex128)).sum(axis=(1,2))  # phase_k = (B, 1)
@@ -55,11 +57,30 @@ class Sequivariant(nn.Module):
         # phase_k = jnp.arctan2(jnp.imag(z), jnp.real(z) + self.eps)[:, None]
 
         # Get Theta_K
+=======
+        # Get Theta_K
+        z = (characters * x[...,0].astype(jnp.complex128)).sum(axis=(1,2))
+        phase_k = jnp.arctan2(jnp.imag(z), jnp.real(z) + self.eps)[:, None]
+
+
+
+        # Get Theta_K
+>>>>>>> refs/remotes/origin/dev
         # eps = 1e-6
         # z_eps = z + eps + 1e-10j
         # phase_k = jnp.angle(z_eps)[:, None]
 
 
+<<<<<<< HEAD
+=======
+        # Get Theta_K
+        # eps = 1e-6
+        # abs_z = jnp.sqrt(jnp.real(z)**2 + jnp.imag(z)**2) + eps
+        # cos_phi = jnp.real(z) / abs_z
+        # sin_phi = jnp.imag(z) / abs_z
+        # phase_k = jnp.arctan2(sin_phi, cos_phi)[:, None]
+        
+>>>>>>> refs/remotes/origin/dev
 
         log_psi = self.SeqV[-1](x)  # log_psi = (B, 1)
 

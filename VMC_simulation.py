@@ -197,7 +197,7 @@ for i, size in enumerate(sizes):
         total_epochs = schedule.total_epochs
         schedule_setup["total_epochs"] = total_epochs
 
-        ds_schedule = jnp.linspace(1e-3, 1e-4, total_periods, dtype=jnp.float64)
+        ds_schedule = jnp.linspace(1e-2, 1e-4, total_periods, dtype=jnp.float64)
 
         #### INITIALIZE CALLBACKS ####
         if config["callback"]["checkpoint"]:
@@ -243,7 +243,6 @@ for i, size in enumerate(sizes):
                 vstate.parameters, config_optimizer, info, lr_period
             )
             # optimizer = optax.adam(0.005)
-            print(config_vmc)
             vmc_builder = VMCBuilder(config_vmc)
             vmc = vmc_builder.build(
                 hamiltonian=H.to_jax_operator(),
@@ -252,7 +251,6 @@ for i, size in enumerate(sizes):
                 diag_shift=ds_schedule[i],
             )
             print(f"\nVMC selection: {vmc_builder.selection}")
-
             print(f"\nTraining {mode} for {epochs} epochs...")
             vmc.run(
                 n_iter=epochs,
