@@ -221,6 +221,8 @@ def Translations2D(
 
 from jax._src.typing import Array, ArrayLike
 
+eps = 1e-8
+
 @jax.custom_jvp
 def _atan2(y, x):
     "Wrapper for the regular atan2 function"
@@ -242,8 +244,8 @@ def _atan2_jvp(primals, tangents):
 
 
 @jax.custom_jvp
-def _angle(z: ArrayLike, deg: bool = False) -> Array:
-    return jnp.angle(z, deg)
+def _angle(z: ArrayLike) -> Array:
+    return jnp.angle(z)
 
 @_angle.defjvp
 def _angle_jvp(primals, tangents):
@@ -256,12 +258,12 @@ def _angle_jvp(primals, tangents):
 
     dx, dy = zdot.real, zdot.imag
 
-    r2 = x * x + y * y
+    z2 = x * x + y * y
 
     dout = jnp.where(
-        r2 == 0,
+        z2 < eps,
         0.0,
-        (-y * dx + x * dy) / r2,
+        (-y * dx + x * dy) / jnp.where(z2 < eps, 1.0, z2),
     )
 
     return out, dout

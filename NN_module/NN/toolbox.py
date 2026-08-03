@@ -17,7 +17,7 @@ from flax.typing import (
     Shape as Shape,
 )
 
-from NN_module.NN_utils import Translations2D
+from NN_module.utils import Translations2D
 
 REAL_DTYPE = jnp.float64
 

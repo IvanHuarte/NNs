@@ -5,7 +5,7 @@ import jax
 import jax.numpy as jnp
 
 from NN_module.NN.toolbox import AddPhase, CarreteSign
-from NN_module.NN_utils import Translations2D
+from NN_module.utils import Translations2D
 
 
 class TraslationExplicit(nn.Module):

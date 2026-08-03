@@ -1,6 +1,6 @@
 {
 
-    "write_folder_sim":"/home/ihuarte/Escritorio/Ivan/NNs/Simulations_irreps_1/",
+    "write_folder_sim":"/home/ihuarte/Escritorio/Ivan/NNs/Simulations_irreps/",
 
     "sz_total": null,
 
@@ -14,7 +14,7 @@
         
         "keeper_setup":{
             "baseline": 1e-8,
-            "mode": "best_energy"
+            "mode": "best_vscore"
         },   
         "energy_plot_setup":{
             "savefig": true
@@ -83,7 +83,7 @@
         },
         "vmc_sr_netket": {
             "mode": "complex",
-            "linear_solver": "cholesky"
+            "linear_solver": "cholesky_with_fallback"
         }
     },
 
@@ -94,7 +94,7 @@
             "epochs_struct":[
                 
                 [ 
-                    [100, 300, 200]
+                    [100, 300, 100, 200]
                 ]
                 
             ],
@@ -109,7 +109,7 @@
             "lr_struct":[
                 
                 [
-                    [ ["lin(0.001,0.005)"], [0.005], ["exp(0.005,0.00005)"] ]
+                    [ ["lin(0.001,0.007)"], [0.007], ["exp(0.007,0.00005)"], ["lin(0.00005, 0.00001)"] ]
                 ]
                 
             ],
