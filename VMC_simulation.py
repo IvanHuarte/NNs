@@ -197,7 +197,8 @@ for i, size in enumerate(sizes):
         total_epochs = schedule.total_epochs
         schedule_setup["total_epochs"] = total_epochs
 
-        ds_schedule = jnp.linspace(1e-2, 1e-4, total_periods, dtype=jnp.float64)
+        # ds_schedule = jnp.linspace(1e-2, 1e-4, total_periods, dtype=jnp.float64)
+        ds_schedule, ds_schedule_info = schedule.get_diag_shift_schedule()
 
         #### INITIALIZE CALLBACKS ####
         if config["callback"]["checkpoint"]:
@@ -236,7 +237,7 @@ for i, size in enumerate(sizes):
             print(f"\nPeriod {i + 1} / {total_periods}:")
             print(f"Training {mode} for {epochs} epochs")
             print(f"LR: {lr_string}  ({rescaled})")
-            print(f"Diagonal shift: {ds_schedule[i]:.4e}\n")
+            print(f"Diagonal shift: {ds_schedule_info[i]}\n")
             ###########################
 
             optimizer = schedule.transform_optimizer(

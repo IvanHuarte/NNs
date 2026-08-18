@@ -96,6 +96,10 @@ def dump_callback(logger, settings, write_callback=True):
     E_hist = np.array(logger["Energy"]["Mean"]).real
     dev_E_hist = np.array(logger["Energy"]["Sigma"]).real
     E_best = min(logger["Energy"]["Mean"]).real
+    best_color = "gold"  
+    if best_step >= len(E_hist):
+        best_step = len(E_hist) - 1
+        best_color = "red" 
 
     if hasattr(logger, "E_ED"):
         E_gr = np.array(logger.E_ED).real
@@ -138,7 +142,7 @@ def dump_callback(logger, settings, write_callback=True):
         ax[0].hlines(E_gr, 0, total_epochs, color="green", label="ED Energy")
 
     ax[0].plot(E_hist, color="blue", label="E")
-    ax[0].plot(best_step, E_hist[best_step], marker="o", ms=4, color="gold")
+    ax[0].plot(best_step, E_hist[best_step], marker="o", ms=4, color=best_color)
     if do_each_checkpoint is not None:
         ax[0].plot(
             checkpoint_indices,
@@ -169,7 +173,7 @@ def dump_callback(logger, settings, write_callback=True):
     ax[0].grid()
 
     ax[v].plot(vscore, color="purple", label="Vscore")
-    ax[v].plot(best_step, vscore[best_step], marker="o", ms=3, color="gold")
+    ax[v].plot(best_step, vscore[best_step], marker="o", ms=3, color=best_color)
     if do_each_checkpoint is not None:
         ax[v].plot(
             checkpoint_indices,
@@ -189,7 +193,7 @@ def dump_callback(logger, settings, write_callback=True):
 
     if hasattr(logger, "E_ED"):
         ax[e].plot(error, color="red", label="E")
-        ax[e].plot(best_step, error[best_step], marker="o", ms=3, color="gold")
+        ax[e].plot(best_step, error[best_step], marker="o", ms=3, color=best_color)
 
         if do_each_checkpoint is not None:
             ax[e].plot(

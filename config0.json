@@ -2,7 +2,7 @@
 
     "write_folder_sim":"/home/ihuarte/Escritorio/Ivan/NNs/Simulations_irreps/",
 
-    "sz_total": null,
+    "sz_total": 0,
 
     "callback":{
         "keeper": true,
@@ -51,14 +51,14 @@
 
     "sampler":{
         "sampler":{
-            "rules": ["LocalRule", "Exchange"],
-            "prules": [0.5, 0.5],
+            "rules": ["Exchange"],
+            "prules": [0.5],
             "initial_state": "hilbert"
         },
-        "n_chains_per_rank": 2048,
+        "n_chains_per_rank": 4096,
         "n_samples_per_chain": 1,
         "chunk_sampler": null,
-        "chunk_vstate": 2048
+        "chunk_vstate": 4096
     },
 
     "optimizer":{
@@ -94,7 +94,7 @@
             "epochs_struct":[
                 
                 [ 
-                    [100, 300, 100, 200]
+                    [800]
                 ]
                 
             ],
@@ -102,14 +102,14 @@
             "modes_struct":[
                 
                 [
-                    [["A"], ["A"], ["A"]]
+                    [["A"]]
                 ]
                 
             ],
             "lr_struct":[
                 
                 [
-                    [ ["lin(0.001,0.007)"], [0.007], ["exp(0.007,0.00005)"], ["lin(0.00005, 0.00001)"] ]
+                    [ [0.01]]
                 ]
                 
             ],
@@ -119,7 +119,9 @@
         
         "sampler":{
 
-        }
+        },
+
+        "diag_shift": "lin(0.0001,0.0001)"
 
     }
 

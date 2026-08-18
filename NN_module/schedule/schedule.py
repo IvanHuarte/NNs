@@ -7,6 +7,7 @@ from NN_module.schedule.utils import (
     decode_arch_labels,
     eon_change,
     generate_period,
+    period_from_string,
     schedule_from_array,
 )
 
@@ -27,6 +28,9 @@ class Schedule:
 
         # Sampler orders
         # sampler_evol = setup["sampler"]
+
+        # Diag_shift setup
+        self.ds_setup = setup["diag_shift"]
 
         self._initialize()
         self.update_eon_code2path(code2path)
@@ -164,6 +168,26 @@ class Schedule:
                 period_func = [schedule_from_array(x) for x in period_array]
 
             yield period_func, info, change
+
+    def get_diag_shift_schedule(self):
+
+
+        flat_periods = self.flat_setup()["epochs"]
+        main_ds_array = period_from_string(self.total_epochs, self.ds_setup)
+
+        schedule_func = self.ds_setup.split("(")[0]
+
+
+        ds_periods = [schedule_from_array(main_ds_array[:flat_periods[0]])]
+        ds_periods_info = [schedule_func + f"({main_ds_array[0]:.4f}, {main_ds_array[flat_periods[0]]:.4f})"]
+        for i in range(1, len(flat_periods)):
+            final_epoch = sum(flat_periods[:i])
+            ds = schedule_from_array(main_ds_array[final_epoch:final_epoch + flat_periods[i]])
+            ds_periods.append(ds)
+            ds_periods_info.append(schedule_func + f"({main_ds_array[flat_periods[i-1]]:.4f}, {main_ds_array[flat_periods[i]]:.4f})")
+
+        return ds_periods, ds_periods_info
+
 
     def transform_optimizer(self, params, optimizer_setup, info, lr_func):
 
