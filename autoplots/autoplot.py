@@ -5,7 +5,7 @@ import glob
 import json
 from pathlib import Path
 
-from NNs.plots.plot_from_artifact import crossed_artifact_plots
+from NNs.autoplots.plot_from_artifact import crossed_artifact_plots
 
 parser = argparse.ArgumentParser()
 parser.add_argument(
