@@ -1,7 +1,7 @@
 {
     "write_folder":"/home/ihuarte/Escritorio/Ivan/NNs/Irreps/Figures/",
 
-    "calc_irreps": [[2,3,0]],
+    "calc_irreps": null,
 
     "basis_builder": {
         "mode": "dense",
@@ -47,7 +47,7 @@
 
         "mode": "zip",
         
-        "sizes":[[4, 4]],
+        "sizes":[[4, 2]],
 
         "kwargs_lattice" : {
             "bc":"periodic",
@@ -78,7 +78,7 @@
 
             "IsingSquare":{
                 "J_list": [ 
-                    -0.1
+                    -2.5, -1.5, -1.0, -0.6, -0.1, 0.1, 0.7, 1.0, 1.5, 2.5
                 ],
                 "fields": [-1.0],
                 "ops": [["X"],["ZZ"]]

@@ -3,24 +3,23 @@
 import json
 import sys
 from pathlib import Path
+
 import jax
 
 jax.config.update("jax_enable_x64", True)
 jax.config.update("jax_platform_name", "cpu")
 import jax.nn
 import jax.numpy as jnp
-
 import jax.typing
 import matplotlib
-import matplotlib.colors as colors
 import matplotlib.pyplot as plt
 import netket as nk
-
 import numpy as np
 import numpy.linalg
 import scipy as sp
 import scipy.linalg
 import seaborn as sns
+from matplotlib import colors
 
 cmap = colors.LinearSegmentedColormap.from_list(
     "Spectral_soft", sns.color_palette("Spectral", 256, desat=0.7)
@@ -38,9 +37,7 @@ with open(path + "config.json", "r") as f:
     config = json.load(f)
 
 write = config["write_folder"]
-q_idx_generator = config["calc_irreps"]
-if q_idx_generator is not None:
-    q_idx_generator = [tuple(irrep) for irrep in q_idx_generator]
+
 
 config_cm = config["config_cm"]
 symmetries_config = config["symmetries"]
@@ -55,6 +52,10 @@ for size in sizes:
     model_factory = ModelFactory(size, config_cm)
 
     for params in model_factory.get_params():
+
+        q_idx_generator = config["calc_irreps"]
+        if q_idx_generator is not None:
+            q_idx_generator = [tuple(irrep) for irrep in q_idx_generator]
 
         cm_model_setup = model_factory.get_setup()
         cm_model_name = model_factory.name
@@ -131,7 +132,11 @@ for size in sizes:
                 print(f"Conmutes U_{i} with U_{j}?: {conmutes}")
 
         # Compute irrep projectors
-        q_idx_generator = _all_idx_combinations(group.N_group) if q_idx_generator is None else q_idx_generator
+        q_idx_generator = (
+            _all_idx_combinations(group.N_group)
+            if q_idx_generator is None
+            else q_idx_generator
+        )
         Q = {}
         for i, q_vector in enumerate(q_idx_generator):
             print(f"Processing q_vector: {q_vector}")
@@ -250,7 +255,7 @@ for size in sizes:
         ax2.set_xlabel(r"$q$", fontsize=15)
         ax2.set_ylabel(r"$E$", fontsize=15)
         ax2.set_xticks(range(len(Q)))
-        ax2.set_xticklabels([str(q) for q in Q.keys()], rotation=45, ha="right")
+        ax2.set_xticklabels([str(q) for q in Q], rotation=45, ha="right")
         span = global_max - global_min
         ax2.hlines(global_min, -0.5, len(Q) - 0.5, linestyles="dashed", color="green")
         ax2.set_ylim(global_min - 0.2 * span, global_max + 0.2 * span)
