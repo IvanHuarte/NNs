@@ -78,7 +78,7 @@ class NeuralNetwork:
         self.setup = preprocess_setup(setup)
 
         print("\nBuilding Neural Network from setup...\n")
-        print_tree(self.setup, values=True)
+        # print_tree(self.setup, values=True)
 
         self.model = self.build_model(self.setup, external_args)
 

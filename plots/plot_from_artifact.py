@@ -1,6 +1,9 @@
 import os
 
+
 from .plots.energyVSirrep import energyVSirrep
+from .plots.fidelityVSirrep import fidelityVSirrep
+
 from .utils import classify, print_tree
 
 
@@ -17,6 +20,17 @@ def plot_artifact_batch(artifact_paths, plot_config, static_args, dynamic_args, 
         energyVSirrep(
             artifact_paths,
             plot_config["energyVSirrep"],
+            write_folder,
+            static_args,
+            dynamic_args,
+            **plot_config["MACROS"],
+        )
+
+    # Fidelity
+    if plot_config["fidelityVSirrep"]["on"]:
+        fidelityVSirrep(
+            artifact_paths,
+            plot_config["fidelityVSirrep"],
             write_folder,
             static_args,
             dynamic_args,
