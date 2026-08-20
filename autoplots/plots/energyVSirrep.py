@@ -60,7 +60,7 @@ def energyVSirrep(
     # print(artifact_paths[str((0,0,0))])
     # print(static_args)
     # print(mode)
-    print(static_args)
+    # print(static_args)
 
     for irrep, artifact_path in artifact_paths.items():
 
@@ -104,12 +104,12 @@ def energyVSirrep(
         idx_even = [set_irreps.index(irrep) for irrep in irreps_even]
         idx_odd = [set_irreps.index(irrep) for irrep in irreps_odd]
 
-        print(f"Irreps: {irreps}")
-        print(f"Irreps (even): {irreps_even}")
-        print(f"Irreps (odd): {irreps_odd}")
-        print(f"Set of irreps: {set_irreps}")
-        print(f"Indices (even): {idx_even}")
-        print(f"Indices (odd): {idx_odd}")
+        # print(f"Irreps: {irreps}")
+        # print(f"Irreps (even): {irreps_even}")
+        # print(f"Irreps (odd): {irreps_odd}")
+        # print(f"Set of irreps: {set_irreps}")
+        # print(f"Indices (even): {idx_even}")
+        # print(f"Indices (odd): {idx_odd}")
 
         ax2.set_xticks(
             range(len(set_irreps)), labels=set_irreps, rotation=45, fontsize=12
@@ -205,6 +205,5 @@ def energyVSirrep(
         dpi=600,
         bbox_inches="tight",
     )
-    print("\n\n")
 
     plt.close(fig)

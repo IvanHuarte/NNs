@@ -15,8 +15,12 @@ def plot_artifact_batch(artifact_paths, plot_config, static_args, dynamic_args, 
     write_folder = folder + "/" + new_folder + "/"
     os.makedirs(write_folder, exist_ok=True)
 
+    print(static_args)
+
     # Energy
     if plot_config["energyVSirrep"]["on"]:
+        print("Energy-vs-Irrep")
+
         energyVSirrep(
             artifact_paths,
             plot_config["energyVSirrep"],
@@ -28,6 +32,7 @@ def plot_artifact_batch(artifact_paths, plot_config, static_args, dynamic_args, 
 
     # Fidelity
     if plot_config["fidelityVSirrep"]["on"]:
+        print("Fidelity-vs-Irrep")
         fidelityVSirrep(
             artifact_paths,
             plot_config["fidelityVSirrep"],
@@ -36,7 +41,7 @@ def plot_artifact_batch(artifact_paths, plot_config, static_args, dynamic_args, 
             dynamic_args,
             **plot_config["MACROS"],
         )
-
+    print("\n")
 
 def recursive_plots(grouped_paths, modes, plot_config, folder, static_through_plots=[]):
 

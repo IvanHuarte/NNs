@@ -45,8 +45,6 @@ def fidelityVSirrep(
     sim_label += f"_runIn_{mode}"
 
     size = ast.literal_eval(static_args[0][1])
-    print(size)
-    print(static_args)
     if size[0] * size[1] > 12:
         print(
             f"WARNING: Skipping plot for size = {size}."
@@ -117,12 +115,12 @@ def fidelityVSirrep(
         idx_even = [set_irreps.index(irrep) for irrep in irreps_even]
         idx_odd = [set_irreps.index(irrep) for irrep in irreps_odd]
 
-        print(f"Irreps: {irreps}")
-        print(f"Irreps (even): {irreps_even}")
-        print(f"Irreps (odd): {irreps_odd}")
-        print(f"Set of irreps: {set_irreps}")
-        print(f"Indices (even): {idx_even}")
-        print(f"Indices (odd): {idx_odd}")
+        # print(f"Irreps: {irreps}")
+        # print(f"Irreps (even): {irreps_even}")
+        # print(f"Irreps (odd): {irreps_odd}")
+        # print(f"Set of irreps: {set_irreps}")
+        # print(f"Indices (even): {idx_even}")
+        # print(f"Indices (odd): {idx_odd}")
 
         ax.set_xticks(
             range(len(set_irreps)), labels=set_irreps, rotation=45, fontsize=12
@@ -196,6 +194,5 @@ def fidelityVSirrep(
         dpi=600,
         bbox_inches="tight",
     )
-    print("\n\n")
 
     plt.close(fig)

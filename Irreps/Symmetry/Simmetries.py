@@ -25,7 +25,7 @@ class Traslation:
 
         self.dim = 1
         self.N = lattice_size[self.axis]
-        self.character = lambda q, n: jnp.exp(-2.0j * jnp.pi * q * n / self.N)
+        self.character = lambda q, n: jnp.exp(2.0j * jnp.pi * q * n / self.N)
 
         assert self.N != 1, f"Group size too low. N = 1"
 
