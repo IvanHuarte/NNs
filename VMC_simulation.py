@@ -320,6 +320,7 @@ for i, size in enumerate(sizes):
             "best_step": best_step,
             "schedule_setup": schedule.flat_setup(),
             "do_each_checkpoint": do_each_checkpoint,
+            "message": keeper.exit_msg
         }
 
         callback_artifacts = dump_callback(log, callback_args)
@@ -333,6 +334,7 @@ for i, size in enumerate(sizes):
         )
         results["key"] = jax.random.key_data(key).tolist()
         results["seed"] = seed
+        results["mssg"] = keeper.exit_msg
 
         sim_config["SIM"]["sampler"]["nsamples"] = n_samples
         sim_config["SIM"]["sampler"]["final_rng"] = jax.random.key_data(

@@ -211,6 +211,9 @@ def dump_callback(logger, settings, write_callback=True):
         ax[e].set_xlabel("Iteration")
         ax[e].set_ylabel("Error", fontsize=12)
         ax[e].grid()
+
+    exit_message = settings["message"]
+    ax[-1].text(0.6, -0.1, exit_message, transform=ax[-1].transAxes)
   
    
     file_path = write_folder + f"Callback_" + sim_label

@@ -55,6 +55,8 @@ class BestIterKeeper:
         elif mode == "always":
             self.update = self.always_update
 
+        self.exit_msg = "Simulation finished with success"
+
     def best_energy_update(self, step, log_data, driver):
         """Update the stored quantities if necessary.
 
