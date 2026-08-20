@@ -7,7 +7,7 @@ requires-python = ">=3.12"
 dependencies = [
     "clinamen2>=2025.7.1",
     "cuda-toolkit==13.1.1",
-    "flax==0.12.3",
+    "flax==0.12.8",
     "frozendict>=2.4.7",
     "jax[cuda13-local]==0.11.0",
     "jax-cuda13-pjrt==0.11.0",
@@ -16,7 +16,7 @@ dependencies = [
     "jaxtyping==0.3.7",
     "matplotlib==3.10.9",
     "matplotlib-inline==0.1.7",
-    "netket==3.21.0",
+    "netket==3.22.3",
     "numpy==2.3.5",
     "nvidia-cublas==13.6.0.2",
     "nvidia-cuda-cccl==13.3.3.4.1",
