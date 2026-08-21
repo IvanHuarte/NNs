@@ -1,5 +1,4 @@
 import jax.numpy as jnp
-
 from NN_module.NN_utils import Translations2D
 
 
@@ -66,7 +65,6 @@ def traslation_equivariant_irrep(x0, params, model, irrep, atol=1e-7, v=0):
         .reshape(Hx * Wx, *x0.shape)
     )
 
-
     idx = jnp.unravel_index(jnp.arange(Hx * Wx), (Hx, Wx))
     shift_idx = jnp.array(idx).T
     mask = (shift_idx[:, 0] % stride[0] == 0) & (shift_idx[:, 1] % stride[1] == 0)
@@ -75,19 +73,20 @@ def traslation_equivariant_irrep(x0, params, model, irrep, atol=1e-7, v=0):
     for shift, x_roll in zip(shift_idx, x0_translations):
         y_roll = model.apply(params, x_roll)
 
-        y0_phase = y0 +  2.0j * jnp.pi * (irrep[0] * shift[0] / Hx + irrep[1] * shift[1] / Wx) 
+        y0_phase = y0 + 2.0j * jnp.pi * (
+            irrep[0] * shift[0] / Hx + irrep[1] * shift[1] / Wx
+        )
 
-
-        logmod_ok = jnp.allclose(jnp.real(y0_phase), jnp.real(y_roll), atol=atol)   
+        logmod_ok = jnp.allclose(jnp.real(y0_phase), jnp.real(y_roll), atol=atol)
         phase_diff = (y0_phase - y_roll).imag
         phase_err = phase_diff - 2 * jnp.pi * jnp.round(phase_diff / (2 * jnp.pi))
         phase_ok = jnp.all(jnp.abs(phase_err) < atol)
-      
+
         if v > 0:
             print(f"Traslation {shift}:")
             print(f"y_roll: {y_roll}")
             print(f"y0_phase: {y0_phase}")
-            print(f"|T_i(f(x)) - f(T_i(x))|² = {jnp.abs((y0_phase - y_roll))}\n")
+            print(f"|T_i(f(x)) - f(T_i(x))|² = {jnp.abs(y0_phase - y_roll)}\n")
             # print(f"y0_shift:\n {y0_shift.reshape(1, -1, 4, 4)}\n")
             # print(f"y_roll:\n {y_roll.reshape(1, -1, 4, 4)}\n")
 

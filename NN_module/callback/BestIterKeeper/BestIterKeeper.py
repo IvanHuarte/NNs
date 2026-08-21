@@ -1,9 +1,9 @@
+import copy
+from pathlib import Path
+
+import flax.serialization
 import numpy as np
 import numpy.typing as npt
-from typing import Optional
-from pathlib import Path
-import copy
-import flax.serialization
 
 
 class BestIterKeeper:
@@ -26,7 +26,7 @@ class BestIterKeeper:
         Hamiltonian: npt.ArrayLike,
         N: int,
         baseline: float = 1e-8,
-        filename: Optional[Path] = None,
+        filename: Path | None = None,
         mode: str = "best_energy",
         balanced_setup: dict = {
             "start_stats": 2 / 10,
@@ -68,8 +68,8 @@ class BestIterKeeper:
         vstate = driver.state
 
         energy_step = np.real(vstate.expect(self.Hamiltonian).mean)
-        var = np.real(getattr(log_data[driver._loss_name], "variance"))
-        mean = np.real(getattr(log_data[driver._loss_name], "mean"))
+        var = np.real(log_data[driver._loss_name].variance)
+        mean = np.real(log_data[driver._loss_name].mean)
         vscore_step = self.N * var / mean**2
 
         if self.step > self.step_threshold or self.best_state is None:
@@ -97,8 +97,8 @@ class BestIterKeeper:
 
         vstate = driver.state
         energy_step = np.real(vstate.expect(self.Hamiltonian).mean)
-        var = np.real(getattr(log_data[driver._loss_name], "variance"))
-        mean = np.real(getattr(log_data[driver._loss_name], "mean"))
+        var = np.real(log_data[driver._loss_name].variance)
+        mean = np.real(log_data[driver._loss_name].mean)
         vscore_step = self.N * var / mean**2
 
         if self.step > self.step_threshold or self.best_state is None:
@@ -121,8 +121,8 @@ class BestIterKeeper:
 
         vstate = driver.state
         energy_step = np.real(vstate.expect(self.Hamiltonian).mean)
-        var = np.real(getattr(log_data[driver._loss_name], "variance"))
-        mean = np.real(getattr(log_data[driver._loss_name], "mean"))
+        var = np.real(log_data[driver._loss_name].variance)
+        mean = np.real(log_data[driver._loss_name].mean)
         vscore_step = self.N * var / mean**2
 
         # Always update
@@ -146,8 +146,8 @@ class BestIterKeeper:
 
         vstate = driver.state
         energy_step = np.real(vstate.expect(self.Hamiltonian).mean)
-        var = np.real(getattr(log_data[driver._loss_name], "variance"))
-        mean = np.real(getattr(log_data[driver._loss_name], "mean"))
+        var = np.real(log_data[driver._loss_name].variance)
+        mean = np.real(log_data[driver._loss_name].mean)
         vscore_step = self.N * var / mean**2
 
         # print(f"\nStep {step}:")
@@ -182,11 +182,11 @@ class BestIterKeeper:
         survive = True
         if vscore < self.baseline:
             survive = False
-            self.exit_msg = f"Vscore {vscore} is below baseline {self.baseline}"
+            self.exit_msg = f"Vscore {vscore:.3e} is below baseline {self.baseline}"
             print(self.exit_msg)
         if not np.isfinite(energy):
             survive = False
-            self.exit_msg = f"Energy has diverged ({energy}). Simulation crashed."
+            self.exit_msg = f"Energy has diverged ({energy:.3e}). Simulation crashed."
             print(self.exit_msg)
 
         return survive
