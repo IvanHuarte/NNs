@@ -1,12 +1,11 @@
-from typing import Tuple
-
 import flax.linen as nn
 import jax.numpy as jnp
 
 from NN_module.utils import _angle
 
+
 def get_characters(
-    lattice_size: Tuple[int, int], irrep: Tuple[int, int]
+    lattice_size: tuple[int, int], irrep: tuple[int, int]
 ) -> jnp.ndarray:
     """
     Get the characters of the irrep for the given input x
@@ -21,7 +20,9 @@ def get_characters(
     m = indexes[..., 1].flatten()
 
     characters = jnp.exp(
-        2.0j * jnp.pi * (irrep[0] * n / lattice_size[0] + irrep[1] * m / lattice_size[1])
+        2.0j
+        * jnp.pi
+        * (irrep[0] * n / lattice_size[0] + irrep[1] * m / lattice_size[1])
     ).reshape(1, *lattice_size)
 
     # characters = 2.0j * jnp.pi * (irrep[0] * n / lattice_size[0] + irrep[1] * m / lattice_size[1])
@@ -36,9 +37,9 @@ class Sequivariant(nn.Module):
     Flax module to project an equivariant module to an irrep
     """
 
-    SeqV: Tuple[nn.Module, ...]
-    irrep: Tuple[int, int] = (0, 0)
-    eps: float = 1e-14 +  1e-17j
+    SeqV: tuple[nn.Module, ...]
+    irrep: tuple[int, int] = (0, 0)
+    eps: float = 1e-14 + 1e-17j
 
     def __call__(self, x: jnp.ndarray) -> jnp.ndarray:
 
@@ -50,8 +51,8 @@ class Sequivariant(nn.Module):
         characters = get_characters((H, W), self.irrep)  # (B, H, W)
 
         # Get Theta_K
-        z = (characters * x[..., 0].astype(jnp.complex128)).sum(axis=(1,2))  
-        phase_k = _angle(z + self.eps)[:, None]    # phase_k = (B, 1)
+        z = (characters * x[..., 0].astype(jnp.complex128)).sum(axis=(1, 2))
+        phase_k = _angle(z + self.eps)[:, None]  # phase_k = (B, 1)
 
         log_psi = self.SeqV[-1](x)  # log_psi = (B, 1)
 
