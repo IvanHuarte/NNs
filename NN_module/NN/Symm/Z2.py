@@ -1,6 +1,6 @@
+import flax.linen as nn
 import jax
 import jax.numpy as jnp
-import flax.linen as nn
 
 
 class Z2Standard(nn.Module):
@@ -12,8 +12,8 @@ class Z2Standard(nn.Module):
 
     def __call__(self, x: jnp.ndarray) -> jnp.ndarray:
 
-        output_x = jnp.atleast_1d(self.worker(x))
-        output_inv_x = jnp.atleast_1d(self.worker(-x))
+        output_x = self.worker(x)
+        output_inv_x = self.worker(-x)
 
         # Concatenamos las dos contribuciones
         z2_stack = jnp.stack([output_x, output_inv_x], axis=1)

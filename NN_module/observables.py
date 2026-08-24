@@ -1,12 +1,12 @@
-import sys
 import itertools
-import jax.numpy as jnp
+import sys
+
 import jax
+import jax.numpy as jnp
 import netket as nk
-from netket.operator.spin import sigmaz
 import netket.experimental as nkx
 import numpy as np
-
+from netket.operator.spin import sigmaz
 
 # Vstate calculations
 
@@ -304,7 +304,7 @@ def modphase(xvs):
             phase = jnp.angle(x)
             return modphase_extended(mod, phase)
 
-        except (MemoryError, RuntimeError, ValueError) as error:
+        except (MemoryError, RuntimeError, ValueError):
             samples = xvs.samples
             flat_samples = samples.reshape(-1, samples.shape[-1])
             logpsi = xvs.log_value(flat_samples)
@@ -332,9 +332,9 @@ def print_max_contributors(x, size, N_max=10, return_states=False):
     max_mods = mod[idx]
     max_phs = ph[idx]
 
-    for config, mod, phs in zip(max_configs, max_mods, max_phs):
+    for i, config, mod, phs in zip(idx, max_configs, max_mods, max_phs):
         tmagn = jnp.sum(config.flatten())
-        print(f"Config: \n{config.reshape(size)}")
+        print(f"Config ({i}): \n{config.reshape(size)}")
         print(f"M = {tmagn}")
         print(f"\nModulus: {mod}")
         print(f"Phase: {phs}\n")
@@ -433,7 +433,7 @@ def measureNdump(keeper, time_exe, exact_diag=False, S_operators=False):
             fidelity_per_site = float(jnp.exp(jnp.log(fidelity) / N))
             print(f"Fidelity: {fidelity:.3e}")
         except (MemoryError, RuntimeError, ValueError):
-            print(f"Failed fidelity calculation due to memory allocation error")
+            print("Failed fidelity calculation due to memory allocation error")
 
     # Renyi entropy, magnetization and its fluctuation
     S_renyi, m, ms, m2, ms2 = calc_all_observables_vs(vstate)
