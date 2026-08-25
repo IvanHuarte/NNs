@@ -1,6 +1,6 @@
 {
 
-    "write_folder_sim":"/home/ihuarte/Escritorio/Ivan/NNs/Simulations_irreps_4x2_X/",
+    "write_folder_sim":"/home/ihuarte/Escritorio/Ivan/NNs/test/",
 
     "sz_total": null,
 
@@ -94,7 +94,7 @@
             "epochs_struct":[
                 
                 [ 
-                    [50, 200, 50, 100]
+                    [1,1,1,1]
                 ]
                 
             ],
@@ -109,7 +109,7 @@
             "lr_struct":[
                 
                 [
-                    [ ["lin(0.001, 0.007)"], [0.007], ["exp(0.007, 0.0005)"], ["lin(0.0005, 0.0001)"]]
+                    [ ["lin(0.001, 0.01)"], [0.01], ["exp(0.01, 0.0005)"], ["lin(0.0005, 0.0001)"]]
                 ]
                 
             ],

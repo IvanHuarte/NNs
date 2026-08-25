@@ -1,6 +1,6 @@
 {
 
-    "selection": "TestViT2DOH200X",
+    "selection": "TestViT2DOHXX000",
 
     "load_model": {
 
@@ -14,6 +14,23 @@
         ]
     },
 
+    "TestViT2DOHXX000":{
+        "stage0":{
+            "template":{
+                
+                "SequivariantX": {
+                    "ViT2D":{},
+                    "OutputHead":{},
+                    "irrep": [2,1]
+                }
+            },
+            "load": [
+                ["stageX0", "0", "0"],
+                ["stageX0", "1", "1"]
+            ],
+            "save_params": true
+        }
+    },
     
     "TestViT2DOH200":{
         "stage0":{
@@ -33,23 +50,6 @@
         }
     },
 
-    "TestViT2DOH200X":{
-        "stage0":{
-            "template":{
-                
-                "SequivariantX": {
-                    "ViT2D":{},
-                    "OutputHead":{},
-                    "irrep": [2,0]
-                }
-            },
-            "load": [
-                ["stageX0", "0", "0"],
-                ["stageX0", "1", "1"]
-            ],
-            "save_params": true
-        }
-    },
     "TestCvTOH10":{
 
         "stage0":{

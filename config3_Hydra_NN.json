@@ -4,16 +4,16 @@
 
     "symm_wrapper":{
 
-        "Z2": {
-            "on": true,
-            "trivial_Z2": true,
-            "symm_modulus":false
-        },
         "Traslation": {
             "on": false,
             "irrep": [0, 1],
             "use_anchor": false,
             "save_memory": false
+        },
+        "Z2": {
+            "on": true,
+            "trivial_Z2": false,
+            "symm_modulus":false
         }
     },
     

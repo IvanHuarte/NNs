@@ -36,6 +36,7 @@ from NN_module.label_utils import (
 from NN_module.NN.Hydra import Hydra
 from NN_module.NN.utils import make_setup_serializable
 from NN_module.observables import phase_stats_vstate, measureNdump
+from NN_module.exact_diagonalization import calc_exact_diag
 from NN_module.sampler.sampler import SamplerFactory
 from NN_module.saveNload import save_results
 from NN_module.schedule.schedule import Schedule
@@ -139,11 +140,18 @@ for i, size in enumerate(sizes):
         H = eng.build_hamiltonian(hi)
 
         if exact_diag:
-            print("Running exact diagonalization...")
-            E_ED, x_ED = eng.exact_energy_lanczos(hi, eigenstates=True)
-            # x_ED = full_basis_state(x_ED, hi) if hi._total_sz is not None else x_ED
-            E_ED = float(E_ED.squeeze(-1))
-            print(f"Energy ED: {E_ED}")
+            ((E_gr_global, x_ED_global), 
+            (E_gr_irrep, x_ED_irrep),
+            (symmetries, irrep)) = calc_exact_diag(
+                hilbert=hi,
+                hamiltonian=H,
+                config_nn=config_nn,
+                lattice_size=size
+            )
+            normal_print = f"\nEnergy gr_global: {E_gr_global:.6f}\n"
+            irrep_print = f"Energy gr_global: {E_gr_global:.6f} \nEnergy gr_irrep: {E_gr_irrep:.6f}"
+            print(normal_print if E_gr_irrep is None else irrep_print)
+            print(f"Projecting to {symmetries} = {irrep}" if irrep is not None else "\n")
 
         ###################################################
 
@@ -217,8 +225,8 @@ for i, size in enumerate(sizes):
             total_epochs=total_epochs,
             H=H,
             N=N,
-            E_ED=E_ED,
-            x_ED=x_ED,
+            E_ED=E_gr_global,
+            x_ED=x_ED_irrep if x_ED_irrep is not None else x_ED_global,
             sim_label_folder=sim_label_folder,
         )
 
@@ -298,9 +306,16 @@ for i, size in enumerate(sizes):
         }
 
         if exact_diag:
-            keeper.E_ED = E_ED
-            keeper.x_ED = x_ED
-            log.E_ED = E_ED
+            keeper.E_gr_global = E_gr_global
+            keeper.x_ED_global = x_ED_global
+            log.E_gr_global = E_gr_global
+            if irrep is not None:
+                keeper.E_gr_irrep = E_gr_irrep
+                keeper.x_ED_irrep
+                log.symmetries = symmetries
+                log.irrep = irrep
+                if E_gr_irrep is not None:
+                    log.E_gr_irrep = E_gr_irrep
 
         ## Save results
 

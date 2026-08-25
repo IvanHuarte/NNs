@@ -101,9 +101,15 @@ def dump_callback(logger, settings, write_callback=True):
         best_step = len(E_hist) - 1
         best_color = "red" 
 
-    if hasattr(logger, "E_ED"):
-        E_gr = np.array(logger.E_ED).real
-        error = np.abs(E_hist - E_gr) / np.abs(E_gr)
+    if hasattr(logger, "E_gr_global"):
+        E_gr_global = np.array(logger.E_gr_global).real
+        error = np.abs(E_hist - E_gr_global) / np.abs(E_gr_global)
+        if hasattr(logger, "E_gr_irrep"):
+            irrep = logger.irrep
+            symmetries = logger.symmetries
+            E_gr_irrep = logger.E_gr_irrep
+            error = np.abs(E_hist - E_gr_irrep) / np.abs(E_gr_irrep)
+
 
     # Calculate the variance score
     var = np.real(np.array(logger["Energy"]["Variance"]))
@@ -111,11 +117,13 @@ def dump_callback(logger, settings, write_callback=True):
     # vs_min = np.round(np.log10(np.min(vscore)))-1
 
     setup_sim = f"E_best: {E_best:.4f}\ntime_exe: {time_exe:.2f}"
-    if hasattr(logger, "E_ED"):
-        setup_sim = f"E_ED: {E_gr:.4f}\n" + setup_sim
+    if hasattr(logger, "E_gr_global"):
+        if hasattr(logger, "E_gr_irrep"):
+            setup_sim = f"E_gr irrep: {E_gr_irrep:.4f}\n" + setup_sim
+        setup_sim = f"E_gr global: {E_gr_global:.4f}\n" + setup_sim
 
     # Plot
-    if hasattr(logger, "E_ED"):
+    if hasattr(logger, "E_gr_global"):
         _, ax = plt.subplots(3, 1, figsize=(8, 18))
         v = 2
         e = 1
@@ -130,7 +138,7 @@ def dump_callback(logger, settings, write_callback=True):
 
     ax[0].set_title(title_label_callback)
 
-    if hasattr(logger, "E_ED"):
+    if hasattr(logger, "E_gr_global"):
         ax[0].errorbar(
             range(total_epochs),
             E_hist,
@@ -139,7 +147,11 @@ def dump_callback(logger, settings, write_callback=True):
             ecolor="r",
             label="E_stdev",
         )
-        ax[0].hlines(E_gr, 0, total_epochs, color="green", label="ED Energy")
+        ax[0].hlines(E_gr_global, 0, total_epochs, color="green", label="ED global")
+        if hasattr(logger, "E_gr_irrep"):
+            ax[0].hlines(E_gr_irrep, 0, total_epochs, color="orange", ls="--", label=f"ED {irrep}")
+
+
 
     ax[0].plot(E_hist, color="blue", label="E")
     ax[0].plot(best_step, E_hist[best_step], marker="o", ms=4, color=best_color)
@@ -191,7 +203,7 @@ def dump_callback(logger, settings, write_callback=True):
     ax[v].set_ylabel("Vscore", fontsize=12)
     ax[v].grid()
 
-    if hasattr(logger, "E_ED"):
+    if hasattr(logger, "E_gr_global"):
         ax[e].plot(error, color="red", label="E")
         ax[e].plot(best_step, error[best_step], marker="o", ms=3, color=best_color)
 
@@ -205,7 +217,6 @@ def dump_callback(logger, settings, write_callback=True):
                 color="tan",
             )
 
-    if hasattr(logger, "E_ED"):
         ax[e].set_yscale("log")
         ax[e].legend()
         ax[e].set_xlabel("Iteration")
@@ -240,7 +251,7 @@ def dump_callback(logger, settings, write_callback=True):
         callback_artifacts["vscore"] = file_path_vscore
 
 
-        if hasattr(logger, "E_ED"):
+        if hasattr(logger, "E_gr_global"):
             file_path_error = file_path + "_error.txt"
             np.savetxt(file_path_error, error)
             callback_artifacts["error"] = file_path_error
@@ -250,7 +261,7 @@ def dump_callback(logger, settings, write_callback=True):
 
 def checkpoint_callback(artifact, steps, energy, vscore):
 
-    E_ED = None
+    E_gr_global = None
 
 
     if artifact is not None:
@@ -259,9 +270,9 @@ def checkpoint_callback(artifact, steps, energy, vscore):
         schedule_setup = Schedule(artifact["SIM"]["schedule"], {}).flat_setup()
         total_epochs = artifact["SIM"]["schedule"]["total_epochs"]
         E_best = artifact["results"]["E_best"]
-        if "E_ED" in artifact["results"]:
-            E_ED = np.array(artifact["results"]["E_ED"]) * 4
-            error = np.abs(energy - E_ED) / np.abs(E_ED)
+        if "E_gr_global" in artifact["results"]:
+            E_gr_global = np.array(artifact["results"]["E_gr_global"]) * 4
+            error = np.abs(energy - E_gr_global) / np.abs(E_gr_global)
         _, _, _, callback = get_filenames_from_settings(
             artifact["CM"], {"name": artifact["NN"]["name"], "setup": {}}
         )
