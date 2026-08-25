@@ -1,6 +1,6 @@
 {
 
-    "selection": "TestViT2DOH200",
+    "selection": "TestViT2DOH200X",
 
     "load_model": {
 
@@ -20,6 +20,24 @@
             "template":{
                 
                 "Sequivariant": {
+                    "ViT2D":{},
+                    "OutputHead":{},
+                    "irrep": [2,0]
+                }
+            },
+            "load": [
+                ["stageX0", "0", "0"],
+                ["stageX0", "1", "1"]
+            ],
+            "save_params": true
+        }
+    },
+
+    "TestViT2DOH200X":{
+        "stage0":{
+            "template":{
+                
+                "SequivariantX": {
                     "ViT2D":{},
                     "OutputHead":{},
                     "irrep": [2,0]

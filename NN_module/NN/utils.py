@@ -154,7 +154,7 @@ def insert_external_kwargs(setup: dict, external_args: dict):
 
     # Add lattice_size to modules which natively need spatial info and/or
     # is necesary to perform 2D traslational symmetries
-    if "module" in setup.keys() and "setup" in setup.keys():
+    if "module" in setup and "setup" in setup:
         for k, v in external_args.items():
 
             if setup["module"] in EXTERNAL_ARGS[k]:

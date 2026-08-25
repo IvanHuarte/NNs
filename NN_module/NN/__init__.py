@@ -2,6 +2,7 @@
 from .Factories import (
     Sequential,
     Sequivariant,
+    SequivariantX,
     SingleModule,
     SplitTraining,
     Transversal,
@@ -27,6 +28,7 @@ from .SingleModels import (
     EDPPh,
     Factorized,
     FactorMod,
+    FinalFF,
     Jastrow_wrap,
     Mean,
     OutputHead,
@@ -34,7 +36,6 @@ from .SingleModels import (
     SzaboOutput,
     ViT2D,
     VViT,
-    FinalFF,
 )
 
 # Importation of symmetrization modules
@@ -50,6 +51,7 @@ __all_factories__ = [
     "SplitTraining",
     "Sequential",
     "Sequivariant",
+    "SequivariantX",
     "Transversal",
 ]
 
@@ -99,6 +101,7 @@ REGISTRY_FACTORIES = {
     "SplitTraining": SplitTraining,
     "Sequential": Sequential,
     "Sequivariant": Sequivariant,
+    "SequivariantX": SequivariantX,
     "Transversal": Transversal,
 }
 
@@ -172,6 +175,7 @@ factory_submodule_dict = {
     "SplitTraining": ["Modulus", "Phase"],
     "Sequential": "Seq",
     "Sequivariant": "SeqV",
+    "SequivariantX": "SeqVX",
     "Transversal": "Trans",
 }
 symm_submodule_dict = {
@@ -180,9 +184,23 @@ symm_submodule_dict = {
     "Traslation": "TWrap",
 }
 
-undefined_submodule_number = ["Sequential", "Sequivariant", "Transversal"]
+undefined_submodule_number = [
+    "Sequential",
+    "Sequivariant",
+    "SequivariantX",
+    "Transversal",
+]
 
-factory_submodule_tags = ["Wrap", "Single", "Modulus", "Phase", "Seq", "SeqV", "Trans"]
+factory_submodule_tags = [
+    "Wrap",
+    "Single",
+    "Modulus",
+    "Phase",
+    "Seq",
+    "SeqV",
+    "SeqVX",
+    "Trans",
+]
 
 
 def get_submodules(father, n_mod):
@@ -190,6 +208,8 @@ def get_submodules(father, n_mod):
         submodules = [f"Seq_{i}" for i in range(n_mod)]
     if father == "Sequivariant":
         submodules = [f"SeqV_{i}" for i in range(n_mod)]
+    if father == "SequivariantX":
+        submodules = [f"SeqVX_{i}" for i in range(n_mod)]
     elif father == "Transversal":
         submodules = [f"Trans_{i}" for i in range(n_mod)]
     elif father == "SplitTraining":

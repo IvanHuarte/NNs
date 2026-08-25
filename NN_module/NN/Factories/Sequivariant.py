@@ -58,9 +58,60 @@ class Sequivariant(nn.Module):
         log_psi = self.SeqV[-1](x)  # log_psi = (B, 1)
         log_psi_k = log_psi + 1j * phase_k
 
-        min_infinity = jnp.array([[jnp.finfo(log_psi.dtype).min + 0j]], dtype=jnp.complex128)
+        min_infinity = jnp.array(
+            [[jnp.finfo(log_psi.dtype).min + 0j]], dtype=jnp.complex128
+        )
         min_infinity = jnp.broadcast_to(min_infinity, log_psi_k.shape)
-        
+
+        log_psi_k = jnp.where(
+            (jnp.abs(z) < self.eps)[:, None],
+            min_infinity,
+            log_psi_k,
+        )
+
+        # print(f"{x[..., 0]=}")
+        # print(f"{characters=}")
+        # print(f"char * x = \n{characters * x[..., 0]}")
+        # print(f"{z=}")
+        # print(f"{log_psi=}")
+        # print(f"{phase_k=}")
+        # print(f"{log_psi_k=}")
+        # print("\n")
+
+        return log_psi_k
+
+
+class SequivariantX(nn.Module):
+    """
+    Flax module to project an equivariant module to an irrep
+    """
+
+    SeqVX: tuple[nn.Module, ...]
+    irrep: tuple[int, int]
+    eps: float = 1e-10
+    z_eps: float = 1e-12 + 1e-15j
+
+    def __call__(self, x: jnp.ndarray) -> jnp.ndarray:
+
+        _, H, W, _ = x.shape
+
+        characters = get_characters((H, W), self.irrep)  # (B, H, W)
+
+        # Get Theta_K
+        z = (characters * x[..., 0].astype(jnp.complex128)).sum(axis=(1, 2))
+        phase_k = _angle(z + self.z_eps)[:, None]  # phase_k = (B, 1)
+
+        for module in self.SeqVX[:-1]:
+            x = module(x)
+
+        log_psi = self.SeqVX[-1](x)  # log_psi = (B, 1)
+        log_psi_k = log_psi + 1j * phase_k
+
+        min_infinity = jnp.array(
+            [[jnp.finfo(log_psi.dtype).min + 0j]], dtype=jnp.complex128
+        )
+        min_infinity = jnp.broadcast_to(min_infinity, log_psi_k.shape)
+
         log_psi_k = jnp.where(
             (jnp.abs(z) < self.eps)[:, None],
             min_infinity,
