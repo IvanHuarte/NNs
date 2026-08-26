@@ -1,10 +1,8 @@
 import os
 
-
 from .plots.energyVSirrep import energyVSirrep
 from .plots.fidelityVSirrep import fidelityVSirrep
-
-from .utils import classify, print_tree
+from .utils import classify
 
 
 def plot_artifact_batch(artifact_paths, plot_config, static_args, dynamic_args, folder):
@@ -42,6 +40,7 @@ def plot_artifact_batch(artifact_paths, plot_config, static_args, dynamic_args, 
             **plot_config["MACROS"],
         )
     print("\n")
+
 
 def recursive_plots(grouped_paths, modes, plot_config, folder, static_through_plots=[]):
 

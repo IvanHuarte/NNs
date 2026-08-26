@@ -41,26 +41,15 @@ def energyVSirrep(
         sim_label += f"_{args[0]}_{args[1]}"
     sim_label += f"_runIn_{mode}"
 
-    fig, (ax1, ax2) = plt.subplots(
-        2,
-        1,
-        figsize=[10, 8],
-        sharex=True,
-        gridspec_kw={"height_ratios": [2, 1]},
-    )
-
     y_min = np.inf
     y_max = -np.inf
 
     E = []
+    E_ED_irrep = []
+    error_irrep = []
     vscore = []
+    fidelity_irrep = []
     irreps = []
-
-    # print_tree(artifact_paths, values=True)
-    # print(artifact_paths[str((0,0,0))])
-    # print(static_args)
-    # print(mode)
-    # print(static_args)
 
     for irrep, artifact_path in artifact_paths.items():
 
@@ -78,15 +67,43 @@ def energyVSirrep(
         y_max = max(y_max, E_gr)
 
         E.append(E_gr)
+        E_ED_irrep.append(artifact["results"]["E_gr_irrep"])
+        error_irrep.append(artifact["results"]["error_irrep"])
         vscore.append(artifact["results"]["vscore"])
+        fidelity_irrep.append(artifact["results"]["fidelity_irrep"])
         irreps.append(irrep)
+
+    plot_ED = all([vs is not None for vs in vscore])
+    if plot_ED:
+        fig, (ax1, ax2, ax3, ax4) = plt.subplots(
+            4,
+            1,
+            figsize=[10, 15],
+            sharex=True,
+            gridspec_kw={"height_ratios": [2, 1, 1, 1]},
+        )
+
+    else:
+        fig, (ax1, ax2) = plt.subplots(
+            2,
+            1,
+            figsize=[10, 8],
+            sharex=True,
+            gridspec_kw={"height_ratios": [2, 1]},
+        )
 
     if plot_setup["split_by_parity"]:
         irreps = [ast.literal_eval(irrep) for irrep in irreps]
         E_even = [E[i] for i in range(len(E)) if irreps[i][2] == 0]
         E_odd = [E[i] for i in range(len(E)) if irreps[i][2] == 1]
+        E_gr_irrep_even = [E_ED_irrep[i] for i in range(len(E)) if irreps[i][2] == 0]
+        E_gr_irrep_odd = [E_ED_irrep[i] for i in range(len(E)) if irreps[i][2] == 1]
+        error_irrep_even = [error_irrep[i] for i in range(len(E)) if irreps[i][2] == 0]
+        error_irrep_odd = [error_irrep[i] for i in range(len(E)) if irreps[i][2] == 1]
         vscore_even = [vscore[i] for i in range(len(E)) if irreps[i][2] == 0]
         vscore_odd = [vscore[i] for i in range(len(E)) if irreps[i][2] == 1]
+        fidelity_even = [fidelity_irrep[i] for i in range(len(E)) if irreps[i][2] == 0]
+        fidelity_odd = [fidelity_irrep[i] for i in range(len(E)) if irreps[i][2] == 1]
         irreps_even = [(irrep[0], irrep[1]) for irrep in irreps if irrep[2] == 0]
         irreps_odd = [(irrep[0], irrep[1]) for irrep in irreps if irrep[2] == 1]
 
@@ -104,13 +121,6 @@ def energyVSirrep(
         idx_even = [set_irreps.index(irrep) for irrep in irreps_even]
         idx_odd = [set_irreps.index(irrep) for irrep in irreps_odd]
 
-        # print(f"Irreps: {irreps}")
-        # print(f"Irreps (even): {irreps_even}")
-        # print(f"Irreps (odd): {irreps_odd}")
-        # print(f"Set of irreps: {set_irreps}")
-        # print(f"Indices (even): {idx_even}")
-        # print(f"Indices (odd): {idx_odd}")
-
         ax2.set_xticks(
             range(len(set_irreps)), labels=set_irreps, rotation=45, fontsize=12
         )
@@ -120,7 +130,8 @@ def energyVSirrep(
             E_even,
             color="red",
             marker="o",
-            ms=4,
+            ms=5,
+            lw=3,
             alpha=0.5,
             label=r"$\text{Z_2 (+1)}$",
         )
@@ -129,7 +140,8 @@ def energyVSirrep(
             E_odd,
             color="blue",
             marker="o",
-            ms=3,
+            ms=5,
+            lw=3,
             alpha=0.5,
             label=r"$\text{Z_2 (-1)}$",
         )
@@ -138,7 +150,8 @@ def energyVSirrep(
             vscore_even,
             color="firebrick",
             marker="o",
-            ms=4,
+            ms=5,
+            lw=3,
             alpha=0.5,
             label=r"$\text{Z_2 (+1)}$",
         )
@@ -147,10 +160,73 @@ def energyVSirrep(
             vscore_odd,
             color="purple",
             marker="o",
-            ms=3,
+            ms=5,
+            lw=3,
             alpha=0.5,
             label=r"$\text{Z_2 (-1)}$",
         )
+        if plot_ED:
+            ax1.plot(
+                range(len(idx_even)),
+                E_gr_irrep_even,
+                color="firebrick",
+                marker="o",
+                ms=5,
+                lw=3,
+                alpha=0.5,
+                label=r"$\text{Z_2 (+1)}$",
+            )
+            ax1.plot(
+                range(len(idx_odd)),
+                E_gr_irrep_odd,
+                color="purple",
+                marker="o",
+                ms=5,
+                lw=3,
+                alpha=0.5,
+                label=r"$\text{Z_2 (-1)}$",
+            )
+            ax3.plot(
+                range(len(idx_even)),
+                error_irrep_even,
+                color="firebrick",
+                marker="o",
+                ms=5,
+                lw=3,
+                alpha=0.5,
+                label=r"$\text{Z_2 (+1)}$",
+            )
+            ax3.plot(
+                range(len(idx_odd)),
+                error_irrep_odd,
+                color="purple",
+                marker="o",
+                ms=5,
+                lw=3,
+                alpha=0.5,
+                label=r"$\text{Z_2 (-1)}$",
+            )
+
+            ax4.plot(
+                range(len(idx_even)),
+                fidelity_even,
+                color="firebrick",
+                marker="o",
+                ms=5,
+                lw=3,
+                alpha=0.5,
+                label=r"$\text{Z_2 (+1)}$",
+            )
+            ax4.plot(
+                range(len(idx_odd)),
+                fidelity_odd,
+                color="purple",
+                marker="o",
+                ms=5,
+                lw=3,
+                alpha=0.5,
+                label=r"$\text{Z_2 (-1)}$",
+            )
     else:
         total_irreps = full_irreps(mode, artifact["CM"]["size"])
         total_irreps = [str(irrep) for irrep in total_irreps]
