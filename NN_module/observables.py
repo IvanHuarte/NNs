@@ -499,6 +499,7 @@ def measureNdump(keeper, time_exe, S_operators=False):
         "E_best": E_best,
         "E_best_per_site": E_best_per_site,
         "E_gr_global": E_gr_global,
+        "E_gr_irrep": E_gr_irrep,
         "error_global": error_global,
         "error_irrep": error_irrep,
         "delta_irrep": delta_irrep,
