@@ -390,12 +390,21 @@ def distance_with_stripped(size):
     return _compare
 
 
-def measureNdump(keeper, time_exe, exact_diag=False, S_operators=False):
+def measureNdump(keeper, time_exe, S_operators=False):
 
     s_factor = 4 if S_operators else 1
 
-    E_ED = keeper.E_ED / s_factor if hasattr(keeper, "E_ED") else None
-    x_ED = keeper.x_ED if hasattr(keeper, "x_ED") else None
+    E_gr_global = (
+        keeper.E_gr_global / s_factor if hasattr(keeper, "E_gr_global") else None
+    )
+    x_ED_global = keeper.x_ED_global if hasattr(keeper, "x_ED_global") else None
+
+    irrep_info = None
+    if keeper.irrep is not None:
+        irrep_info = {"irrep": keeper.irrep, "symmetries": keeper.symmetries}
+
+    E_gr_irrep = keeper.E_gr_irrep / s_factor if hasattr(keeper, "E_gr_irrep") else None
+    x_ED_irrep = keeper.x_ED_irrep if hasattr(keeper, "x_ED_irrep") else None
 
     vstate = keeper.best_state
     N = vstate.hilbert.size
@@ -406,17 +415,28 @@ def measureNdump(keeper, time_exe, exact_diag=False, S_operators=False):
     vscore = float(keeper.best_state_vscore)
 
     modphase_results = {}
-    if exact_diag:
-        error = float(np.abs(E_best - E_ED) / np.abs(E_ED))
-        mp_array_ED, stats_ED = modphase(x_ED)
-        modphase_results["xED"] = stats_ED
+    error_global = None
+    mp_array_ED_global = None
+    error_irrep = None
+    delta_irrep = None
+    mp_array_ED_irrep = None
+
+    if E_gr_global is not None:
+        error_global = float(np.abs(E_best - E_gr_global) / np.abs(E_gr_global))
+        mp_array_ED_global, stats_ED_global = modphase(x_ED_global)
+        modphase_results["xED_global"] = stats_ED_global
         print(
-            f"xED phase: {stats_ED['phase']['mean']} \u00b1 {stats_ED['phase']['std']}  ({stats_ED['type']})"
+            f"xED phase: {stats_ED_global['phase']['mean']} \u00b1 {stats_ED_global['phase']['std']}  ({stats_ED_global['type']})"
         )
 
-    else:
-        error = None
-        mp_array_ED = None
+        if E_gr_irrep is not None:
+            error_irrep = float(np.abs(E_best - E_gr_irrep) / np.abs(E_gr_irrep))
+            delta_irrep = float(E_gr_irrep - E_gr_global)
+            mp_array_ED_irrep, stats_ED_irrep = modphase(x_ED_irrep)
+            modphase_results["xED_irrep"] = stats_ED_irrep
+            print(
+                f"xED phase: {stats_ED_irrep['phase']['mean']} \u00b1 {stats_ED_irrep['phase']['std']}  ({stats_ED_irrep['type']})"
+            )
 
     mp_array_vs, stats_vs = modphase(vstate)
     modphase_results["vstate"] = stats_vs
@@ -425,15 +445,32 @@ def measureNdump(keeper, time_exe, exact_diag=False, S_operators=False):
     )
 
     # Fidelity
-    fidelity = None
-    fidelity_per_site = None
-    if exact_diag:
+    fidelity_global = None
+    fidelity_per_site_global = None
+    fidelity_irrep = None
+    fidelity_per_site_irrep = None
+
+    if E_gr_global is not None:
         try:
-            fidelity = float(jnp.abs(jnp.vdot(vstate.to_array(), x_ED.squeeze())))
-            fidelity_per_site = float(jnp.exp(jnp.log(fidelity) / N))
-            print(f"Fidelity: {fidelity:.3e}")
+            fidelity_global = float(
+                jnp.abs(jnp.vdot(vstate.to_array(), x_ED_global.squeeze()))
+            )
+            fidelity_per_site_global = float(jnp.exp(jnp.log(fidelity_global) / N))
+            print(f"Fidelity of global ground state: {fidelity_global:.3e}")
         except (MemoryError, RuntimeError, ValueError):
-            print("Failed fidelity calculation due to memory allocation error")
+            print("Failed global fidelity calculation due to memory allocation error")
+
+        if E_gr_irrep is not None:
+            try:
+                fidelity_irrep = float(
+                    jnp.abs(jnp.vdot(vstate.to_array(), x_ED_irrep.squeeze()))
+                )
+                fidelity_per_site_irrep = float(jnp.exp(jnp.log(fidelity_irrep) / N))
+                print(f"Fidelity of irrep ground state: {fidelity_irrep:.3e}")
+            except (MemoryError, RuntimeError, ValueError):
+                print(
+                    "Failed global fidelity calculation due to memory allocation error"
+                )
 
     # Renyi entropy, magnetization and its fluctuation
     S_renyi, m, ms, m2, ms2 = calc_all_observables_vs(vstate)
@@ -446,25 +483,32 @@ def measureNdump(keeper, time_exe, exact_diag=False, S_operators=False):
     print(f"< m >: {m}   < m2 >: {m2}")
     print(f"< ms >: {ms}  < ms2 >: {ms2}")
 
-    if exact_diag and vstate.hilbert._total_sz is None:
+    x_ED = x_ED_global if x_ED_global is not None else None
+    x_ED = x_ED_irrep if x_ED_irrep is not None else x_ED
+
+    if x_ED is not None and vstate.hilbert._total_sz is None:
         m_ED, ms_ED, m2_ED, ms2_ED = calc_all_observables_ED(x_ED.squeeze())
         print(f"ED < m >: {m_ED}   < m2 >: {m2_ED}")
         print(f"ED < ms >: {ms_ED}  < ms2 >: {ms2_ED}\n")
 
     else:
-        m_ED, ms_ED, m2_ED, ms2_ED = None, None, None, None
+        m_ED, ms_ED, m2_ED, ms2_ED = None
 
     results = {
         "best_step": best_step,
         "E_best": E_best,
         "E_best_per_site": E_best_per_site,
-        "E_ED": E_ED,
-        "error": error,
+        "E_gr_global": E_gr_global,
+        "error_global": error_global,
+        "error_irrep": error_irrep,
+        "delta_irrep": delta_irrep,
         "vscore": vscore,
         "time_exe": time_exe,
         "modphase": modphase_results,
-        "fidelity": fidelity,
-        "fidelity_per_site": fidelity_per_site,
+        "fidelity_global": fidelity_global,
+        "fidelity_per_site_global": fidelity_per_site_global,
+        "fidelity_irrep": fidelity_irrep,
+        "fidelity_per_site_irrep": fidelity_per_site_irrep,
         "S_renyi": S_renyi,
         "m": m,
         "ms": ms,
@@ -474,6 +518,7 @@ def measureNdump(keeper, time_exe, exact_diag=False, S_operators=False):
         "ms_ED": ms_ED,
         "m2_ED": m2_ED,
         "ms2_ED": ms2_ED,
+        "irrep_info": irrep_info,
     }
 
-    return results, mp_array_vs, mp_array_ED
+    return results, mp_array_vs, mp_array_ED_global, mp_array_ED_irrep

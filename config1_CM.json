@@ -16,7 +16,7 @@
             "Oxalate":{
                 "strength": 0.2,
                 "theta_list":[54.0],
-                "phi_list":[  216.0]
+                "phi_list":[216.0]
             },
 
             "LRChain":{

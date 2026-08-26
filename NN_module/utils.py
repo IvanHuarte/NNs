@@ -9,7 +9,7 @@ def print_tree(tree, prefix="", values=False):
             print_tree(val, prefix + "   ", values=values)
         else:
             if values:
-                print(prefix + f"{str(key)}: {str(val)}")
+                print(prefix + f"{key!s}: {val!s}")
             else:
                 print(prefix + str(key))
 
@@ -20,16 +20,14 @@ def compare_params(old_params, new_params, atol=1e-13):
 
     diffs = jax.tree_util.tree_map(compare_fn, old_params, new_params)
 
-    print(f"Ha cambiado: (True) //  No ha cambiado: (False) \n\n")
+    print("Ha cambiado: (True) //  No ha cambiado: (False) \n\n")
     print_tree(diffs, values=True)
     print("\n")
 
 
 import sys
 from pathlib import Path
-from typing import Optional, Tuple
 
-import jax
 import jax.numpy as jnp
 import netket as nk
 import numpy.typing as npt
@@ -104,14 +102,14 @@ def scheduler_initializer(name, setup):
         )
 
 
-
 ####################################################################################
 #                                                                                  #
 #                                   SIMETRIES                                      #
 #                                                                                  #
 ####################################################################################
 
-def circulant(row: npt.ArrayLike, times: Optional[int] = None) -> npt.ArrayLike:
+
+def circulant(row: npt.ArrayLike, times: int | None = None) -> npt.ArrayLike:
     """Build a (full or partial) circulant matrix based on an array.
 
     Args:
@@ -137,7 +135,7 @@ def circulant(row: npt.ArrayLike, times: Optional[int] = None) -> npt.ArrayLike:
 
 
 def Translations2D_vmap(
-    x: npt.ArrayLike, stride: Tuple[int, int] = (1, 1)
+    x: npt.ArrayLike, stride: tuple[int, int] = (1, 1)
 ) -> npt.ArrayLike:
     """
     Takes a 4-tensor of shape (B, H, W, Ch) and returns a tensor of shape
@@ -165,7 +163,7 @@ def Translations2D_vmap(
     return jax.vmap(jax.vmap(roll, in_axes=(None, 0)), in_axes=(None, 0))(x, shift_idx)
 
 
-def Translations2D_scan(x: npt.ArrayLike, stride: Tuple[int, int]) -> npt.ArrayLike:
+def Translations2D_scan(x: npt.ArrayLike, stride: tuple[int, int]) -> npt.ArrayLike:
     """
 
     Takes a 4-tensor of shape (B, H, W, Ch) and returns a tensor of shape
@@ -191,7 +189,7 @@ def Translations2D_scan(x: npt.ArrayLike, stride: Tuple[int, int]) -> npt.ArrayL
 
 def Translations2D(
     x: npt.ArrayLike,
-    stride: Tuple[int, int] = (1, 1),
+    stride: tuple[int, int] = (1, 1),
     save_memory: bool = False,
 ) -> npt.ArrayLike:
     """
@@ -213,6 +211,7 @@ def Translations2D(
 
     return x
 
+
 ####################################################################################
 #                                                                                  #
 #                               CUSTOM FUNCTIONS                                   #
@@ -223,10 +222,12 @@ from jax._src.typing import Array, ArrayLike
 
 eps = 1e-8
 
+
 @jax.custom_jvp
 def _atan2(y, x):
     "Wrapper for the regular atan2 function"
     return jax.lax.atan2(y, x)
+
 
 @_atan2.defjvp
 def _atan2_jvp(primals, tangents):
@@ -246,6 +247,7 @@ def _atan2_jvp(primals, tangents):
 @jax.custom_jvp
 def _angle(z: ArrayLike) -> Array:
     return jnp.angle(z)
+
 
 @_angle.defjvp
 def _angle_jvp(primals, tangents):

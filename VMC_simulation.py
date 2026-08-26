@@ -6,7 +6,6 @@ import time
 import uuid
 
 import jax
-import jax.numpy as jnp
 import netket as nk
 import numpy as np
 
@@ -28,6 +27,7 @@ from VA_project.initialize_model import ModelFactory
 
 from NN_module.callback import Callback
 from NN_module.callback.utils import dump_callback
+from NN_module.exact_diagonalization import calc_exact_diag
 from NN_module.label_utils import (
     display_simulation_settings,
     get_filenames_from_settings,
@@ -35,8 +35,7 @@ from NN_module.label_utils import (
 )
 from NN_module.NN.Hydra import Hydra
 from NN_module.NN.utils import make_setup_serializable
-from NN_module.observables import phase_stats_vstate, measureNdump
-from NN_module.exact_diagonalization import calc_exact_diag
+from NN_module.observables import measureNdump, phase_stats_vstate
 from NN_module.sampler.sampler import SamplerFactory
 from NN_module.saveNload import save_results
 from NN_module.schedule.schedule import Schedule
@@ -111,10 +110,6 @@ write = get_write_folder_from_model({**config, **config_cm, **config_nn})
 for i, size in enumerate(sizes):
 
     N = int(np.prod(size))
-    exact_diag = True if N < 21 else False
-    if not exact_diag:
-        E_ED = None
-        x_ED = None
 
     write_folder_size = write + f"Size_{size[0]}x{size[1]}/"
 
@@ -139,19 +134,19 @@ for i, size in enumerate(sizes):
         eng = Runner(cm_model.cm, S_operators=False)
         H = eng.build_hamiltonian(hi)
 
-        if exact_diag:
-            ((E_gr_global, x_ED_global), 
+        (
+            (E_gr_global, x_ED_global),
             (E_gr_irrep, x_ED_irrep),
-            (symmetries, irrep)) = calc_exact_diag(
-                hilbert=hi,
-                hamiltonian=H,
-                config_nn=config_nn,
-                lattice_size=size
-            )
-            normal_print = f"\nEnergy gr_global: {E_gr_global:.6f}\n"
-            irrep_print = f"Energy gr_global: {E_gr_global:.6f} \nEnergy gr_irrep: {E_gr_irrep:.6f}"
-            print(normal_print if E_gr_irrep is None else irrep_print)
-            print(f"Projecting to {symmetries} = {irrep}" if irrep is not None else "\n")
+            (symmetries, irrep),
+        ) = calc_exact_diag(
+            hilbert=hi, hamiltonian=H, config_nn=config_nn, lattice_size=size
+        )
+        normal_print = f"\nEnergy gr_global: {E_gr_global:.6f}\n"
+        irrep_print = (
+            f"Energy gr_global: {E_gr_global:.6f} \nEnergy gr_irrep: {E_gr_irrep:.6f}"
+        )
+        print(normal_print if E_gr_irrep is None else irrep_print)
+        print(f"Projecting to {symmetries} = {irrep}" if irrep is not None else "\n")
 
         ###################################################
 
@@ -305,20 +300,21 @@ for i, size in enumerate(sizes):
             "NN": {"name": nn_evol_name + f"_stage{eon}", "setup": NN_setup},
         }
 
-        if exact_diag:
+        if E_gr_global is not None:
             keeper.E_gr_global = E_gr_global
             keeper.x_ED_global = x_ED_global
             log.E_gr_global = E_gr_global
             if irrep is not None:
-                keeper.E_gr_irrep = E_gr_irrep
-                keeper.x_ED_irrep
+                keeper.symmetries = symmetries
+                keeper.irrep = irrep
                 log.symmetries = symmetries
                 log.irrep = irrep
                 if E_gr_irrep is not None:
                     log.E_gr_irrep = E_gr_irrep
+                    keeper.E_gr_irrep = E_gr_irrep
+                    keeper.x_ED_irrep = x_ED_irrep
 
         ## Save results
-
         sim_label, ED_label, json_label, title_label_callback = (
             get_filenames_from_settings(
                 cm_model_setup, {"name": nn_evol_name, "setup": {}}, sim_uuid
@@ -335,18 +331,18 @@ for i, size in enumerate(sizes):
             "best_step": best_step,
             "schedule_setup": schedule.flat_setup(),
             "do_each_checkpoint": do_each_checkpoint,
-            "message": keeper.exit_msg
+            "message": keeper.exit_msg,
         }
 
         callback_artifacts = dump_callback(log, callback_args)
 
         ## Calculate some observables
-        results, mp_array_vs, mp_array_ED = measureNdump(
+        results, mp_array_vs, mp_array_ED_global, mp_array_ED_irrep = measureNdump(
             keeper,
             time_exe,
-            exact_diag=exact_diag,
             S_operators=config_cm["S_operators"],
         )
+
         results["key"] = jax.random.key_data(key).tolist()
         results["seed"] = seed
         results["mssg"] = keeper.exit_msg
@@ -387,9 +383,11 @@ for i, size in enumerate(sizes):
         save_results(
             vstate,
             dump_setup,
-            x_ED=x_ED,
+            x_ED_global=x_ED_global,
+            x_ED_irrep=x_ED_irrep,
             modphase=mp_array_vs,
-            modphase_ED=mp_array_ED,
+            modphase_ED_global=mp_array_ED_global,
+            modphase_ED_irrep=mp_array_ED_irrep,
             write_folder=write_folder,
             sim_label=sim_label,
             ED_label=ED_label,

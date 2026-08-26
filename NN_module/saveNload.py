@@ -1,18 +1,18 @@
-import os
 import json
-import numpy as np
-import scipy as sp
+import os
+from datetime import date
+from pathlib import Path
+from platform import architecture, python_version
+
 import flax
 import jax
-import orbax.checkpoint as ocp
 import netket as nk
+import numpy as np
+import orbax.checkpoint as ocp
+import scipy as sp
 from netket.sampler.metropolis import MetropolisSamplerState
-
-from datetime import date
-from platform import architecture, python_version
-from pathlib import Path
-
 from VA_project.initialize_model import ModelFactory
+
 from .NN.NN import NeuralNetwork
 from .sampler.sampler import SamplerFactory
 
@@ -37,9 +37,11 @@ def load_pytree(path):
 def save_results(
     vstate,
     setup,
-    x_ED=None,
+    x_ED_global=None,
+    x_ED_irrep=None,
     modphase=None,
-    modphase_ED=None,
+    modphase_ED_global=None,
+    modphase_ED_irrep=None,
     write_folder="./",
     sim_label="",
     ED_label="",
@@ -76,11 +78,17 @@ def save_results(
     setup["_artifacts"]["sampler_state"] = path_sampler
 
     # Save exact diagonalization eigenstate
-    if x_ED is not None:
-        path_ED = write_folder + ED_label + ".txt"
+    if x_ED_global is not None:
+        path_ED_global = write_folder + ED_label + ".txt"
         if not os.path.isfile(write_folder + ED_label):
-            np.savetxt(path_ED, x_ED)
-        setup["_artifacts"]["x_ED"] = path_ED
+            np.savetxt(path_ED_global, x_ED_global)
+        setup["_artifacts"]["x_ED_global"] = path_ED_global
+        if x_ED_irrep is not None:
+            irrep = setup["results"]["irrep_info"]["irrep"]
+            path_ED_irrep = write_folder + ED_label + f"irrep_{irrep}.txt"
+            if not os.path.isfile(write_folder + ED_label):
+                np.savetxt(path_ED_irrep, x_ED_irrep)
+            setup["_artifacts"]["x_ED_irrep"] = path_ED_irrep
 
     # Save modulus and phase from vstate and/or xED
     if not "modphase" in setup["_artifacts"]:
@@ -90,10 +98,16 @@ def save_results(
         np.savetxt(modphase_path, modphase)
         setup["_artifacts"]["modphase"]["vstate"] = modphase_path
 
-    if modphase_ED is not None:
-        modphase_ED_path = write_folder + ED_label + "_modphase_xED.txt"
-        np.savetxt(modphase_ED_path, modphase_ED)
-        setup["_artifacts"]["modphase"]["xED"] = modphase_ED_path
+    if modphase_ED_global is not None:
+        modphase_ED_path_global = write_folder + ED_label + "_modphase_xED_global.txt"
+        np.savetxt(modphase_ED_path_global, modphase_ED_global)
+        setup["_artifacts"]["modphase"]["xED_global"] = modphase_ED_path_global
+        if modphase_ED_irrep is not None:
+            modphase_ED_path_irrep = (
+                write_folder + ED_label + f"_modphase_xED_irrep_{irrep}.txt"
+            )
+            np.savetxt(modphase_ED_path_irrep, modphase_ED_irrep)
+            setup["_artifacts"]["modphase"]["xED_irrep"] = modphase_ED_path_irrep
 
     # Write metadata in main setup artifact
     metadata = {
@@ -140,7 +154,7 @@ def load_vstate(artifact, params_path=None, sampler_path=None, tree_data=False):
     cm_model = ModelFactory.init(artifact["CM"]).get_model()
 
     model = NeuralNetwork(
-        artifact["NN"]["setup"], **{"lattice_size": artifact["CM"]["size"]}
+        artifact["NN"]["setup"], lattice_size=artifact["CM"]["size"]
     ).get_model()
 
     # Initialize hilbert space
@@ -151,19 +165,26 @@ def load_vstate(artifact, params_path=None, sampler_path=None, tree_data=False):
     # dummy_params = model.init(rng, jnp.ones((1, N)))
 
     # Initialize sampler
-    sampler = SamplerFactory(artifact["SIM"]["sampler"], cm_model=cm_model).get_sampler(hi)
+    sampler = SamplerFactory(artifact["SIM"]["sampler"], cm_model=cm_model).get_sampler(
+        hi
+    )
 
     n_samples = artifact["SIM"]["sampler"]["nsamples"]
 
     # Variational State
     vs = nk.vqs.MCState(sampler, model, n_samples=n_samples, seed=0)
 
-    params_path = artifact["_artifacts"]["parameters"] if params_path is None else params_path
-    sampler_path = artifact["_artifacts"]["sampler_state"] if sampler_path is None else sampler_path
+    params_path = (
+        artifact["_artifacts"]["parameters"] if params_path is None else params_path
+    )
+    sampler_path = (
+        artifact["_artifacts"]["sampler_state"]
+        if sampler_path is None
+        else sampler_path
+    )
 
     parameters = load_pytree(params_path)
     sampler_data = load_pytree(sampler_path)
-
 
     sampler_state = MetropolisSamplerState(
         σ=sampler_data["σ"],
@@ -181,7 +202,6 @@ def load_vstate(artifact, params_path=None, sampler_path=None, tree_data=False):
         ) == jax.tree_util.tree_structure(vs.sampler_state)
         print(f"Parameter structure{" " if params_ok else " DOESN'T "}fit")
         print(f"Sampler State structure{" " if sampler_ok else " DOESN'T "}fit")
-
 
     vs.parameters = parameters
     vs.sampler_state = sampler_state
