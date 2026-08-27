@@ -73,7 +73,7 @@ def energyVSirrep(
         fidelity_irrep.append(artifact["results"]["fidelity_irrep"])
         irreps.append(irrep)
 
-    plot_ED = all([vs is not None for vs in vscore])
+    plot_ED = all([E_ED is not None for E_ED in E_ED_irrep])
     if plot_ED:
         fig, (ax1, ax2, ax3, ax4) = plt.subplots(
             4,
@@ -82,6 +82,7 @@ def energyVSirrep(
             sharex=True,
             gridspec_kw={"height_ratios": [2, 1, 1, 1]},
         )
+        ax4.set_xlabel(r"$Irrep$", fontsize=18)
 
     else:
         fig, (ax1, ax2) = plt.subplots(
@@ -91,6 +92,7 @@ def energyVSirrep(
             sharex=True,
             gridspec_kw={"height_ratios": [2, 1]},
         )
+        ax2.set_xlabel(r"$Irrep$", fontsize=18)
 
     if plot_setup["split_by_parity"]:
         irreps = [ast.literal_eval(irrep) for irrep in irreps]
@@ -133,7 +135,7 @@ def energyVSirrep(
             ms=5,
             lw=3,
             alpha=0.5,
-            label=r"$\text{Z_2 (+1)}$",
+            label=r"$Z_2\;(+1)$",
         )
         ax1.plot(
             range(len(idx_odd)),
@@ -143,7 +145,7 @@ def energyVSirrep(
             ms=5,
             lw=3,
             alpha=0.5,
-            label=r"$\text{Z_2 (-1)}$",
+            label=r"$Z_2\;(-1)$",
         )
         ax2.plot(
             range(len(idx_even)),
@@ -153,7 +155,7 @@ def energyVSirrep(
             ms=5,
             lw=3,
             alpha=0.5,
-            label=r"$\text{Z_2 (+1)}$",
+            label=r"$Z_2\;(+1)$",
         )
         ax2.plot(
             range(len(idx_odd)),
@@ -163,18 +165,18 @@ def energyVSirrep(
             ms=5,
             lw=3,
             alpha=0.5,
-            label=r"$\text{Z_2 (-1)}$",
+            label=r"$Z_2\;(-1)$",
         )
         if plot_ED:
             ax1.plot(
                 range(len(idx_even)),
                 E_gr_irrep_even,
-                color="firebrick",
+                color="orange",
                 marker="o",
                 ms=5,
                 lw=3,
                 alpha=0.5,
-                label=r"$\text{Z_2 (+1)}$",
+                label=r"$E_{ED}\;(+1)$",
             )
             ax1.plot(
                 range(len(idx_odd)),
@@ -184,7 +186,7 @@ def energyVSirrep(
                 ms=5,
                 lw=3,
                 alpha=0.5,
-                label=r"$\text{Z_2 (-1)}$",
+                label=r"$E_{ED}\;(-1)$",
             )
             ax3.plot(
                 range(len(idx_even)),
@@ -194,7 +196,7 @@ def energyVSirrep(
                 ms=5,
                 lw=3,
                 alpha=0.5,
-                label=r"$\text{Z_2 (+1)}$",
+                label=r"$Z_2\;(+1)$",
             )
             ax3.plot(
                 range(len(idx_odd)),
@@ -204,7 +206,7 @@ def energyVSirrep(
                 ms=5,
                 lw=3,
                 alpha=0.5,
-                label=r"$\text{Z_2 (-1)}$",
+                label=r"$Z_2\;(-1)$",
             )
 
             ax4.plot(
@@ -215,7 +217,7 @@ def energyVSirrep(
                 ms=5,
                 lw=3,
                 alpha=0.5,
-                label=r"$\text{Z_2 (+1)}$",
+                label=r"$Z_2\;(+1)$",
             )
             ax4.plot(
                 range(len(idx_odd)),
@@ -225,7 +227,7 @@ def energyVSirrep(
                 ms=5,
                 lw=3,
                 alpha=0.5,
-                label=r"$\text{Z_2 (-1)}$",
+                label=r"$Z_2\;(-1)$",
             )
     else:
         total_irreps = full_irreps(mode, artifact["CM"]["size"])
@@ -264,9 +266,11 @@ def energyVSirrep(
 
     ax1.set_title(r"$Energy\;vs.\;Irrep$", fontsize=18)
     ax1.set_ylabel(r"$\langle H \rangle$", fontsize=18)
-    ax2.set_xlabel(r"$Irrep$", fontsize=18)
-    ax2.set_ylabel(r"$V-score$", fontsize=18)
+    ax2.set_ylabel(r"$vscore$", fontsize=18)
+    ax3.set_ylabel(r"$Error$", fontsize=18)
+    ax4.set_ylabel(r"$fidelity$", fontsize=18)
     ax2.set_yscale("log")
+    ax3.set_yscale("log")
     if x_lims is not None:
         ax1.set_xlim(*x_lims)
     if y_lims is not None:
@@ -274,6 +278,8 @@ def energyVSirrep(
     ax1.legend()
     ax1.grid()
     ax2.grid()
+    ax3.grid()
+    ax4.grid()
     plt.tight_layout()
 
     fig.savefig(
