@@ -20,7 +20,8 @@ uv.lock
 **/Keypoints/
 **/Figures/
 **/First_sim/
-**/Simulations/
+./Simulations*/
+**/Simulations*/
 **/pile/
 **/pruebas/
 **/new_pruebas/
