@@ -40,7 +40,7 @@ from NN_module.sampler.sampler import SamplerFactory
 from NN_module.saveNload import save_results
 from NN_module.schedule.schedule import Schedule
 from NN_module.schedule.utils import get_schedule_label
-from NN_module.utils import print_tree
+from NN_module.utils import print_tree, save_config_files
 from NN_module.VMC import VMCBuilder
 
 parser = argparse.ArgumentParser()
@@ -120,6 +120,8 @@ for i, size in enumerate(sizes):
     sim_uuid = str(uuid.uuid4())[:8]
     write_folder = write_folder_training + f"UUID_{sim_uuid}/"
 
+    save_config_files(write_folder, [config, config_cm, config_hydra, config_hydra_nn], configurations, size)
+
     ###  Reseting Hilbert space object and the observables ###
     hi = nk.hilbert.Spin(s=1 / 2, N=N, total_sz=config["sz_total"])
     model_factory = ModelFactory(size, config_cm)
@@ -141,12 +143,11 @@ for i, size in enumerate(sizes):
         ) = calc_exact_diag(
             hilbert=hi, hamiltonian=H, config_nn=config_nn, lattice_size=size
         )
-        normal_print = f"\nEnergy gr_global: {E_gr_global:.6f}\n"
-        irrep_print = (
-            f"Energy gr_global: {E_gr_global:.6f} \nEnergy gr_irrep: {E_gr_irrep:.6f}"
-        )
-        print(normal_print if E_gr_irrep is None else irrep_print)
-        print(f"Projecting to {symmetries} = {irrep}" if irrep is not None else "\n")
+        if E_gr_global is not None:
+            print(f"\nEnergy gr_global: {E_gr_global:.6f}\n")
+            print(f"Projecting to {symmetries} = {irrep}" if irrep is not None else "")
+            if E_gr_irrep is not None:
+                print(f"Energy gr_irrep: {E_gr_irrep:.6f}")
 
         ###################################################
 
