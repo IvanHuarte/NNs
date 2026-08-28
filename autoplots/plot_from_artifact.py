@@ -1,7 +1,8 @@
 import os
+import sys
 
 from .plots.energyVSirrep import energyVSirrep
-from .utils import classify
+from .utils import classify, main_artifacts_filtering
 
 
 def plot_artifact_batch(artifact_paths, plot_config, static_args, dynamic_args, folder):
@@ -11,6 +12,9 @@ def plot_artifact_batch(artifact_paths, plot_config, static_args, dynamic_args, 
         new_folder += f"_{args[0]}_{args[1]}"
     write_folder = folder + "/" + new_folder + "/"
     os.makedirs(write_folder, exist_ok=True)
+
+    # Quality control
+    artifact_paths = main_artifacts_filtering(artifact_paths, plot_config["MACROS"])
 
     print(static_args)
 
@@ -24,7 +28,7 @@ def plot_artifact_batch(artifact_paths, plot_config, static_args, dynamic_args, 
             write_folder,
             static_args,
             dynamic_args,
-            **plot_config["MACROS"],
+            output_format=plot_config["MACROS"]["output_format"],
         )
 
 

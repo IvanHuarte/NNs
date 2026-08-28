@@ -1,6 +1,23 @@
+import sys
+from pathlib import Path
+import shutil
 import json
 from collections import defaultdict
 from functools import cache
+import numpy as np
+
+# ---------- Bash-tipical operations ------------
+
+
+def deep_remove(path):
+    path = Path(path)
+
+    if path.is_symlink() or path.is_file():
+        path.unlink()
+    elif path.is_dir():
+        shutil.rmtree(path)
+    else:
+        raise FileNotFoundError(f"No path: {path}")
 
 # ---------- Lectura de información ----------
 
@@ -201,3 +218,100 @@ def join_static_modes(static_modes):
     ]
     equals = [rf"${param2latex[m]}\;=\;{v}$" for m, v in static_modes]
     return "\n".join(equals)
+
+
+# ------------------- Filtering artifacts choosing the best simulation --------------------- 
+
+def get_criterion(artifact, criterion):
+    if artifact["results"]["fidelity_irrep"] is not None:
+        return "fidelity_irrep"
+    elif artifact["results"]["irrep"] is None and artifact["results"]["fidelity_irrep"] is not None:
+        return "fidelity"
+    else:
+        return criterion
+
+def get_best_artifact_idx(values, real_criterion):
+    if "fidelity" in real_criterion:
+        return np.argmax(values)
+    else:
+        return np.argmin(values)
+
+def flat_artifacts(tree, paths=[]):
+    paths = []
+
+    for k, v in tree.items():
+
+        if isinstance(v, dict):
+            paths.extend(flat_artifacts(v, paths))
+        elif isinstance(v, (list, tuple)):
+            paths.extend(v)
+        elif isinstance(v, str):
+            paths.append(v)
+
+    return paths
+
+def clean_unused_artifacts(artifacts_list, artifact_paths):
+    _artifacts = []
+    for artifact, artifact_path in zip(artifacts_list, artifact_paths):
+        _artifacts.append(artifact_path)
+        _artifacts.extend(flat_artifacts(artifact["_artifacts"]))
+
+    for _artifact in _artifacts:
+        deep_remove(_artifact)
+
+
+def filter_best_results(artifact_paths, criterion, delete_unused):
+
+    artifacts_list = []
+
+    for path in artifact_paths:
+        with open(path, "r") as f:
+            artifact = json.load(f)
+
+        artifacts_list.append(artifact)
+
+    real_criterion = get_criterion(artifacts_list[0], criterion)
+    values = [art["results"][real_criterion] for art in artifacts_list]
+    best_idx = get_best_artifact_idx(values, real_criterion)
+
+    if delete_unused:
+        unused_artifacts = [artifacts_list[i] for i in range(len(artifacts_list)) if i != best_idx]
+        unused_artifacts_paths = [artifact_paths[i] for i in range(len(artifact_paths)) if i != best_idx]
+        clean_unused_artifacts(unused_artifacts, unused_artifacts_paths)
+
+    return [artifact_paths[best_idx]]
+
+def show_duplicated_artifact_advice(filter_mode):
+    print(f"Duplicated simulations detected! Options are:")
+    print(f"")
+    print(f"    0 - Exit and check manually")
+    print(f"    1 - Build plots respect to the best value of {filter_mode}")
+    print(f"    2 - Build plots respect to the best value of {filter_mode} and delete the rest")
+    print(f"")
+    print(f"This mode will be applied for now on.")
+
+    flag = int(input("Choose 0/1/2:"))
+    print(f"Mode {flag} ")
+    return flag
+
+def main_artifacts_filtering(artifact_paths, MACROS):
+
+    filtered_artifact_paths = {}
+    show_advice = False if "show_advice" in MACROS else True 
+    delete_unused = MACROS["delete_unused"] if "delete_unused" in MACROS else False
+    filter_mode = MACROS["filter_mode"]
+
+    for k, artifact_path in artifact_paths.items():
+        if len(artifact_path) != 1:
+            if show_advice:
+                flag = show_duplicated_artifact_advice(filter_mode)
+                if flag == 0:   sys.exit(0)
+                delete_unused = True if flag == 2 else False
+                show_advice = False
+                MACROS["delete_unused"] = delete_unused
+                MACROS["show_advice"] = False
+
+            artifact_path = filter_best_results(artifact_path, filter_mode, delete_unused)
+        filtered_artifact_paths[k] = artifact_path
+
+    return filtered_artifact_paths

@@ -29,8 +29,10 @@ def energyVSirrep(
     write_folder,
     static_args,
     mode,
-    output_format="png",
-):
+    output_format="png"
+):  
+    
+
 
     color = plot_setup["color"]
     x_lims = plot_setup["x_lims"]
@@ -53,16 +55,13 @@ def energyVSirrep(
 
     for irrep, artifact_path in artifact_paths.items():
 
-        assert (
-            len(artifact_path) == 1
-        ), f"Ambiguous files for irrep {irrep}: {artifact_path}"
-
         with open(artifact_path[0], "r") as f:
             artifact = json.load(f)
 
         # ENERGY
         E_gr = artifact["results"]["E_best"]
-        # print(f"Energy for irrep {irrep}: {E_gr}")
+        print(f"path:\n{artifact_path}")
+        print(f"Energy for irrep {irrep}: {E_gr}")
         y_min = min(y_min, E_gr)
         y_max = max(y_max, E_gr)
 
@@ -150,7 +149,7 @@ def energyVSirrep(
         ax2.plot(
             range(len(idx_even)),
             vscore_even,
-            color="firebrick",
+            color="red",
             marker="o",
             ms=5,
             lw=3,
@@ -160,7 +159,7 @@ def energyVSirrep(
         ax2.plot(
             range(len(idx_odd)),
             vscore_odd,
-            color="purple",
+            color="blue",
             marker="o",
             ms=5,
             lw=3,
@@ -174,7 +173,8 @@ def energyVSirrep(
                 color="orange",
                 marker="o",
                 ms=5,
-                lw=3,
+                lw=2,
+                ls="--",
                 alpha=0.5,
                 label=r"$E_{ED}\;(+1)$",
             )
@@ -184,14 +184,15 @@ def energyVSirrep(
                 color="purple",
                 marker="o",
                 ms=5,
-                lw=3,
+                lw=2,
+                ls="--",
                 alpha=0.5,
                 label=r"$E_{ED}\;(-1)$",
             )
             ax3.plot(
                 range(len(idx_even)),
                 error_irrep_even,
-                color="firebrick",
+                color="red",
                 marker="o",
                 ms=5,
                 lw=3,
@@ -201,7 +202,7 @@ def energyVSirrep(
             ax3.plot(
                 range(len(idx_odd)),
                 error_irrep_odd,
-                color="purple",
+                color="blue",
                 marker="o",
                 ms=5,
                 lw=3,
@@ -212,7 +213,7 @@ def energyVSirrep(
             ax4.plot(
                 range(len(idx_even)),
                 fidelity_even,
-                color="firebrick",
+                color="red",
                 marker="o",
                 ms=5,
                 lw=3,
@@ -222,7 +223,7 @@ def energyVSirrep(
             ax4.plot(
                 range(len(idx_odd)),
                 fidelity_odd,
-                color="purple",
+                color="blue",
                 marker="o",
                 ms=5,
                 lw=3,
@@ -246,7 +247,7 @@ def energyVSirrep(
             ax2.set_xticks(range(len(irreps)), labels=irreps, rotation=45, fontsize=12)
         ax1.plot(irreps_idx, E, color=color, marker="o", ms=3, label=r"$Energy$")
         ax2.plot(
-            irreps_idx, vscore, color="purple", marker="o", ms=3, label=r"$V-score$"
+            irreps_idx, vscore, color="blue", marker="o", ms=3, label=r"$V-score$"
         )
 
     static_args_text = join_static_modes(static_args)
