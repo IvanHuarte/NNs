@@ -1,4 +1,15 @@
+import os
+import sys
+import json
+
+from pathlib import Path
+from copy import deepcopy
+
+import numpy.typing as npt
 import jax
+import jax.numpy as jnp
+import optax
+import netket as nk
 
 
 def print_tree(tree, prefix="", values=False):
@@ -24,14 +35,6 @@ def compare_params(old_params, new_params, atol=1e-13):
     print_tree(diffs, values=True)
     print("\n")
 
-
-import sys
-from pathlib import Path
-
-import jax.numpy as jnp
-import netket as nk
-import numpy.typing as npt
-import optax
 
 sys.path.append(
     str(
@@ -151,13 +154,6 @@ def Translations2D_vmap(
     yy, xx = jnp.meshgrid(ys, xs, indexing="ij")
     shift_idx = jnp.stack([yy, xx], axis=-1)
 
-    # idx = jnp.unravel_index(jnp.arange(H * W), (H, W))
-    # shift_idx = jnp.array(idx).T
-    # mask = (shift_idx[:, 0] % stride[0] == 0) & (shift_idx[:, 1] % stride[1] == 0)
-    # jax.debug.print("Mask: {}", mask)
-    # shift_idx = shift_idx[mask].reshape(Ht, Wt, 2)
-    # jax.debug.print("Idx: {}", shift_idx)
-
     roll = lambda x, shift: jnp.roll(x, shift=shift, axis=(-3, -2))
 
     return jax.vmap(jax.vmap(roll, in_axes=(None, 0)), in_axes=(None, 0))(x, shift_idx)
@@ -269,3 +265,29 @@ def _angle_jvp(primals, tangents):
     )
 
     return out, dout
+
+
+####################################################################################
+#                                                                                  #
+#                               SIMULATION STUFF                                   #
+#                                                                                  #
+####################################################################################
+
+
+def save_config_files(uuid_folder, configuration_dicts, configuration_names, size):
+    configuration_basenames = [Path(file_path).name for file_path in configuration_names]
+    sizes = [size]
+    write_folder = uuid_folder + "config_files/"
+
+    os.makedirs(write_folder, exist_ok=True)
+
+    for config_name, config_dict in zip(configuration_basenames, configuration_dicts):
+        config_tmp = deepcopy(config_dict)
+
+        if "sizes" in config_tmp:
+            config_tmp["sizes"] = sizes
+
+        with open(write_folder + config_name, "w") as f:
+                json.dump(config_tmp, f, separators=(",", ":"), sort_keys=True, indent=4)
+        
+    

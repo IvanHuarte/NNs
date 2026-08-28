@@ -118,7 +118,7 @@ def calc_exact_diag(hilbert, hamiltonian, config_nn, lattice_size):
             E_gr_irrep = float(E_gr_irrep)
         else:
             print("No irrep projection\n")
-            E_gr_irrep, x_ED_irrep = None
+            E_gr_irrep, x_ED_irrep = None, None
 
         irrep = irrep if irrep else None
         symmetries = symmetries if symmetries else None
