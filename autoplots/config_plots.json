@@ -1,0 +1,21 @@
+{
+
+    "mode": "size|J|irreps_Tx_Ty_Z2",
+    "MACROS":{
+        "output_format": "png",
+        "filter_mode": "vscore"
+    },
+
+    "energyVSirrep":{
+        "on": true,
+        
+        "color": "red",
+        "x_lims": null,
+        "y_lims": null,
+
+        "show_all_irreps": false,
+        "split_by_parity":true
+    }
+
+    
+}
