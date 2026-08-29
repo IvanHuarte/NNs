@@ -1,7 +1,7 @@
 {
     "mode": "for",
     
-    "sizes":[[4, 4]],
+    "sizes":[[4, 3]],
 
     "kwargs_lattice" : {
         "bc":"periodic",
