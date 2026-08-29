@@ -11,7 +11,7 @@
             "save_memory": false
         },
         "Z2": {
-            "on": true,
+            "on": false,
             "trivial_Z2": true,
             "symm_modulus":false
         }
@@ -32,7 +32,7 @@
             "token_size": [1, 1],
             "embedding_d": 60,
             "n_heads": 10,
-            "n_blocks": 1,
+            "n_blocks": 2,
             "n_ffn_layers": 2,
             "final_architecture": null
         },

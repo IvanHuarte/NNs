@@ -400,7 +400,7 @@ def measureNdump(keeper, time_exe, S_operators=False):
     x_ED_global = keeper.x_ED_global if hasattr(keeper, "x_ED_global") else None
 
     irrep_info = None
-    if keeper.irrep is not None:
+    if hasattr(keeper,"irrep") is not None:
         irrep_info = {"irrep": keeper.irrep, "symmetries": keeper.symmetries}
 
     E_gr_irrep = keeper.E_gr_irrep / s_factor if hasattr(keeper, "E_gr_irrep") else None

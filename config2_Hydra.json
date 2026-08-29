@@ -18,10 +18,10 @@
         "stage0":{
             "template":{
                 
-                "Sequivariant": {
+                "Sequential": {
                     "ViT2D":{},
-                    "OutputHead":{},
-                    "irrep": [0,0]
+                    "OutputHead":{}
+                    
                 }
             },
             "load": [

@@ -88,8 +88,7 @@ class SequivariantX(nn.Module):
 
     SeqVX: tuple[nn.Module, ...]
     irrep: tuple[int, int]
-    eps: float = 1e-10
-    z_eps: float = 1e-12 + 1e-15j
+    eps: float = 1e-6
 
     def __call__(self, x: jnp.ndarray) -> jnp.ndarray:
 
@@ -99,7 +98,15 @@ class SequivariantX(nn.Module):
 
         # Get Theta_K
         z = (characters * x[..., 0].astype(jnp.complex128)).sum(axis=(1, 2))
-        phase_k = _angle(z + self.z_eps)[:, None]  # phase_k = (B, 1)
+        z_safe_point = jnp.broadcast_to(jnp.array([1.0 +1.0j], dtype=z.dtype), z.shape)
+        z_safe = jnp.where(jnp.abs(z) < self.eps, z_safe_point, z)
+        phase_k = _angle(z_safe)[:, None]  # phase_k = (B, 1)
+
+        # print(f"{x[..., 0]=}")
+        # print(f"{characters=}")
+        # print(f"char * x = \n{characters * x[..., 0]}")
+        # print(f"{z=}")
+        # print(f"{phase_k=}")
 
         for module in self.SeqVX[:-1]:
             x = module(x)
@@ -118,13 +125,8 @@ class SequivariantX(nn.Module):
             log_psi_k,
         )
 
-        print(f"{x[..., 0]=}")
-        print(f"{characters=}")
-        print(f"char * x = \n{characters * x[..., 0]}")
-        print(f"{z=}")
-        print(f"{log_psi=}")
-        print(f"{phase_k=}")
-        print(f"{log_psi_k=}")
-        print("\n")
+        # print(f"{log_psi=}")
+        # print(f"{log_psi_k=}")
+        # print("\n")
 
         return log_psi_k
