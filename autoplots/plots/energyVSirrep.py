@@ -60,8 +60,7 @@ def energyVSirrep(
 
         # ENERGY
         E_gr = artifact["results"]["E_best"]
-        print(f"path:\n{artifact_path}")
-        print(f"Energy for irrep {irrep}: {E_gr}")
+
         y_min = min(y_min, E_gr)
         y_max = max(y_max, E_gr)
 

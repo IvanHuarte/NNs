@@ -39,7 +39,10 @@ uv.lock
 .ipynb_checkpoints
 
 
-#Excepciones
+# Excepciones
+!config.json
+!config_plots.json
+
 !config0.json
 !config1_CM.json
 !config2_Hydra.json
