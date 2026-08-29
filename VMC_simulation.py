@@ -144,11 +144,11 @@ for i, size in enumerate(sizes):
             hilbert=hi, hamiltonian=H, config_nn=config_nn, lattice_size=size
         )
         if E_gr_global is not None:
-            print(f"\nEnergy gr_global: {E_gr_global:.6f}\n")
+            print(f"\nEnergy gr_global: {E_gr_global:.6f}")
             print(f"Projecting to {symmetries} = {irrep}" if irrep is not None else "")
             if E_gr_irrep is not None:
                 print(f"Energy gr_irrep: {E_gr_irrep:.6f}")
-
+            print("\n")
         ###################################################
 
         ######## DISPLAY #########

@@ -11,8 +11,8 @@
             "save_memory": false
         },
         "Z2": {
-            "on": false,
-            "trivial_Z2": true,
+            "on": true,
+            "trivial_Z2": false,
             "symm_modulus":false
         }
     },
@@ -32,7 +32,7 @@
             "token_size": [1, 1],
             "embedding_d": 60,
             "n_heads": 10,
-            "n_blocks": 2,
+            "n_blocks": 1,
             "n_ffn_layers": 2,
             "final_architecture": null
         },
@@ -46,8 +46,8 @@
         
         "CvT":{
             "n_CP_blocks":[1],
-            "channels": [60],
-            "attn_heads":[10],
+            "channels": [30],
+            "attn_heads":[6],
             "kernel": [3, 3],
             "final_architecture": null
         },

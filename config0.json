@@ -1,6 +1,6 @@
 {
 
-    "write_folder_sim":"/home/ihuarte/Escritorio/Ivan/NNs/Simulations_irreps_4x2_X/",
+    "write_folder_sim":"/home/ihuarte/Escritorio/Ivan/NNs/Simulations_irreps/CvT/4x4/",
 
     "sz_total": null,
 
@@ -13,7 +13,7 @@
         "checkpoint":false,
         
         "keeper_setup":{
-            "baseline": 1e-10,
+            "baseline": 1e-30,
             "mode": "best_vscore"
         },   
         "energy_plot_setup":{
@@ -76,7 +76,7 @@
     },
 
     "VMC": {
-        "selection": "vmc_sr_netket",
+        "selection": "vmc_netket",
         "vmc_netket": {
             "SR": true,
             "solver": "cg"
@@ -94,7 +94,7 @@
             "epochs_struct":[
                 
                 [ 
-                    [200, 50, 100]
+                    [50, 500, 150, 300]
                 ]
                 
             ],
@@ -102,14 +102,14 @@
             "modes_struct":[
                 
                 [
-                    [["A"], ["A"], ["A"]]
+                    [["A"], ["A"], ["A"], ["A"]]
                 ]
                 
             ],
             "lr_struct":[
                 
                 [
-                    [ [0.02], ["exp(0.01, 0.0005)"], ["lin(0.0005, 0.0001)"]]
+                    [ ["lin(0.0001, 0.01)"], [0.01], ["exp(0.01, 0.00005)"], ["lin(0.00005, 0.00001)"]]
                 ]
                 
             ],
