@@ -399,7 +399,11 @@ def measureNdump(keeper, time_exe, S_operators=False):
     )
     x_ED_global = keeper.x_ED_global if hasattr(keeper, "x_ED_global") else None
 
-    irrep_info = {"irrep": keeper.irrep, "symmetries": keeper.symmetries} if hasattr(keeper,"irrep") else None
+    irrep_info = (
+        {"irrep": keeper.irrep, "symmetries": keeper.symmetries}
+        if hasattr(keeper, "irrep")
+        else None
+    )
 
     E_gr_irrep = keeper.E_gr_irrep / s_factor if hasattr(keeper, "E_gr_irrep") else None
     x_ED_irrep = keeper.x_ED_irrep if hasattr(keeper, "x_ED_irrep") else None
@@ -490,7 +494,7 @@ def measureNdump(keeper, time_exe, S_operators=False):
         print(f"ED < ms >: {ms_ED}  < ms2 >: {ms2_ED}\n")
 
     else:
-        m_ED, ms_ED, m2_ED, ms2_ED = None
+        m_ED, ms_ED, m2_ED, ms2_ED = None, None, None, None
 
     results = {
         "best_step": best_step,

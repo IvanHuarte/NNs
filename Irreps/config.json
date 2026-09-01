@@ -57,7 +57,7 @@
         "S_operators": false,
 
         "CM": {
-            "selection": "IsingSquare",
+            "selection": "J1J2Square",
 
             "Oxalate":{
                 "strength": 0.2,

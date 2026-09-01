@@ -12,7 +12,7 @@
         },
         "Z2": {
             "on": true,
-            "trivial_Z2": false,
+            "trivial_Z2": true,
             "symm_modulus":false
         }
     },
@@ -30,9 +30,9 @@
         },
         "ViT2D":{
             "token_size": [1, 1],
-            "embedding_d": 60,
-            "n_heads": 10,
-            "n_blocks": 1,
+            "embedding_d": 40,
+            "n_heads": 8,
+            "n_blocks": 2,
             "n_ffn_layers": 2,
             "final_architecture": null
         },
@@ -45,9 +45,9 @@
         },
         
         "CvT":{
-            "n_CP_blocks":[1],
-            "channels": [30],
-            "attn_heads":[6],
+            "n_CP_blocks":[1, 1],
+            "channels": [30, 30],
+            "attn_heads":[10, 10],
             "kernel": [3, 3],
             "final_architecture": null
         },

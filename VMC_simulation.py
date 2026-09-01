@@ -1,7 +1,6 @@
 #!/home/ihuarte/Escritorio/Ivan/NNs/.venv/bin/python
 import argparse
 import json
-import os
 import time
 import uuid
 
@@ -9,7 +8,7 @@ import jax
 import netket as nk
 import numpy as np
 
-os.environ["XLA_PYTHON_CLIENT_PREALLOCATE"] = "false"
+# os.environ["XLA_PYTHON_CLIENT_PREALLOCATE"] = "false"
 jax.config.update("jax_enable_x64", True)
 jax.config.update("jax_platform_name", "gpu")
 # jax.config.update("jax_debug_nans", True)
@@ -66,6 +65,7 @@ configurations = args.config
 print("Configurations:")
 for c in configurations:
     print(f" - {c}")
+print()
 
 # Cargamos configuraciones de archivos json
 with open(configurations[0], "r") as f:
@@ -120,7 +120,12 @@ for i, size in enumerate(sizes):
     sim_uuid = str(uuid.uuid4())[:8]
     write_folder = write_folder_training + f"UUID_{sim_uuid}/"
 
-    save_config_files(write_folder, [config, config_cm, config_hydra, config_hydra_nn], configurations, size)
+    save_config_files(
+        write_folder,
+        [config, config_cm, config_hydra, config_hydra_nn],
+        configurations,
+        size,
+    )
 
     ###  Reseting Hilbert space object and the observables ###
     hi = nk.hilbert.Spin(s=1 / 2, N=N, total_sz=config["sz_total"])

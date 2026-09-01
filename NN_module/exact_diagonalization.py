@@ -1,24 +1,14 @@
-import scipy as sp
 import numpy as np
-from Irreps.SymmBuilder import SymmGroup
+import scipy as sp
 
+from Irreps.SymmBuilder import SymmGroup
 
 equivariant_arch = ["Sequivariant", "SequivariantX"]
 
-symm_config = {
-        
-    "Traslation":{
-        "on": False,
-        "subgroup":[0, 1]
-    },
+symm_config = {"Traslation": {"on": False, "subgroup": [0, 1]}, "Z2": {"on": False}}
 
-    "Z2":{
-        "on": False
-    }
-}
 
 def recursive_value_from_key(tree, key):
-
 
     for k, v in tree.items():
 
@@ -31,7 +21,6 @@ def recursive_value_from_key(tree, key):
 
     return None
 
-            
 
 def check_irreps(config_nn):
     symmetries = []
@@ -56,8 +45,8 @@ def check_irreps(config_nn):
         irrep.append(irr)
         symmetries.append("Z2")
 
-    print(symmetries, irrep)
-        
+    # print(symmetries, irrep)
+
     return tuple(symmetries), tuple(irrep)
 
 
@@ -66,14 +55,11 @@ def irrep_exact_diag(hilbert, H_dense, symmetries, irrep, lattice_size):
     configurations = hilbert.all_states()
 
     symmetries_config = {
-        "Traslation":{
+        "Traslation": {
             "on": True if any(symm in ["Tx", "Ty"] for symm in symmetries) else False,
-            "subgroup":[0, 1]
+            "subgroup": [0, 1],
         },
-
-        "Z2":{
-            "on": True if "Z2" in symmetries else False
-        }
+        "Z2": {"on": True if "Z2" in symmetries else False},
     }
 
     group = SymmGroup(
@@ -84,7 +70,7 @@ def irrep_exact_diag(hilbert, H_dense, symmetries, irrep, lattice_size):
     representations = group.get_unitary_representations(configurations)
 
     projector = group.get_irrep_projector(representations, irrep)
-    
+
     basis = sp.linalg.orth(projector)
     block = basis.conj().T @ H_dense @ basis
     evals, evects = sp.linalg.eigh(block)
@@ -104,17 +90,15 @@ def calc_exact_diag(hilbert, hamiltonian, config_nn, lattice_size):
         print("Running exact diagonalization...")
         print("Calculating global ground state...")
         E_gr_global, x_ED_global = sp.sparse.linalg.eigsh(
-            hamiltonian.to_sparse(), 
-            k=1, 
-            return_eigenvectors=True, 
-            which="SA"
+            hamiltonian.to_sparse(), k=1, return_eigenvectors=True, which="SA"
         )
         E_gr_global = float(E_gr_global)
 
-
         if irrep and not N > 12:
             print(f"Calculating {irrep} irrep ground state")
-            E_gr_irrep, x_ED_irrep = irrep_exact_diag(hilbert, hamiltonian.to_dense(), symmetries, irrep, lattice_size)
+            E_gr_irrep, x_ED_irrep = irrep_exact_diag(
+                hilbert, hamiltonian.to_dense(), symmetries, irrep, lattice_size
+            )
             E_gr_irrep = float(E_gr_irrep)
         else:
             print("No irrep projection\n")
@@ -127,5 +111,3 @@ def calc_exact_diag(hilbert, hamiltonian, config_nn, lattice_size):
 
     else:
         return (None, None), (None, None), (symmetries, irrep)
-
-    

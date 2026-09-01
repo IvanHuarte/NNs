@@ -1,6 +1,6 @@
 {
 
-    "selection": "TestCvTCH001",
+    "selection": "TestViT2DOHXX320",
 
     "load_model": {
 
@@ -14,7 +14,25 @@
         ]
     },
 
-    "TestCvTCH001":{
+    "TestViT2DOHXX320":{
+        "stage0":{
+            "template":{
+                
+                "Sequivariant": {
+                    "ViT2D":{},
+                    "OutputHead":{},
+                    "irrep": [3,2]                    
+                }
+            },
+            "load": [
+                ["stageX0", "0", "0"],
+                ["stageX0", "1", "1"]
+            ],
+            "save_params": true
+        }
+    },
+
+    "TestCvTCH000":{
         "stage0":{
             "template":{
                 
@@ -32,23 +50,6 @@
         }
     },
 
-    "TestViT2DOHXX000":{
-        "stage0":{
-            "template":{
-                
-                "SequentialX": {
-                    "ViT2D":{},
-                    "OutputHead":{},
-                    "irrep": [2,0]                    
-                }
-            },
-            "load": [
-                ["stageX0", "0", "0"],
-                ["stageX0", "1", "1"]
-            ],
-            "save_params": true
-        }
-    },
     
 
     "TestCvTOH10":{

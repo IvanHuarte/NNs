@@ -1,8 +1,8 @@
 {
 
-    "write_folder_sim":"/home/ihuarte/Escritorio/Ivan/NNs/Simulations_irreps/CvT/4x4/",
+    "write_folder_sim":"/home/ihuarte/Escritorio/Ivan/NNs/Simulations_irreps/ViT2D/J1J2Square/4x2/",
 
-    "sz_total": null,
+    "sz_total": 0,
 
     "callback":{
         "keeper": true,
@@ -51,14 +51,14 @@
 
     "sampler":{
         "sampler":{
-            "rules": ["LocalRule", "Exchange"],
+            "rules": ["Exchange"],
             "prules": [0.7, 0.3],
             "initial_state": "hilbert"
         },
         "n_chains_per_rank": 2048,
         "n_samples_per_chain": 1,
         "chunk_sampler": null,
-        "chunk_vstate": 2048
+        "chunk_vstate": 1024
     },
 
     "optimizer":{
@@ -76,7 +76,7 @@
     },
 
     "VMC": {
-        "selection": "vmc_netket",
+        "selection": "vmc_sr_netket",
         "vmc_netket": {
             "SR": true,
             "solver": "cg"
@@ -94,7 +94,7 @@
             "epochs_struct":[
                 
                 [ 
-                    [50, 500, 150, 300]
+                    [400]
                 ]
                 
             ],
@@ -102,14 +102,14 @@
             "modes_struct":[
                 
                 [
-                    [["A"], ["A"], ["A"], ["A"]]
+                    [["A"]]
                 ]
                 
             ],
             "lr_struct":[
                 
                 [
-                    [ ["lin(0.0001, 0.01)"], [0.01], ["exp(0.01, 0.00005)"], ["lin(0.00005, 0.00001)"]]
+                    [ [0.01] ]
                 ]
                 
             ],
