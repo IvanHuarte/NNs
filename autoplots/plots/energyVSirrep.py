@@ -24,15 +24,8 @@ def full_irreps(irrep_mode, size):
 
 
 def energyVSirrep(
-    artifact_paths,
-    plot_setup,
-    write_folder,
-    static_args,
-    mode,
-    output_format="png"
-):  
-    
-
+    artifact_paths, plot_setup, write_folder, static_args, mode, output_format="png"
+):
 
     color = plot_setup["color"]
     x_lims = plot_setup["x_lims"]
@@ -245,9 +238,7 @@ def energyVSirrep(
         else:
             ax2.set_xticks(range(len(irreps)), labels=irreps, rotation=45, fontsize=12)
         ax1.plot(irreps_idx, E, color=color, marker="o", ms=3, label=r"$Energy$")
-        ax2.plot(
-            irreps_idx, vscore, color="blue", marker="o", ms=3, label=r"$V-score$"
-        )
+        ax2.plot(irreps_idx, vscore, color="blue", marker="o", ms=3, label=r"$V-score$")
 
     static_args_text = join_static_modes(static_args)
     ax1.text(
@@ -267,10 +258,14 @@ def energyVSirrep(
     ax1.set_title(r"$Energy\;vs.\;Irrep$", fontsize=18)
     ax1.set_ylabel(r"$\langle H \rangle$", fontsize=18)
     ax2.set_ylabel(r"$vscore$", fontsize=18)
-    ax3.set_ylabel(r"$Error$", fontsize=18)
-    ax4.set_ylabel(r"$fidelity$", fontsize=18)
     ax2.set_yscale("log")
-    ax3.set_yscale("log")
+    if plot_ED:
+        ax3.set_ylabel(r"$Error$", fontsize=18)
+        ax4.set_ylabel(r"$fidelity$", fontsize=18)
+        ax3.set_yscale("log")
+        ax3.grid()
+        ax4.grid()
+
     if x_lims is not None:
         ax1.set_xlim(*x_lims)
     if y_lims is not None:
@@ -278,8 +273,6 @@ def energyVSirrep(
     ax1.legend()
     ax1.grid()
     ax2.grid()
-    ax3.grid()
-    ax4.grid()
     plt.tight_layout()
 
     fig.savefig(

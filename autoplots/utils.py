@@ -1,9 +1,10 @@
-import sys
-from pathlib import Path
-import shutil
 import json
+import shutil
+import sys
 from collections import defaultdict
 from functools import cache
+from pathlib import Path
+
 import numpy as np
 
 # ---------- Bash-tipical operations ------------
@@ -18,6 +19,7 @@ def deep_remove(path):
         shutil.rmtree(path)
     else:
         raise FileNotFoundError(f"No path: {path}")
+
 
 # ---------- Lectura de información ----------
 
@@ -177,7 +179,9 @@ def classify(paths, mode):
 
     return {key: classify(group, remaining) for key, group in groups.items()}
 
+
 # -------------- Print dictionary --------------
+
 
 def print_tree(tree, prefix="", values=True):
     for key, val in tree.items():
@@ -199,7 +203,6 @@ param2latex = {
     "J1": r"J_1",
     "J2": r"J_2",
     "size": r"size",
-
 }
 
 
@@ -220,21 +223,27 @@ def join_static_modes(static_modes):
     return "\n".join(equals)
 
 
-# ------------------- Filtering artifacts choosing the best simulation --------------------- 
+# ------------------- Filtering artifacts choosing the best simulation ---------------------
+
 
 def get_criterion(artifact, criterion):
     if artifact["results"]["fidelity_irrep"] is not None:
         return "fidelity_irrep"
-    elif artifact["results"]["irrep"] is None and artifact["results"]["fidelity_irrep"] is not None:
+    elif (
+        artifact["results"]["irrep_info"] is None
+        and artifact["results"]["fidelity_irrep"] is not None
+    ):
         return "fidelity"
     else:
         return criterion
+
 
 def get_best_artifact_idx(values, real_criterion):
     if "fidelity" in real_criterion:
         return np.argmax(values)
     else:
         return np.argmin(values)
+
 
 def flat_artifacts(tree, paths=[]):
     paths = []
@@ -249,6 +258,7 @@ def flat_artifacts(tree, paths=[]):
             paths.append(v)
 
     return paths
+
 
 def clean_unused_artifacts(artifacts_list, artifact_paths):
     _artifacts = []
@@ -275,29 +285,37 @@ def filter_best_results(artifact_paths, criterion, delete_unused):
     best_idx = get_best_artifact_idx(values, real_criterion)
 
     if delete_unused:
-        unused_artifacts = [artifacts_list[i] for i in range(len(artifacts_list)) if i != best_idx]
-        unused_artifacts_paths = [artifact_paths[i] for i in range(len(artifact_paths)) if i != best_idx]
+        unused_artifacts = [
+            artifacts_list[i] for i in range(len(artifacts_list)) if i != best_idx
+        ]
+        unused_artifacts_paths = [
+            artifact_paths[i] for i in range(len(artifact_paths)) if i != best_idx
+        ]
         clean_unused_artifacts(unused_artifacts, unused_artifacts_paths)
 
     return [artifact_paths[best_idx]]
 
+
 def show_duplicated_artifact_advice(filter_mode):
-    print(f"Duplicated simulations detected! Options are:")
-    print(f"")
-    print(f"    0 - Exit and check manually")
+    print("Duplicated simulations detected! Options are:")
+    print()
+    print("    0 - Exit and check manually")
     print(f"    1 - Build plots respect to the best value of {filter_mode}")
-    print(f"    2 - Build plots respect to the best value of {filter_mode} and delete the rest")
-    print(f"")
-    print(f"This mode will be applied for now on.")
+    print(
+        f"    2 - Build plots respect to the best value of {filter_mode} and delete the rest"
+    )
+    print()
+    print("This mode will be applied for now on.")
 
     flag = int(input("Choose 0/1/2:"))
     print(f"Mode {flag} ")
     return flag
 
+
 def main_artifacts_filtering(artifact_paths, MACROS):
 
     filtered_artifact_paths = {}
-    show_advice = False if "show_advice" in MACROS else True 
+    show_advice = False if "show_advice" in MACROS else True
     delete_unused = MACROS["delete_unused"] if "delete_unused" in MACROS else False
     filter_mode = MACROS["filter_mode"]
 
@@ -305,13 +323,16 @@ def main_artifacts_filtering(artifact_paths, MACROS):
         if len(artifact_path) != 1:
             if show_advice:
                 flag = show_duplicated_artifact_advice(filter_mode)
-                if flag == 0:   sys.exit(0)
+                if flag == 0:
+                    sys.exit(0)
                 delete_unused = True if flag == 2 else False
                 show_advice = False
                 MACROS["delete_unused"] = delete_unused
                 MACROS["show_advice"] = False
 
-            artifact_path = filter_best_results(artifact_path, filter_mode, delete_unused)
+            artifact_path = filter_best_results(
+                artifact_path, filter_mode, delete_unused
+            )
         filtered_artifact_paths[k] = artifact_path
 
     return filtered_artifact_paths
