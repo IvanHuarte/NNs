@@ -1,6 +1,6 @@
 {
 
-    "selection": "TestViT2DOHXX320",
+    "selection": "TestCvTCH131",
 
     "load_model": {
 
@@ -13,33 +13,15 @@
             "/home/ihuarte/Escritorio/Ivan/NNs/pruebas/J1J2Square/ViT2DOH_Sequential_ViT2D_OutputHead/Size_4x4/ST_2000-A/UUID_5c8eb479/J1J2Square_ViT2DOH_simulation_4x4_J1J2_1.0_0.5_XYZ_0.0_0.0_0.0_date_20260611T165120_UUID_5c8eb479_checkpoint.orbax"
         ]
     },
-
-    "TestViT2DOHXX320":{
-        "stage0":{
-            "template":{
-                
-                "Sequivariant": {
-                    "ViT2D":{},
-                    "OutputHead":{},
-                    "irrep": [3,2]                    
-                }
-            },
-            "load": [
-                ["stageX0", "0", "0"],
-                ["stageX0", "1", "1"]
-            ],
-            "save_params": true
-        }
-    },
-
-    "TestCvTCH000":{
+    
+    "TestCvTCH131":{
         "stage0":{
             "template":{
                 
                 "Sequivariant": {
                     "CvT":{},
                     "ComplexHead":{},
-                    "irrep": [0,0]                    
+                    "irrep": [1,3]                    
                 }
             },
             "load": [
@@ -49,6 +31,25 @@
             "save_params": true
         }
     },
+
+    "TestViT2DOH000":{
+        "stage0":{
+            "template":{
+                
+                "Sequivariant": {
+                    "ViT2D":{},
+                    "OutputHead":{},
+                    "irrep": [0,0]                    
+                }    
+            },    
+            "load": [
+                ["stageX0", "0", "0"],
+                ["stageX0", "1", "1"]
+            ],    
+            "save_params": true
+        }    
+    },    
+
 
     
 
