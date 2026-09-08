@@ -58,6 +58,7 @@ def energyVSirrep(
         y_max = max(y_max, E_gr)
 
         E.append(E_gr)
+        E_ED_global = artifact["results"]["E_gr_global"]
         E_ED_irrep.append(artifact["results"]["E_gr_irrep"])
         error_irrep.append(artifact["results"]["error_irrep"])
         vscore.append(artifact["results"]["vscore"])
@@ -117,6 +118,20 @@ def energyVSirrep(
         ax2.set_xticks(
             range(len(set_irreps)), labels=set_irreps, rotation=45, fontsize=12
         )
+
+        if E_ED_global is not None:
+            ax1.hlines(
+                E_ED_global,
+                min(len(idx_even), len(idx_odd)) - 1,
+                max(len(idx_even), len(idx_odd)) + 1,
+                color="green",
+                marker="o",
+                ms=5,
+                lw=2,
+                ls="--",
+                alpha=0.5,
+                label=r"$E_{ED\_global}$",
+            )
 
         ax1.plot(
             range(len(idx_even)),

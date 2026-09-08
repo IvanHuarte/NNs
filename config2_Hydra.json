@@ -1,6 +1,6 @@
 {
 
-    "selection": "TestCvTCH131",
+    "selection": "TestCvTCH001",
 
     "load_model": {
 
@@ -14,14 +14,14 @@
         ]
     },
     
-    "TestCvTCH131":{
+    "TestCvTCH001":{
         "stage0":{
             "template":{
                 
                 "Sequivariant": {
                     "CvT":{},
                     "ComplexHead":{},
-                    "irrep": [1,3]                    
+                    "irrep": [0,0]                    
                 }
             },
             "load": [

@@ -12,7 +12,7 @@
         },
         "Z2": {
             "on": true,
-            "trivial_Z2": true,
+            "trivial_Z2": false,
             "symm_modulus":false
         }
     },
