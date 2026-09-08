@@ -17,7 +17,6 @@
     "TestCvTCH001":{
         "stage0":{
             "template":{
-                
                 "Sequivariant": {
                     "CvT":{},
                     "ComplexHead":{},
@@ -50,8 +49,6 @@
         }    
     },    
 
-
-    
 
     "TestCvTOH10":{
 

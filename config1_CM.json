@@ -1,7 +1,7 @@
 {
     "mode": "for",
     
-    "sizes":[[4, 4]],
+    "sizes":[[8,8]],
 
     "kwargs_lattice" : {
         "bc":"periodic",
@@ -55,7 +55,7 @@
             "J1J2Square":{
                 "J1": 1.0,
                 "J2_list": [
-                    0.5, 0.0, 1.0
+                    0.5
             ],
                 "fields": [0.0,0.0,0.0]
             }
