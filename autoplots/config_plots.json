@@ -3,7 +3,7 @@
     "mode": "size|J2|irreps_Tx_Ty_Z2",
     "MACROS":{
         "output_format": "png",
-        "filter_mode": "vscore"
+        "filter_mode": "E_best"
     },
 
     "energyVSirrep":{

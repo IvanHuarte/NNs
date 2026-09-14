@@ -1,4 +1,4 @@
-from typing import Callable, Sequence, Tuple
+from collections.abc import Callable, Sequence
 
 import flax.linen as nn
 import jax
@@ -203,7 +203,7 @@ class two_heads(nn.Module):
         A 1D array (N_batches, 1).
     """
 
-    final_architecture: Tuple = (5,)
+    final_architecture: tuple = (5,)
 
     @nn.compact
     def __call__(self, x: jt.ArrayLike) -> jt.ArrayLike:
@@ -225,7 +225,7 @@ class two_heads_sincos(nn.Module):
         A 1D array (N_batches, 1).
     """
 
-    final_architecture: Tuple = (5,)
+    final_architecture: tuple = (5,)
 
     @nn.compact
     def __call__(self, x: jt.ArrayLike) -> jt.ArrayLike:
@@ -249,7 +249,7 @@ class two_heads_phasors(nn.Module):
         A 1D array (N_batches, 1).
     """
 
-    final_architecture: Tuple = (5,)
+    final_architecture: tuple = (5,)
 
     @nn.compact
     def __call__(self, x: jt.ArrayLike) -> jt.ArrayLike:
@@ -273,8 +273,8 @@ class DepthPointwiseConv(nn.Module):
     """
 
     channels: int
-    kernel: Tuple = (3, 3)
-    strides: Tuple = (1, 1)
+    kernel: tuple = (3, 3)
+    strides: tuple = (1, 1)
 
     @nn.compact
     def __call__(self, x: jt.ArrayLike) -> jt.ArrayLike:
@@ -317,7 +317,7 @@ class MarshallSign(nn.Module):
 
     """
 
-    lattice_size: Tuple
+    lattice_size: tuple
     radians: bool = True
 
     @nn.compact
@@ -340,9 +340,9 @@ class MarshallSign(nn.Module):
 
 class CarreteSign(nn.Module):
 
-    lattice_size: Tuple
+    lattice_size: tuple
     save_mem: bool = True
-    irrep: Tuple[int] = (0, 0)
+    irrep: tuple[int] = (0, 0)
 
     def setup(self):
 
@@ -386,8 +386,8 @@ class AddPhase(nn.Module):
         array of shape (B,) with the added phase
     """
 
-    lattice_size: Tuple[int, int]
-    irrep: Tuple[int, int]
+    lattice_size: tuple[int, int]
+    irrep: tuple[int, int]
 
     @nn.compact
     def __call__(self, x: jt.ArrayLike, anchors: jt.ArrayLike) -> jt.ArrayLike:
