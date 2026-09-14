@@ -56,7 +56,7 @@ def get_mask(name) -> jnp.ndarray:
 def get_min_idx(x):
     """
     Input: x=x(s_i) (s_i = +1,-1) of shape (B, N)  where B
-    is the set of all traslation ireps and N is the
+    is the set of all traslation irreps and N is the
     configuration dimension. Returns the anchor index as the
     minimum value calculated as the integer representation
     of each configuration in its bit form.
@@ -166,105 +166,6 @@ class MultiLayerPerceptron(nn.Module):
                 )
             )
         return x
-
-
-class glu_phasor(nn.Module):
-    """Transforms input into phasors, do pooling in each channel,
-    applies the GLU activation function and sum over phasors.
-
-    Args:
-        x: Input array of shape (N_batch, N_spins, N_channels).
-
-    Returns:
-        A 1D array (N_batches, 1).
-    """
-
-    @nn.compact
-    def __call__(self, x: jt.ArrayLike) -> jt.ArrayLike:
-
-        # phasors
-        if len(x.shape) > 2:
-            x.mean(axis=1)
-
-        x = nn.glu(x)
-
-        x = jnp.exp(1j * x).sum(axis=-1)
-
-        return jnp.angle(x)
-
-
-class two_heads(nn.Module):
-    """
-    Two heads MLP for complex output.
-    Args:
-        x: Input array of shape (N_batch, N_spins, N_channels).
-
-    Returns:
-        A 1D array (N_batches, 1).
-    """
-
-    final_architecture: tuple = (5,)
-
-    @nn.compact
-    def __call__(self, x: jt.ArrayLike) -> jt.ArrayLike:
-
-        x = x.reshape((x.shape[0], -1))
-        log_modulus = nn.Dense(1)(MultiLayerPerceptron(self.final_architecture)(x))
-        phase = nn.Dense(1)(MultiLayerPerceptron(self.final_architecture)(x))
-
-        return (log_modulus + 1j * phase).astype(jnp.complex128)
-
-
-class two_heads_sincos(nn.Module):
-    """
-    Two heads for complex output with prediction for sin and cos of the phase
-    Args:
-        x: Input array of shape (N_batch, N_spins, N_channels).
-
-    Returns:
-        A 1D array (N_batches, 1).
-    """
-
-    final_architecture: tuple = (5,)
-
-    @nn.compact
-    def __call__(self, x: jt.ArrayLike) -> jt.ArrayLike:
-
-        x = x.reshape((x.shape[0], -1))
-        log_modulus = nn.Dense(1)(MultiLayerPerceptron(self.final_architecture)(x))
-        sin = nn.Dense(1)(MultiLayerPerceptron(self.final_architecture)(x))
-        cos = nn.Dense(1)(MultiLayerPerceptron(self.final_architecture)(x))
-        phase = jnp.arctan2(sin, cos)
-
-        return (log_modulus + 1j * phase).astype(jnp.complex128).squeeze()
-
-
-class two_heads_phasors(nn.Module):
-    """
-    Two heads for complex output using sum of phasors for the phase part
-    Args:
-        x: Input array of shape (N_batch, N_spins, N_channels).
-
-    Returns:
-        A 1D array (N_batches, 1).
-    """
-
-    final_architecture: tuple = (5,)
-
-    @nn.compact
-    def __call__(self, x: jt.ArrayLike) -> jt.ArrayLike:
-
-        if len(x.shape) > 2:
-            xm = x.mean(axis=1)
-            xp = x.mean(axis=1)
-
-        phase = glu_phasor()(xp)
-
-        log_modulus = nn.Dense(1)(
-            MultiLayerPerceptron(self.final_architecture)(xm)
-        ).squeeze()
-
-        return (log_modulus + 1j * phase).astype(jnp.complex128).squeeze()
 
 
 class DepthPointwiseConv(nn.Module):
