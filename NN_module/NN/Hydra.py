@@ -4,17 +4,16 @@ from netket.sampler.metropolis import MetropolisSamplerState
 
 from NN_module.NN.NN import NeuralNetwork
 from NN_module.NN.utils import (
-    setup_from_template,
-    get_code2path_tree,
-    print_architecture,
-    get_code2path_flatten,
     change_module_attr,
-    greedy_transplant,
+    get_code2path_flatten,
+    get_code2path_tree,
     get_subtree,
-    set_subtree,
+    greedy_transplant,
     load_from_file,
+    print_architecture,
+    set_subtree,
+    setup_from_template,
 )
-from NN_module.utils import print_tree
 
 
 class Hydra(NeuralNetwork):
@@ -110,7 +109,7 @@ class Hydra(NeuralNetwork):
 
         assert (
             "lattice_size" in self.external_args or N != None
-        ), f"No size info (N) in internal state 'external_args' nor local "
+        ), "No size info (N) in internal state 'external_args' nor local "
         if N is None:
             self.N = int(jnp.prod(jnp.array(self.external_args["lattice_size"])))
         else:
@@ -238,7 +237,6 @@ class Hydra(NeuralNetwork):
         return new_params
 
     def load_vstate(self, vstate):
-        from NN_module.utils import compare_params
 
         paths = self.load_model["load_from"]
         checkpoint = self.load_model["checkpoint"]
