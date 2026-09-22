@@ -55,8 +55,8 @@
             "prules": [0.7, 0.3],
             "initial_state": "hilbert"
         },
-        "n_chains_per_rank": 2048,
-        "n_samples_per_chain": 1,
+        "n_chains_per_rank": 64,
+        "n_samples_per_chain": 32,
         "chunk_sampler": null,
         "chunk_vstate": 2048
     },
@@ -76,7 +76,7 @@
     },
 
     "VMC": {
-        "selection": "vmc_netket",
+        "selection": "vmc_sr_netket",
         "vmc_netket": {
             "SR": true,
             "solver": "cg"
@@ -94,7 +94,7 @@
             "epochs_struct":[
                 
                 [ 
-                    [300, 100, 100]
+                    [25, 25, 200, 100]
                 ]
                 
             ],
@@ -109,7 +109,7 @@
             "lr_struct":[
                 
                 [
-                    [ [0.01], ["exp(0.01, 0.0005)"], [0.0001] ]
+                    [ ["lin(0.001,0.01)"], ["exp(0.01, 0.005)"], [0.005], [0.0001] ]
                 ]
                 
             ],
