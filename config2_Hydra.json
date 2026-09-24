@@ -1,18 +1,36 @@
 {
 
-    "selection": "TestViT2DOH000",
+    "selection": "TestViT2DOH001",
 
     "load_model": {
 
         "parameters": false,
         "sampler": false,
-
+        
         "checkpoint": 0,
         
         "load_from": [
             "/home/ihuarte/Escritorio/Ivan/NNs/Simulations_irreps/CvT/J1J2Square/8x8/J1J2Square/CvTCHMarshall000_SplitTraining_Sequivariant__CvT_ComplexHead_irrep_MarshallSign/Size_8x8/ST_25-A_200-A_75-A/UUID_b11aef30/J1J2Square_CvTCHMarshall000_results_8x8_J1J2_1.0_0.5_XYZ_0.0_0.0_0.0_date_20260923T145710_UUID_b11aef30.json"
         ]
     },
+    
+    "TestViT2DOH001":{
+        "stage0":{
+            "template":{
+                
+                "Sequivariant": {
+                    "ViT2D":{},
+                    "OutputHead":{},
+                    "irrep": [0,0]                    
+                }    
+            },    
+            "load": [
+                ["stageX0", "0", "0"],
+                ["stageX0", "1", "1"]
+            ],    
+            "save_params": true
+        }    
+    },    
 
     "CvTCHMarshall000":{
         "stage0":{
@@ -63,23 +81,6 @@
         }
     },
     
-    "TestViT2DOH000":{
-        "stage0":{
-            "template":{
-                
-                "Sequivariant": {
-                    "ViT2D":{},
-                    "OutputHead":{},
-                    "irrep": [0,0]                    
-                }    
-            },    
-            "load": [
-                ["stageX0", "0", "0"],
-                ["stageX0", "1", "1"]
-            ],    
-            "save_params": true
-        }    
-    },    
 
     "TestCvTOH10":{
 

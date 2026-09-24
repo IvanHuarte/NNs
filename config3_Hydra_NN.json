@@ -12,7 +12,7 @@
         },
         "Z2": {
             "on": true,
-            "trivial_Z2": true,
+            "trivial_Z2": false,
             "symm_modulus":false
         }
     },
@@ -29,10 +29,10 @@
             "final_architecture":[]
         },
         "ViT2D":{
-            "token_size": [1, 1],
+            "token_size": [2, 2],
             "embedding_d": 60,
             "n_heads": 10,
-            "n_blocks": 2,
+            "n_blocks": 4,
             "n_ffn_layers": 2,
             "final_architecture": null
         },

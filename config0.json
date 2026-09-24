@@ -1,6 +1,6 @@
 {
 
-    "write_folder_sim":"/home/ihuarte/Escritorio/Ivan/NNs/pruebas/",
+    "write_folder_sim":"/home/ihuarte/Escritorio/Ivan/NNs/Simulations_irreps/ViT2D/SSMSquare/6x6/",
 
     "sz_total": 0,
 
@@ -55,10 +55,10 @@
             "prules": [0.5, 0.5],
             "initial_state": "hilbert"
         },
-        "n_chains_per_rank": 64,
+        "n_chains_per_rank": 128,
         "n_samples_per_chain": 32,
         "chunk_sampler": null,
-        "chunk_vstate": 1024
+        "chunk_vstate": 2048
     },
 
     "optimizer":{
@@ -94,7 +94,7 @@
             "epochs_struct":[
                 
                 [ 
-                    [25, 300, 100]
+                    [50, 400, 50, 50]
                 ]
                 
             ],
@@ -102,14 +102,14 @@
             "modes_struct":[
                 
                 [
-                    [["A"], ["A"], ["A"]]
+                    [["A"], ["A"], ["A"], ["A"]]
                 ]
                 
             ],
             "lr_struct":[
                 
                 [
-                    [ ["lin(0.0001,0.02)"], [0.02], ["exp(0.01, 0.0001)"] ]
+                    [ ["lin(0.0001,0.02)"], [0.02], ["exp(0.01, 0.0001)"], [0.0001] ]
                 ]
                 
             ],
@@ -121,7 +121,7 @@
 
         },
 
-        "diag_shift": "lin(0.0001,0.0001)"
+        "diag_shift": "lin(0.005,0.0005)"
 
     }
 

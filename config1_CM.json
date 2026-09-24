@@ -1,7 +1,7 @@
 {
     "mode": "for",
     
-    "sizes":[[4, 4]],
+    "sizes":[[6, 6]],
 
     "kwargs_lattice" : {
         "bc":"periodic",
@@ -53,9 +53,9 @@
             },
 
             "SSMSquare":{
-                "J": 1.0,
+                "J": 0.8,
                 "Jp_list": [
-                    0.5
+                    1.0
                 ],
                 "fields": [0.0,0.0,0.0]
             },
