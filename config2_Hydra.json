@@ -1,6 +1,6 @@
 {
 
-    "selection": "TestCvTCH001",
+    "selection": "CvTCHMarshall000",
 
     "load_model": {
 
@@ -10,12 +10,43 @@
         "checkpoint": 0,
         
         "load_from": [
-            "/home/ihuarte/Escritorio/Ivan/NNs/pruebas/J1J2Square/ViT2DOH_Sequential_ViT2D_OutputHead/Size_4x4/ST_2000-A/UUID_5c8eb479/J1J2Square_ViT2DOH_simulation_4x4_J1J2_1.0_0.5_XYZ_0.0_0.0_0.0_date_20260611T165120_UUID_5c8eb479_checkpoint.orbax"
+            "/home/ihuarte/Escritorio/Ivan/NNs/Simulations_irreps/CvT/J1J2Square/8x8/J1J2Square/CvTCHMarshall000_SplitTraining_Sequivariant__CvT_ComplexHead_irrep_MarshallSign/Size_8x8/ST_25-A_200-A_75-A/UUID_b11aef30/J1J2Square_CvTCHMarshall000_results_8x8_J1J2_1.0_0.5_XYZ_0.0_0.0_0.0_date_20260923T145710_UUID_b11aef30.json"
         ]
     },
+
+    "CvTCHMarshall000":{
+        "stage0":{
+            "template":{
+                "SplitTraining":{
+                    "Sequivariant": {
+                        "CvT2":{},
+                        "ComplexHead":{},
+                        "irrep": [0,0]                    
+                    },
+                    "MarshallSign":{}
+                }
+            },
+            
+            "save_params": true
+        },
+
+        "stage1":{
+            "template":{
+                "Sequivariant": {
+                    "CvT2":{},
+                    "ComplexHead":{},
+                    "irrep": [0,0]                    
+                }
+            },
+            "load": [
+                ["stage0", "00", "0"],
+                ["stage0", "01", "1"]
+            ],
+            "save_params": true
+        }
+    },
     
-    
-    "TestCvTCH001":{
+    "CvTCH000":{
         "stage0":{
             "template":{
                 "Sequivariant": {
@@ -25,8 +56,8 @@
                 }
             },
             "load": [
-                ["stageX0", "0", "0"],
-                ["stageX0", "1", "1"]
+                ["stageX0", "00", "0"],
+                ["stageX0", "01", "1"]
             ],
             "save_params": true
         }

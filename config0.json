@@ -10,7 +10,7 @@
         "modphase": false,
         "sanity": false,
         "leaves_gradient": false,
-        "checkpoint":false,
+        "checkpoint":true,
         
         "keeper_setup":{
             "baseline": 1e-30,
@@ -43,7 +43,7 @@
             "show_parameters": true
         },
         "checkpoint_setup":{
-            "do_each":100,
+            "do_each":50,
             "async": false
         }
             
@@ -76,7 +76,7 @@
     },
 
     "VMC": {
-        "selection": "vmc_sr_netket",
+        "selection": "vmc_netket",
         "vmc_netket": {
             "SR": true,
             "solver": "cg"
@@ -94,7 +94,11 @@
             "epochs_struct":[
                 
                 [ 
-                    [25, 25, 200, 100]
+                    [25, 300, 100]
+                ],
+                
+                [ 
+                    [25, 300]
                 ]
                 
             ],
@@ -103,13 +107,21 @@
                 
                 [
                     [["A"], ["A"], ["A"]]
+                ],
+                
+                [
+                    [["A"], ["A"]]
                 ]
                 
             ],
             "lr_struct":[
                 
                 [
-                    [ ["lin(0.001,0.01)"], ["exp(0.01, 0.005)"], [0.005], [0.0001] ]
+                    [ ["lin(0.0001,0.01)"], [0.01], ["exp(0.01, 0.0001)"] ]
+                ],
+                
+                [
+                    [ ["lin(0.0001,0.02)"], [0.015] ]
                 ]
                 
             ],
