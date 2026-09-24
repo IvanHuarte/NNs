@@ -1,6 +1,6 @@
 {
 
-    "write_folder_sim":"/home/ihuarte/Escritorio/Ivan/NNs/Simulations_irreps/CvT/J1J2Square/8x8/",
+    "write_folder_sim":"/home/ihuarte/Escritorio/Ivan/NNs/pruebas/",
 
     "sz_total": 0,
 
@@ -10,7 +10,7 @@
         "modphase": false,
         "sanity": false,
         "leaves_gradient": false,
-        "checkpoint":true,
+        "checkpoint":false,
         
         "keeper_setup":{
             "baseline": 1e-30,
@@ -52,13 +52,13 @@
     "sampler":{
         "sampler":{
             "rules": ["Exchange"],
-            "prules": [0.7, 0.3],
+            "prules": [0.5, 0.5],
             "initial_state": "hilbert"
         },
         "n_chains_per_rank": 64,
         "n_samples_per_chain": 32,
         "chunk_sampler": null,
-        "chunk_vstate": 2048
+        "chunk_vstate": 1024
     },
 
     "optimizer":{
@@ -76,7 +76,7 @@
     },
 
     "VMC": {
-        "selection": "vmc_netket",
+        "selection": "vmc_sr_netket",
         "vmc_netket": {
             "SR": true,
             "solver": "cg"
@@ -95,10 +95,6 @@
                 
                 [ 
                     [25, 300, 100]
-                ],
-                
-                [ 
-                    [25, 300]
                 ]
                 
             ],
@@ -107,21 +103,13 @@
                 
                 [
                     [["A"], ["A"], ["A"]]
-                ],
-                
-                [
-                    [["A"], ["A"]]
                 ]
                 
             ],
             "lr_struct":[
                 
                 [
-                    [ ["lin(0.0001,0.01)"], [0.01], ["exp(0.01, 0.0001)"] ]
-                ],
-                
-                [
-                    [ ["lin(0.0001,0.02)"], [0.015] ]
+                    [ ["lin(0.0001,0.02)"], [0.02], ["exp(0.01, 0.0001)"] ]
                 ]
                 
             ],

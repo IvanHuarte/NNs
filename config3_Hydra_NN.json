@@ -29,10 +29,10 @@
             "final_architecture":[]
         },
         "ViT2D":{
-            "token_size": [3, 3],
+            "token_size": [1, 1],
             "embedding_d": 60,
             "n_heads": 10,
-            "n_blocks": 4,
+            "n_blocks": 2,
             "n_ffn_layers": 2,
             "final_architecture": null
         },

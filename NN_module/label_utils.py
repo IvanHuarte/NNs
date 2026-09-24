@@ -1,13 +1,8 @@
-import uuid
 from datetime import datetime
 
 from rich.console import Console
 from rich.panel import Panel
-from rich.text import Text
 from rich.table import Table
-
-import NN_module.NN
-from NN_module.NN import __all_single__, __all_factories__
 
 
 def get_sim_config(configurations, **kwargs):
@@ -66,11 +61,6 @@ def get_write_folder_from_model(config):
     nn_label = name + "_" + nn_label
 
     return config["write_folder_sim"] + model_label + "/" + nn_label + "/"
-
-
-from rich.console import Console
-from rich.table import Table
-from rich.panel import Panel
 
 
 def display_simulation_settings(settings, n_cols=5):
@@ -318,6 +308,18 @@ def get_filenames_from_settings(cm_setup, nn_setup=None, sim_uuid=None, **kwargs
             fields[1],
             fields[2],
         )
+    elif cm_name == "SSMSquare":
+        J = cm_setup["params"]["J"]
+        Jp = cm_setup["params"]["Jp"]
+        fields = cm_setup["params"]["fields"]
+        cparams = f"_JJp_{J}_{Jp}_XYZ_{fields[0]}_{fields[1]}_{fields[2]}"
+        call_params = r"$J=%.2f$  $J_p=%.2f$  $XYZ=(%.1f,%1.f,%.1f)$" % (
+            J,
+            Jp,
+            fields[0],
+            fields[1],
+            fields[2],
+        )
 
     # Necessary to set unique simulation labels
     date = datetime.now().strftime("%Y%m%dT%H%M%S")
@@ -350,7 +352,7 @@ def get_filenames_from_settings(cm_setup, nn_setup=None, sim_uuid=None, **kwargs
         + f"_date_{date}_UUID_{sim_uuid}"
     )
     title_label_callback = (
-        f"Callback  " + model_label + "  " + call_params + f"  ({size[0]}x{size[1]})"
+        "Callback  " + model_label + "  " + call_params + f"  ({size[0]}x{size[1]})"
     )
 
     return sim_label, ED_label, json_label, title_label_callback

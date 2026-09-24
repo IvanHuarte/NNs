@@ -1,7 +1,7 @@
 {
     "mode": "for",
     
-    "sizes":[[8, 8]],
+    "sizes":[[4, 4]],
 
     "kwargs_lattice" : {
         "bc":"periodic",
@@ -11,7 +11,7 @@
     "S_operators": false,
 
     "CM": {
-            "selection": "J1J2Square",
+            "selection": "SSMSquare",
 
             "Oxalate":{
                 "strength": 0.2,
@@ -50,6 +50,14 @@
                 "alpha_list": [2.5, 4.0],
                 "fields": [-1.0, 0.0],
                 "ops": [["X","Z"],["ZZ"]]
+            },
+
+            "SSMSquare":{
+                "J": 1.0,
+                "Jp_list": [
+                    0.5
+                ],
+                "fields": [0.0,0.0,0.0]
             },
 
             "J1J2Square":{
