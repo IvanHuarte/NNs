@@ -1,22 +1,18 @@
 #!/home/ihuarte/Escritorio/Ivan/NNs/.venv/bin/python
 
+import jax
 import matplotlib.pyplot as plt
 import matplotlib.transforms as mtransforms
 import numpy as np
-import jax
 
 jax.config.update("jax_enable_x64", True)
-import os
 import argparse
 import json
-import ast
+import os
 import sys
 from pathlib import Path
 
-from NN_module.saveNload import load_vstate
 from NN_module.label_utils import get_filenames_from_settings
-from NN_module.observables import modphase_extended
-from NN_module.correlations import correlations_ED, correlations_vstate
 
 # Añadir el directorio chebyoxa al path
 sys.path.append(str(Path(__file__).resolve().parent.parent / "chebyoxa"))
@@ -55,21 +51,26 @@ explore_mode = args.explore_mode
 with open(path_artifact, "r") as f:
     artifact = json.load(f)
 
-# Get main result's modulus and phase 
+# Get main result's modulus and phase
 vs_file = artifact["_artifacts"]["modphase"]["vstate"]
 mod_vs, phase_vs = np.loadtxt(vs_file)
 stats_vs = artifact["results"]["modphase"]["vstate"]
 
 ED_file = None
-if "xED" in artifact["_artifacts"]["modphase"]:
-    ED_file = artifact["_artifacts"]["modphase"]["xED"]
+if "xED_global" in artifact["_artifacts"]["modphase"]:
+    ED_file = artifact["_artifacts"]["modphase"]["xED_global"]
     mod_ED, phase_ED = np.loadtxt(ED_file)
-    stats_ED = artifact["results"]["modphase"]["xED"]
+    stats_ED = artifact["results"]["modphase"]["xED_global"]
+
+if "xED_irrep" in artifact["_artifacts"]["modphase"]:
+    ED_file = artifact["_artifacts"]["modphase"]["xED_irrep"]
+    mod_ED, phase_ED = np.loadtxt(ED_file)
+    stats_ED = artifact["results"]["modphase"]["xED_irrep"]
 
 
-if not "modphase" in artifact["_artifacts"]:
+if "modphase" not in artifact["_artifacts"]:
     print("ERROR: Artifact has no modulus and phase files")
-    sys.exit(1, f"Exiting...")
+    sys.exit(1, "Exiting...")
 
 size = artifact["CM"]["size"]
 N = int(np.array(size).prod())
@@ -108,8 +109,8 @@ if ED_file is not None:
     ax[0].set_xticks([])
     ax[0].set_ylabel(r"$Modulus$")
     ax[0].set_ylim(-0.00001, max(max(mod_ED), max(mod_vs)) * 9 / 8)
-    ax[0].plot(mod_vs, alpha=0.6, color="r", label=f"vstate")
-    ax[0].plot(mod_ED, alpha=0.6, label=f"ED")
+    ax[0].plot(mod_vs, alpha=0.6, color="r", label="vstate")
+    ax[0].plot(mod_ED, alpha=0.6, label="ED")
     ax[0].legend()
 
     ax[1].set_xticks([])
