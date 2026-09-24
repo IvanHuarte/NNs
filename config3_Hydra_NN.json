@@ -12,7 +12,7 @@
         },
         "Z2": {
             "on": true,
-            "trivial_Z2": false,
+            "trivial_Z2": true,
             "symm_modulus":false
         }
     },
@@ -28,6 +28,7 @@
             "pooling_strides":[[1,1]],
             "final_architecture":[]
         },
+        
         "ViT2D":{
             "token_size": [2, 2],
             "embedding_d": 60,
@@ -36,6 +37,7 @@
             "n_ffn_layers": 2,
             "final_architecture": null
         },
+
         "VViT":{
             "num_layers": 4,
             "d_model": 60,
@@ -53,7 +55,7 @@
         },
         "CvT2":{
             "n_CP_blocks":[1, 1, 1],
-            "channels": [21, 32, 32],
+            "channels": [28, 32, 32],
             "attn_heads":[7, 8, 8],
             "kernel": [[5, 5], [3, 3], [3, 3]],
             "strides":[[1, 1], [2, 2], [1, 1]],

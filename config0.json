@@ -1,6 +1,6 @@
 {
 
-    "write_folder_sim":"/home/ihuarte/Escritorio/Ivan/NNs/Simulations_irreps/ViT2D/SSMSquare/6x6/",
+    "write_folder_sim":"/home/ihuarte/Escritorio/Ivan/NNs/Simulations_irreps/CvT/J1J2Square/8x8/",
 
     "sz_total": 0,
 
@@ -76,7 +76,7 @@
     },
 
     "VMC": {
-        "selection": "vmc_sr_netket",
+        "selection": "vmc_netket",
         "vmc_netket": {
             "SR": true,
             "solver": "cg"

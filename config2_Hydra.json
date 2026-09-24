@@ -1,6 +1,6 @@
 {
 
-    "selection": "TestViT2DOH001",
+    "selection": "CvT2CHS0Marshall000",
 
     "load_model": {
 
@@ -13,15 +13,33 @@
             "/home/ihuarte/Escritorio/Ivan/NNs/Simulations_irreps/CvT/J1J2Square/8x8/J1J2Square/CvTCHMarshall000_SplitTraining_Sequivariant__CvT_ComplexHead_irrep_MarshallSign/Size_8x8/ST_25-A_200-A_75-A/UUID_b11aef30/J1J2Square_CvTCHMarshall000_results_8x8_J1J2_1.0_0.5_XYZ_0.0_0.0_0.0_date_20260923T145710_UUID_b11aef30.json"
         ]
     },
+
+    "CvT2CHS0Marshall000":{
+        "stage0":{
+            "template":{
+                "SplitTraining":{
+                    "Sequivariant": {
+                        "CvT2":{},
+                        "ComplexHead":{},
+                        "irrep": [0,0]                    
+                    },
+                    "MarshallSign":{}
+                }
+            },
+            
+            "save_params": true
+        }
+    },
     
-    "TestViT2DOH001":{
+    
+    "TestS1ViT2DOH220":{
         "stage0":{
             "template":{
                 
                 "Sequivariant": {
                     "ViT2D":{},
                     "OutputHead":{},
-                    "irrep": [0,0]                    
+                    "irrep": [2,2]                    
                 }    
             },    
             "load": [
@@ -32,7 +50,7 @@
         }    
     },    
 
-    "CvTCHMarshall000":{
+    "RCvT2CHMarshall000":{
         "stage0":{
             "template":{
                 "SplitTraining":{
@@ -59,23 +77,6 @@
             "load": [
                 ["stage0", "00", "0"],
                 ["stage0", "01", "1"]
-            ],
-            "save_params": true
-        }
-    },
-    
-    "CvTCH000":{
-        "stage0":{
-            "template":{
-                "Sequivariant": {
-                    "CvT":{},
-                    "ComplexHead":{},
-                    "irrep": [0,0]                    
-                }
-            },
-            "load": [
-                ["stageX0", "00", "0"],
-                ["stageX0", "01", "1"]
             ],
             "save_params": true
         }
