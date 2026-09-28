@@ -1,6 +1,6 @@
 {
 
-    "selection": "CvT2CHS0Marshall000",
+    "selection": "CvT2CHMarshall220",
 
     "load_model": {
 
@@ -14,14 +14,14 @@
         ]
     },
 
-    "CvT2CHS0Marshall000":{
+    "CvT2CHMarshall220":{
         "stage0":{
             "template":{
                 "SplitTraining":{
                     "Sequivariant": {
                         "CvT2":{},
-                        "ComplexHead":{},
-                        "irrep": [0,0]                    
+                        "OutputHead":{},
+                        "irrep": [2,2]                    
                     },
                     "MarshallSign":{}
                 }
@@ -30,16 +30,33 @@
             "save_params": true
         }
     },
+
+    "CvT2OH220":{
+
+        "stage0":{
+            "template":{
+                "Sequivariant": {
+                    "CvT2":{},
+                    "OutputHead":{},
+                    "irrep": [2, 2]
+                }
+            },
+            "load": [
+                ["stageX0", "0", "0"],
+                ["stageX0", "1", "1"]
+            ],
+            "save_params": true
+        }
+    },
     
-    
-    "TestS1ViT2DOH220":{
+    "TestViT2DOH200":{
         "stage0":{
             "template":{
                 
                 "Sequivariant": {
                     "ViT2D":{},
                     "OutputHead":{},
-                    "irrep": [2,2]                    
+                    "irrep": [2,0]                    
                 }    
             },    
             "load": [
@@ -49,6 +66,27 @@
             "save_params": true
         }    
     },    
+
+    "CvT2OHMarshall000":{
+        "stage0":{
+            "template":{
+                "SplitTraining":{
+                    "Sequivariant": {
+                        "CvT2":{},
+                        "OutputHead":{},
+                        "irrep": [0,0]                    
+                    },
+                    "MarshallSign":{}
+                }
+            },   
+            "load": [
+                ["stageX0", "0", "0"],
+                ["stageX0", "1", "1"]
+            ],    
+            "save_params": true
+        }    
+    },    
+    
 
     "RCvT2CHMarshall000":{
         "stage0":{
@@ -83,24 +121,6 @@
     },
     
 
-    "TestCvTOH10":{
-
-        "stage0":{
-            "template":{
-
-                "Sequivariant": {
-                    "CvT":{},
-                    "OutputHead":{},
-                    "irrep": [1, 0]
-                }
-            },
-            "load": [
-                ["stageX0", "0", "0"],
-                ["stageX0", "1", "1"]
-            ],
-            "save_params": true
-        }
-    },
 
     "ViT2DOH":{
 

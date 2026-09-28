@@ -57,7 +57,7 @@ def energyVSirrep(
         y_min = min(y_min, E_gr)
         y_max = max(y_max, E_gr)
 
-        E.append(E_gr)
+        E.append(E_gr/ 4 / 36)
         E_ED_global = artifact["results"]["E_gr_global"]
         E_ED_irrep.append(artifact["results"]["E_gr_irrep"])
         error_irrep.append(artifact["results"]["error_irrep"])

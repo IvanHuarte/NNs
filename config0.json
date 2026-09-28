@@ -1,6 +1,6 @@
 {
 
-    "write_folder_sim":"/home/ihuarte/Escritorio/Ivan/NNs/Simulations_irreps/CvT/J1J2Square/8x8/",
+    "write_folder_sim":"/home/ihuarte/Escritorio/Ivan/NNs/Simulations_irreps/CvT/J1J2Square/12x12/",
 
     "sz_total": 0,
 
@@ -94,7 +94,7 @@
             "epochs_struct":[
                 
                 [ 
-                    [50, 400, 50, 50]
+                    [50, 650, 50, 50]
                 ]
                 
             ],
@@ -109,7 +109,7 @@
             "lr_struct":[
                 
                 [
-                    [ ["lin(0.0001,0.02)"], [0.02], ["exp(0.01, 0.0001)"], [0.0001] ]
+                    [ ["lin(0.001,0.01)"], [0.01], ["exp(0.01, 0.0001)"], [0.0001] ]
                 ]
                 
             ],

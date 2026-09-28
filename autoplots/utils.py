@@ -202,6 +202,7 @@ param2latex = {
     "J": r"J",
     "J1": r"J_1",
     "J2": r"J_2",
+    "Jp": r"J_p",
     "size": r"size",
 }
 
