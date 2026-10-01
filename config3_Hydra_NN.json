@@ -30,7 +30,7 @@
         },
         
         "ViT2D":{
-            "token_size": [2, 2],
+            "token_size": [3, 3],
             "embedding_d": 60,
             "n_heads": 10,
             "n_blocks": 4,
@@ -55,8 +55,8 @@
         },
         "CvT2":{
             "n_CP_blocks":[1, 1, 1],
-            "channels": [12, 21, 30],
-            "attn_heads":[6, 7, 10],
+            "channels": [20, 32, 60],
+            "attn_heads":[4, 8, 10],
             "kernel": [[7, 7], [5, 5], [3, 3]],
             "strides":[[3, 3], [1, 1], [1, 1]],
             "final_architecture": null
@@ -176,7 +176,7 @@
             "only_phase": false
         },
         "OutputHead":{
-            "d_model": 30,
+            "d_model": 40,
             "only_phase": false
         },        
         "DeepOutputHead":{

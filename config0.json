@@ -1,6 +1,6 @@
 {
 
-    "write_folder_sim":"/home/ihuarte/Escritorio/Ivan/NNs/Simulations_irreps/CvT/J1J2Square/12x12/",
+    "write_folder_sim":"/home/ihuarte/Escritorio/Ivan/NNs/Simulations_irreps/pruebas/J1J2Square/12x12/",
 
     "sz_total": 0,
 
@@ -58,7 +58,7 @@
         "n_chains_per_rank": 128,
         "n_samples_per_chain": 32,
         "chunk_sampler": null,
-        "chunk_vstate": 2048
+        "chunk_vstate": 4096
     },
 
     "optimizer":{
@@ -94,7 +94,7 @@
             "epochs_struct":[
                 
                 [ 
-                    [50, 650, 50, 50]
+                    [500, 500, 100]
                 ]
                 
             ],
@@ -109,7 +109,7 @@
             "lr_struct":[
                 
                 [
-                    [ ["lin(0.001,0.01)"], [0.01], ["exp(0.01, 0.0001)"], [0.0001] ]
+                    [ [0.02], [0.01], [0.005], [0.01] ]
                 ]
                 
             ],
@@ -121,7 +121,7 @@
 
         },
 
-        "diag_shift": "lin(0.005,0.0005)"
+        "diag_shift": "lin(0.005,0.00001)"
 
     }
 

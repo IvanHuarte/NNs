@@ -288,6 +288,6 @@ def save_config_files(uuid_folder, configuration_dicts, configuration_names, siz
             config_tmp["sizes"] = sizes
 
         with open(write_folder + config_name, "w") as f:
-                json.dump(config_tmp, f, separators=(",", ":"), sort_keys=True, indent=4)
+                json.dump(config_tmp, f, separators=(",", ":"), sort_keys=False, indent=4)
         
     

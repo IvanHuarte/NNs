@@ -7,18 +7,18 @@ import uuid
 import jax
 import netket as nk
 import numpy as np
+import os
 
-# os.environ["XLA_PYTHON_CLIENT_PREALLOCATE"] = "false"
+os.environ["XLA_PYTHON_CLIENT_PREALLOCATE"] = "false"
 jax.config.update("jax_enable_x64", True)
 jax.config.update("jax_platform_name", "gpu")
 # jax.config.update("jax_debug_nans", True)
 
 print("Ranks:", jax.process_count())
-print("Devices:", jax.devices())
-print("Devices:", jax.device_count())
+print(f"Devices:{jax.devices()} ({jax.device_count()})")
+print("Local devices:", jax.local_devices())
 
 # Añadir los directorios necesarios
-
 from VA_project.engine.runners import Runner
 
 # Importar módulos necesarios
