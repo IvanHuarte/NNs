@@ -22,3 +22,18 @@ def exponential(epochs, y0, y1, steps=None):
     k = jnp.minimum(k, steps - 1)
 
     return y0 * (y1 / y0) ** (k / steps)
+
+def sigmoid(epochs, y0, y1, x_decay, steps=None):
+    """
+    x_decay: epoch at which the value is halfway between y0 and y1
+    """
+    x = jnp.arange(epochs)
+
+    if steps is None:
+        # decay continuo
+        return y0 + (y1 - y0) / (1 + jnp.exp(-(x - x_decay) / (epochs/40)))
+
+    k = (x * steps) // epochs
+    k = jnp.minimum(k, steps - 1)
+
+    return y0 + (y1 - y0) / (1 + jnp.exp(-(k - x_decay) / (epochs/40)))

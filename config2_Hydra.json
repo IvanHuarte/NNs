@@ -1,6 +1,6 @@
 {
 
-    "selection": "CvT2CHMarshall000",
+    "selection": "testCvT3OH000",
 
     "load_model": {
 
@@ -14,25 +14,7 @@
         ]
     },
     
-
-    "CvT2CHMarshall000":{
-        "stage0":{
-            "template":{
-                "SplitTraining":{
-                    "Sequivariant": {
-                        "CvT2":{},
-                        "OutputHead":{},
-                        "irrep": [0,0]                    
-                    },
-                    "MarshallSign":{}
-                }
-            },
-            
-            "save_params": true
-        }
-    },
-        
-    "TestViT2DOH220":{
+    "TestViT2DOH000":{
         "stage0":{
             "template":{
                 
@@ -49,6 +31,21 @@
             "save_params": true
         }    
     },    
+
+    "testCvT3OH000":{
+        "stage0":{
+            "template":{
+                "Sequivariant": {
+                    "CvT3":{},
+                    "OutputHead":{},
+                    "irrep": [0,0]                    
+                }
+            },
+            "save_params": true
+        }
+            
+    },
+        
 
     "CvT2OH220":{
 

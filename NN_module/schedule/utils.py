@@ -75,6 +75,7 @@ def period_from_string(epochs, lr_instruction):
     args = ast.literal_eval("(" + str_args)
 
     period = schedule(epochs, *args)
+
     return period
 
 
