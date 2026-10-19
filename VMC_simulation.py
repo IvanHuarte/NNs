@@ -1,7 +1,7 @@
 #!/home/ihuarte/Escritorio/Ivan/NNs/.venv/bin/python
 
 import os
-HOME = os.path.expanduser("~").name
+HOME = os.path.expanduser("~")
 
 import argparse
 import json
