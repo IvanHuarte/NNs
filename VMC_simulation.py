@@ -1,4 +1,6 @@
 #!/home/ihuarte/Escritorio/Ivan/NNs/.venv/bin/python
+
+HOME = os.path.expanduser("~").name
 import argparse
 import json
 import time
