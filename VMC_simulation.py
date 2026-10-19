@@ -1,6 +1,8 @@
 #!/home/ihuarte/Escritorio/Ivan/NNs/.venv/bin/python
 
+import os
 HOME = os.path.expanduser("~").name
+
 import argparse
 import json
 import time
@@ -9,7 +11,6 @@ import uuid
 import jax
 import netket as nk
 import numpy as np
-import os
 
 os.environ["XLA_PYTHON_CLIENT_PREALLOCATE"] = "false"
 jax.config.update("jax_enable_x64", True)
@@ -57,10 +58,10 @@ args = parser.parse_args()
 
 if args.config is None:
     args.config = [
-        "/home/ihuarte/Escritorio/Ivan/NNs/config0.json",
-        "/home/ihuarte/Escritorio/Ivan/NNs/config1_CM.json",
-        "/home/ihuarte/Escritorio/Ivan/NNs/config2_Hydra.json",
-        "/home/ihuarte/Escritorio/Ivan/NNs/config3_Hydra_NN.json",
+        HOME + "/Escritorio/Ivan/NNs/config0.json",
+        HOME + "/Escritorio/Ivan/NNs/config1_CM.json",
+        HOME + "/Escritorio/Ivan/NNs/config2_Hydra.json",
+        HOME + "/Escritorio/Ivan/NNs/config3_Hydra_NN.json",
     ]
 configurations = args.config
 
