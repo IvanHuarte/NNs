@@ -12,6 +12,9 @@ import optax
 import netket as nk
 
 
+REAL_DTYPE = jnp.asarray(1.0).dtype
+
+
 def print_tree(tree, prefix="", values=False):
     for key, val in tree.items():
 
@@ -34,76 +37,6 @@ def compare_params(old_params, new_params, atol=1e-13):
     print("Ha cambiado: (True) //  No ha cambiado: (False) \n\n")
     print_tree(diffs, values=True)
     print("\n")
-
-
-sys.path.append(
-    str(
-        Path(__file__).resolve().parent.parent.parent
-        / "Transformers/transformer_LR_WF_public"
-    )
-)
-
-from transformer_LR_WF.utils import InvertMagnetization
-
-REAL_DTYPE = jnp.asarray(1.0).dtype
-
-optimizer_name_dict = {
-    "Sgd": nk.optimizer.Sgd,
-    "adam": nk.optimizer.Adam,
-    "AdaGrad": nk.optimizer.AdaGrad,
-}
-
-sampler_dict = {
-    "MetropolisLocal": nk.sampler.MetropolisLocal,
-    "MetropolisExchange": nk.sampler.MetropolisExchange,
-    "MetropolisHamiltonian": nk.sampler.MetropolisHamiltonian,
-    "MetropolisSampler": nk.sampler.MetropolisSampler,
-}
-
-rule_dict = {
-    "LocalRule/InvertMagnetization": nk.sampler.rules.MultipleRules(
-        [nk.sampler.rules.LocalRule(), InvertMagnetization()], [0.75, 0.25]
-    ),
-}
-
-
-def cos_exp_scheduler(epochs, lr0, decay, cycles, n, lr_min):
-
-    exp = lambda step, a: jnp.exp(-a * step / epochs)
-    cos = lambda step, cycles: jnp.cos(step * 2 * jnp.pi / epochs * (cycles - 0.5))
-    line = lambda step, n: (lr_min - n) / epochs * step + n
-
-    def scheduler_callable(step):
-        return (lr0 - n) * exp(step, decay) * (1 + cos(step, cycles)) / 2 + line(
-            step, n
-        )
-
-    return scheduler_callable
-
-
-def scheduler_initializer(name, setup):
-
-    print(setup["total_epochs"])
-    epochs = setup["total_epochs"]
-
-    if name == "cos_exp_scheduler":
-        return cos_exp_scheduler(
-            epochs=epochs,
-            lr0=setup["lr0"],
-            decay=setup["decay_exp"],
-            cycles=setup["cosine_cycles"],
-            n=setup["n"],
-            lr_min=setup["lr_min"],
-        )
-    elif name == "warmup_exponential_decay":
-        return optax.warmup_exponential_decay_schedule(
-            init_value=setup["lr0"],
-            peak_value=setup["peak_value"],
-            warmup_steps=setup["warmup_steps"],
-            transition_steps=1,
-            decay_rate=setup["decay_rate"],
-        )
-
 
 ####################################################################################
 #                                                                                  #
