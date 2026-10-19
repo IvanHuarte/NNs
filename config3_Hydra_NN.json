@@ -62,11 +62,11 @@
             "final_architecture": null
         },
         "CvT3":{
-            "n_CP_blocks":[1, 2, 3],
-            "channels": [15, 30, 60],
+            "n_CP_blocks":[1, 2, 4],
+            "channels": [20, 32, 60],
             "attn_heads":[1, 2, 4],
             "kernel": [[7, 7], [5, 5], [3, 3]],
-            "strides":[[2, 2], [2, 2], [1, 1]],
+            "strides":[[3, 3], [2, 2], [1, 1]],
             "final_architecture": null
         },
         "CvT32":{

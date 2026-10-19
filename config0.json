@@ -1,6 +1,6 @@
 {
 
-    "write_folder_sim":"/home/ihuarte/Escritorio/Ivan/NNs/prueba/cvt/",
+    "write_folder_sim":"/home/ihuarte/Escritorio/Ivan/NNs/prueba/cvt12/",
 
     "sz_total": 0,
 
@@ -121,7 +121,7 @@
 
         },
 
-        "diag_shift": "sig(0.01,0.0001,60)"
+        "diag_shift": "sig(0.01,0.0001,150)"
 
     }
 

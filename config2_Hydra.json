@@ -1,6 +1,6 @@
 {
 
-    "selection": "testCvT3OH000",
+    "selection": "CvT3OH000",
 
     "load_model": {
 
@@ -32,7 +32,7 @@
         }    
     },    
 
-    "testCvT3OH000":{
+    "CvT3OH000":{
         "stage0":{
             "template":{
                 "Sequivariant": {
