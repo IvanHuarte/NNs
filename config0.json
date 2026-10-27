@@ -1,6 +1,6 @@
 {
 
-    "write_folder_sim":"/home/ihuarte/Escritorio/Ivan/NNs/prueba/cvt12/",
+    "write_folder_sim":"/home/ihuarte/Escritorio/Ivan/NNs/J1J2_ViT/10x10/",
 
     "sz_total": 0,
 
@@ -55,7 +55,7 @@
             "prules": [0.5, 0.5],
             "initial_state": "hilbert"
         },
-        "n_chains_per_rank": 64,
+        "n_chains_per_rank": 128,
         "n_samples_per_chain": 32,
         "chunk_sampler": null,
         "chunk_vstate": 2048
@@ -76,7 +76,7 @@
     },
 
     "VMC": {
-        "selection": "vmc_netket",
+        "selection": "vmc_sr_netket",
         "vmc_netket": {
             "SR": true,
             "solver": "cg"
@@ -94,7 +94,7 @@
             "epochs_struct":[
                 
                 [ 
-                    [200]
+                    [1000, 1000]
                 ]
                 
             ],
@@ -102,14 +102,14 @@
             "modes_struct":[
                 
                 [
-                    [ ["A"] ]
+                    [ ["A"], ["A"] ]
                 ]
                 
             ],
             "lr_struct":[
                 
                 [
-                    [ [0.01] ]
+                    [ [0.01], ["exp(0.01, 0.00001)"] ]
                 ]
                 
             ],
@@ -121,7 +121,7 @@
 
         },
 
-        "diag_shift": "sig(0.01,0.0001,150)"
+        "diag_shift": "lin(0.0001,0.0001,300)"
 
     }
 
