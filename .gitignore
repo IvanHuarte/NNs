@@ -26,6 +26,8 @@ uv.lock
 **/pruebas/
 **/prueba/
 **/new_pruebas/
+**/new_pruebas/
+**/J1J2*/
 
 **/*.jpeg
 **/*.txt
