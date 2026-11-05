@@ -169,6 +169,10 @@ REGISTRY = {
 # Diccionarios de modulos que necesitan argumentos externos
 LATTICE_SIZE = {
     "lattice_size": [
+        "CNN",
+        "CNNLiang",
+        "CvTaps",
+        "CvTexp",
         "CNNPh",
         "EDPPh",
         "CNNClsf",

@@ -115,6 +115,18 @@ class Hydra(NeuralNetwork):
     def get_code2path(self, params):
         return get_code2path_flatten(params)
 
+    def draw_architecture(self, params=None, show_attrs=False):
+        """
+        Box diagram of the current architecture with the path code of each
+        module and the operation that merges each pair of branches.
+        If params is None the model is initialized to obtain the codes.
+        """
+        from NN_module.NN.arch_diagram import draw_architecture
+
+        if params is None:
+            params = self.model.init(jax.random.PRNGKey(0), jnp.ones((1, self.N)))
+        return draw_architecture(self.setup, params, show_attrs=show_attrs)
+
     @staticmethod
     def _code_to_path(c2p, code):
         """Path of a code; WHOLE_NETWORK_CODE ('A') is the root of the tree."""
@@ -146,6 +158,8 @@ class Hydra(NeuralNetwork):
         params = self.model.init(jax.random.PRNGKey(0), jnp.ones((1, self.N)))
 
         print("********************* ARCHITECTURE INFO *********************\n")
+        print(self.draw_architecture(params))
+        print("\n")
         code2path_tree = get_code2path_tree(params["params"])
         print_architecture(code2path_tree, print_all=self.print_arch)
         print("\n")
