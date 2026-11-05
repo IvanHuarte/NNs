@@ -17,8 +17,9 @@ class ARNNWrapper(nk.models.AbstractARNN):
         self.ARNN_model = self.ARNN
 
     def __call__(self, x: jnp.ndarray) -> jnp.ndarray:
-        x = jnp.atleast_2d(x)
-        x = x.reshape(x.shape[0], *self.lattice_size, 1)
+        # Autoregressive models work on the flattened (B, N) configuration,
+        # in the sampling order. Accepts (N,), (B, N) or (B, Lx, Ly, 1).
+        x = x.reshape(-1, self.hilbert.size)
 
         x = self.ARNN_model(x)
 
@@ -27,3 +28,8 @@ class ARNNWrapper(nk.models.AbstractARNN):
     @nn.compact
     def conditionals_log_psi(self, inputs):
         return self.ARNN_model.conditionals_log_psi(inputs)
+
+    def conditional(self, inputs: jnp.ndarray, index: int) -> jnp.ndarray:
+        # Same as NetKet's AbstractARNN.conditional, redefined so that
+        # ARDirectSampler does not depend on the installed NetKet version.
+        return self.conditionals(inputs)[:, index, :]

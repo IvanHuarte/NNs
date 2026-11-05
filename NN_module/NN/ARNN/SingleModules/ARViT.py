@@ -102,3 +102,21 @@ class ARViT(nk.models.AbstractARNN):
         )  # real
 
         return jax.lax.complex(0.5 * log_probs, phase)
+
+    def __call__(self, inputs):
+        """
+        Log wave-function of the input configurations.
+
+        Overrides AbstractARNN.__call__ so it does not depend on the NetKet
+        version: accepts (N,), (B, N) or (B, Lx, Ly, 1) inputs.
+
+        Returns:
+          The log psi with dimension (B,).
+        """
+        inputs = inputs.reshape(-1, self.hilbert.size)
+
+        idx = self.hilbert.states_to_local_indices(inputs)[..., None]
+        log_psi = self.conditionals_log_psi(inputs)
+
+        log_psi = jnp.take_along_axis(log_psi, idx, axis=-1)
+        return log_psi.reshape((inputs.shape[0], -1)).sum(axis=1)
