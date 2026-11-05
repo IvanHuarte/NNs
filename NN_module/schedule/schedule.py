@@ -17,6 +17,8 @@ class Schedule:
     def __init__(self, setup, code2path):
 
         self.eon = 0
+        # eon -> {code: path} used in that eon (for flat_setup)
+        self.code2path_history = {}
 
         # Learning rate setup
         learning_rate = setup["learning_rate"]
@@ -73,10 +75,17 @@ class Schedule:
                     [(k, v) for k, v in code2path.items() if len(k) == 1]
                 )
                 self.eon_code2path.update(**main_branches)
-            else:
+            elif code in code2path:
                 self.eon_code2path[code] = code2path[code]
+            else:
+                raise KeyError(
+                    f"Schedule eon {self.eon}: mode code '{code}' does not exist "
+                    "in the current architecture. Codes up to depth 2: "
+                    f"{ {k: '/'.join(v) for k, v in code2path.items() if len(k) <= 2} }"
+                )
 
         self.eon_path2code = dict([(v, k) for k, v in self.eon_code2path.items()])
+        self.code2path_history[self.eon] = dict(self.eon_code2path)
 
     def flat_setup(self):
         nruter = {}
@@ -95,9 +104,11 @@ class Schedule:
                         eons_bound.append(count)
                         eon += 1
                     count += epo
+                    # Record the trained paths ('A' kept as is). Codes of
+                    # eons never reached keep the code itself.
+                    c2p = self.code2path_history.get(i_eon, {})
                     mode = [
-                        self.eon_code2path[idx] if isinstance(idx, int) else "A"
-                        for idx in mode
+                        "/".join(c2p[idx]) if idx in c2p else idx for idx in mode
                     ]
                     epochs.append(epo)
                     modes.append(mode)

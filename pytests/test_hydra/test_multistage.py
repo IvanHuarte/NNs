@@ -174,7 +174,7 @@ def test_symm_wrapper_turned_on_in_later_stage():
             "stage1": {
                 "template": {"stage0": {}},
                 "symm_wrapper": {"Z2": {"on": True}},
-                "load": [["stage0", "0", "0"]],
+                "load": [["stage0", "A", "A"]],
             },
         }
     )

@@ -15,7 +15,35 @@ from NN_module.NN import (
     submodule_tags,
     get_submodules,
     symm_submodule_dict,
+    wrapper_submodule_dict,
 )
+
+# Parameter-tree keys that do not consume a digit in the path codes:
+# top wrappers (NNWrapper -> 'NN', ARNNWrapper -> 'ARNN') and symmetry
+# wrappers ('Z2Wrap', 'TWrap'). So code '0' is the first submodule of the
+# network itself, whatever wraps it.
+WRAPPER_LABELS = frozenset(wrapper_submodule_dict.values())
+CODE_SKIP_LABELS = frozenset([*WRAPPER_LABELS, *symm_submodule_dict.values()])
+
+# Root keys of checkpoints saved before the NNWrapper/ARNNWrapper refactor
+# and their current name. Applied when loading parameters from file.
+LEGACY_ROOT_KEYS = {"SymmModel": "NN"}
+
+
+def upgrade_legacy_params(params):
+    """Rename pre-refactor root keys (e.g. 'SymmModel' -> 'NN')."""
+    if not isinstance(params, dict):
+        return params
+    out = {}
+    for k, v in params.items():
+        new_k = LEGACY_ROOT_KEYS.get(k, k)
+        if new_k != k:
+            print(f"Legacy checkpoint: renaming parameter key '{k}' -> '{new_k}'")
+        out[new_k] = upgrade_legacy_params(v) if k == "params" else v
+    return out
+
+# Code meaning 'the whole network' in load instructions
+WHOLE_NETWORK_CODE = "A"
 
 
 class ModReLU(nn.Module):
@@ -405,7 +433,7 @@ def get_leafcode_dict(node, idx=""):
 
     for i, (k, v) in enumerate(zip(subnodes_names, subnodes)):
 
-        if k in symm_submodule_dict.values():
+        if k in CODE_SKIP_LABELS:
             next_idx = idx
         else:
             next_idx = idx + str(i)
@@ -427,8 +455,6 @@ def get_code2path_flatten(params):
 
     """
 
-    symm_submodule_labels = list(symm_submodule_dict.values())
-
     code_dict = {}
 
     def traverse(node, path=(), code=""):
@@ -436,7 +462,7 @@ def get_code2path_flatten(params):
         if isinstance(node, dict):
             for i, (k, v) in enumerate(node.items()):
 
-                next_code = code if k in symm_submodule_labels else code + str(i)
+                next_code = code if k in CODE_SKIP_LABELS else code + str(i)
 
                 traverse(v, path + (k,), next_code)
 
@@ -476,7 +502,7 @@ def get_code2path_tree(params, prefix=""):
 
     tree = {}
     for i, (name, subtree) in enumerate(params.items()):
-        if name in symm_submodule_dict.values():
+        if name in CODE_SKIP_LABELS:
             idx = f"{prefix}"
         else:
             idx = f"{prefix}{i}"
@@ -511,10 +537,19 @@ def is_simple_module(raw_name):
 
 
 def is_wrap(name):
-    return name in symm_submodule_dict.values()
+    return name in CODE_SKIP_LABELS
 
 
-def print_architecture(tree, print_all=True, prefix="", is_last=True, wraps=[]):
+def _print_wraps_header(wraps):
+    """E.g. 'NN: (Z2Wrap)', 'ARNN: (no symmetrization)'."""
+    root = wraps[0] if wraps[0] in WRAPPER_LABELS else "Network"
+    symms = [w for w in wraps if w not in WRAPPER_LABELS]
+    print(f"{root}: ({' '.join(symms) if symms else 'no symmetrization'})")
+
+
+def print_architecture(tree, print_all=True, prefix="", is_last=True, wraps=None):
+
+    wraps = [] if wraps is None else wraps
 
     keys = list(tree.keys())
 
@@ -535,30 +570,10 @@ def print_architecture(tree, print_all=True, prefix="", is_last=True, wraps=[]):
                         data["_children"], print_all, prefix, is_last, wraps + [name]
                     )
                 else:
-                    wraps.append(name)
-                    wrap_label = (
-                        " ".join(wraps[1:])
-                        if len(wraps) > 1
-                        else print("No symmetrization")
-                    )
-                    (
-                        print(f"SymmModel: ({wrap_label})")
-                        if len(wraps) > 1
-                        else print("SymmModel:")
-                    )
+                    _print_wraps_header(wraps + [name])
                     print_architecture(data["_children"], print_all, prefix, is_last)
             else:
-                wraps.append(name)
-                wrap_label = (
-                    " ".join(wraps[1:])
-                    if len(wraps) > 1
-                    else print("No symmetrization")
-                )
-                (
-                    print(f"SymmModel: ({wrap_label})")
-                    if len(wraps) > 1
-                    else print("SymmModel:")
-                )
+                _print_wraps_header(wraps + [name])
                 print_architecture(data["_children"], print_all, prefix, is_last)
 
         else:
@@ -691,8 +706,7 @@ def find_leaf_matches(p0, p1):
 
 
 def _strip_symm_labels(path):
-    labels = set(symm_submodule_dict.values())
-    return tuple(k for k in path if k not in labels)
+    return tuple(k for k in path if k not in CODE_SKIP_LABELS)
 
 
 def greedy_transplant(old, new):
@@ -700,7 +714,7 @@ def greedy_transplant(old, new):
     Map leaves of `old` onto compatible leaves (same shape and dtype) of `new`.
 
     1. Leaves with the same relative path (ignoring symmetry-wrapper
-       levels such as 'Z2Wrap') are matched first.
+       and top-wrapper levels such as 'Z2Wrap' or 'NN') are matched first.
     2. Remaining leaves are matched greedily in traversal order.
     """
     flat_old = flatten_with_paths(old)

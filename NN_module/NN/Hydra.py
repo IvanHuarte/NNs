@@ -16,6 +16,8 @@ from NN_module.NN.utils import (
     print_architecture,
     set_subtree,
     setup_from_template,
+    upgrade_legacy_params,
+    WHOLE_NETWORK_CODE,
 )
 
 from NN_module.utils import print_tree
@@ -113,6 +115,11 @@ class Hydra(NeuralNetwork):
     def get_code2path(self, params):
         return get_code2path_flatten(params)
 
+    @staticmethod
+    def _code_to_path(c2p, code):
+        """Path of a code; WHOLE_NETWORK_CODE ('A') is the root of the tree."""
+        return () if code == WHOLE_NETWORK_CODE else c2p[code]
+
     def update_info(self, N=None):
         """
         Compute and display architecture metadata.
@@ -187,7 +194,7 @@ class Hydra(NeuralNetwork):
                     "random initialization, no weights transplanted."
                 )
         else:
-            self.load = [[prev_stage, "0", "0"]]
+            self.load = [[prev_stage, WHOLE_NETWORK_CODE, WHOLE_NETWORK_CODE]]
             print(
                 f"[Hydra] stage{self.n_stage}: no 'load' given -> transplanting "
                 f"all compatible weights from {prev_stage}."
@@ -283,15 +290,16 @@ class Hydra(NeuralNetwork):
                 (old_code, old_c2p, params_name),
                 (new_code, new_c2p, f"stage{self.n_stage}"),
             ]:
-                if code not in c2p:
+                if code != WHOLE_NETWORK_CODE and code not in c2p:
                     valid = {k: "/".join(v) for k, v in c2p.items() if len(k) <= 2}
                     raise KeyError(
                         f"[Hydra] load {[params_name, old_code, new_code]}: code "
-                        f"'{code}' does not exist in {label}. Valid codes "
-                        f"(up to depth 2): {valid}"
+                        f"'{code}' does not exist in {label}. Valid codes: "
+                        f"'{WHOLE_NETWORK_CODE}' (whole network) and, up to "
+                        f"depth 2, {valid}"
                     )
-            old_path_block = old_c2p[old_code]
-            new_path_block = new_c2p[new_code]
+            old_path_block = self._code_to_path(old_c2p, old_code)
+            new_path_block = self._code_to_path(new_c2p, new_code)
 
             old_params_block = get_subtree(old_params, old_path_block)
             new_params_block = get_subtree(new_params, new_path_block)
@@ -310,8 +318,8 @@ class Hydra(NeuralNetwork):
                 new_params = set_subtree(new_params, new_abs, val)
 
             print(
-                f"{params_name}[{old_code}] {'/'.join(old_path_block)}  -->  "
-                f"stage{self.n_stage}[{new_code}] {'/'.join(new_path_block)}: "
+                f"{params_name}[{old_code}] {'/'.join(old_path_block) or '<root>'}  -->  "
+                f"stage{self.n_stage}[{new_code}] {'/'.join(new_path_block) or '<root>'}: "
                 f"{len(trasplant)}/{n_new} target arrays filled "
                 f"({len(trasplant)}/{n_old} source arrays used, {moved} values)"
             )
@@ -351,8 +359,8 @@ class Hydra(NeuralNetwork):
 
         if self.load_model["parameters"]:
             for i, path in enumerate(paths):
-                self.params_history[f"stageX{i}"] = load_from_file(
-                    path, checkpoint=checkpoint, tag="parameters"
+                self.params_history[f"stageX{i}"] = upgrade_legacy_params(
+                    load_from_file(path, checkpoint=checkpoint, tag="parameters")
                 )
 
             vstate.parameters = self.weight_transplantation(vstate.parameters)

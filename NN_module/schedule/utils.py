@@ -43,8 +43,20 @@ def all_submodules(submodules, lr):
     if len(submodules) == len(lr):
         return lr
 
+    raise ValueError(
+        f"Mode 'A' got {len(lr)} learning rates {lr}, but the network has "
+        f"{len(submodules)} first-level submodules {['/'.join(p) for p in submodules]}. "
+        "Give 1 learning rate (shared) or one per submodule."
+    )
+
 
 def some_submodules(submodules, mode, lr):
+    missing = [idx for idx in mode if idx not in submodules]
+    if missing:
+        raise KeyError(
+            f"Mode codes {missing} do not exist in the current architecture. "
+            f"Available: {sorted(submodules)}"
+        )
     mode = [submodules[idx] for idx in mode]
     if len(lr) == 1:
         lr = lr * len(mode)
