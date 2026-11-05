@@ -289,9 +289,8 @@ for i, size in enumerate(sizes):
                     n_discard_per_chain=0,
                     chunk_size=sampler_setup["chunk_vstate"],
                 )
-                vstate.parameters, code2path = hydra.weight_transplantation(
-                    vstate.parameters
-                )
+                vstate.parameters = hydra.weight_transplantation(vstate.parameters)
+                code2path = hydra.get_code2path(vstate.parameters)
                 schedule.update_eon_code2path(code2path)
 
         time_out = time.time()

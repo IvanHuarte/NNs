@@ -224,6 +224,7 @@ undefined_submodule_number = [
 ]
 
 submodule_tags = [
+    "Wrap",  # symmetry wrappers (Z2, Traslation) built from symm_wrapper
     "ARNN",
     "NN",
     "Single",

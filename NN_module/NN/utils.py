@@ -1,3 +1,4 @@
+import copy
 import json
 
 import flax.linen as nn
@@ -8,6 +9,7 @@ import orbax.checkpoint as ocp
 from NN_module.NN import (
     EXTERNAL_ARGS,
     __all_single__,
+    __all_wrappers__,
     __all_AR__,
     flux_submodule_dict,
     submodule_tags,
@@ -219,12 +221,16 @@ def recursive_build_NN(template, storage, father="", depth=0):
 
             else:
                 if "stage" in father:
-                    config["module"] = storage[father]["module"]
-                    config["setup"] = storage[father]["setup"]
+                    # Reuse a previous stage: take only its bare network
+                    # (main wrapper and symmetry wrappers are added again
+                    # by setup_from_template with the current settings).
+                    config = unwrap_stage_setup(storage[father])
                 else:
                     father = father if "_" not in father else father.split("_")[0]
                     config["module"] = father
-                    config["setup"] = storage[father]
+                    # Copy: later in-place changes (change_attr, external
+                    # kwargs) must not leak into the storage.
+                    config["setup"] = copy.deepcopy(storage[father])
 
         else:
             config[father] = template
@@ -258,22 +264,42 @@ def recursive_build_symm_wrapper(template, storage, symm_wrapper, count=0):
 
     return config
 
-def is_autoregressive(template):
+def unwrap_stage_setup(stage_setup):
+    """
+    Strip the main wrapper (NNWrapper/ARNNWrapper) and the symmetry
+    wrappers (Z2, Traslation, ...) from a stored stage setup, returning a
+    copy of the bare network setup {"module": ..., "setup": ...}.
+    """
+    setup = copy.deepcopy(stage_setup)
+
+    if setup["module"] in __all_wrappers__:
+        inner = setup["setup"]
+        setup = {"module": inner["module"], "setup": inner["setup"]}
+
+    while setup["module"] in symm_submodule_dict and "Wrap" in setup["setup"]:
+        setup = setup["setup"]["Wrap"]
+
+    return setup
+
+
+def is_autoregressive(template, storage=None):
 
     for k, v in template.items():
         if k in __all_AR__:
             return True
+        elif "stage" in k and storage is not None and k in storage:
+            if storage[k]["module"] == "ARNNWrapper":
+                return True
         elif v and isinstance(v, dict):
-            return is_autoregressive(template[k])
-        else:
-            pass
+            if is_autoregressive(v, storage):
+                return True
 
     return False
 
 
-def main_wrapper(template):
+def main_wrapper(template, storage=None):
 
-    AR_network = is_autoregressive(template)
+    AR_network = is_autoregressive(template, storage)
 
     if AR_network:
         return "ARNNWrapper"
@@ -284,7 +310,7 @@ def setup_from_template(template, storage, symm_wrappers):
 
     config = {}
 
-    config["module"] = main_wrapper(template)
+    config["module"] = main_wrapper(template, storage)
 
     config["setup"] = recursive_build_symm_wrapper(template, storage, symm_wrappers)
 
@@ -664,17 +690,49 @@ def find_leaf_matches(p0, p1):
     return matches
 
 
+def _strip_symm_labels(path):
+    labels = set(symm_submodule_dict.values())
+    return tuple(k for k in path if k not in labels)
+
+
 def greedy_transplant(old, new):
-    matches = find_leaf_matches(old, new)
+    """
+    Map leaves of `old` onto compatible leaves (same shape and dtype) of `new`.
+
+    1. Leaves with the same relative path (ignoring symmetry-wrapper
+       levels such as 'Z2Wrap') are matched first.
+    2. Remaining leaves are matched greedily in traversal order.
+    """
+    flat_old = flatten_with_paths(old)
+    flat_new = flatten_with_paths(new)
+
     used_old = set()
     used_new = set()
     mapping = []
 
-    for p0, p1 in matches:
-        if p0 not in used_old and p1 not in used_new:
-            mapping.append((p0, p1))
+    def compatible(x, y):
+        return x.shape == y.shape and x.dtype == y.dtype
+
+    # 1. Same path
+    new_by_path = {_strip_symm_labels(p1): (p1, y) for p1, y in flat_new}
+    for p0, x in flat_old:
+        hit = new_by_path.get(_strip_symm_labels(p0))
+        if hit is not None and compatible(x, hit[1]) and hit[0] not in used_new:
+            mapping.append((p0, hit[0]))
             used_old.add(p0)
-            used_new.add(p1)
+            used_new.add(hit[0])
+
+    # 2. Greedy by shape/dtype
+    for p0, x in flat_old:
+        if p0 in used_old:
+            continue
+        for p1, y in flat_new:
+            if p1 not in used_new and compatible(x, y):
+                mapping.append((p0, p1))
+                used_old.add(p0)
+                used_new.add(p1)
+                break
+
     return mapping
 
 

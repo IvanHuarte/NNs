@@ -1,3 +1,5 @@
+import copy
+
 import jax
 import jax.numpy as jnp
 from netket.sampler.metropolis import MetropolisSamplerState
@@ -5,6 +7,7 @@ from netket.sampler.metropolis import MetropolisSamplerState
 from NN_module.NN.NeuralNetwork import NeuralNetwork
 from NN_module.NN.utils import (
     change_module_attr,
+    flatten_with_paths,
     get_code2path_flatten,
     get_code2path_tree,
     get_subtree,
@@ -16,6 +19,17 @@ from NN_module.NN.utils import (
 )
 
 from NN_module.utils import print_tree
+
+
+def _module_names(setup):
+    """Names of all modules appearing in a setup tree."""
+    names = set()
+    if isinstance(setup, dict):
+        if "module" in setup:
+            names.add(setup["module"])
+        for v in setup.values():
+            names |= _module_names(v)
+    return names
 
 
 class Hydra(NeuralNetwork):
@@ -55,15 +69,17 @@ class Hydra(NeuralNetwork):
         self.print_arch = hydra_config["print_arch"]
         self.load_model = hydra_config["load_model"]
 
-        self.storage = hydra_config["storage"]
-        self.symm_wrapper = hydra_config["symm_wrapper"]
+        # Copies: Hydra modifies these along the stages and must not
+        # alter the user configuration (which is also saved to disk).
+        self.storage = copy.deepcopy(hydra_config["storage"])
+        self.symm_wrapper = copy.deepcopy(hydra_config["symm_wrapper"])
         self.evolution_name = hydra_config["selection"]
-        self.arch_evolution = hydra_config[self.evolution_name]
+        self.arch_evolution = copy.deepcopy(hydra_config[self.evolution_name])
         self.external_args = external_kwargs
 
         # Stage 0
         self.template = self.arch_evolution["stage0"]["template"]
-        self.save_params = self.arch_evolution["stage0"]["save_params"]
+        self.save_params = self.arch_evolution["stage0"].get("save_params", False)
 
         # Build the initial NN model. Adapt first template 'model_0' to a configuration dictionary.
         setup = setup_from_template(self.template, self.storage, self.symm_wrapper)
@@ -81,13 +97,15 @@ class Hydra(NeuralNetwork):
         # parameters PyTree after generate the variational state object via weight transplantation.
 
         self.params_history = {}
+        self.prev_params = None  # Previous stage params for default transplant
         if self.load_model["parameters"] or self.load_model["sampler"]:
             self.load = self.arch_evolution["stage0"]["load"]
         else:
             self.load_model = None
 
     def save_stage_setup(self, setup):
-        self.storage[f"stage{self.n_stage}"] = setup
+        # Copy before building: initialize_from_setup modifies it in place.
+        self.storage[f"stage{self.n_stage}"] = copy.deepcopy(setup)
 
     def setup_from_template(self, template, storage, symm_wrappers):
         return setup_from_template(template, storage, symm_wrappers)
@@ -148,34 +166,61 @@ class Hydra(NeuralNetwork):
             print(f"Saving stage{self.n_stage} parameters....")
             self.params_history[f"stage{self.n_stage}"] = old_params
             print("Saved.")
+        prev_stage = f"stage{self.n_stage}"
+        self.prev_params = old_params
 
         # NEXT EON
         self.n_stage += 1
 
         stage_config = self.arch_evolution[f"stage{self.n_stage}"]
         self.template = stage_config["template"]
-        self.save_params = (
-            stage_config["save_params"] if "save_params" in stage_config else ""
-        )
-        self.load = stage_config["load"] if "load" in stage_config else []
+        self.save_params = stage_config.get("save_params", False)
+
+        # Weight transplantation instructions. Without a "load" key, every
+        # compatible weight of the previous stage is transplanted.
+        # An explicit empty list ("load": []) means random initialization.
+        if "load" in stage_config:
+            self.load = stage_config["load"]
+            if not self.load:
+                print(
+                    f"[Hydra] stage{self.n_stage}: 'load' is empty -> "
+                    "random initialization, no weights transplanted."
+                )
+        else:
+            self.load = [[prev_stage, "0", "0"]]
+            print(
+                f"[Hydra] stage{self.n_stage}: no 'load' given -> transplanting "
+                f"all compatible weights from {prev_stage}."
+            )
 
         # Update symmetry settings, in the case.
         if "symm_wrapper" in stage_config:
-            for symm_name, symm_setup in stage_config["symm_wrapper"]:
-                for k, v in symm_setup:
-                    assert k in self.symm_wrapper
+            for symm_name, symm_setup in stage_config["symm_wrapper"].items():
+                assert symm_name in self.symm_wrapper, (
+                    f"Unknown symmetry wrapper '{symm_name}'. "
+                    f"Available: {list(self.symm_wrapper)}"
+                )
+                for k, v in symm_setup.items():
+                    assert k in self.symm_wrapper[symm_name], (
+                        f"Unknown option '{k}' for symmetry wrapper '{symm_name}'. "
+                        f"Available: {list(self.symm_wrapper[symm_name])}"
+                    )
                     self.symm_wrapper[symm_name][k] = v
 
         # Create stage setup and change module attributes, in the case
-        raw_setup = setup_from_template(self.template, self.storage, self.symm_wrapper)
-        if "change_attr" in stage_config:
-            if stage_config["change_attr"]:
-                raw_setup, _ = change_module_attr(
-                    raw_setup, stage_config["change_attr"]
-                )
-
-        # Rebuild setup
         setup = setup_from_template(self.template, self.storage, self.symm_wrapper)
+        if stage_config.get("change_attr"):
+            present = _module_names(setup)
+            for target in stage_config["change_attr"]:
+                if target not in present:
+                    print(
+                        f"[Hydra] WARNING stage{self.n_stage}: change_attr target "
+                        f"'{target}' not found in the architecture "
+                        f"(modules: {sorted(present)}). Change ignored."
+                    )
+            setup, _ = change_module_attr(
+                setup, copy.deepcopy(stage_config["change_attr"])
+            )
 
         # Save the stage architecture setup
         self.save_stage_setup(setup)
@@ -217,11 +262,34 @@ class Hydra(NeuralNetwork):
 
         new_c2p = self.get_code2path(new_params)
 
+        if self.load:
+            print("\n******************* WEIGHT TRANSPLANTATION *******************")
+
         for params_name, old_code, new_code in self.load:
 
-            old_params = self.params_history[params_name]
+            if params_name in self.params_history:
+                old_params = self.params_history[params_name]
+            elif params_name == f"stage{self.n_stage - 1}" and self.prev_params is not None:
+                old_params = self.prev_params
+            else:
+                raise KeyError(
+                    f"[Hydra] Parameters '{params_name}' not available for "
+                    f"transplantation. Saved: {list(self.params_history)}. "
+                    "Set 'save_params': true in that stage."
+                )
             old_c2p = self.get_code2path(old_params)
 
+            for code, c2p, label in [
+                (old_code, old_c2p, params_name),
+                (new_code, new_c2p, f"stage{self.n_stage}"),
+            ]:
+                if code not in c2p:
+                    valid = {k: "/".join(v) for k, v in c2p.items() if len(k) <= 2}
+                    raise KeyError(
+                        f"[Hydra] load {[params_name, old_code, new_code]}: code "
+                        f"'{code}' does not exist in {label}. Valid codes "
+                        f"(up to depth 2): {valid}"
+                    )
             old_path_block = old_c2p[old_code]
             new_path_block = new_c2p[new_code]
 
@@ -230,12 +298,37 @@ class Hydra(NeuralNetwork):
 
             trasplant = greedy_transplant(old_params_block, new_params_block)
 
+            n_old = len(flatten_with_paths(old_params_block))
+            n_new = len(flatten_with_paths(new_params_block))
+            moved = 0
             for old_rel, new_rel in trasplant:
                 old_abs = old_path_block + old_rel
                 new_abs = new_path_block + new_rel
 
                 val = get_subtree(old_params, old_abs)
+                moved += val.size
                 new_params = set_subtree(new_params, new_abs, val)
+
+            print(
+                f"{params_name}[{old_code}] {'/'.join(old_path_block)}  -->  "
+                f"stage{self.n_stage}[{new_code}] {'/'.join(new_path_block)}: "
+                f"{len(trasplant)}/{n_new} target arrays filled "
+                f"({len(trasplant)}/{n_old} source arrays used, {moved} values)"
+            )
+            if len(trasplant) < n_new:
+                copied = {new_rel for _, new_rel in trasplant}
+                for path, leaf in flatten_with_paths(new_params_block):
+                    if path not in copied:
+                        print(
+                            f"    random init: {'/'.join(map(str, new_path_block + path))} "
+                            f"{tuple(leaf.shape)}"
+                        )
+
+        if self.load:
+            print("**************************************************************\n")
+
+        # Previous-stage params are only needed once
+        self.prev_params = None
 
         return new_params
 
