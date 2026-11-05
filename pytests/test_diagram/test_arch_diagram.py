@@ -56,7 +56,7 @@ def test_split_training_with_transversal():
         "Wrappers: NNWrapper", "Root: SplitTraining",
         "<----- Transversal (0)", "║ MLP (00) ║", "║ MLP (01) ║",
         "<----- Sequential (1)", "║ ViT2D (10) ║", "║ OutputHead (11) ║",
-        "<Modulus>", "<Phase>", "X_in", "log ψ(x)",
+        "<Modulus>", "<Phase>", "X_in  (B, N) → (B, Lx, Ly, 1)", "log ψ(x)",
         "Σ : sum of the branches", "+i : Modulus + i·Phase",
     ]:
         assert piece in text, piece

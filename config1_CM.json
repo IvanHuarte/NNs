@@ -1,7 +1,7 @@
 {
     "mode": "for",
     
-    "sizes":[[1, 10]],
+    "sizes":[[4, 4]],
 
     "kwargs_lattice" : {
         "bc":"periodic",
@@ -11,7 +11,7 @@
     "S_operators": false,
 
     "CM": {
-            "selection": "LRChain",
+            "selection": "J1J2Square",
 
             "Oxalate":{
                 "strength": 0.2,

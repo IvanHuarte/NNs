@@ -29,18 +29,18 @@
         },
         
         "CvT":{
-            "n_CP_blocks":[1, 1, 1],
-            "channels": [21, 21, 21],
-            "attn_heads":[7, 7, 7],
-            "kernel": [5, 5],
+            "n_CP_blocks":[1],
+            "channels": [21],
+            "attn_heads":[7],
+            "kernel": [3, 3],
             "final_architecture": null
         },
         "CvT2":{
-            "n_CP_blocks":[1, 1, 1],
-            "channels": [20, 32, 60],
-            "attn_heads":[4, 8, 10],
-            "kernel": [[7, 7], [5, 5], [3, 3]],
-            "strides":[[3, 3], [1, 1], [1, 1]],
+            "n_CP_blocks":[1],
+            "channels": [32],
+            "attn_heads":[4],
+            "kernel": [[3, 3]],
+            "strides":[[1, 1]],
             "final_architecture": null
         },
         "CvT3":{
@@ -100,9 +100,9 @@
         },
         
         "MLP":{
-            "hidden_alpha": [2, 1],
-            "activation": ["swish", "sigmoid"],
-            "final_architecture": [1],
+            "hidden_alpha": [2],
+            "activation": ["swish"],
+            "final_architecture": null,
             "only_phase": false
         },
 
@@ -158,6 +158,9 @@
         
         
         "MarshallSign":{
+            "radians":true
+        },
+        "MarshallSign_2":{
             "radians":true
         },
         

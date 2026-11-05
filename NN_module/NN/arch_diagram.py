@@ -356,10 +356,18 @@ def draw_architecture(setup, params=None, show_attrs=False):
         header.append(f"Root: {root}")
 
     autoregressive = setup["module"] == "ARNNWrapper"
+    # NetKet passes the configurations as (B, N); NNWrapper reshapes them to
+    # the lattice, ARNNWrapper keeps them flat (autoregressive order).
+    if setup["module"] == "NNWrapper":
+        x_in = "X_in  (B, N) → (B, Lx, Ly, 1)"
+    elif autoregressive:
+        x_in = "X_in  (B, N)"
+    else:
+        x_in = "X_in"
     body = drawer.draw(node, path, is_root=is_root)
     diagram = stack(
         [
-            text("X_in"),
+            text(x_in),
             body,
             text("log ψ(x)" + ("  [autoregressive]" if autoregressive else "")),
         ]

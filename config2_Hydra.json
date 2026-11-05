@@ -1,6 +1,6 @@
 {
 
-    "selection": "TestARViT",
+    "selection": "Marshall000",
 
     "load_model": {
 
@@ -102,21 +102,30 @@
     },    
     
 
-    "RCvT2CHMarshall000":{
+    "Marshall000":{
         "stage0":{
             "template":{
-                "SplitTraining":{
-                    "Sequivariant": {
-                        "CvT2":{},
-                        "ComplexHead":{},
-                        "irrep": [0,0]                    
+                "Transversal":{
+
+                    "Sequential":{
+                        "Transversal":{
+                            "CvT2":{},
+                            "MLP":{},
+                            "operation":"product"
+                        },
+                        "CvT":{},
+                        "OutputHead":{}
                     },
-                    "MarshallSign":{}
-                }
-            },
+                    "MarshallSign":{},
+                    "MarshallSign_2":{},
+                    "operation":"sum"
+               }
             
-            "save_params": true
+            },
+                "save_params": true
         },
+        
+        
 
         "stage1":{
             "template":{

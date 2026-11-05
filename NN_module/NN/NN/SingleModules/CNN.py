@@ -1,4 +1,4 @@
-from typing import Callable, Tuple
+from collections.abc import Callable
 
 import flax.linen as nn
 import jax.numpy as jnp
@@ -13,11 +13,11 @@ class ConvBlock(nn.Module):
     """
 
     features: int
-    kernel: Tuple[int, int] = (3, 3)
-    strides: Tuple[int, int] = (1, 1)
+    kernel: tuple[int, int] = (3, 3)
+    strides: tuple[int, int] = (1, 1)
     activation: Callable = nn.swish
     use_pooling: bool = False
-    pooling_strides: Tuple[int, int] = (1, 1)
+    pooling_strides: tuple[int, int] = (1, 1)
 
     @nn.compact
     def __call__(self, x: jnp.ndarray) -> jnp.ndarray:
@@ -51,15 +51,15 @@ class ConvBlock(nn.Module):
 class CNN(nn.Module):
     """A simple 2D Convolutional Neural Network (CNN) model."""
 
-    lattice_size: Tuple[int, int]  # Size of the input image (height, width)
+    lattice_size: tuple[int, int]  # Size of the input image (height, width)
 
     "CNN parameters"
-    channels: Tuple[int, ...]  # Features for each convolutional block
-    strides: Tuple[Tuple[int, int], ...]
-    kernel: Tuple[int, int] = (3, 3)  # Size of the convolutional filter
+    channels: tuple[int, ...]  # Features for each convolutional block
+    strides: tuple[tuple[int, int], ...]
+    kernel: tuple[int, int] = (3, 3)  # Size of the convolutional filter
     use_pooling: bool = False
-    pooling_strides: Tuple[int, int] = (1, 1)
-    final_architecture: Tuple[int, ...] | None = None
+    pooling_strides: tuple[int, int] = (1, 1)
+    final_architecture: tuple[int, ...] | None = None
 
     @nn.compact
     def __call__(self, x: jnp.ndarray) -> jnp.ndarray:

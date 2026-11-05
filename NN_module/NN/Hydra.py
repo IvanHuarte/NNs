@@ -6,6 +6,7 @@ from netket.sampler.metropolis import MetropolisSamplerState
 
 from NN_module.NN.NeuralNetwork import NeuralNetwork
 from NN_module.NN.utils import (
+    WHOLE_NETWORK_CODE,
     change_module_attr,
     flatten_with_paths,
     get_code2path_flatten,
@@ -17,10 +18,7 @@ from NN_module.NN.utils import (
     set_subtree,
     setup_from_template,
     upgrade_legacy_params,
-    WHOLE_NETWORK_CODE,
 )
-
-from NN_module.utils import print_tree
 
 
 def _module_names(setup):
@@ -290,7 +288,10 @@ class Hydra(NeuralNetwork):
 
             if params_name in self.params_history:
                 old_params = self.params_history[params_name]
-            elif params_name == f"stage{self.n_stage - 1}" and self.prev_params is not None:
+            elif (
+                params_name == f"stage{self.n_stage - 1}"
+                and self.prev_params is not None
+            ):
                 old_params = self.prev_params
             else:
                 raise KeyError(
