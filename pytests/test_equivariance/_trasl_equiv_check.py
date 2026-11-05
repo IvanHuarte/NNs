@@ -1,8 +1,10 @@
 import jax.numpy as jnp
-from NN_module.NN_utils import Translations2D
+from NN_module.utils import Translations2D
 
 
 def traslation_equivariant(x0, params, model, atol=1e-7, v=0):
+    """True if T(f(x)) == f(T(x)) for every translation compatible with the
+    model's output stride."""
     success = True
 
     # x0 = (B, H, W, Ch)
@@ -47,8 +49,12 @@ def traslation_equivariant(x0, params, model, atol=1e-7, v=0):
     else:
         print("❌ Alguna operación rompe la equivarianza")
 
+    return bool(success)
+
 
 def traslation_equivariant_irrep(x0, params, model, irrep, atol=1e-7, v=0):
+    """True if log psi(T x) = log psi(x) + 2 pi i k.r (mod 2 pi i) for every
+    translation: both the log-modulus and the phase must match."""
 
     success = True
 
@@ -90,7 +96,7 @@ def traslation_equivariant_irrep(x0, params, model, irrep, atol=1e-7, v=0):
             # print(f"y0_shift:\n {y0_shift.reshape(1, -1, 4, 4)}\n")
             # print(f"y_roll:\n {y_roll.reshape(1, -1, 4, 4)}\n")
 
-        if not (logmod_ok or phase_ok):
+        if not (logmod_ok and phase_ok):
             print(f"Equivarianza fallida para shift={shift}")
             success = False
 
@@ -98,3 +104,5 @@ def traslation_equivariant_irrep(x0, params, model, irrep, atol=1e-7, v=0):
         print("✅ El modelo es equivariante!")
     else:
         print("❌ Alguna operación rompe la equivarianza")
+
+    return bool(success)

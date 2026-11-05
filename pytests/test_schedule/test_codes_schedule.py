@@ -86,7 +86,6 @@ def schedule_setup(modes, lrs, epochs=None):
             "epochs_struct": [[epochs]],
             "modes_struct": [[modes]],
             "lr_struct": [[lrs]],
-            "repeat": [],
             "rescale": 1.0,
         },
         "diag_shift": "lin(0.0001,0.0001,300)",

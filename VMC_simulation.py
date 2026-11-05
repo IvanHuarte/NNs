@@ -28,7 +28,7 @@ from VA_project.engine.runners import Runner
 # Importar módulos necesarios
 from VA_project.initialize_model import ModelFactory
 
-from NN_module.callback import Callback
+from NN_module.callback import BestIterKeeper, Callback, Checkpoint
 from NN_module.callback.utils import dump_callback
 from NN_module.exact_diagonalization import calc_exact_diag
 from NN_module.label_utils import (
@@ -297,7 +297,14 @@ for i, size in enumerate(sizes):
         time_out = time.time()
         time_exe = time_out - time_in
 
-        keeper = callback_objects[0]
+        keeper = next(
+            (c for c in callback_objects if isinstance(c, BestIterKeeper)), None
+        )
+        if keeper is None:
+            raise RuntimeError(
+                "The results are taken from the best state: enable "
+                "config0 'callback.keeper'."
+            )
         best_step = keeper.best_step
         vstate = keeper.best_state
 
@@ -377,9 +384,10 @@ for i, size in enumerate(sizes):
             },
         }
         if config["callback"]["checkpoint"]:
-            dump_setup["_artifacts"]["checkpoint"] = callback_objects[
-                -1
-            ].checkpoint_path
+            checkpointer = next(
+                c for c in callback_objects if isinstance(c, Checkpoint)
+            )
+            dump_setup["_artifacts"]["checkpoint"] = checkpointer.checkpoint_path
 
         dump_setup["labels"] = {
             "sim_label": sim_label,

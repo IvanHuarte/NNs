@@ -25,7 +25,6 @@ class Schedule:
         self.epochs_struct = learning_rate["epochs_struct"]
         self.modes_struct = learning_rate["modes_struct"]
         self.lr_struct = learning_rate["lr_struct"]
-        self.repeat = learning_rate["repeat"]
         self.rescale = learning_rate["rescale"]
 
         # Sampler orders
@@ -38,20 +37,6 @@ class Schedule:
         self.update_eon_code2path(code2path)
 
     def _initialize(self):
-
-        # Repeat substructures
-        for target, n_repeat in self.repeat:
-            E = int(target[1])
-            e = int(target[3])
-            [
-                self.epochs_struct[E].insert(e, self.epochs_struct[E][e])
-                for _ in range(n_repeat)
-            ]
-            [
-                self.modes_struct[E].insert(e, self.modes_struct[E][e])
-                for _ in range(n_repeat)
-            ]
-            [self.lr_struct[E].insert(e, self.lr_struct[E][e]) for _ in range(n_repeat)]
 
         flat_epochs = jnp.array(
             [period for eon in self.epochs_struct for era in eon for period in era]
@@ -181,25 +166,27 @@ class Schedule:
             yield period_func, info, change
 
     def get_diag_shift_schedule(self):
-
-
+        """
+        Split the global diag_shift schedule into one function per period.
+        Info strings show the first and last value used in each period.
+        """
         flat_periods = self.flat_setup()["epochs"]
 
         main_ds_array = period_from_string(self.total_epochs, self.ds_setup)
         schedule_func = self.ds_setup.split("(")[0]
 
-        ds_periods = [schedule_from_array(main_ds_array[:flat_periods[0]])]
-        ds_periods_info = [schedule_func + f"({main_ds_array[0]:.4f}, {main_ds_array[flat_periods[0]]:.4f})"]
-
-        for i in range(1, len(flat_periods)):
-            final_epoch = sum(flat_periods[:i])
-            ds = schedule_from_array(main_ds_array[final_epoch:final_epoch + flat_periods[i]])
-            ds_periods.append(ds)
-            ds_periods_info.append(schedule_func + f"({main_ds_array[flat_periods[i-1]]:.4f}, {main_ds_array[flat_periods[i]]:.4f})")
-
+        ds_periods = []
+        ds_periods_info = []
+        start = 0
+        for n in flat_periods:
+            period = main_ds_array[start : start + n]
+            ds_periods.append(schedule_from_array(period))
+            ds_periods_info.append(
+                schedule_func + f"({float(period[0]):.4f}, {float(period[-1]):.4f})"
+            )
+            start += n
 
         return ds_periods, ds_periods_info
-
 
     def transform_optimizer(self, params, optimizer_setup, info, lr_func):
 

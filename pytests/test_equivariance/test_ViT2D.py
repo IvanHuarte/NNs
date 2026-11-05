@@ -1,6 +1,5 @@
 import os
 import sys
-from time import time
 
 import jax
 import jax.numpy as jnp
@@ -23,7 +22,7 @@ from pytests.test_equivariance._trasl_equiv_check import (
 equivariance_test = traslation_equivariant
 equivariance_test_irrep = traslation_equivariant_irrep
 
-key = jax.random.PRNGKey(int(time()))
+key = jax.random.PRNGKey(0)
 lattice_size = (4, 4)
 token_size = (1, 1)
 token_lattice_size = (
@@ -52,7 +51,7 @@ def test_AffPosWeight():
     x0_shape = (1, token_lattice_size[0], token_lattice_size[1], head_size)
     x0 = jax.random.uniform(key, shape=x0_shape, minval=-2.0, maxval=2.0)
     params = model.init(key, x0)
-    return equivariance_test(x0, params, model, atol=atol, v=verbosity)
+    assert equivariance_test(x0, params, model, atol=atol, v=verbosity)
 
 
 def test_PositionalHead():
@@ -64,7 +63,7 @@ def test_PositionalHead():
     x0_shape = (1, token_lattice_size[0], token_lattice_size[1], embedding_d)
     x0 = jax.random.uniform(key, shape=x0_shape, minval=-2.0, maxval=2.0)
     params = model.init(key, x0)
-    return equivariance_test(x0, params, model, atol=atol, v=verbosity)
+    assert equivariance_test(x0, params, model, atol=atol, v=verbosity)
 
 
 def test_MHPA():
@@ -77,7 +76,7 @@ def test_MHPA():
     x0_shape = (1, token_lattice_size[0], token_lattice_size[1], embedding_d)
     x0 = jax.random.uniform(key, shape=x0_shape, minval=-2.0, maxval=2.0)
     params = model.init(key, x0)
-    return equivariance_test(x0, params, model, atol=atol, v=verbosity)
+    assert equivariance_test(x0, params, model, atol=atol, v=verbosity)
 
 
 def test_ViT2DBlock():
@@ -91,7 +90,7 @@ def test_ViT2DBlock():
     x0_shape = (1, token_lattice_size[0], token_lattice_size[1], embedding_d)
     x0 = jax.random.uniform(key, shape=x0_shape, minval=-2.0, maxval=2.0)
     params = model.init(key, x0)
-    return equivariance_test(x0, params, model, atol=atol, v=verbosity)
+    assert equivariance_test(x0, params, model, atol=atol, v=verbosity)
 
 
 def test_ViT2D():
@@ -108,7 +107,7 @@ def test_ViT2D():
     x0_shape = (1, lattice_size[0], lattice_size[1], 1)
     x0 = jax.random.choice(key, jnp.array([-1, 1]), shape=x0_shape)
     params = model.init(key, x0)
-    return equivariance_test(x0, params, model, atol=atol, v=verbosity)
+    assert equivariance_test(x0, params, model, atol=atol, v=verbosity)
 
 
 def test_ViT2D_irreps():
@@ -133,4 +132,6 @@ def test_ViT2D_irreps():
         x0_shape = (1, lattice_size[0], lattice_size[1], 1)
         x0 = jax.random.choice(key, jnp.array([-1, 1]), shape=x0_shape)
         params = model.init(key, x0)
-        traslation_equivariant_irrep(x0, params, model, irrep, atol=atol, v=verbosity)
+        assert traslation_equivariant_irrep(
+            x0, params, model, irrep, atol=atol, v=verbosity
+        ), f"irrep {irrep}"
