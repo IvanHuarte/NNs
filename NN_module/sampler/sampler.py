@@ -22,10 +22,31 @@ def get_neighbor_array(neighbors_dict):
     return neighbors_array, nn_max, nn_dim
 
 
+def resolve_sampler_setup(setup, verbose=False):
+    """
+    General sampler settings (n_chains_per_rank, n_samples_per_chain,
+    chunk_sampler, chunk_vstate, ...) overridden by the ones defined in the
+    block of the selected sampler, e.g. setup["metropolis"]["n_chains_per_rank"].
+    Idempotent: resolving an already resolved setup changes nothing.
+    """
+    selection = setup["selection"]
+    block = setup.get(selection, {}) or {}
+
+    resolved = dict(setup)
+    for k, v in block.items():
+        if isinstance(v, dict):  # e.g. metropolis["sampler"] (rules)
+            continue
+        if verbose and k in setup and setup[k] != v:
+            print(f"[Sampler] '{selection}' sets {k} = {v} (general value {setup[k]} ignored)")
+        resolved[k] = v
+
+    return resolved
+
+
 class SamplerFactory:
 
     def __init__(self, setup, **kwargs):
-        self.setup = setup
+        self.setup = resolve_sampler_setup(setup)
         self.kwargs = kwargs
 
     def _init_rules(self):
@@ -74,20 +95,32 @@ class SamplerFactory:
 
             self.rules.append(init_rule)
 
-        self.prules = (
-            self.setup["metropolis"]["sampler"]["prules"]
-            if len(self.rules) > 1
-            else [1.0]
-        )
+        rules_setup = self.setup["metropolis"]["sampler"]
+        rule_names = rules_setup["rules"]
 
-        rules_wrapper = (
-            MultipleRules(self.rules, self.prules)
-            if len(self.rules) > 1
-            else self.rules[0]
-        )
-        assert (
-            abs(sum(self.prules) - 1.0) < 1e-8
-        ), "The probabilities of the rules must sum to 1."
+        # With a single rule its probability is 1 ('prules' is ignored)
+        if len(self.rules) > 1:
+            self.prules = rules_setup["prules"]
+            if len(self.prules) != len(self.rules):
+                raise ValueError(
+                    f"sampler.metropolis.sampler: {len(rule_names)} rules {rule_names} "
+                    f"but {len(self.prules)} probabilities prules={self.prules}."
+                )
+        else:
+            self.prules = [1.0]
+
+        if abs(sum(self.prules) - 1.0) > 1e-8:
+            raise ValueError(
+                f"sampler.metropolis.sampler.prules={self.prules} must sum to 1."
+            )
+
+        # initial_state: "hilbert", "M0", "Mmax" or null (rule's own default).
+        # MultipleRules applies it, also when there is a single rule.
+        initial_state = rules_setup.get("initial_state")
+        if len(self.rules) > 1 or initial_state is not None:
+            rules_wrapper = MultipleRules(self.rules, self.prules, initial_state)
+        else:
+            rules_wrapper = self.rules[0]
 
         return rules_wrapper
 

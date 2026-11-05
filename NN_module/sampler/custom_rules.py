@@ -211,10 +211,16 @@ class ExchangeJ1J2(MetropolisRule):
 
 class MultipleRules(netket.sampler.rules.MultipleRules):
 
-    initial_state: str | None = None
+    # Static (not a pytree leaf): a string cannot be traced by jit
+    initial_state: str | None = struct.field(pytree_node=False, default=None)
 
     def __init__(self, rules, prules, initial_state=None):
         super().__init__(rules, prules)
+        if initial_state not in (None, "hilbert", "M0", "Mmax"):
+            raise ValueError(
+                f"Unknown initial_state '{initial_state}'. "
+                "Use 'hilbert', 'M0', 'Mmax' or null."
+            )
         self.initial_state = initial_state
 
     def random_state(

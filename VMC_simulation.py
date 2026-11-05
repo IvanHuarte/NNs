@@ -39,7 +39,7 @@ from NN_module.label_utils import (
 from NN_module.NN.Hydra import Hydra
 from NN_module.NN.utils import make_setup_serializable
 from NN_module.observables import measureNdump, phase_stats_vstate
-from NN_module.sampler.sampler import SamplerFactory
+from NN_module.sampler.sampler import SamplerFactory, resolve_sampler_setup
 from NN_module.saveNload import save_results
 from NN_module.schedule.schedule import Schedule
 from NN_module.schedule.utils import get_schedule_label
@@ -98,7 +98,7 @@ sizes = config_cm["sizes"]
 schedule_setup = config["schedule"]
 
 ### MC sampling rules ###
-sampler_setup = config["sampler"]
+sampler_setup = resolve_sampler_setup(config["sampler"], verbose=True)
 n_ranks = jax.device_count()
 n_samples = (
     n_ranks * sampler_setup["n_samples_per_chain"] * sampler_setup["n_chains_per_rank"]
@@ -142,7 +142,8 @@ for i, size in enumerate(sizes):
 
         ## Update Hamiltonian
         cm_model = model_factory.get_model()
-        eng = Runner(cm_model.cm, S_operators=False)
+        # Hamiltonian in the units chosen in config1 (Pauli or S = sigma/2)
+        eng = Runner(cm_model.cm, S_operators=config_cm["S_operators"])
         H = eng.build_hamiltonian(hi)
 
         (

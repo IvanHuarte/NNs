@@ -130,10 +130,18 @@ def display_simulation_settings(settings, n_cols=5):
     if sim_dict:
         # Información del sampler
         sampler_dict = sim_dict.get("sampler", {})
-        sampler_config = sampler_dict.get("sampler", {})
+        selection = sampler_dict.get("selection", "")
+        if selection:
+            # Same resolution as the simulation: selected block overrides
+            from NN_module.sampler.sampler import resolve_sampler_setup
+
+            sampler_dict = resolve_sampler_setup(sampler_dict)
+        sampler_config = (sampler_dict.get(selection) or {}).get("sampler", {})
         sampler_info = {
+            "selection": selection,
             "rules": sampler_config.get("rules", []),
             "prules": sampler_config.get("prules", []),
+            "initial_state": sampler_config.get("initial_state", ""),
             "n_ranks": sampler_dict.get("n_ranks", ""),
             "n_chains_per_rank": sampler_dict.get("n_chains_per_rank", ""),
             "n_samples_per_chain": sampler_dict.get("n_samples_per_chain", ""),

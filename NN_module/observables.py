@@ -391,12 +391,12 @@ def distance_with_stripped(size):
 
 
 def measureNdump(keeper, time_exe, S_operators=False):
+    # Energies are already in the units of the Hamiltonian (built with
+    # config1 'S_operators'): no rescaling. Magnetizations are computed from
+    # sigma = +-1 samples; with S_operators they are reported for S = sigma/2.
+    spin_factor = 2 if S_operators else 1
 
-    s_factor = 4 if S_operators else 1
-
-    E_gr_global = (
-        keeper.E_gr_global / s_factor if hasattr(keeper, "E_gr_global") else None
-    )
+    E_gr_global = keeper.E_gr_global if hasattr(keeper, "E_gr_global") else None
     x_ED_global = keeper.x_ED_global if hasattr(keeper, "x_ED_global") else None
 
     irrep_info = (
@@ -405,14 +405,14 @@ def measureNdump(keeper, time_exe, S_operators=False):
         else None
     )
 
-    E_gr_irrep = keeper.E_gr_irrep / s_factor if hasattr(keeper, "E_gr_irrep") else None
+    E_gr_irrep = keeper.E_gr_irrep if hasattr(keeper, "E_gr_irrep") else None
     x_ED_irrep = keeper.x_ED_irrep if hasattr(keeper, "x_ED_irrep") else None
 
     vstate = keeper.best_state
     N = vstate.hilbert.size
 
     best_step = keeper.best_step
-    E_best = float(keeper.best_state_energy) / s_factor
+    E_best = float(keeper.best_state_energy)
     E_best_per_site = E_best / N
     vscore = float(keeper.best_state_vscore)
 
@@ -476,10 +476,10 @@ def measureNdump(keeper, time_exe, S_operators=False):
 
     # Renyi entropy, magnetization and its fluctuation
     S_renyi, m, ms, m2, ms2 = calc_all_observables_vs(vstate)
-    m /= s_factor
-    ms /= s_factor
-    m2 /= s_factor**2
-    ms2 /= s_factor**2
+    m /= spin_factor
+    ms /= spin_factor
+    m2 /= spin_factor**2
+    ms2 /= spin_factor**2
 
     print(f"\nRenyi entropy: {S_renyi}")
     print(f"< m >: {m}   < m2 >: {m2}")
@@ -490,6 +490,8 @@ def measureNdump(keeper, time_exe, S_operators=False):
 
     if x_ED is not None and vstate.hilbert._total_sz is None:
         m_ED, ms_ED, m2_ED, ms2_ED = calc_all_observables_ED(x_ED.squeeze())
+        m_ED, ms_ED = m_ED / spin_factor, ms_ED / spin_factor
+        m2_ED, ms2_ED = m2_ED / spin_factor**2, ms2_ED / spin_factor**2
         print(f"ED < m >: {m_ED}   < m2 >: {m2_ED}")
         print(f"ED < ms >: {ms_ED}  < ms2 >: {ms2_ED}\n")
 
