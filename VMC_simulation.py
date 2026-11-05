@@ -1,7 +1,8 @@
 #!/home/ihuarte/Escritorio/Ivan/NNs/.venv/bin/python
 
 import os
-HOME = os.path.expanduser("~") 
+
+HOME = os.path.expanduser("~")
 
 import argparse
 import json
@@ -168,7 +169,7 @@ for i, size in enumerate(sizes):
         display_simulation_settings(sim_config)
 
         #### INITIALIZE NETWORK FRAMEWORK ####
-        hydra = Hydra(config_nn, lattice_size=size)
+        hydra = Hydra(config_nn, lattice_size=size, hilbert=hi)
         model = hydra.model
         nparams, nbytes = hydra.n_params, hydra.nbytes
         print(f"Total samples: {n_samples}\n")

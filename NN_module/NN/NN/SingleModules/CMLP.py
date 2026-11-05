@@ -1,9 +1,9 @@
-from typing import Callable, Tuple
+from collections.abc import Callable
 
 import flax.linen as nn
 import jax.numpy as jnp
 
-from ..toolbox import CDense
+from ...toolbox import CDense
 
 DTYPE = jnp.float64
 
@@ -11,9 +11,9 @@ DTYPE = jnp.float64
 class CMLP(nn.Module):
     """A simple multi-layer perceptron."""
 
-    hidden_alpha: Tuple[int, ...] = None
-    activation: Callable | Tuple[Callable, ...] = None
-    final_architecture: Tuple[int, ...] | None = None
+    hidden_alpha: tuple[int, ...] = None
+    activation: Callable | tuple[Callable, ...] = None
+    final_architecture: tuple[int, ...] | None = None
     only_phase: bool = False
 
     @nn.compact

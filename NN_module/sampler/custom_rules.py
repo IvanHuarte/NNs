@@ -1,15 +1,16 @@
-import jax
-import jax.numpy as jnp
-from flax import linen as nn
-import netket
-from netket.sampler.rules import MetropolisRule
-from netket.utils.types import PyTree, PRNGKeyT
-from netket.utils.struct import dataclass
-from netket.hilbert.random import flip_state
-from netket.utils import struct
 from typing import override
 
-from .initial_states import hilbert_state, M0_state, Mmax_state
+import jax
+import jax.numpy as jnp
+import netket
+from flax import linen as nn
+from netket.hilbert.random import flip_state
+from netket.sampler.rules import MetropolisRule
+from netket.utils import struct
+from netket.utils.struct import dataclass
+from netket.utils.types import PRNGKeyT, PyTree
+
+from .initial_states import M0_state, Mmax_state, hilbert_state
 
 
 @dataclass

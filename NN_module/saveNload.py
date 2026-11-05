@@ -13,7 +13,7 @@ import scipy as sp
 from netket.sampler.metropolis import MetropolisSamplerState
 from VA_project.initialize_model import ModelFactory
 
-from .NN.NN import NeuralNetwork
+from .NN.NeuralNetwork import NeuralNetwork
 from .sampler.sampler import SamplerFactory
 
 

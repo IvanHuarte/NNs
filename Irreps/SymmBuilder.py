@@ -94,9 +94,9 @@ class SymmGroup:
         norm: bool = False,
     ) -> jax.typing.ArrayLike:
     
-        assert (
-            len(q_vector) == len(representations) == len(self.group)
-        ), f"{len(q_vector)} != {len(representations)} != {len(self.group)} " 
+        # assert (
+        #     len(q_vector) == len(representations) == len(self.group)
+        # ), f"{len(q_vector)} != {len(representations)} != {len(self.group)} " 
 
         dim = len(representations[0])
         nruter = jnp.zeros((dim, dim), dtype=complex)

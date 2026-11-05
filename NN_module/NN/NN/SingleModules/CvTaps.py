@@ -1,4 +1,4 @@
-from typing import Any, Tuple
+from typing import Any
 
 import flax.linen as nn
 import jax
@@ -6,7 +6,7 @@ import jax.numpy as jnp
 import jax.typing as jt
 from netket.nn.activation import log_cosh
 
-from ..toolbox import (
+from ...toolbox import (
     DepthPointwiseConv,
     MultiLayerPerceptron,
 )
@@ -107,8 +107,8 @@ def APS_equivariance_adapter(x, strides, mode="vmap"):
 class ConvAPS(nn.Module):
 
     features: int
-    kernel_size: Tuple = (3, 3)
-    strides: Tuple = (1, 1)
+    kernel_size: tuple = (3, 3)
+    strides: tuple = (1, 1)
     mask: jt.ArrayLike | None = None
     feature_group_count: int = 1
     padding: str = "SAME"
@@ -143,8 +143,8 @@ class DepthPointwiseConv(nn.Module):
     """
 
     channels: int
-    kernel: Tuple = (3, 3)
-    strides: Tuple = (1, 1)
+    kernel: tuple = (3, 3)
+    strides: tuple = (1, 1)
 
     @nn.compact
     def __call__(self, x: jt.ArrayLike) -> jt.ArrayLike:
@@ -189,8 +189,8 @@ class ConvProjectionBlock(nn.Module):
 
     channels: int
     n_heads: int = 1
-    kernel: Tuple = (3, 3)
-    strides_qkv: Tuple[Tuple, Tuple, Tuple] = ((1, 1), (2, 2), (2, 2))
+    kernel: tuple = (3, 3)
+    strides_qkv: tuple[tuple, tuple, tuple] = ((1, 1), (2, 2), (2, 2))
     n_mlp_layers: int = 1
 
     @nn.compact
@@ -272,8 +272,8 @@ class CvTapsWorkerStage(nn.Module):
     n_CP_blocks: int  # Number of convolutional projection blocks in the stage
     channels: int  # Number of channels in the convolutional token embedding
     n_heads: int  # Number of heads for each block
-    strides: Tuple = (1, 1)  # Strides for the convolutional token embedding
-    kernel: Tuple = (3, 3)  # Kernel size for the convolutional operations (must be 3x3)
+    strides: tuple = (1, 1)  # Strides for the convolutional token embedding
+    kernel: tuple = (3, 3)  # Kernel size for the convolutional operations (must be 3x3)
 
     @nn.compact
     def __call__(self, x: jt.ArrayLike) -> jt.ArrayLike:
@@ -325,21 +325,21 @@ class CvTaps(nn.Module):
            modulus and phase. Otherwise, it returns a real-valued output.
     """
 
-    lattice_size: Tuple[int, int]
+    lattice_size: tuple[int, int]
 
     "CvTaps parameters"
-    n_CP_blocks: Tuple[
+    n_CP_blocks: tuple[
         int, ...
     ]  # Number of convolutional projection blocks in each stage
-    channels: Tuple[
+    channels: tuple[
         int, ...
     ]  # Number of channels in the convolutional token embedding.
-    attn_heads: Tuple[
+    attn_heads: tuple[
         int, ...
     ]  # Number of heads for each convolutional projection block in each stage.
-    strides: Tuple[Tuple, ...] = (1, 1)  # Strides for each stage
-    kernel: Tuple = (3, 3)  # Kernel size for the convolutional operations (must be 3x3)
-    final_architecture: Tuple | None = None
+    strides: tuple[tuple, ...] = (1, 1)  # Strides for each stage
+    kernel: tuple = (3, 3)  # Kernel size for the convolutional operations (must be 3x3)
+    final_architecture: tuple | None = None
 
     @nn.compact
     def __call__(self, x: jt.ArrayLike) -> jt.ArrayLike:

@@ -1,11 +1,8 @@
-from typing import Tuple
-
 import flax.linen as nn
 import jax.numpy as jnp
 import jax.typing as jt
-from netket.nn.activation import log_cosh
 
-from ..toolbox import (
+from ...toolbox import (
     DepthPointwiseConv,
     MultiLayerPerceptron,
 )
@@ -15,12 +12,13 @@ DTYPE = jnp.float64
 
 # SAME AS CVT BUT HAS ALSO CONFIGURABLE KERNELS AND STRIDES THROUGH STAGES
 
+
 class ConvProjectionBlock(nn.Module):
 
     channels: int
     n_heads: int = 1
-    kernel: Tuple = (3, 3)
-    strides_qkv: Tuple[Tuple, Tuple, Tuple] = ((1, 1), (2, 2), (2, 2))
+    kernel: tuple = (3, 3)
+    strides_qkv: tuple[tuple, tuple, tuple] = ((1, 1), (2, 2), (2, 2))
     n_mlp_layers: int = 2
 
     @nn.compact
@@ -82,8 +80,9 @@ class ConvProjectionBlock(nn.Module):
         # MLP
         x_ffn = x.reshape((B, Nq, self.channels))  # Reshape to (B, Hq*Wq, channels)
         x_ffn = MultiLayerPerceptron(
-            layer_widths= tuple([x_ffn.shape[-1] * 2 , x_ffn.shape[-1]]) # tuple([x_ffn.shape[-1]] * self.n_mlp_layers),
-            
+            layer_widths=tuple(
+                [x_ffn.shape[-1] * 2, x_ffn.shape[-1]]
+            )  # tuple([x_ffn.shape[-1]] * self.n_mlp_layers),
         )(x_ffn)
         x_ffn = x_ffn.reshape((B, Hq, Wq, self.channels))
         # x_ffn = nn.LayerNorm(dtype=DTYPE, param_dtype=DTYPE)(x_ffn)
@@ -103,10 +102,10 @@ class StageBlock(nn.Module):
     """
 
     n_CP_blocks: int  # Number of convolutional projection blocks in the stage
-    channels: Tuple[int, ...]  # Number of channels in each stage
+    channels: tuple[int, ...]  # Number of channels in each stage
     n_heads: int  # Number of heads for each block
-    kernel: Tuple = (3, 3)  # Kernel size for the convolutional operations (must be 3x3)
-    strides: Tuple = (1, 1)
+    kernel: tuple = (3, 3)  # Kernel size for the convolutional operations (must be 3x3)
+    strides: tuple = (1, 1)
 
     @nn.compact
     def __call__(self, x: jt.ArrayLike) -> jt.ArrayLike:
@@ -129,7 +128,7 @@ class StageBlock(nn.Module):
             x = ConvProjectionBlock(
                 channels=self.channels,
                 n_heads=self.n_heads,
-                kernel=(3, 3)  #self.kernel,
+                kernel=(3, 3),  # self.kernel,
             )(x)
 
         x = nn.LayerNorm(dtype=DTYPE, param_dtype=DTYPE)(x)
@@ -156,16 +155,16 @@ class CvT3(nn.Module):
            modulus and phase. Otherwise, it returns a real-valued output.
     """
 
-    n_CP_blocks: Tuple[
+    n_CP_blocks: tuple[
         int, ...
     ]  # Number of convolutional projection blocks in each stage
-    channels: Tuple[int, ...]  # Number of channels in each stage
-    attn_heads: Tuple[
+    channels: tuple[int, ...]  # Number of channels in each stage
+    attn_heads: tuple[
         int, ...
     ]  # Number of heads for each convolutional projection block in each stage.
-    kernel: Tuple[Tuple[int, ...], ...]
-    strides: Tuple[int, ...]
-    final_architecture: Tuple | None = None
+    kernel: tuple[tuple[int, ...], ...]
+    strides: tuple[int, ...]
+    final_architecture: tuple | None = None
 
     @nn.compact
     def __call__(self, x: jt.ArrayLike) -> jt.ArrayLike:
@@ -182,7 +181,7 @@ class CvT3(nn.Module):
                 channels=self.channels[i],
                 n_heads=self.attn_heads[i],
                 kernel=self.kernel[i],
-                strides=self.strides[i]
+                strides=self.strides[i],
             )(x)
 
         # To work only with this module, we distinguish between real output

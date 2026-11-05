@@ -3,12 +3,14 @@ import jax.numpy as jnp
 
 from NN_module.NN import (
     REGISTRY,
-    __all_factories__,
+    __all_flux__,
     __all_single__,
     __all_symm__,
-    factory_submodule_dict,
-    factory_submodule_tags,
+    __all_wrappers__,
+    wrapper_submodule_dict,
+    flux_submodule_dict,
     symm_submodule_dict,
+    submodule_tags,
     undefined_submodule_number,
 )
 from NN_module.NN.utils import insert_external_kwargs, preprocess_setup
@@ -78,7 +80,7 @@ class NeuralNetwork:
         self.setup = preprocess_setup(setup)
 
         print("\nBuilding Neural Network from setup...\n")
-        # print_tree(self.setup, values=True)
+        print_tree(self.setup, values=True)
 
         self.model = self.build_model(self.setup, external_args)
 
@@ -134,19 +136,13 @@ class NeuralNetwork:
         flax.linen.Module
             Instantiated Flax module corresponding to this subtree.
         """
-        if depth == 0:
-            print("Getting wrapped model for symmetrization...")
-            clss = self.get_model_class("SymmWrapper")
-            NN_model = self.build_model(setup, external_args, depth=1)
-            print("Model built and wrapped\n\n")
-            return clss(NN_model, lattice_size=tuple(external_args["lattice_size"]))
 
         module_name = setup["module"]
         setup = setup["setup"]
         submodules = {
             k: v
             for k, v in setup.items()
-            if any(tag in k for tag in factory_submodule_tags)
+            if any(tag in k for tag in submodule_tags)
         }
 
         extra_args = {
@@ -157,7 +153,21 @@ class NeuralNetwork:
 
         clss = self.get_model_class(module_name)
 
+        if module_name in __all_wrappers__:
+            assert depth == 0, print(
+                f"Wrapper: {module_name} must be at the top of the achitecture"
+            )
+            print("Getting wrapped model...")
+            submodule_tag = wrapper_submodule_dict[module_name]
+            init_wrapper = {submodule_tag: self.build_model(setup, external_args, depth=1)}
+            print("Model built and wrapped\n\n")
+            return clss(
+                **init_wrapper,
+                **extra_args
+            )
+        
         if module_name in __all_symm__:
+            print("Symmetrizing...")
             expected_submodules = symm_submodule_dict[module_name]
             if isinstance(expected_submodules, str):
                 expected_submodules = [expected_submodules]
@@ -167,8 +177,8 @@ class NeuralNetwork:
             }
             return clss(**init_submodules, **extra_args)
 
-        elif module_name in __all_factories__:
-            expected_submodules = factory_submodule_dict[module_name]
+        elif module_name in __all_flux__:
+            expected_submodules = flux_submodule_dict[module_name]
             if isinstance(expected_submodules, str):
                 expected_submodules = [expected_submodules]
 

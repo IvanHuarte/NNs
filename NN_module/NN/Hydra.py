@@ -2,7 +2,7 @@ import jax
 import jax.numpy as jnp
 from netket.sampler.metropolis import MetropolisSamplerState
 
-from NN_module.NN.NN import NeuralNetwork
+from NN_module.NN.NeuralNetwork import NeuralNetwork
 from NN_module.NN.utils import (
     change_module_attr,
     get_code2path_flatten,
@@ -14,6 +14,8 @@ from NN_module.NN.utils import (
     set_subtree,
     setup_from_template,
 )
+
+from NN_module.utils import print_tree
 
 
 class Hydra(NeuralNetwork):
@@ -65,6 +67,7 @@ class Hydra(NeuralNetwork):
 
         # Build the initial NN model. Adapt first template 'model_0' to a configuration dictionary.
         setup = setup_from_template(self.template, self.storage, self.symm_wrapper)
+        # print_tree(setup, values=True)
         self.save_stage_setup(setup)
 
         super().__init__(setup, **self.external_args)

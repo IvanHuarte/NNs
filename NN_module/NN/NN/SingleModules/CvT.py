@@ -1,11 +1,9 @@
-from typing import Tuple
-
 import flax.linen as nn
 import jax.numpy as jnp
 import jax.typing as jt
 from netket.nn.activation import log_cosh
 
-from ..toolbox import (
+from ...toolbox import (
     DepthPointwiseConv,
     MultiLayerPerceptron,
 )
@@ -13,14 +11,12 @@ from ..toolbox import (
 DTYPE = jnp.float64
 
 
-# SAME AS CVT BUT HAS ALSO CONFIGURABLE KERNELS AND STRIDES THROUGH STAGES
-
 class ConvProjectionBlock(nn.Module):
 
     channels: int
     n_heads: int = 1
-    kernel: Tuple = (3, 3)
-    strides_qkv: Tuple[Tuple, Tuple, Tuple] = ((1, 1), (2, 2), (2, 2))
+    kernel: tuple = (3, 3)
+    strides_qkv: tuple[tuple, tuple, tuple] = ((1, 1), (2, 2), (2, 2))
     n_mlp_layers: int = 1
 
     @nn.compact
@@ -102,10 +98,9 @@ class StageBlock(nn.Module):
     """
 
     n_CP_blocks: int  # Number of convolutional projection blocks in the stage
-    channels: Tuple[int, ...]  # Number of channels in each stage
+    channels: tuple[int, ...]  # Number of channels in each stage
     n_heads: int  # Number of heads for each block
-    kernel: Tuple = (3, 3)  # Kernel size for the convolutional operations (must be 3x3)
-    strides: Tuple = (1, 1)
+    kernel: tuple = (3, 3)  # Kernel size for the convolutional operations (must be 3x3)
 
     @nn.compact
     def __call__(self, x: jt.ArrayLike) -> jt.ArrayLike:
@@ -116,7 +111,7 @@ class StageBlock(nn.Module):
         x = nn.Conv(
             features=self.channels,
             kernel_size=self.kernel,
-            strides=self.strides,
+            strides=(1, 1),
             padding="CIRCULAR",
             dtype=DTYPE,
         )(x)
@@ -134,7 +129,7 @@ class StageBlock(nn.Module):
         return log_cosh(x)
 
 
-class CvT2(nn.Module):
+class CvT(nn.Module):
     """
     Convolutional Vision Transformer (CvT) implementation.
     It consists of multiple stages, each containing a convolutional token embedding
@@ -153,16 +148,15 @@ class CvT2(nn.Module):
            modulus and phase. Otherwise, it returns a real-valued output.
     """
 
-    n_CP_blocks: Tuple[
+    n_CP_blocks: tuple[
         int, ...
     ]  # Number of convolutional projection blocks in each stage
-    channels: Tuple[int, ...]  # Number of channels in each stage
-    attn_heads: Tuple[
+    channels: tuple[int, ...]  # Number of channels in each stage
+    attn_heads: tuple[
         int, ...
     ]  # Number of heads for each convolutional projection block in each stage.
-    kernel: Tuple[Tuple[int, ...], ...]
-    strides: Tuple[int, ...]
-    final_architecture: Tuple | None = None
+    kernel: tuple = (3, 3)  # Kernel size for the convolutional operations (must be 3x3)
+    final_architecture: tuple | None = None
 
     @nn.compact
     def __call__(self, x: jt.ArrayLike) -> jt.ArrayLike:
@@ -178,8 +172,7 @@ class CvT2(nn.Module):
                 n_CP_blocks=self.n_CP_blocks[i],
                 channels=self.channels[i],
                 n_heads=self.attn_heads[i],
-                kernel=self.kernel[i],
-                strides=self.strides[i]
+                kernel=self.kernel,
             )(x)
 
         # To work only with this module, we distinguish between real output

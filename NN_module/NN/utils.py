@@ -8,8 +8,9 @@ import orbax.checkpoint as ocp
 from NN_module.NN import (
     EXTERNAL_ARGS,
     __all_single__,
-    factory_submodule_dict,
-    factory_submodule_tags,
+    __all_AR__,
+    flux_submodule_dict,
+    submodule_tags,
     get_submodules,
     symm_submodule_dict,
 )
@@ -152,8 +153,9 @@ def insert_external_kwargs(setup: dict, external_args: dict):
     native in NN configurations or changes during simulations.
     """
 
-    # Add lattice_size to modules which natively need spatial info and/or
-    # is necesary to perform 2D traslational symmetries
+    # Add lattice_size to modules which natively need some extra 
+    # arguments created in the simulation
+
     if "module" in setup and "setup" in setup:
         for k, v in external_args.items():
 
@@ -186,7 +188,7 @@ def recursive_build_NN(template, storage, father="", depth=0):
         for k, v in template.items():
             return recursive_build_NN(v, storage, father=k, depth=depth + 1)
 
-    elif father in factory_submodule_dict.keys():
+    elif father in flux_submodule_dict.keys():
         n_mod = len([1 for _, v in template.items() if isinstance(v, dict)])
         submodules = get_submodules(father, n_mod)
         config["module"] = father
@@ -256,10 +258,35 @@ def recursive_build_symm_wrapper(template, storage, symm_wrapper, count=0):
 
     return config
 
+def is_autoregressive(template):
+
+    for k, v in template.items():
+        if k in __all_AR__:
+            return True
+        elif v and isinstance(v, dict):
+            return is_autoregressive(template[k])
+        else:
+            pass
+
+    return False
+
+
+def main_wrapper(template):
+
+    AR_network = is_autoregressive(template)
+
+    if AR_network:
+        return "ARNNWrapper"
+    else:
+        return "NNWrapper"
 
 def setup_from_template(template, storage, symm_wrappers):
 
-    config = recursive_build_symm_wrapper(template, storage, symm_wrappers)
+    config = {}
+
+    config["module"] = main_wrapper(template)
+
+    config["setup"] = recursive_build_symm_wrapper(template, storage, symm_wrappers)
 
     return config
 
@@ -439,7 +466,7 @@ def get_code2path_tree(params, prefix=""):
 def is_main_module(name):
     if "_" in name:
         name = name.split("_")[0]
-    return name in factory_submodule_tags
+    return name in submodule_tags
 
 
 def is_simple_module(raw_name):

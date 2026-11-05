@@ -1,4 +1,4 @@
-from typing import Callable, Tuple
+from collections.abc import Callable
 
 import flax.linen as nn
 import jax
@@ -6,7 +6,7 @@ import jax.numpy as jnp
 import jax.typing as jt
 from netket.nn.activation import log_cosh
 
-from ..toolbox import CDense
+from ...toolbox import CDense
 
 DTYPE = jnp.float64
 CDTYPE = jnp.complex128
@@ -77,11 +77,11 @@ class FinalFF(nn.Module):
         self.norm = nn.LayerNorm(param_dtype=DTYPE)
 
         self.ffw = nn.Dense(
-            self.channels, 
+            self.channels,
             use_bias=True,
             param_dtype=DTYPE,
             kernel_init=nn.initializers.xavier_uniform(),
-            bias_init=jax.nn.initializers.zeros,    
+            bias_init=jax.nn.initializers.zeros,
         )
 
     def __call__(self, x):
@@ -139,9 +139,9 @@ class OutputHead(nn.Module):
 
 
 class DeepOutputHead(nn.Module):
-    d_model: Tuple[int, ...]
-    activations_real: Tuple[Callable, ...]
-    activations_imag: Tuple[Callable, ...]
+    d_model: tuple[int, ...]
+    activations_real: tuple[Callable, ...]
+    activations_imag: tuple[Callable, ...]
     param_dtype = DTYPE
     only_phase: bool = False
 
@@ -225,7 +225,7 @@ class ComplexHead(nn.Module):
 
 class SzaboOutput(nn.Module):
 
-    lattice_size: Tuple[int, int]
+    lattice_size: tuple[int, int]
 
     @nn.compact
     def __call__(self, x: jt.ArrayLike) -> jt.ArrayLike:

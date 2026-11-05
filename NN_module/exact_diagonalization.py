@@ -54,13 +54,16 @@ def irrep_exact_diag(hilbert, H_dense, symmetries, irrep, lattice_size):
 
     configurations = hilbert.all_states()
 
+    subgroups = [i for i in [0, 1] if lattice_size[i] > 1]
+
     symmetries_config = {
         "Traslation": {
             "on": True if any(symm in ["Tx", "Ty"] for symm in symmetries) else False,
-            "subgroup": [0, 1],
+            "subgroup": subgroups,
         },
         "Z2": {"on": True if "Z2" in symmetries else False},
     }
+
 
     group = SymmGroup(
         symmetries_config, lattice_size=lattice_size, all_states=configurations

@@ -1,8 +1,8 @@
+import jax.numpy as jnp
+from netket.sampler import ARDirectSampler, MetropolisSampler
+
 from NN_module.sampler import RULES
 from NN_module.sampler.custom_rules import MultipleRules
-
-import jax.numpy as jnp
-from netket.sampler import MetropolisSampler
 
 
 def get_neighbor_array(neighbors_dict):
@@ -31,7 +31,7 @@ class SamplerFactory:
     def _init_rules(self):
 
         self.rules = []
-        for rule_name in self.setup["sampler"]["rules"]:
+        for rule_name in self.setup["metropolis"]["sampler"]["rules"]:
 
             raw_rule = RULES[rule_name]
 
@@ -50,7 +50,7 @@ class SamplerFactory:
                     J2_nn = jnp.array(J2_nn)
                 except:
                     raise ValueError(
-                        f"This lattice cannot be implemented fro J1-J2 exchange rule, since have irregular neighbors array."
+                        "This lattice cannot be implemented fro J1-J2 exchange rule, since have irregular neighbors array."
                     )
 
                 init_rule = raw_rule(
@@ -74,7 +74,11 @@ class SamplerFactory:
 
             self.rules.append(init_rule)
 
-        self.prules = self.setup["sampler"]["prules"] if len(self.rules) > 1 else [1.0]
+        self.prules = (
+            self.setup["metropolis"]["sampler"]["prules"]
+            if len(self.rules) > 1
+            else [1.0]
+        )
 
         rules_wrapper = (
             MultipleRules(self.rules, self.prules)
@@ -89,13 +93,21 @@ class SamplerFactory:
 
     def get_sampler(self, hilbert):
 
-        rules_wrapper = self._init_rules()
+        selection = self.setup["selection"]
 
-        sampler = MetropolisSampler(
-            hilbert=hilbert,
-            rule=rules_wrapper,
-            n_chains_per_rank=self.setup["n_chains_per_rank"],
-            chunk_size=self.setup["chunk_sampler"],
-        )
+        if selection == "metropolis":
+            rules_wrapper = self._init_rules()
+            sampler = MetropolisSampler(
+                hilbert=hilbert,
+                rule=rules_wrapper,
+                n_chains_per_rank=self.setup["n_chains_per_rank"],
+                chunk_size=self.setup["chunk_sampler"],
+            )
+
+        elif selection == "nkARSampler":
+            sampler = ARDirectSampler(hilbert=hilbert)
+
+        else:
+            raise NotImplementedError(f"Sampler {selection} not implemented yet")
 
         return sampler

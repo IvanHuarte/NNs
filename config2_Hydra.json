@@ -1,6 +1,6 @@
 {
 
-    "selection": "ViT2DOH000",
+    "selection": "TestARViT",
 
     "load_model": {
 
@@ -14,6 +14,21 @@
         ]
     },
     
+
+    "TestARViT":{
+        "stage0":{
+            "template":{
+                
+                "ARViT":{}
+            },       
+            "load": [
+                ["stageX0", "0", "0"],
+                ["stageX0", "1", "1"]
+            ],    
+            "save_params": true
+        }    
+    },    
+
     "ViT2DOH000":{
         "stage0":{
             "template":{

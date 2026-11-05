@@ -1,11 +1,9 @@
-from typing import Tuple
-
 import flax.linen as nn
 import jax.numpy as jnp
 import jax.typing as jt
 from netket.nn.activation import log_cosh
 
-from ..toolbox import (
+from ...toolbox import (
     DepthPointwiseConv,
 )
 
@@ -15,9 +13,9 @@ DTYPE = jnp.float64
 class ConvMultiheadAttentionHead(nn.Module):
 
     channels: int
-    n_heads_per_kernel: Tuple = (1,)
-    kernel: Tuple[Tuple[int, int], ...] = ((3, 3),)
-    strides_kv: Tuple[int, int] = (2, 2)
+    n_heads_per_kernel: tuple = (1,)
+    kernel: tuple[tuple[int, int], ...] = ((3, 3),)
+    strides_kv: tuple[int, int] = (2, 2)
 
     def setup(self):
 
@@ -85,9 +83,9 @@ class ConvMultiheadAttentionHead(nn.Module):
 class ConvProjectionBlock(nn.Module):
 
     channels: int
-    n_heads_per_kernel: Tuple = (1,)
-    kernel: Tuple[Tuple[int, int], ...] = ((3, 3),)
-    strides_kv: Tuple[int, int] = (2, 2)
+    n_heads_per_kernel: tuple = (1,)
+    kernel: tuple[tuple[int, int], ...] = ((3, 3),)
+    strides_kv: tuple[int, int] = (2, 2)
     n_mlp_layers: int = 1
 
     def setup(self):
@@ -152,9 +150,9 @@ class StageBlock(nn.Module):
     """
 
     n_CP_blocks: int  # Number of convolutional projection blocks in the stage
-    channels: Tuple[int, ...]  # Number of channels in each stage
-    n_heads_per_kernel: Tuple[int, ...]  # Number of heads for each block
-    kernel: Tuple = (3, 3)  # Kernel size for the convolutional operations (must be 3x3)
+    channels: tuple[int, ...]  # Number of channels in each stage
+    n_heads_per_kernel: tuple[int, ...]  # Number of heads for each block
+    kernel: tuple = (3, 3)  # Kernel size for the convolutional operations (must be 3x3)
 
     def setup(self):
 
@@ -208,19 +206,19 @@ class CvTexp(nn.Module):
            modulus and phase. Otherwise, it returns a real-valued output.
     """
 
-    lattice_size: Tuple[int, int]
+    lattice_size: tuple[int, int]
 
-    n_CP_blocks: Tuple[
+    n_CP_blocks: tuple[
         int, ...
     ]  # Number of convolutional projection blocks in each stage
-    channels: Tuple[int, ...]  # Number of channels in each stage
-    attn_heads_per_kernel: Tuple[
-        Tuple[Tuple[int, int], ...], ...
+    channels: tuple[int, ...]  # Number of channels in each stage
+    attn_heads_per_kernel: tuple[
+        tuple[tuple[int, int], ...], ...
     ]  # Number of heads per kernel for each in each stage.
-    kernels_per_stage: Tuple = (
+    kernels_per_stage: tuple = (
         (3, 3),
     )  # Kernel size for the convolutional operations (must be 3x3)
-    final_architecture: Tuple | None = None
+    final_architecture: tuple | None = None
 
     @nn.compact
     def __call__(self, x: jt.ArrayLike) -> jt.ArrayLike:

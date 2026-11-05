@@ -15,7 +15,7 @@ import netket as nk
 REAL_DTYPE = jnp.asarray(1.0).dtype
 
 
-def print_tree(tree, prefix="", values=False):
+def print_tree(tree, prefix="", values=True):
     for key, val in tree.items():
 
         if isinstance(val, dict):

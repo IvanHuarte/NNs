@@ -6,17 +6,18 @@ import jax
 import jax.numpy as jnp
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../")))
-from NN_module.NN.SingleModels.ViT2D import (
+from NN_module.NN.NN.FluxModules.Sequivariant import Sequivariant
+from NN_module.NN.NN.SingleModules.FluxFunc import OutputHead
+from NN_module.NN.NN.SingleModules.ViT2D import (
     AffinityPosWeight,
     MultiHeadPositionalAttention,
     PositionalHead,
     ViT2D,
     ViT2DBlock,
 )
-from NN_module.NN.SingleModels.FluxFunc import OutputHead
-from NN_module.NN.Factories.Sequivariant import Sequivariant
 from pytests.test_equivariance._trasl_equiv_check import (
-    traslation_equivariant, traslation_equivariant_irrep
+    traslation_equivariant,
+    traslation_equivariant_irrep,
 )
 
 equivariance_test = traslation_equivariant
@@ -40,8 +41,6 @@ final_architecture = None
 irrep = (3, 2)
 atol = 1e-10
 verbosity = 1
-
-
 
 
 def test_AffPosWeight():
@@ -111,14 +110,16 @@ def test_ViT2D():
     params = model.init(key, x0)
     return equivariance_test(x0, params, model, atol=atol, v=verbosity)
 
+
 def test_ViT2D_irreps():
     from itertools import product
+
     verbosity = 0
     irreps = product(range(lattice_size[0]), range(lattice_size[1]))
     print("\nTesting ViT2D...\n")
     for irrep in irreps:
         print(f"IRREP: {irrep}")
-            
+
         vit = ViT2D(
             token_size=token_size,
             embedding_d=embedding_d,
@@ -127,15 +128,9 @@ def test_ViT2D_irreps():
             n_ffn_layers=n_ffn_layers,
             final_architecture=final_architecture,
         )
-        final = OutputHead(
-            d_model=embedding_d
-        )
-        model = Sequivariant(
-            SeqV=(vit, final),
-            irrep=irrep
-        )
+        final = OutputHead(d_model=embedding_d)
+        model = Sequivariant(SeqV=(vit, final), irrep=irrep)
         x0_shape = (1, lattice_size[0], lattice_size[1], 1)
         x0 = jax.random.choice(key, jnp.array([-1, 1]), shape=x0_shape)
         params = model.init(key, x0)
         traslation_equivariant_irrep(x0, params, model, irrep, atol=atol, v=verbosity)
-    return 

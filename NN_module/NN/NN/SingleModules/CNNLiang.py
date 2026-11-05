@@ -1,9 +1,7 @@
-from typing import Tuple
-
 import flax.linen as nn
 import jax.numpy as jnp
 
-from ..toolbox import get_mask
+from ...toolbox import get_mask
 
 DTYPE = jnp.float64
 
@@ -15,7 +13,7 @@ class CNNLiangBlock(nn.Module):
 
     M1_channels: int  # Features for convolution
     M2_channels: int  # Features for transposed convolution
-    kernel: Tuple[int, int] = (3, 3)
+    kernel: tuple[int, int] = (3, 3)
     window_pooling: int = 2
     use_bias: bool = True
     mask: str | None = None
@@ -80,12 +78,12 @@ class CNNLiangBlock(nn.Module):
 class CNNLiang(nn.Module):
     """A CNNLiang architecture following Liang 2021 model."""
 
-    lattice_size: Tuple[int, int]  # Size of the input image (height, width)
+    lattice_size: tuple[int, int]  # Size of the input image (height, width)
 
     "CNNLiang parameters"
-    M1_channels: Tuple[int, ...]  # Features for convolution
-    M2_channels: Tuple[int, ...]  # Features for transposed convolution
-    kernel: Tuple[Tuple[int, ...]]  # Size of the convolutional filter
+    M1_channels: tuple[int, ...]  # Features for convolution
+    M2_channels: tuple[int, ...]  # Features for transposed convolution
+    kernel: tuple[tuple[int, ...]]  # Size of the convolutional filter
     window_pooling: int = 2
     use_bias: bool = True
     mask: str | None = None

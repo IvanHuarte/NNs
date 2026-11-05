@@ -2,7 +2,7 @@
 
     "write_folder_sim":"/home/ihuarte/Escritorio/Ivan/NNs/J1J2_ViT/10x10/",
 
-    "sz_total": 0,
+    "sz_total": null,
 
     "callback":{
         "keeper": true,
@@ -10,7 +10,7 @@
         "modphase": false,
         "sanity": false,
         "leaves_gradient": false,
-        "checkpoint":true,
+        "checkpoint": false,
         
         "keeper_setup":{
             "baseline": 1e-30,
@@ -50,15 +50,26 @@
     },
 
     "sampler":{
-        "sampler":{
-            "rules": ["Exchange"],
-            "prules": [0.5, 0.5],
-            "initial_state": "hilbert"
+        "selection": "nkARSampler",
+
+        "metropolis":{
+            "sampler":{
+                "rules": ["Exchange"],
+                "prules": [0.5, 0.5],
+                "initial_state": "hilbert"
+            },
+            "n_chains_per_rank": 64,
+            "n_samples_per_chain": 32
         },
-        "n_chains_per_rank": 128,
+
+        "nkARSampler":{
+
+        },
+        "n_chains_per_rank": 32,
         "n_samples_per_chain": 32,
         "chunk_sampler": null,
-        "chunk_vstate": 2048
+        "chunk_vstate": 1024
+        
     },
 
     "optimizer":{

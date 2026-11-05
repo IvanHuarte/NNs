@@ -6,7 +6,7 @@ import jax
 import jax.numpy as jnp
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../")))
-from NN_module.NN.SingleModels.CvT import (
+from NN_module.NN.NN.SingleModules.CvT import (
     ConvProjectionBlock,
     CvTWorker,
     DepthPointwiseConv,

@@ -1,5 +1,12 @@
-# Importation of factories
-from .Factories import (
+# MAIN WRAPPERS
+from .ARNN import ARNNWrapper
+
+############### NN.ARNN IMPORTATIONS #################
+from .ARNN.SingleModules.ARViT import ARViT
+from .NN import NNWrapper
+
+############### NN.NN IMPORTATIONS #################
+from .NN.FluxModules import (
     Sequential,
     Sequivariant,
     SequivariantX,
@@ -9,7 +16,7 @@ from .Factories import (
 )
 
 # Importation of single modules
-from .SingleModels import (
+from .NN.SingleModules import (
     CMLP,
     CNN,
     MLP,
@@ -39,14 +46,16 @@ from .SingleModels import (
 )
 
 # Importation of symmetrization modules
-from .Symm import Z2, SymmWrapper, Traslation
+from .NN.Symm import Z2, Traslation
 from .toolbox import CarreteSign, MarshallSign
 
-# Final Architecture modules
+############## NAMESPACES ################
 
-
-# Listas de exportación
-__all_factories__ = [
+__all_wrappers__ = [
+    "NNWrapper",
+    "ARNNWrapper",
+]
+__all_flux__ = [
     "SingleModule",
     "SplitTraining",
     "Sequential",
@@ -56,6 +65,7 @@ __all_factories__ = [
 ]
 
 __all_single__ = [
+    "ARViT",
     "CNN",
     "CNNLiang",
     "CvT",
@@ -87,16 +97,22 @@ __all_single__ = [
 ]
 
 __all_symm__ = [
-    "SymmWrapper",
     "Z2",
     "Traslation",
     "TraslationAnchor",
 ]
 
-__all__ = __all_factories__ + __all_single__ + __all_symm__
+__all_AR__ = ["ARViT"]
+
+__all__ = __all_flux__ + __all_single__ + __all_symm__ + __all_AR__
 
 # Diccionarios de registro
-REGISTRY_FACTORIES = {
+REGISTRY_WRAPPERS = {
+    "NNWrapper": NNWrapper,
+    "ARNNWrapper": ARNNWrapper,
+}
+
+REGISTRY_FLUX = {
     "SingleModule": SingleModule,
     "SplitTraining": SplitTraining,
     "Sequential": Sequential,
@@ -106,6 +122,7 @@ REGISTRY_FACTORIES = {
 }
 
 REGISTRY_SINGLE = {
+    "ARViT": ARViT,
     "CNN": CNN,
     "CNNLiang": CNNLiang,
     "CvT": CvT,
@@ -136,12 +153,18 @@ REGISTRY_SINGLE = {
     "Mean": Mean,
 }
 REGISTRY_SYMM = {
-    "SymmWrapper": SymmWrapper,
     "Z2": Z2,
     "Traslation": Traslation,
 }
 
-REGISTRY = {None: None, **REGISTRY_SINGLE, **REGISTRY_FACTORIES, **REGISTRY_SYMM}
+
+REGISTRY = {
+    None: None,
+    **REGISTRY_SINGLE,
+    **REGISTRY_FLUX,
+    **REGISTRY_SYMM,
+    **REGISTRY_WRAPPERS,
+}
 
 # Diccionarios de modulos que necesitan argumentos externos
 LATTICE_SIZE = {
@@ -159,18 +182,28 @@ LATTICE_SIZE = {
     ]
 }
 
+HILBERT = {"hilbert": ["ARViT"]}
+
 # Modulos de simetrizacion
 LATTICE_SIZE["lattice_size"].extend(
     (
-        "SymmWrapper",
+        "ARNNWrapper",
+        "NNWrapper",
         "Traslation",
     )
 )
+HILBERT["hilbert"].extend(("ARNNWrapper",))
 
-EXTERNAL_ARGS = {**LATTICE_SIZE}
+
+EXTERNAL_ARGS = {**LATTICE_SIZE, **HILBERT}
 
 # Tags and relations used in Neural Network initialization
-factory_submodule_dict = {
+wrapper_submodule_dict = {
+    "ARNNWrapper": "ARNN",
+    "NNWrapper": "NN",
+}
+
+flux_submodule_dict = {
     "SingleModule": "Single",
     "SplitTraining": ["Modulus", "Phase"],
     "Sequential": "Seq",
@@ -179,7 +212,6 @@ factory_submodule_dict = {
     "Transversal": "Trans",
 }
 symm_submodule_dict = {
-    "SymmWrapper": "SymmModel",
     "Z2": "Z2Wrap",
     "Traslation": "TWrap",
 }
@@ -191,8 +223,9 @@ undefined_submodule_number = [
     "Transversal",
 ]
 
-factory_submodule_tags = [
-    "Wrap",
+submodule_tags = [
+    "ARNN",
+    "NN",
     "Single",
     "Modulus",
     "Phase",
@@ -204,6 +237,10 @@ factory_submodule_tags = [
 
 
 def get_submodules(father, n_mod):
+    if father == "NNWrapper":
+        submodules = ["NN"]
+    if father == "ARNNWrapper":
+        submodules = ["ARNN"]
     if father == "Sequential":
         submodules = [f"Seq_{i}" for i in range(n_mod)]
     if father == "Sequivariant":

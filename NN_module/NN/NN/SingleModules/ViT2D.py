@@ -12,13 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Tuple
 
 import flax.linen as nn
 import jax.numpy as jnp
 import jax.typing as jt
 
-from ..toolbox import MultiLayerPerceptron, Translations2D
+from ...toolbox import MultiLayerPerceptron, Translations2D
 
 DTYPE = jnp.float64
 
@@ -46,7 +45,7 @@ def Tokenize(token_size, tok_lat_size, token_dim):
 class AffinityPosWeight(nn.Module):
     "Flax module that multiplies by a circulant matrix."
 
-    token_lattice_size: Tuple[int, int]
+    token_lattice_size: tuple[int, int]
 
     @nn.compact
     def __call__(self, x: jt.ArrayLike) -> jt.ArrayLike:
@@ -57,7 +56,6 @@ class AffinityPosWeight(nn.Module):
             (x.shape[-3], x.shape[-2]),
             DTYPE,
         )
-        #
         weight = Translations2D(
             x=weight_row[None, ..., None], save_memory=False
         ).squeeze((-1, 0))
@@ -77,7 +75,7 @@ class PositionalHead(nn.Module):
         head_size: The dimension of each of the heads.
     """
 
-    token_lattice_size: Tuple[int, int]
+    token_lattice_size: tuple[int, int]
     head_size: int
 
     @nn.compact
@@ -100,7 +98,7 @@ class MultiHeadPositionalAttention(nn.Module):
         head_size: The dimension of each one of the heads.
     """
 
-    token_lattice_size: Tuple[int, int]
+    token_lattice_size: tuple[int, int]
     n_heads: int
     head_size: int
 
@@ -128,7 +126,7 @@ class ViT2DBlock(nn.Module):
         n_ffn_layers: The number of layers present in the multi-layer perceptron.
     """
 
-    token_lattice_size: Tuple[int, int]
+    token_lattice_size: tuple[int, int]
     n_heads: int
     n_ffn_layers: int
 
@@ -176,13 +174,13 @@ class ViT2D(nn.Module):
             post-processing MLP.
     """
 
-    token_size: Tuple[int, int]
+    token_size: tuple[int, int]
 
     embedding_d: int
     n_heads: int
     n_blocks: int
     n_ffn_layers: int
-    final_architecture: Tuple | None = None
+    final_architecture: tuple | None = None
 
     @nn.compact
     def __call__(self, x):
