@@ -53,12 +53,16 @@ def test_split_training_with_transversal():
         }}
     ).draw_architecture()
     for piece in [
-        "Transversal (0)", "MLP (00)", "MLP (01)",
-        "Sequential (1)", "ViT2D (10)", "OutputHead (11)",
-        "<Modulus>", "<Phase>", "Σ branches", "Modulus + i·Phase",
-        "X_in", "log ψ(x)",
+        "Wrappers: NNWrapper", "Root: SplitTraining",
+        "<----- Transversal (0)", "║ MLP (00) ║", "║ MLP (01) ║",
+        "<----- Sequential (1)", "║ ViT2D (10) ║", "║ OutputHead (11) ║",
+        "<Modulus>", "<Phase>", "X_in", "log ψ(x)",
+        "Σ : sum of the branches", "+i : Modulus + i·Phase",
     ]:
         assert piece in text, piece
+    # Only single modules are boxed; the root flux module is not drawn
+    assert "║ Transversal" not in text and "║ Sequential" not in text
+    assert "<----- SplitTraining" not in text
 
 
 def test_modules_without_parameters_have_no_code():
@@ -72,11 +76,9 @@ def test_symmetries_show_their_operation():
     text = hydra(
         {"Sequivariant": {"ViT2D": {}, "OutputHead": {}, "irrep": [1, 0]}}, z2=False
     ).draw_architecture()
-    assert "Z2 [symmetrization]" in text
-    assert "ψ(x) − ψ(−x)" in text
-    assert "irrep k=(1, 0)" in text
-    assert "φ_k = arg Σ_r χ_k(r)·f(r)" in text
-    assert "log ψ + i·φ_k" in text
+    assert "Wrappers: NNWrapper → Z2 [ψ(x) − ψ(−x)]" in text
+    assert "Root: Sequivariant [k=(1, 0)]" in text
+    assert "+iφ_k" in text and "φ_k = arg Σ_r χ_k(r)·f(r)" in text
 
 
 def test_connectors_are_continuous():
@@ -118,3 +120,16 @@ def test_users_reference_architecture_with_cnn(capsys):
         STORAGE.pop("CNN")
     out = capsys.readouterr().out
     assert "ARCHITECTURE INFO" in out and "CNN (00)" in out and "MLP (01)" in out
+
+
+def test_merge_symbol_is_just_above_the_merge_node():
+    text = hydra(
+        {"Sequential": {"ViT2D": {}, "Transversal": {
+            "OutputHead": {}, "OutputHead_1": {}, "operation": "product"}}}
+    ).draw_architecture()
+    lines = text.splitlines()
+    i = next(i for i, l in enumerate(lines) if "Π" in l and ":" not in l)
+    merge_node = lines[i + 1].index("╦")
+    assert lines[i + 1].lstrip().startswith("╚")
+    assert abs(lines[i].index("Π") - merge_node) <= 1
+    assert "Root: Sequential" in text and "<----- Transversal (1)" in text
