@@ -25,8 +25,7 @@ cmap = colors.LinearSegmentedColormap.from_list(
 matplotlib.rcParams["font.size"] = 12
 
 from Irreps.utils import svds_orth
-from VA_project.initialize_model import ModelFactory
-from VA_project.engine.runners import Runner
+from CouplingModel import ModelFactory
 from Irreps.SymmBuilder import SymmGroup, _all_idx_combinations
 
 path = str(Path(__file__).resolve().parent) + "/Irreps/"
@@ -70,10 +69,10 @@ for params in model_factory.get_params():
     print(f"*************************************************************\n")
 
     cm_model = model_factory.get_model()
-    eng = Runner(cm_model.cm, S_operators=model_factory.S_operators)
+    cm, S_operators = cm_model.cm, model_factory.S_operators
 
     # Build the Hamiltonian
-    H = eng.build_hamiltonian(hilbert)
+    H = cm.build_hamiltonian(hilbert, S_operators=S_operators)
     H_dense = H.to_dense()
 
     configurations = hilbert.all_states()   

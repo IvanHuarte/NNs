@@ -12,11 +12,8 @@ import os
 import sys
 from pathlib import Path
 
-from NN_module.label_utils import get_filenames_from_settings
+from NN_module.label_utils import labels_from_artifact
 
-# Añadir el directorio chebyoxa al path
-sys.path.append(str(Path(__file__).resolve().parent.parent / "chebyoxa"))
-sys.path.append(str(Path(__file__).resolve().parent.parent / "ATMOS_VA"))
 
 #### MAIN ####
 
@@ -85,10 +82,9 @@ sim_uuid = artifact["metadata"]
 
 kwargs = {"size": size, **artifact["CM"], **artifact["NN"]["setup"]}
 
-sim_label, _, _, callback = get_filenames_from_settings(
-    cm_model_setup, {"name": nn_model_name, "setup": {}}
-)
-title = callback.replace("Callback", "").lstrip().replace(" ", "\\quad")
+labels = labels_from_artifact(artifact, path_artifact)
+sim_label = labels.sim
+title = labels.plot_title
 
 filename = f"Modphase_plot_{sim_label}"
 

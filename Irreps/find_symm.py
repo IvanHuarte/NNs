@@ -27,8 +27,7 @@ cmap = colors.LinearSegmentedColormap.from_list(
 
 matplotlib.rcParams["font.size"] = 12
 
-from VA_project.engine.runners import Runner
-from VA_project.initialize_model import ModelFactory
+from CouplingModel import ModelFactory
 
 from Irreps.SymmBuilder import SymmGroup, _all_idx_combinations
 
@@ -81,12 +80,12 @@ for size in sizes:
         print("*************************************************************\n")
 
         cm_model = model_factory.get_model()
-        eng = Runner(cm_model.cm, S_operators=model_factory.S_operators)
-        E_ED = eng.exact_energy_lanczos(hilbert, k=5)
+        cm, S_operators = cm_model.cm, model_factory.S_operators
+        E_ED = cm.exact_energy_lanczos(hilbert, k=5, S_operators=S_operators)
         print(f"Full H: {np.sort(E_ED)}")
 
         # Build the Hamiltonian
-        H = eng.build_hamiltonian(hilbert)
+        H = cm.build_hamiltonian(hilbert, S_operators=S_operators)
         H_dense = H.to_dense()
 
         configurations = hilbert.all_states()

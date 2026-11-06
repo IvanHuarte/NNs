@@ -7,7 +7,7 @@ import jax.numpy as jnp
 
 jax.config.update("jax_enable_x64", True)
 
-from NN_module.label_utils import get_filenames_from_settings
+from NN_module.label_utils import labels_from_artifact
 from NN_module.observables import modphase
 
 
@@ -22,14 +22,7 @@ def plot_modphase(artifact, modphase_vs, step=None, modphase_ED=None):
     if modphase_ED is not None:
         (mod_ED, phase_ED), stats_ED = modphase_ED
 
-    if artifact is not None:
-        _, _, _, callback = get_filenames_from_settings(
-            artifact["CM"], {"name": artifact["NN"]["name"], "setup": {}}
-        )
-    else:
-        callback = "Callback"
-
-    title = callback.replace("Callback", "").lstrip().replace(" ", "\\quad")
+    title = labels_from_artifact(artifact).plot_title if artifact is not None else ""
 
     title += f" (step {step})" if step is not None else ""
 

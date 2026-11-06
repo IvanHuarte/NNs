@@ -11,7 +11,7 @@ import numpy as np
 import orbax.checkpoint as ocp
 import scipy as sp
 from netket.sampler.metropolis import MetropolisSamplerState
-from VA_project.initialize_model import ModelFactory
+from CouplingModel import ModelFactory
 
 from .NN.NeuralNetwork import NeuralNetwork
 from .sampler.sampler import SamplerFactory
@@ -47,6 +47,7 @@ def save_results(
     ED_label="",
     json_label="",
     sim_uuid=None,
+    legend=None,
 ):
     """
     Save the results of the simulation.
@@ -60,8 +61,10 @@ def save_results(
 
     os.makedirs(write_folder, exist_ok=True)
 
-    # Save LEGEND .json in previous dir
-    legend = {"NN": setup["NN"], "SIM": setup["SIM"], "CM": setup["CM"]}
+    # Save LEGEND .json in previous dir (describes the whole UUID folder,
+    # i.e. the parameter sweep, when given)
+    if legend is None:
+        legend = {"NN": setup["NN"], "SIM": setup["SIM"], "CM": setup["CM"]}
     parent = str(Path(write_folder).parent) + "/"
 
     with open(parent + f"UUID_{sim_uuid}.json", "w") as legendfile:

@@ -14,7 +14,7 @@ from pathlib import Path
 
 from NN_module.saveNload import load_vstate
 from NN_module.correlations import correlations_ED, correlations_vstate
-from NN_module.label_utils import get_filenames_from_settings
+from NN_module.label_utils import labels_from_artifact
 
 
 def get_nk_graph(cm_name, size, pbc=True):
@@ -65,9 +65,8 @@ kwargs = {"size": size, **artifact["CM"], **artifact["NN"]}
 
 uuid = artifact["metadata"]["uuid"]
 
-sim_label, ED_label, _, _ = get_filenames_from_settings(
-    artifact["CM"], {"name": nn_name, "setup": {}}, sim_uuid=uuid
-)
+labels = labels_from_artifact(artifact, path_artifact)
+sim_label, ED_label = labels.sim, labels.ED
 
 
 file = f"{sim_label}_SSF_vstate.txt"

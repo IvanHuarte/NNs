@@ -18,8 +18,7 @@ cmap = colors.LinearSegmentedColormap.from_list(
 
 matplotlib.rcParams["font.size"] = 12
 
-from VA_project.initialize_model import ModelFactory
-from VA_project.engine.runners import Runner
+from CouplingModel import ModelFactory
 from Irreps.SymmBuilder import SymmGroup
 from Irreps.BasisBuilder import OrbitDiagonalizer
 from Irreps.utils import _all_idx_combinations
@@ -66,14 +65,14 @@ for size in sizes:
         print(f"*************************************************************\n")
 
         cm_model = model_factory.get_model()
-        eng = Runner(cm_model.cm, S_operators=model_factory.S_operators)
+        cm, S_operators = cm_model.cm, model_factory.S_operators
 
 
         # --------------------------------------------------
         # Construcción del Hamiltoniano y del grupo
         # --------------------------------------------------
 
-        H = eng.build_hamiltonian(hilbert)
+        H = cm.build_hamiltonian(hilbert, S_operators=S_operators)
 
         group = SymmGroup(
             symmetries_config,

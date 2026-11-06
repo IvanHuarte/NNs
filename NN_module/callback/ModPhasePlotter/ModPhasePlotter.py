@@ -13,7 +13,7 @@ from optax import scale
 # warnings.filterwarnings("ignore", message="qt.svg")
 
 from NN_module.observables import full2red_basis_idx, modphase
-from NN_module.label_utils import get_filenames_from_settings
+from NN_module.label_utils import make_title
 
 
 class ModPhasePlotter:
@@ -55,9 +55,7 @@ class ModPhasePlotter:
         msize = 0.1 * 65000 / n_comp
         self.margins = n_comp // 200
 
-        _, _, _, callback = get_filenames_from_settings(
-            sim_config["CM"], sim_config["NN"]
-        )
+        callback = make_title(sim_config["CM"], sim_config["NN"]["name"])
         self.title = callback.replace("Callback", "").lstrip().replace(" ", "\\quad")
 
         # plt.ion()

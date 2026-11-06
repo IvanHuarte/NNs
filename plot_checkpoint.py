@@ -14,14 +14,10 @@ import orbax.checkpoint as ocp
 
 from NN_module.observables import modphase
 from NN_module.dynamic_plots import plot_modphase
-from NN_module.label_utils import get_filenames_from_settings
 from NN_module.callback.utils import checkpoint_callback
-from NN_module.label_utils import get_filenames_from_settings
+from NN_module.label_utils import labels_from_artifact
 from NN_module.saveNload import load_vstate
 
-# Añadir el directorio chebyoxa al path
-sys.path.append(str(pathlib.Path(__file__).resolve().parent.parent / "chebyoxa"))
-sys.path.append(str(pathlib.Path(__file__).resolve().parent.parent / "ATMOS_VA"))
 
 parser = argparse.ArgumentParser()
 parser.add_argument(
@@ -65,12 +61,14 @@ if not no_artifact:
     nn_model_setup = artifact["NN"]
     sim_uuid = artifact["metadata"]
 
-    sim_label, _, _, callback = get_filenames_from_settings(
-        cm_model_setup, {"name": nn_model_name, "setup": {}}
-    )
+    sim_label = labels_from_artifact(artifact, path_artifact).sim
         
-    if artifact["_artifacts"]["x_ED"] is not None:
-        x_ED = np.loadtxt(artifact["_artifacts"]["x_ED"], dtype=complex)
+    # Reference state: irrep ground state if available, else the global one
+    # ('x_ED' in older artifacts)
+    arts = artifact["_artifacts"]
+    x_ED_path = arts.get("x_ED_irrep") or arts.get("x_ED_global") or arts.get("x_ED")
+    if x_ED_path is not None:
+        x_ED = np.loadtxt(x_ED_path, dtype=complex)
         modphase_ED = modphase(x_ED)
 
 else:
@@ -134,7 +132,7 @@ for step, path in zip(steps, checkPath):
         fig.clear()
 
 
-fig2, ax2 = checkpoint_callback(artifact, steps, energy, vscore)
+fig2, ax2 = checkpoint_callback(artifact, steps, energy, vscore, path_artifact)
 file_path = write_folder + f"Callback_checkpoint_" + sim_label
 figure_path = file_path + ".jpeg"
 

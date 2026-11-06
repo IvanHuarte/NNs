@@ -12,18 +12,13 @@ import orbax.checkpoint as ocp
 
 from NN_module.observables import modphase
 from NN_module.dynamic_plots import plot_modphase
-from NN_module.label_utils import get_filenames_from_settings
 from NN_module.callback.utils import checkpoint_callback
-from NN_module.label_utils import get_filenames_from_settings
 from NN_module.saveNload import load_vstate
 
 # Añadir el directorio chebyoxa al path
-sys.path.append(str(pathlib.Path(__file__).resolve().parent.parent / "chebyoxa"))
-sys.path.append(str(pathlib.Path(__file__).resolve().parent.parent / "ATMOS_VA"))
 
 
-from VA.src.VA_project.model.model import Oxalate
-from VA.src.VA_project.engine.runners import Runner
+from CouplingModel.model.model import Oxalate
 
 
 a = 0.2
@@ -42,8 +37,7 @@ for i, size in enumerate([[3, 3], [3, 4], [4,3], [4, 4], [4,5], [5,4]]):
     
     # size = (L, L)    
     model = Oxalate(size, [a, theta, phi], bc=bc, order=order)
-    eng = Runner(model.cm, S_operators=False)
-    E_ED = eng.exact_energy_lanczos()/(4*size[0]*size[1])
+    E_ED = model.cm.exact_energy_lanczos(S_operators=False)/(4*size[0]*size[1])
     print(f"Energy from exact diagonalization: {E_ED}")
     energy_pa_ED.append([i, E_ED])
 

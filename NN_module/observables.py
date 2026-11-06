@@ -390,23 +390,19 @@ def distance_with_stripped(size):
     return _compare
 
 
-def measureNdump(keeper, time_exe, S_operators=False):
+def measureNdump(keeper, time_exe, ed, S_operators=False):
+    """
+    Observables of the best state kept by `keeper`, compared with the
+    exact-diagonalization reference `ed` (EDResult).
+    """
     # Energies are already in the units of the Hamiltonian (built with
     # config1 'S_operators'): no rescaling. Magnetizations are computed from
     # sigma = +-1 samples; with S_operators they are reported for S = sigma/2.
     spin_factor = 2 if S_operators else 1
 
-    E_gr_global = keeper.E_gr_global if hasattr(keeper, "E_gr_global") else None
-    x_ED_global = keeper.x_ED_global if hasattr(keeper, "x_ED_global") else None
-
-    irrep_info = (
-        {"irrep": keeper.irrep, "symmetries": keeper.symmetries}
-        if hasattr(keeper, "irrep")
-        else None
-    )
-
-    E_gr_irrep = keeper.E_gr_irrep if hasattr(keeper, "E_gr_irrep") else None
-    x_ED_irrep = keeper.x_ED_irrep if hasattr(keeper, "x_ED_irrep") else None
+    E_gr_global, x_ED_global = ed.E_global, ed.x_global
+    E_gr_irrep, x_ED_irrep = ed.E_irrep, ed.x_irrep
+    irrep_info = ed.irrep_info
 
     vstate = keeper.best_state
     N = vstate.hilbert.size
@@ -524,6 +520,8 @@ def measureNdump(keeper, time_exe, S_operators=False):
         "m2_ED": m2_ED,
         "ms2_ED": ms2_ED,
         "irrep_info": irrep_info,
+        # Energies in Hamiltonian units (older artifacts stored E/4)
+        "energy_units": "S" if S_operators else "Pauli",
     }
 
     return results, mp_array_vs, mp_array_ED_global, mp_array_ED_irrep

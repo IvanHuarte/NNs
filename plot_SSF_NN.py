@@ -21,7 +21,7 @@ from pathlib import Path
 sys.path.append(str(Path(__file__).resolve().parent.parent / "chebyoxa"))
 
 import chebyoxa.utils as utils
-from NN_module.label_utils import get_filenames_from_settings
+from NN_module.label_utils import labels_from_artifact
 
 parser = argparse.ArgumentParser()
 parser.add_argument(
@@ -67,10 +67,9 @@ nn_name = artifact["NN"]["name"]
 model_label = cm_name + " " + nn_name
 
 uuid = artifact["metadata"]["uuid"]
-sim_label, ED_label, _, callback = get_filenames_from_settings(
-    artifact["CM"], {"name": nn_name, "setup": {}}, sim_uuid=uuid
-)
-title = callback.replace("Callback", "").lstrip().replace(" ", "\\quad")
+labels = labels_from_artifact(artifact, path_artifact)
+sim_label, ED_label = labels.sim, labels.ED
+title = labels.plot_title
 
 
 file = f"{sim_label}_SSF_plot_OPT"

@@ -122,21 +122,23 @@ def test_single_rule_ignores_prules():
 # ------------------------------------------------------- (d) S_operators
 
 
-VA_SRC = os.path.abspath(os.path.join(ROOT, "../ATMOS_VA/VA/src"))
-
-
 @pytest.fixture
 def Runner():
-    if not os.path.isdir(os.path.join(VA_SRC, "VA_project")):
-        pytest.skip("VA_project not found")
-    sys.path.insert(0, VA_SRC)
-    from VA_project.engine.runners import Runner
+    """build_hamiltonian of CouplingModel (was VA_project's Runner)."""
+    from CouplingModel.model.cm import CouplingModel
 
-    return Runner
+    def build(cm, S_operators):
+        return SimpleNamespace(
+            build_hamiltonian=lambda: CouplingModel.build_hamiltonian(
+                cm, S_operators=S_operators
+            )
+        )
+
+    return build
 
 
 def chain_cm(J, h):
-    """Heisenberg chain with uniform Z field, in the VA_project cm format."""
+    """Heisenberg chain with uniform Z field, in the CouplingModel cm format."""
     Q = 4
     couplings = np.zeros((3, Q, Q))
     for i in range(Q - 1):

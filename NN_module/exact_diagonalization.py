@@ -1,9 +1,58 @@
+from dataclasses import dataclass
+
 import numpy as np
 import scipy as sp
 
 from Irreps.SymmBuilder import SymmGroup
 
 equivariant_arch = ["Sequivariant", "SequivariantX"]
+
+
+@dataclass
+class EDResult:
+    """Exact-diagonalization reference of one simulation point.
+
+    E_global/x_global: ground state of H (None if the system is too large).
+    E_irrep/x_irrep: ground state in the irrep the network is projected to
+    (None if there is no irrep or it was not computed).
+    """
+
+    E_global: float | None = None
+    x_global: np.ndarray | None = None
+    E_irrep: float | None = None
+    x_irrep: np.ndarray | None = None
+    symmetries: list | None = None
+    irrep: list | None = None
+
+    @property
+    def available(self):
+        return self.E_global is not None
+
+    @property
+    def E_ref(self):
+        """Reference energy for relative errors: irrep if available."""
+        return self.E_irrep if self.E_irrep is not None else self.E_global
+
+    @property
+    def x_ref(self):
+        return self.x_irrep if self.x_irrep is not None else self.x_global
+
+    @property
+    def irrep_info(self):
+        """{'irrep', 'symmetries'} stored in the results (None without ED/irrep)."""
+        if self.available and self.irrep is not None:
+            return {"irrep": self.irrep, "symmetries": self.symmetries}
+        return None
+
+    def report(self):
+        if not self.available:
+            return
+        print(f"\nEnergy gr_global: {self.E_global:.6f}")
+        if self.irrep is not None:
+            print(f"Projecting to {self.symmetries} = {self.irrep}")
+            if self.E_irrep is not None:
+                print(f"Energy gr_irrep: {self.E_irrep:.6f}")
+        print("\n")
 
 symm_config = {"Traslation": {"on": False, "subgroup": [0, 1]}, "Z2": {"on": False}}
 
@@ -84,7 +133,7 @@ def irrep_exact_diag(hilbert, H_dense, symmetries, irrep, lattice_size):
     return float(E_gr_irrep), x_ED
 
 
-def calc_exact_diag(hilbert, hamiltonian, config_nn, lattice_size):
+def calc_exact_diag(hilbert, hamiltonian, config_nn, lattice_size) -> EDResult:
 
     N = int(np.prod(lattice_size))
     symmetries, irrep = check_irreps(config_nn)
@@ -107,10 +156,15 @@ def calc_exact_diag(hilbert, hamiltonian, config_nn, lattice_size):
             print("No irrep ground state reference available\n")
             E_gr_irrep, x_ED_irrep = None, None
 
-        irrep = irrep if irrep else None
-        symmetries = symmetries if symmetries else None
+        return EDResult(
+            E_global=E_gr_global,
+            x_global=x_ED_global,
+            E_irrep=E_gr_irrep,
+            x_irrep=x_ED_irrep,
+            symmetries=symmetries if symmetries else None,
+            irrep=irrep if irrep else None,
+        )
 
-        return (E_gr_global, x_ED_global), (E_gr_irrep, x_ED_irrep), (symmetries, irrep)
-
-    else:
-        return (None, None), (None, None), (symmetries, irrep)
+    return EDResult(
+        symmetries=symmetries if symmetries else None, irrep=irrep if irrep else None
+    )

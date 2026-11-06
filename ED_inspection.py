@@ -26,8 +26,7 @@ cmap = colors.LinearSegmentedColormap.from_list(
     "Spectral_soft", sns.color_palette("Spectral", 256, desat=0.7)
 )
 
-from VA_project.initialize_model import ModelFactory
-from VA_project.engine.runners import Runner
+from CouplingModel import ModelFactory
 
 path = str(Path(__file__).resolve().parent) + "/"
 with open(path + "config1_CM.json", "r") as f:
@@ -69,9 +68,9 @@ for size in sizes:
         print(f"*************************************************************\n")
 
         cm_model = model_factory.get_model()
-        eng = Runner(cm_model.cm, S_operators=model_factory.S_operators)
+        cm, S_operators = cm_model.cm, model_factory.S_operators
 
-        E_ED, x_ED = eng.exact_energy_lanczos(hilbert, k=10, eigenstates=True)
+        E_ED, x_ED = cm.exact_energy_lanczos(hilbert, k=10, eigenstates=True, S_operators=S_operators)
 
         sort_idx = np.argsort(E_ED)
         E_ED = E_ED[sort_idx]
