@@ -1,5 +1,3 @@
-import numpy as np
-
 from .diagnose import diagnose_metrics
 from .display_diagnosis import (
     display_diagnosis_sanity_monitor,
@@ -48,12 +46,6 @@ class SanityMonitor:
         if step % self.do_each == 0:
 
             vstate = driver.state
-            N = vstate.hilbert.size
-
-            energy_step = np.real(vstate.expect(driver._ham).mean)
-            var = np.real(getattr(log_data[driver._loss_name], "variance"))
-            mean = np.real(getattr(log_data[driver._loss_name], "mean"))
-            vscore_step = N * var / mean**2
 
             metrics = self.metrics(driver._ham, vstate)
             diagnosis = self.diagnose(metrics)

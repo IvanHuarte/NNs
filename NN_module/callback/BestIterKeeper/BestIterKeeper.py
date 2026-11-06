@@ -67,9 +67,11 @@ class BestIterKeeper:
 
         vstate = driver.state
 
-        energy_step = np.real(vstate.expect(self.Hamiltonian).mean)
+        # Energy from the driver's own estimate (same samples, same parameters):
+        # avoids a second, costly vstate.expect(H) on every step.
         var = np.real(log_data[driver._loss_name].variance)
         mean = np.real(log_data[driver._loss_name].mean)
+        energy_step = mean
         vscore_step = self.N * var / mean**2
 
         if self.step > self.step_threshold or self.best_state is None:
@@ -96,9 +98,11 @@ class BestIterKeeper:
         self.step += 1
 
         vstate = driver.state
-        energy_step = np.real(vstate.expect(self.Hamiltonian).mean)
+        # Energy from the driver's own estimate (same samples, same parameters):
+        # avoids a second, costly vstate.expect(H) on every step.
         var = np.real(log_data[driver._loss_name].variance)
         mean = np.real(log_data[driver._loss_name].mean)
+        energy_step = mean
         vscore_step = self.N * var / mean**2
 
         if self.step > self.step_threshold or self.best_state is None:
@@ -120,9 +124,11 @@ class BestIterKeeper:
         self.step += 1
 
         vstate = driver.state
-        energy_step = np.real(vstate.expect(self.Hamiltonian).mean)
+        # Energy from the driver's own estimate (same samples, same parameters):
+        # avoids a second, costly vstate.expect(H) on every step.
         var = np.real(log_data[driver._loss_name].variance)
         mean = np.real(log_data[driver._loss_name].mean)
+        energy_step = mean
         vscore_step = self.N * var / mean**2
 
         # Always update
@@ -145,9 +151,11 @@ class BestIterKeeper:
         """
 
         vstate = driver.state
-        energy_step = np.real(vstate.expect(self.Hamiltonian).mean)
+        # Energy from the driver's own estimate (same samples, same parameters):
+        # avoids a second, costly vstate.expect(H) on every step.
         var = np.real(log_data[driver._loss_name].variance)
         mean = np.real(log_data[driver._loss_name].mean)
+        energy_step = mean
         vscore_step = self.N * var / mean**2
 
         # print(f"\nStep {step}:")

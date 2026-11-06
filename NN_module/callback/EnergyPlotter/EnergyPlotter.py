@@ -92,13 +92,13 @@ class EnergyPlotter:
 
         self.ax1.set_title(f"Simulation Callback - step {step}")
 
-        # Calcula la energía y vstate en este step
-        vstate = driver.state
-        E = float(np.real(vstate.expect(self.H).mean))
-        self.energies.append(E)
-        # Vscore
+        # Energía del propio driver (mismas muestras y parámetros): evita un
+        # vstate.expect(H) extra en cada step
         var = np.real(getattr(log_data[driver._loss_name], "variance"))
         mean = np.real(getattr(log_data[driver._loss_name], "mean"))
+        E = float(mean)
+        self.energies.append(E)
+        # Vscore
         self.vscores.append(self.N * var / mean**2)
         # Error
         self.errors.append(float(np.abs(E - self.E_ED) / np.abs(self.E_ED)))

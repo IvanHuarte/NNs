@@ -46,9 +46,4 @@ uv.lock
 !config.json
 !config_plots.json
 
-# !config0.json
-!config1_CM.json
-!config2_Hydra.json
-!config3_Hydra_NN.json
 
-!refinement.json

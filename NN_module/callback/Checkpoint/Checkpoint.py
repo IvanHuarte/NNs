@@ -37,9 +37,9 @@ class Checkpoint:
         print(f"\n CHECKPOINT!!! --> step {self.step}\n")
 
         vstate = driver.state
-        energy_step = np.real(vstate.expect(self.Hamiltonian).mean)
         var = np.real(getattr(log_data[driver._loss_name], "variance"))
         mean = np.real(getattr(log_data[driver._loss_name], "mean"))
+        energy_step = mean  # driver's estimate, no extra vstate.expect(H)
         vscore_step = vstate.hilbert.size * var / mean**2
 
         metrics = {"energy": float(energy_step), "vscore": float(vscore_step)}
