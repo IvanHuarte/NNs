@@ -168,9 +168,73 @@ class MultiLayerPerceptron(nn.Module):
         return x
 
 
+def depthwise_conv_circular(x, kernel, strides=(1, 1), mask=None):
+    """
+    Depthwise 2D convolution with circular padding, written as a sum of
+    rolled inputs (elementwise ops only).
+
+    Same result as
+        nn.Conv(C, kernel_size, strides=strides, feature_group_count=C,
+                padding="CIRCULAR", use_bias=False)
+    with kernel (kh, kw, 1, C), but without a grouped convolution: JAX 0.11
+    cannot take jax.jacrev of grouped convolutions when a global mesh is set
+    (NetKet sets one at import), which breaks VMC_SR (NTK).
+
+    x: (..., H, W, C).
+    """
+    if mask is not None:
+        kernel = kernel * mask
+    kh, kw = kernel.shape[:2]
+    # flax 'CIRCULAR': wrap-pad ((k-1)//2, k//2) for any stride, then 'VALID'
+    lh, lw = (kh - 1) // 2, (kw - 1) // 2
+    out = 0.0
+    for a in range(kh):
+        for b in range(kw):
+            out = out + jnp.roll(x, (lh - a, lw - b), axis=(-3, -2)) * kernel[a, b, 0]
+    sh, sw = strides
+    if sh > 1 or sw > 1:
+        out = out[..., ::sh, ::sw, :]
+    return out
+
+
+class DepthwiseConv(nn.Module):
+    """
+    Depthwise circular convolution (see depthwise_conv_circular). Parameters
+    'kernel' (kh, kw, 1, C) and 'bias' (C) as in nn.Conv, so it is a drop-in
+    replacement of nn.Conv(feature_group_count=C, padding="CIRCULAR").
+    """
+
+    kernel_size: tuple = (3, 3)
+    strides: tuple = (1, 1)
+    use_bias: bool = False
+    mask: jnp.ndarray | None = None
+    dtype: Dtype = REAL_DTYPE
+    param_dtype: Dtype = REAL_DTYPE
+    kernel_init: Initializer = nn.linear.default_kernel_init
+    bias_init: Initializer = nn.initializers.zeros_init()
+
+    @nn.compact
+    def __call__(self, x: jt.ArrayLike) -> jt.ArrayLike:
+        C = x.shape[-1]
+        kernel = self.param(
+            "kernel", self.kernel_init, (*self.kernel_size, 1, C), self.param_dtype
+        )
+        bias = (
+            self.param("bias", self.bias_init, (C,), self.param_dtype)
+            if self.use_bias
+            else None
+        )
+        x, kernel, bias = promote_dtype(x, kernel, bias, dtype=self.dtype)
+        y = depthwise_conv_circular(x, kernel, self.strides, self.mask)
+        return y + bias if bias is not None else y
+
+
 class DepthPointwiseConv(nn.Module):
     """
-    Depthwise pointwise convolution
+    Depthwise pointwise convolution.
+
+    Note: 'strides' is accepted but not applied (both convolutions use
+    stride 1), as in the original implementation.
     """
 
     channels: int
@@ -180,20 +244,11 @@ class DepthPointwiseConv(nn.Module):
     @nn.compact
     def __call__(self, x: jt.ArrayLike) -> jt.ArrayLike:
 
-        Ch_in = x.shape[-1]
-
-        # Depth-wise convolution (Aplica mascara adyacente a cada canal)
-        x = nn.Conv(
-            features=Ch_in,
-            kernel_size=self.kernel,
-            feature_group_count=Ch_in,
-            strides=(1, 1),
-            padding="CIRCULAR",
-            dtype=REAL_DTYPE,
-            use_bias=False,
-        )(x)
+        # Depth-wise convolution (Aplica mascara adyacente a cada canal).
+        # Explicit names keep the parameter tree of the nn.Conv version.
+        x = DepthwiseConv(kernel_size=self.kernel, name="Conv_0")(x)
         # Normalizacion
-        x = nn.LayerNorm()(x)
+        x = nn.LayerNorm(param_dtype=REAL_DTYPE, name="LayerNorm_0")(x)
 
         # Point-wise convolution
         x = nn.Conv(
@@ -202,7 +257,9 @@ class DepthPointwiseConv(nn.Module):
             strides=(1, 1),
             padding="VALID",
             dtype=REAL_DTYPE,
+            param_dtype=REAL_DTYPE,
             use_bias=False,
+            name="Conv_1",
         )(x)
 
         return x

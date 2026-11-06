@@ -118,6 +118,7 @@ class StageBlock(nn.Module):
             strides=self.strides,
             padding="CIRCULAR",
             dtype=DTYPE,
+            param_dtype=DTYPE,
         )(x)
 
         # print(f"After Conv embedding: {x.shape}")

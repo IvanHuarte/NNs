@@ -163,6 +163,7 @@ class StageBlock(nn.Module):
             strides=(1, 1),
             padding="CIRCULAR",
             dtype=DTYPE,
+            param_dtype=DTYPE,
         )
 
         # Convolutional projection blocks

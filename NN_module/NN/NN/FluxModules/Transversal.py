@@ -62,7 +62,7 @@ class Transversal(nn.Module):
 
         # Norm
         if self.post_norm:
-            x = nn.LayerNorm()(x.swapaxes(0, -1)).swapaxes(0, -1)
+            x = nn.LayerNorm(param_dtype=jnp.float64)(x.swapaxes(0, -1)).swapaxes(0, -1)
 
         # print(f"x_norm: {x.shape}")
 

@@ -73,7 +73,7 @@ class EDPPh(nn.Module):
 
         x = self.activation(x)
         x = x.reshape(-1, N, x.shape[-1])
-        x = nn.Dense(self.channels)(x)
+        x = nn.Dense(self.channels, param_dtype=DTYPE)(x)
 
         x = nn.glu(x.mean(axis=1))  # Version JCM
         x = jnp.exp(1j * x).sum(axis=-1)
@@ -119,7 +119,7 @@ class CNNClsf(nn.Module):
         x = x.mean(axis=-1)
 
         # Clasificador de n clases. Devuelve 0 o pi segun la probabilidad
-        x = nn.Dense(self.n_classes)(x)
+        x = nn.Dense(self.n_classes, param_dtype=DTYPE)(x)
         x = nn.softmax(x)
         phase = jnp.where(
             x[:, 0] > x[:, 1],
@@ -167,7 +167,7 @@ class CNNbinClsf(nn.Module):
         if self.pooling:
             x = jnp.mean(x, axis=-1, keepdims=True)
         else:
-            x = nn.Dense(1)(x)
+            x = nn.Dense(1, param_dtype=DTYPE)(x)
         # print(f"x shape: {x.shape}")
 
         phase = nn.sigmoid(x) * jnp.pi

@@ -246,6 +246,7 @@ class SzaboOutput(nn.Module):
             strides=(1, 1),
             padding="CIRCULAR",
             dtype=DTYPE,
+            param_dtype=DTYPE,
             bias_init=jax.nn.initializers.zeros,
         )(x.reshape(x.shape[0], *self.lattice_size, x.shape[-1]))
         phase = phase.reshape(phase.shape[0], -1, phase.shape[-1])

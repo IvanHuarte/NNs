@@ -7,7 +7,7 @@ import jax.typing as jt
 from netket.nn.activation import log_cosh
 
 from ...toolbox import (
-    DepthPointwiseConv,
+    DepthwiseConv,
     MultiLayerPerceptron,
 )
 
@@ -122,6 +122,22 @@ class ConvAPS(nn.Module):
         if any([s > 1 for s in self.strides]):  # Downsampling APS correction
             x = APS_equivariance_adapter(x, self.strides)
 
+        depthwise = (
+            self.feature_group_count > 1
+            and self.feature_group_count == self.features == x.shape[-1]
+            and self.padding == "CIRCULAR"
+        )
+        if depthwise:  # no grouped conv: keeps jax.jacrev (VMC_SR) working
+            return DepthwiseConv(
+                kernel_size=self.kernel_size,
+                strides=self.strides,
+                use_bias=self.use_bias,
+                mask=self.mask,
+                dtype=self.dtype,
+                param_dtype=self.param_dtype,
+                name="Conv_0",
+            )(x)
+
         x = nn.Conv(
             features=self.features,
             kernel_size=self.kernel_size,
@@ -130,7 +146,7 @@ class ConvAPS(nn.Module):
             feature_group_count=self.feature_group_count,
             padding=self.padding,
             dtype=self.dtype,
-            param_dtype=self.dtype,
+            param_dtype=self.param_dtype,
             use_bias=self.use_bias,
         )(x)
 

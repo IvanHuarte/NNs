@@ -2,6 +2,7 @@ import copy
 import json
 
 import flax.linen as nn
+import numpy as np
 import jax.numpy as jnp
 import netket as nk
 import orbax.checkpoint as ocp
@@ -30,8 +31,12 @@ CODE_SKIP_LABELS = frozenset([*WRAPPER_LABELS, *symm_submodule_dict.values()])
 LEGACY_ROOT_KEYS = {"SymmModel": "NN"}
 
 
-def upgrade_legacy_params(params):
-    """Rename pre-refactor root keys (e.g. 'SymmModel' -> 'NN')."""
+# Older checkpoints stored some kernels in single precision (layers without
+# param_dtype); the networks are now fully float64.
+LEGACY_DTYPES = {np.dtype("float32"): np.float64, np.dtype("complex64"): np.complex128}
+
+
+def _rename_legacy_keys(params):
     if not isinstance(params, dict):
         return params
     out = {}
@@ -39,8 +44,36 @@ def upgrade_legacy_params(params):
         new_k = LEGACY_ROOT_KEYS.get(k, k)
         if new_k != k:
             print(f"Legacy checkpoint: renaming parameter key '{k}' -> '{new_k}'")
-        out[new_k] = upgrade_legacy_params(v) if k == "params" else v
+        out[new_k] = _rename_legacy_keys(v) if k == "params" else v
     return out
+
+
+def upgrade_legacy_params(params):
+    """
+    Bring loaded parameters to the current format:
+      - rename pre-refactor root keys (e.g. 'SymmModel' -> 'NN');
+      - upcast single-precision leaves (float32/complex64) to double, so they
+        match the float64 parameters of the current networks.
+    """
+    params = _rename_legacy_keys(params)
+    n_upcast = 0
+
+    def upcast(x):
+        # Manual recursion: jax.tree_util.tree_map would sort dict keys, and
+        # Hydra's path codes depend on the insertion order of the modules.
+        nonlocal n_upcast
+        if isinstance(x, dict):
+            return {k: upcast(v) for k, v in x.items()}
+        target = LEGACY_DTYPES.get(np.dtype(getattr(x, "dtype", object)))
+        if target is None:
+            return x
+        n_upcast += 1
+        return jnp.asarray(x, target)
+
+    params = upcast(params)
+    if n_upcast:
+        print(f"Legacy checkpoint: {n_upcast} single-precision leaves upcast to double")
+    return params
 
 # Code meaning 'the whole network' in load instructions
 WHOLE_NETWORK_CODE = "A"
