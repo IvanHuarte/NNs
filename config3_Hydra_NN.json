@@ -44,11 +44,11 @@
             "final_architecture": null
         },
         "CvT3":{
-            "n_CP_blocks":[1, 4],
-            "channels": [30, 60],
-            "attn_heads":[2, 4],
-            "kernel": [[5, 5], [3, 3]],
-            "strides":[[2, 2], [1, 1]],
+            "n_CP_blocks":[2],
+            "channels": [60],
+            "attn_heads":[4],
+            "kernel": [[3, 3]],
+            "strides":[[1, 1]],
             "final_architecture": null
         },
         "ARViT":{

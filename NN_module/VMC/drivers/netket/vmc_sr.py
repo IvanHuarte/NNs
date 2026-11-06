@@ -19,6 +19,8 @@ class VMC_SR_netket(nk.driver.VMC_SR):
     ):
 
         cleaned_setup = self.process_setup(setup)
+        # SPRING momentum can also come from the config ("momentum": 0.9)
+        momentum = cleaned_setup.pop("momentum", momentum)
 
         super().__init__(
             hamiltonian=hamiltonian,

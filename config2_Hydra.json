@@ -1,6 +1,6 @@
 {
 
-    "selection": "Marshall000",
+    "selection": "CvT3OH000",
 
     "load_model": {
 
@@ -14,6 +14,19 @@
         ]
     },
     
+    "CvT3OH000":{
+        "stage0":{
+            "template":{
+                "Sequivariant": {
+                    "CvT3":{},
+                    "OutputHead":{},
+                    "irrep": [0,0]                    
+                }
+            },
+            "save_params": true
+        }
+            
+    },
 
     "TestARViT":{
         "stage0":{
@@ -47,19 +60,6 @@
         }    
     },    
 
-    "CvT3OH000":{
-        "stage0":{
-            "template":{
-                "Sequivariant": {
-                    "CvT3":{},
-                    "OutputHead":{},
-                    "irrep": [0,0]                    
-                }
-            },
-            "save_params": true
-        }
-            
-    },
         
 
     "CvT2OH220":{

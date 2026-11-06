@@ -1,4 +1,6 @@
 import copy
+import glob
+import os
 
 import jax
 import jax.numpy as jnp
@@ -19,6 +21,23 @@ from NN_module.NN.utils import (
     setup_from_template,
     upgrade_legacy_params,
 )
+
+
+def resolve_load_path(path):
+    """
+    load_from entries may be a results json/orbax path (as before), a
+    directory or a glob pattern: then the most recent '*results*.json' found
+    (recursively) is used. Lets chained jobs (e.g. excited states started
+    from a ground state still to be computed) point to a write folder.
+    """
+    if not (os.path.isdir(path) or any(c in path for c in "*?[")):
+        return path
+    pattern = os.path.join(path, "**", "*results*.json") if os.path.isdir(path) else path
+    matches = sorted(glob.glob(pattern, recursive=True), key=os.path.getmtime)
+    if not matches:
+        raise FileNotFoundError(f"load_from: no results json matches {pattern}")
+    print(f"load_from: {path} -> {matches[-1]}")
+    return matches[-1]
 
 
 def _module_names(setup):
@@ -357,7 +376,7 @@ class Hydra(NeuralNetwork):
 
     def load_vstate(self, vstate):
 
-        paths = self.load_model["load_from"]
+        paths = [resolve_load_path(p) for p in self.load_model["load_from"]]
         checkpoint = self.load_model["checkpoint"]
 
         assert all(

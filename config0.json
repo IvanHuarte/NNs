@@ -1,8 +1,8 @@
 {
 
-    "write_folder_sim":"/home/ihuarte/Escritorio/Ivan/NNs/J1J2_ViT/10x10/",
+    "write_folder_sim":"/home/ihuarte/Escritorio/Ivan/NNs/prueba_depthwiseconv/",
 
-    "sz_total": null,
+    "sz_total": 0,
 
     "callback":{
         "keeper": true,
@@ -14,7 +14,7 @@
         
         "keeper_setup":{
             "baseline": 1e-30,
-            "mode": "best_vscore"
+            "mode": "best_energy"
         },   
         "energy_plot_setup":{
             "savefig": true
@@ -65,7 +65,7 @@
         "nkARSampler":{
 
         },
-        "n_chains_per_rank": 32,
+        "n_chains_per_rank": 64,
         "n_samples_per_chain": 32,
         "chunk_sampler": null,
         "chunk_vstate": 1024
@@ -94,7 +94,8 @@
         },
         "vmc_sr_netket": {
             "mode": "complex",
-            "linear_solver": "cholesky_with_fallback"
+            "linear_solver": "cholesky_with_fallback",
+            "chunk_size_bwd": null
         }
     },
 
@@ -105,7 +106,7 @@
             "epochs_struct":[
                 
                 [ 
-                    [1000, 1000]
+                    [500]
                 ]
                 
             ],
@@ -113,14 +114,14 @@
             "modes_struct":[
                 
                 [
-                    [ ["A"], ["A"] ]
+                    [ ["A"] ]
                 ]
                 
             ],
             "lr_struct":[
                 
                 [
-                    [ [0.01], ["exp(0.01, 0.00001)"] ]
+                    [ [0.01] ]
                 ]
                 
             ],
