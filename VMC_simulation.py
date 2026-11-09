@@ -18,6 +18,7 @@ os.environ["XLA_PYTHON_CLIENT_PREALLOCATE"] = "false"
 import argparse
 import copy
 import json
+import signal
 import time
 from dataclasses import dataclass
 
@@ -30,20 +31,20 @@ jax.config.update("jax_platform_name", "gpu")
 # jax.config.update("jax_debug_nans", True)
 
 from CouplingModel import ModelFactory
-from NN_module.callback import BestIterKeeper, Callback, Checkpoint
-from NN_module.callback.utils import dump_callback
-from NN_module.display import display_simulation_settings
-from NN_module.exact_diagonalization import calc_exact_diag, irrep_exact_diag, stage_sectors
-from NN_module.label_utils import arch_label, make_labels, make_run_paths
-from NN_module.NN.Hydra import Hydra
-from NN_module.NN.precision import set_matmul_precision, set_network_dtype, state_kwargs
-from NN_module.NN.utils import make_setup_serializable
-from NN_module.observables import measureNdump, phase_stats_vstate
-from NN_module.sampler.sampler import SamplerFactory, resolve_sampler_setup
-from NN_module.saveNload import save_results
-from NN_module.schedule.schedule import Schedule
-from NN_module.utils import print_tree, save_config_files
-from NN_module.VMC import VMCBuilder
+from Hydra.callback import BestIterKeeper, Callback, Checkpoint
+from Hydra.callback.utils import dump_callback
+from Hydra.display import display_simulation_settings
+from Hydra.exact_diagonalization import calc_exact_diag, irrep_exact_diag, stage_sectors
+from Hydra.label_utils import arch_label, make_labels, make_run_paths
+from Hydra.NN.Hydra import Hydra
+from Hydra.NN.precision import set_matmul_precision, set_network_dtype, state_kwargs
+from Hydra.NN.utils import make_setup_serializable
+from Hydra.observables import measureNdump, phase_stats_vstate
+from Hydra.sampler.sampler import SamplerFactory, resolve_sampler_setup
+from Hydra.saveNload import save_results
+from Hydra.schedule.schedule import Schedule
+from Hydra.utils import print_tree, save_config_files
+from Hydra.VMC import VMCBuilder
 
 HOME = os.path.expanduser("~")
 DEFAULT_CONFIGS = [
@@ -195,7 +196,14 @@ def train(cfg, hydra, vstate, H, schedule, ds_schedule, ds_info, callbacks, log,
         )
         print(f"\nVMC selection: {vmc_builder.selection}")
         print(f"\nTraining {info[0][1]} for {info[0][0]} epochs...")
-        vmc.run(n_iter=info[0][0], out=log, callback=callbacks, show_progress=True)
+        try:
+            vmc.run(n_iter=info[0][0], out=log, callback=callbacks, show_progress=True)
+        except BaseException:
+            # crash (OOM, Ctrl-C, scancel via SIGTERM): finish the pending best-state writes
+            # before the interpreter shuts the orbax threads down
+            if keeper is not None:
+                keeper.flush(wait=True)
+            raise
 
         mean, std, psi = phase_stats_vstate(vstate)
         print(f"VS phase: {mean} ± {std}  ({psi})")
@@ -413,7 +421,13 @@ def run_point(cfg, size, hi, paths, model_factory, sampler_setup, n_samples, n_r
 # ============================================================
 
 
+def _sigterm_to_exit(signum, frame):
+    """scancel/SIGTERM -> SystemExit, so train() flushes the keeper bests."""
+    raise SystemExit(f"terminated by signal {signum}")
+
+
 def main():
+    signal.signal(signal.SIGTERM, _sigterm_to_exit)
     print("Ranks:", jax.process_count())
     print(f"Devices:{jax.devices()} ({jax.device_count()})")
     print("Local devices:", jax.local_devices())
@@ -422,7 +436,7 @@ def main():
     cfg = load_configs(args.config or DEFAULT_CONFIGS)
     # float64 unless config0 "network_dtype" says otherwise (see NN.precision)
     set_network_dtype(cfg.sim.get("network_dtype", "float64"))
-    set_matmul_precision(cfg.sim.get("matmul_precision", "default"))
+    set_matmul_precision(cfg.sim.get("matmul_precision", "highest"))
 
     sampler_setup = resolve_sampler_setup(cfg.sim["sampler"], verbose=True)
     n_ranks = jax.device_count()

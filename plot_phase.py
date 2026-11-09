@@ -12,7 +12,7 @@ import os
 import sys
 from pathlib import Path
 
-from NN_module.label_utils import labels_from_artifact
+from Hydra.label_utils import labels_from_artifact
 
 
 #### MAIN ####

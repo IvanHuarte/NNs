@@ -18,10 +18,10 @@ import pytest
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../"))
 sys.path.append(ROOT)
-from NN_module.callback.BestIterKeeper import BestIterKeeper
-from NN_module.callback.BestIterKeeper.BestIterKeeper import _Tracker
-from NN_module.NN.Hydra import resolve_load_path
-from NN_module.NN.utils import load_from_file, resolve_best_orbax
+from Hydra.callback.BestIterKeeper import BestIterKeeper
+from Hydra.callback.BestIterKeeper.BestIterKeeper import _Tracker
+from Hydra.NN.Hydra import resolve_load_path
+from Hydra.NN.utils import load_from_file, resolve_best_orbax
 
 N = 8
 MODES = ["best_energy", "best_vscore", "best"]

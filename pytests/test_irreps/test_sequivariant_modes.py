@@ -20,10 +20,10 @@ jax.config.update("jax_enable_x64", True)
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../"))
 sys.path.append(ROOT)
-from NN_module.NN.Hydra import resolve_load_path
-from NN_module.NN.NN.FluxModules.Sequivariant import Sequivariant
-from NN_module.NN.NN.SingleModules.FluxFunc import OutputHead
-from NN_module.NN.NN.SingleModules.ViT2D import ViT2D
+from Hydra.NN.Hydra import resolve_load_path
+from Hydra.NN.NN.FluxModules.Sequivariant import Sequivariant
+from Hydra.NN.NN.SingleModules.FluxFunc import OutputHead
+from Hydra.NN.NN.SingleModules.ViT2D import ViT2D
 
 L = 8
 

@@ -8,8 +8,8 @@ import numpy as np
 import jax
 
 jax.config.update("jax_enable_x64", True)
-from NN_module.saveNload import load_vstate
-from NN_module.observables import calc_all_observables_vs, calc_all_observables_ED
+from Hydra.saveNload import load_vstate
+from Hydra.observables import calc_all_observables_vs, calc_all_observables_ED
 
 
 parser = argparse.ArgumentParser()

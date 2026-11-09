@@ -323,7 +323,7 @@ for subdir in parent_folder_subdirs:                                            
     ax3[1].grid()
     ax3[1].legend(fontsize=fontsize_legend * 2 / 3)
 
-    from NN_module.schedule.utils import calculate_lr_schedule
+    from Hydra.schedule.utils import calculate_lr_schedule
     lr, info  = calculate_lr_schedule(art['SIM']['schedule']['learning_rate'])
     lr_concat = np.concatenate(lr, axis=-1)
     total_epochs = art['SIM']['schedule']['total_epochs']

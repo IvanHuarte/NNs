@@ -12,9 +12,9 @@ import json
 import sys
 from pathlib import Path
 
-from NN_module.saveNload import load_vstate
-from NN_module.correlations import correlations_ED, correlations_vstate
-from NN_module.label_utils import labels_from_artifact
+from Hydra.saveNload import load_vstate
+from Hydra.correlations import correlations_ED, correlations_vstate
+from Hydra.label_utils import labels_from_artifact
 
 
 def get_nk_graph(cm_name, size, pbc=True):

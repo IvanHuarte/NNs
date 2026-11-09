@@ -25,21 +25,21 @@ sys.path.append(os.path.dirname(__file__))
 
 import _label_utils_legacy as legacy
 
-from NN_module.callback.utils import (
+from Hydra.callback.utils import (
     TrainingHistory,
     checkpoint_callback,
     dump_callback,
 )
-from NN_module.display import display_simulation_settings
-from NN_module.exact_diagonalization import EDResult
-from NN_module.label_utils import (
+from Hydra.display import display_simulation_settings
+from Hydra.exact_diagonalization import EDResult
+from Hydra.label_utils import (
     labels_from_artifact,
     make_labels,
     make_run_paths,
     make_title,
 )
-from NN_module.schedule.schedule import Schedule
-from NN_module.schedule.utils import get_schedule_label
+from Hydra.schedule.schedule import Schedule
+from Hydra.schedule.utils import get_schedule_label
 
 DATE = "20261106T101010"
 UUID = "abcd1234"
@@ -136,7 +136,7 @@ def test_run_paths_same_layout():
 
 
 def test_display_simulation_settings():
-    from NN_module.sampler.sampler import resolve_sampler_setup
+    from Hydra.sampler.sampler import resolve_sampler_setup
 
     c0 = json.load(open(os.path.join(ROOT, "config0.json")))
     c2 = json.load(open(os.path.join(ROOT, "config2_Hydra.json")))
@@ -247,7 +247,7 @@ def test_checkpoint_callback(legacy_units):
 # Architecture label and experiment names
 # ------------------------------------------------------------------
 
-from NN_module.label_utils import arch_label, experiment_name, irrep_code
+from Hydra.label_utils import arch_label, experiment_name, irrep_code
 
 def tpl(net, irrep, coset=(2, 2), **net_kw):
     return {"Sequivariant": {net: dict(net_kw), "OutputHead": {}, "irrep": list(irrep),

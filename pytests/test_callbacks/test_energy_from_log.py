@@ -20,9 +20,9 @@ import pytest
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../"))
 sys.path.append(ROOT)
-from NN_module.callback.BestIterKeeper import BestIterKeeper
-from NN_module.callback.Checkpoint.Checkpoint import Checkpoint
-from NN_module.callback.EnergyPlotter import EnergyPlotter
+from Hydra.callback.BestIterKeeper import BestIterKeeper
+from Hydra.callback.Checkpoint.Checkpoint import Checkpoint
+from Hydra.callback.EnergyPlotter import EnergyPlotter
 
 N = 8
 N_STEPS = 4

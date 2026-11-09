@@ -21,7 +21,7 @@ from pathlib import Path
 sys.path.append(str(Path(__file__).resolve().parent.parent / "chebyoxa"))
 
 import chebyoxa.utils as utils
-from NN_module.label_utils import labels_from_artifact
+from Hydra.label_utils import labels_from_artifact
 
 parser = argparse.ArgumentParser()
 parser.add_argument(

@@ -15,8 +15,8 @@ import netket as nk
 import pytest
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../")))
-from NN_module.NN.Hydra import Hydra
-from NN_module.NN.utils import flatten_with_paths
+from Hydra.NN.Hydra import Hydra
+from Hydra.NN.utils import flatten_with_paths
 
 LATTICE = (4, 4)
 N = LATTICE[0] * LATTICE[1]

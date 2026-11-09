@@ -5,7 +5,7 @@ import pytest
 import scipy as sp
 
 from Irreps.SymmBuilder import SymmGroup
-from NN_module.exact_diagonalization import irrep_exact_diag
+from Hydra.exact_diagonalization import irrep_exact_diag
 
 
 def dense_irrep_ed(hi, H, symmetries, irrep, lattice_size):

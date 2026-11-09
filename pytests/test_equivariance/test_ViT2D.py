@@ -5,9 +5,9 @@ import jax
 import jax.numpy as jnp
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../")))
-from NN_module.NN.NN.FluxModules.Sequivariant import Sequivariant
-from NN_module.NN.NN.SingleModules.FluxFunc import OutputHead
-from NN_module.NN.NN.SingleModules.ViT2D import (
+from Hydra.NN.NN.FluxModules.Sequivariant import Sequivariant
+from Hydra.NN.NN.SingleModules.FluxFunc import OutputHead
+from Hydra.NN.NN.SingleModules.ViT2D import (
     AffinityPosWeight,
     MultiHeadPositionalAttention,
     PositionalHead,

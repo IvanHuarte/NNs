@@ -20,15 +20,15 @@ import netket as nk
 import pytest
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../")))
-from NN_module.NN.Hydra import Hydra
-from NN_module.NN.utils import (
+from Hydra.NN.Hydra import Hydra
+from Hydra.NN.utils import (
     flatten_with_paths,
     get_code2path_flatten,
     get_code2path_tree,
     print_architecture,
     upgrade_legacy_params,
 )
-from NN_module.schedule.schedule import Schedule
+from Hydra.schedule.schedule import Schedule
 
 LATTICE = (4, 4)
 N = 16
@@ -136,7 +136,7 @@ def test_printed_tree_uses_same_codes(capsys):
 
 
 def leaf_labels(schedule, params, info):
-    from NN_module.schedule.masks import masked_optimizer
+    from Hydra.schedule.masks import masked_optimizer
 
     paths = [inf[1] for inf in info]
     tree = masked_optimizer(params, paths, schedule.eon_path2code)

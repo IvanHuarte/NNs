@@ -5,7 +5,7 @@ import jax
 import jax.numpy as jnp
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../")))
-from NN_module.NN.NN.SingleModules.CvT3 import ConvProjectionBlock, CvT3, StageBlock
+from Hydra.NN.NN.SingleModules.CvT3 import ConvProjectionBlock, CvT3, StageBlock
 from pytests.test_equivariance._trasl_equiv_check import traslation_equivariant
 
 key = jax.random.PRNGKey(0)

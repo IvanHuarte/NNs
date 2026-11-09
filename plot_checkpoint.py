@@ -12,11 +12,11 @@ import sys
 import pathlib
 import orbax.checkpoint as ocp
 
-from NN_module.observables import modphase
-from NN_module.dynamic_plots import plot_modphase
-from NN_module.callback.utils import checkpoint_callback
-from NN_module.label_utils import labels_from_artifact
-from NN_module.saveNload import load_vstate
+from Hydra.observables import modphase
+from Hydra.dynamic_plots import plot_modphase
+from Hydra.callback.utils import checkpoint_callback
+from Hydra.label_utils import labels_from_artifact
+from Hydra.saveNload import load_vstate
 
 
 parser = argparse.ArgumentParser()

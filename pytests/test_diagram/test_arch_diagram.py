@@ -1,5 +1,5 @@
 """
-Architecture diagram (NN_module/NN/arch_diagram.py).
+Architecture diagram (Hydra/NN/arch_diagram.py).
 
 Run (CPU is enough):
     JAX_PLATFORMS=cpu .venv/bin/python -m pytest pytests/test_diagram -q
@@ -12,7 +12,7 @@ import sys
 import netket as nk
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../")))
-from NN_module.NN.Hydra import Hydra
+from Hydra.NN.Hydra import Hydra
 
 LATTICE = (4, 4)
 STORAGE = {

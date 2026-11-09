@@ -13,7 +13,7 @@ import seaborn as sns
 import json
 from pathlib import Path
 
-from NN_module.dynamic_plots import (
+from Hydra.dynamic_plots import (
     batch_modphase_plotter,
     plot_M_sector_hist,
     plot_cum_contributors,

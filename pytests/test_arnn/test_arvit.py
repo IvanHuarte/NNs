@@ -15,7 +15,7 @@ import netket as nk
 import numpy as np
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../")))
-from NN_module.NN.Hydra import Hydra
+from Hydra.NN.Hydra import Hydra
 
 LATTICE = (2, 3)
 N = LATTICE[0] * LATTICE[1]
@@ -115,8 +115,8 @@ def test_direct_sampler_and_mcstate(capfd):
 def test_independent_of_netket_autoreg_implementation():
     """The methods NetKet's AbstractARNN provides (and that were patched by
     hand in site-packages) are redefined in our classes."""
-    from NN_module.NN.ARNN import ARNNWrapper
-    from NN_module.NN.ARNN.SingleModules.ARViT import ARViT
+    from Hydra.NN.ARNN import ARNNWrapper
+    from Hydra.NN.ARNN.SingleModules.ARViT import ARViT
 
     assert "__call__" in ARViT.__dict__
     assert "__call__" in ARNNWrapper.__dict__

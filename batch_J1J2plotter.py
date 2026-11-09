@@ -363,7 +363,7 @@ def process_simulation(args_tuple):
     ax3[1].legend(fontsize=fontsize_legend * 2 / 3)
 
     # Learning rate schedule (import local aquí para no cargar el módulo si no hace falta)
-    from NN_module.schedule.utils import calculate_lr_schedule
+    from Hydra.schedule.utils import calculate_lr_schedule
 
     lr, info = calculate_lr_schedule(last_art["SIM"]["schedule"]["learning_rate"])
     lr_concat = np.concatenate(lr, axis=-1)

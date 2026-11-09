@@ -1,5 +1,5 @@
 import jax.numpy as jnp
-from NN_module.utils import Translations2D
+from Hydra.utils import Translations2D
 
 
 def traslation_equivariant(x0, params, model, atol=1e-7, v=0):

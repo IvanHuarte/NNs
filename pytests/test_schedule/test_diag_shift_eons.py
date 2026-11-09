@@ -12,8 +12,8 @@ import numpy as np
 import pytest
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../")))
-from NN_module.schedule.schedule import Schedule
-from NN_module.schedule.utils import period_from_string
+from Hydra.schedule.schedule import Schedule
+from Hydra.schedule.utils import period_from_string
 
 
 def setup(ds, eons=((30, 20), (40,), (10, 10))):

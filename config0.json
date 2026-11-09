@@ -12,10 +12,14 @@
         "leaves_gradient": false,
         "checkpoint": false,
         
-        "keeper_setup":{
-            "baseline": 1e-30,
-            "mode": "best_energy"
-        },   
+        "keeper_setup": {
+            "mode": ["best", "best_energy", "best_vscore"],
+            "orbax": true,
+            "save_every": 50,
+            "vscore_max": 0.05,
+            "best_setup": {"c": 8.0}
+        },
+
         "energy_plot_setup":{
             "savefig": true
         },

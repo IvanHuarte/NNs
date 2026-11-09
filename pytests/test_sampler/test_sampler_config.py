@@ -19,8 +19,8 @@ import pytest
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../"))
 sys.path.append(ROOT)
-from NN_module.sampler.custom_rules import MultipleRules
-from NN_module.sampler.sampler import SamplerFactory, resolve_sampler_setup
+from Hydra.sampler.custom_rules import MultipleRules
+from Hydra.sampler.sampler import SamplerFactory, resolve_sampler_setup
 
 N = 6
 HI = nk.hilbert.Spin(s=1 / 2, N=N)

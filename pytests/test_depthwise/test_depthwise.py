@@ -23,14 +23,14 @@ jax.config.update("jax_enable_x64", True)
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../"))
 sys.path.append(ROOT)
-from NN_module.NN.NN.SingleModules.CvT3 import CvT3
-from NN_module.NN.NN.SingleModules.CvTaps import ConvAPS
-from NN_module.NN.toolbox import (
+from Hydra.NN.NN.SingleModules.CvT3 import CvT3
+from Hydra.NN.NN.SingleModules.CvTaps import ConvAPS
+from Hydra.NN.toolbox import (
     DepthPointwiseConv,
     DepthwiseConv,
     depthwise_conv_circular,
 )
-from NN_module.NN.utils import upgrade_legacy_params
+from Hydra.NN.utils import upgrade_legacy_params
 
 CASES = [
     # (input shape (B,H,W,C), kernel, strides)
@@ -124,7 +124,7 @@ def test_conv_aps_depthwise_path():
         3, ks, strides=strides, feature_group_count=3, padding="CIRCULAR",
         use_bias=False, dtype=jnp.float64, param_dtype=jnp.float64,
     )
-    from NN_module.NN.NN.SingleModules.CvTaps import APS_equivariance_adapter
+    from Hydra.NN.NN.SingleModules.CvTaps import APS_equivariance_adapter
 
     expected = ref.apply(
         {"params": params["params"]["Conv_0"]}, APS_equivariance_adapter(x, strides)
