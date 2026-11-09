@@ -146,6 +146,7 @@ def build_callbacks(cfg, sim_config, H, N, ed, labels, paths, total_epochs, stag
         H=H,
         N=N,
         E_ED=ed.E_global,
+        E_ref=ed.E_ref,
         x_ED=ed.x_ref,
         sim_label_folder=paths.write_folder + labels.sim if checkpoint else "",
         stage_epochs=stage_epochs,
@@ -159,7 +160,15 @@ def build_callbacks(cfg, sim_config, H, N, ed, labels, paths, total_epochs, stag
             "config0 'callback.keeper'."
         )
     checkpointer = next((c for c in callback_objects if isinstance(c, Checkpoint)), None)
-    return keeper, checkpointer, callback_funcs
+    return keeper, checkpointer, callback_objects, callback_funcs
+
+
+def _hook(objects, name, *args, **kwargs):
+    """Call objects[i].<name>(...) on every callback that implements it."""
+    for obj in objects:
+        fn = getattr(obj, name, None)
+        if callable(fn):
+            fn(*args, **kwargs)
 
 
 def print_period(i, total_periods, info, ds_info):
@@ -172,7 +181,8 @@ def print_period(i, total_periods, info, ds_info):
     print(f"Diagonal shift: {ds_info}\n")
 
 
-def train(cfg, hydra, vstate, H, schedule, ds_schedule, ds_info, callbacks, log, make_state, keeper):
+def train(cfg, hydra, vstate, H, schedule, ds_schedule, ds_info, callbacks, log, make_state,
+          callback_objects):
     """
     Run every schedule period. At a stage change the architecture evolves
     (Hydra.arch_evol) and a new vstate receives the transplanted weights.
@@ -199,10 +209,10 @@ def train(cfg, hydra, vstate, H, schedule, ds_schedule, ds_info, callbacks, log,
         try:
             vmc.run(n_iter=info[0][0], out=log, callback=callbacks, show_progress=True)
         except BaseException:
-            # crash (OOM, Ctrl-C, scancel via SIGTERM): finish the pending best-state writes
-            # before the interpreter shuts the orbax threads down
-            if keeper is not None:
-                keeper.flush(wait=True)
+            # crash (OOM, Ctrl-C, scancel via SIGTERM): finish the pending writes
+            # (keeper bests, checkpoints) before the interpreter shuts the orbax
+            # threads down
+            _hook(callback_objects, "flush", wait=True)
             raise
 
         mean, std, psi = phase_stats_vstate(vstate)
@@ -215,9 +225,9 @@ def train(cfg, hydra, vstate, H, schedule, ds_schedule, ds_info, callbacks, log,
             vstate = make_state(hydra.model, eon=schedule.eon)
             vstate.parameters = hydra.weight_transplantation(vstate.parameters)
             schedule.update_eon_code2path(hydra.get_code2path(vstate.parameters))
-            keeper.new_stage(schedule.eon)
+            _hook(callback_objects, "new_stage", schedule.eon)
 
-    keeper.finalize()
+    _hook(callback_objects, "finalize")
     return vstate, vmc_builder, time.time() - time_in
 
 
@@ -317,14 +327,14 @@ def run_point(cfg, size, hi, paths, model_factory, sampler_setup, n_samples, n_r
     )
 
     #### TRAINING ####
-    keeper, checkpointer, callbacks = build_callbacks(
+    keeper, checkpointer, callback_objects, callbacks = build_callbacks(
         cfg, sim_config, H, N, ed, labels, paths, schedule.total_epochs,
         schedule.stage_epochs,
     )
     log = nk.logging.RuntimeLog()
     vstate, vmc_builder, time_exe = train(
         cfg, hydra, vstate, H, schedule, ds_schedule, ds_info, callbacks, log,
-        make_state, keeper,
+        make_state, callback_objects,
     )
 
     #### RESULTS OF THE BEST STATE (primary mode, last stage) ####

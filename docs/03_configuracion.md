@@ -63,7 +63,10 @@ Las seis banderas `keeper`, `energy_plot`, `modphase`, `sanity`, `leaves_gradien
     "vscore_max": 0.05,
     "best_setup": {"c": 8.0, "z": 0.0}
   },
-  "checkpoint_setup": {"do_each": 500, "async": false}
+  "checkpoint_setup": {"do_each": 500, "async": true, "max_to_keep": null, "stage_end": true},
+  "sanity_setup": {"do_each": 50, "mode": "simple", "verbose": 2,
+                   "metrics": {"energy": true, "sampling": true, "optimization": true,
+                               "wavefunction": true}}
 }
 ```
 

@@ -48,12 +48,10 @@ en el código; el resto son limitaciones conocidas.
   estados **[corregido]**, pero si un paso de XLA dura más que el margen de Slurm (30 s por
   defecto) el proceso puede ser terminado antes.
 
-**Callbacks**
-
-* `EnergyPlotter` y `ModPhasePlotter` con `savefig: true` fallan (no reciben carpeta) y
-  `EnergyPlotter` falla sin ED. Use la gráfica final (`Callback_<sim>.jpeg`).
-* `SanityMonitor` con `metrics.gradients` falla con los árboles de parámetros actuales.
-* Con `checkpoint_setup.async: true` el último checkpoint puede quedar incompleto.
+**Callbacks** **[corregido 9-nov-2026]**: Checkpoint asíncrono (la última escritura se
+perdía), EnergyPlotter/ModPhasePlotter (no dibujaban en vivo y fallaban al guardar o sin
+ED), SanityMonitor (métricas de gradientes sólo para SplitTraining, displays rotos) y
+LeavesGradient se han reescrito (capítulo 6).
 
 **Redes**
 

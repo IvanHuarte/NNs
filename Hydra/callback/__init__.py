@@ -33,7 +33,14 @@ def Callback(
     sim_folder=None,
     stage_epochs=None,
     best_label_folder=None,
+    E_ref=None,
 ):
+    """
+    Build the callbacks enabled in config0 "callback". Returns
+    (objects, functions). Objects may implement the hooks new_stage(stage),
+    flush(wait) and finalize(), called by VMC_simulation.train at a stage
+    change, on a crash and at the end of the training.
+    """
 
     callback_funcs = []
     callback_objects = []
@@ -63,53 +70,63 @@ def Callback(
         callback_objects.append(keeper)
         callback_funcs.append(keeper.update)
 
-    if config["energy_plot"]:
-        assert all([variable is not None for variable in [H, N]])
+    prefix = best_label_folder or sim_label_folder  # <write folder><sim label>
+    title = ""
+    if sim_config is not None:
+        from Hydra.label_utils import make_title
+
+        title = make_title(sim_config["CM"], sim_config["NN"]["name"]).replace("Callback", "").strip()
+
+    if config.get("energy_plot"):
         print("Adding EnergyPlotter")
         energy_plotter = EnergyPlotter(
-            H,
             N,
-            E_prev=E_prev,
-            E_ED=E_ED,
-            vs_prev=vs_prev,
-            error_prev=error_prev,
-            sim_folder=sim_folder,
-            savefig=config["energy_plot_setup"]["savefig"],
+            setup=config.get("energy_plot_setup", {}),
+            E_ref=E_ref if E_ref is not None else E_ED,
+            E_global=E_ED,
+            out_path=(prefix + "_live_energy.png") if prefix else None,
+            title=title,
         )
         callback_objects.append(energy_plotter)
         callback_funcs.append(energy_plotter)
 
-    if config["modphase"]:
-        # assert all([variable is not None for variable in [sim_config, x_ED]])
-        print("Adding Modphase")
+    if config.get("modphase"):
+        print("Adding ModPhasePlotter")
         modphase = ModPhasePlotter(
-            sim_config,
-            x_ED,
-            no_null_mod=config["modphase_setup"]["no_null_mod"],
-            plot_each=config["modphase_setup"]["plot_each"],
-            savefig=config["modphase_setup"]["savefig"],
-            logscale=config["modphase_setup"]["logscale"],
-            sim_folder=sim_folder,
+            setup=config.get("modphase_setup", {}),
+            x_ED=x_ED,
+            out_path=(prefix + "_live_modphase.png") if prefix else None,
+            title=title,
         )
         callback_objects.append(modphase)
         callback_funcs.append(modphase)
 
-    if config["sanity"]:
+    if config.get("sanity"):
         print("Adding SanityMonitor")
-        sanity_monitor = SanityMonitor(config["sanity_setup"])
+        sanity_monitor = SanityMonitor(
+            config.get("sanity_setup", {}),
+            N=N,
+            E_ref=E_ref if E_ref is not None else E_ED,
+            log_path=(prefix + "_sanity.jsonl") if prefix else None,
+        )
         callback_objects.append(sanity_monitor)
         callback_funcs.append(sanity_monitor)
 
-    if config["leaves_gradient"]:
+    if config.get("leaves_gradient"):
         print("Adding LeavesGradient")
-        leaves_gradient = LeavesGradient(config["leaves_gradient_setup"])
+        leaves_gradient = LeavesGradient(
+            config.get("leaves_gradient_setup", {}), log_prefix=prefix
+        )
         callback_objects.append(leaves_gradient)
         callback_funcs.append(leaves_gradient)
 
-    if config["checkpoint"]:
-        print("Adding OrbaxCheckpointing")
+    if config.get("checkpoint"):
+        print("Adding Checkpoint")
         checkpointing = Checkpoint(
-            H=H, sim_label_folder=sim_label_folder, setup=config["checkpoint_setup"]
+            H=H,
+            sim_label_folder=sim_label_folder or prefix,
+            setup=config.get("checkpoint_setup", {}),
+            stage_epochs=stage_epochs,
         )
         callback_objects.append(checkpointing)
         callback_funcs.append(checkpointing)

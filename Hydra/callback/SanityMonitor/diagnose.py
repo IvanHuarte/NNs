@@ -1,364 +1,238 @@
-def msg_reim_ratio(ratio, name):
-    if name == "global":
-        if 0.5 < ratio < 5:
-            return "Razón Re/Im equilibrada en el global."
-        else:
-            return "Desequilibrio global Re/Im → revisar estabilidad del entrenamiento."
+"""
+Diagnosis of the SanityMonitor metrics. Every metric becomes a *check*
 
-    if name == "mod":
-        if ratio > 10:
-            return "Gradientes del módulo dominantes y estables."
-        elif ratio > 1:
-            return "Gradientes del módulo aceptables pero con cierto desequilibrio."
-        else:
-            return "Módulo demasiado dominado por Im → posible colapso del canal real."
+    {"name", "value" (str), "status" in STATUSES, "message"}
 
-    if name == "phase":
-        if ratio > 10:
-            return "Gradientes de la fase dominantes y estables."
-        elif ratio > 1:
-            return "Fase OK pero con desequilibrio moderado."
-        else:
-            return (
-                "Fase dominada por Re → posible inestabilidad en la parte imaginaria."
-            )
+grouped by category. Thresholds are deliberately conservative: "warn" means
+"look at it", "error" means the run is very likely broken. Categories with
+per-module data also carry a "modules" table.
+"""
+
+from __future__ import annotations
+
+import math
+
+STATUSES = ("ok", "info", "warn", "error")
+RANK = {s: i for i, s in enumerate(STATUSES)}
+
+# thresholds (one place to tune them)
+TH = {
+    "imag_sigmas": 5.0,  # |Im E| / error of the mean
+    "dE_up_sigmas": 3.0,  # energy rise since the previous check
+    "dE_up_sigmas_error": 10.0,
+    "vscore_jump": 3.0,  # V-score ratio to the previous check
+    "acc_low": 0.15,
+    "acc_frozen": 0.05,
+    "acc_high": 0.95,
+    "min_chain": 32,  # samples per chain needed for R̂ / τ_corr
+    "rhat_warn": 1.1,
+    "rhat_error": 1.5,
+    "tau_warn": 5.0,
+    "tau_error": 20.0,
+    "unique_warn": 0.2,
+    "unique_error": 0.05,
+    "rel_step_warn": 0.05,  # |Δθ|/|θ| of the applied step
+    "rel_step_error": 0.5,
+    "module_rel_outlier": 100.0,  # module |Δθ|/|θ| vs median of modules
+    "dead_warn": 0.2,
+    "dead_error": 0.5,
+    "ntk_rank_frac": 0.05,
+    "ntk_cond": 1e10,
+    "log_amp_std": 10.0,
+    "eloc_outliers": 0.01,
+    "eloc_kurtosis": 50.0,
+}
 
 
-def diagnose_gradients(metrics):
+def _c(name, value, status="ok", message=""):
+    return {"name": name, "value": value, "status": status, "message": message}
 
-    diagnosis = {}
 
-    # 1. DIAGNOSIS GRADIENTS
-    grads = metrics["gradients"]
+def _fmt(x, f="{:.3e}"):
+    if x is None or (isinstance(x, float) and not math.isfinite(x)):
+        return "n/a"
+    return f.format(x)
 
-    ### 1.- Norm per sample diagnosis
-    norm_mean = grads["norm_per_sample"]["mean"]
-    norm_std = grads["norm_per_sample"]["std"]
 
-    # Mean
-    label_mean = f"⟨||∇logψ||⟩_s = {norm_mean:.2e}"
-    if norm_mean < 1e-3:
-        norm_status = "💚💚💚"
-        norm_msg = "CONVERGIDO. Gradientes muy pequeños → Buena convergencia"
-    elif norm_mean < 1:
-        norm_status = "✅"
-        norm_msg = "SANO. Gradientes normales → Entrenando bien"
-    elif norm_mean < 10:
-        norm_status = "⚠️"
-        norm_msg = "ALTO. Gradientes grandes → Monitorear LR 📊"
-    elif norm_mean < 100:
-        norm_status = "⚠️⚠️"
-        norm_msg = " MUY ALTO. Gradientes muy grandes → Reducir un poco LR 📊"
-    elif norm_mean > 100:
-        norm_status = "🔴"
-        norm_msg = " EXPLOSIVO. Gradientes peligrosos → Reduce LR! 📉"
+def diag_energy(m):
+    ch = [_c("E", f"{m['E']:.6f} ± {m['E_err']:.1e}", "info")]
+    st = "error" if not math.isfinite(m["vscore"]) else "info"
+    ch.append(_c("V-score", _fmt(m["vscore"]), st,
+                 "Energía o varianza no finitas" if st == "error" else "N·Var/E²: calidad intensiva del estado"))
+    if m["imag_sigmas"] > TH["imag_sigmas"]:
+        ch.append(_c("Im E", f"{m['imag_sigmas']:.1f} σ", "warn",
+                     "Parte imaginaria de E significativa: ruido de la fase o muestras insuficientes"))
     else:
-        norm_status = "❓"
-        norm_msg = " DESCONOCIDO. Valor de gradientes inesperado → Revisa"
+        ch.append(_c("Im E", f"{m['imag_sigmas']:.1f} σ", "ok", "Compatible con cero"))
+    if "dE" in m:
+        s = m["dE_sigmas"]
+        st = "error" if s > TH["dE_up_sigmas_error"] else "warn" if s > TH["dE_up_sigmas"] else "ok"
+        msg = {"ok": "Evolución normal desde la última comprobación",
+               "warn": "La energía ha subido de forma significativa",
+               "error": "Subida fuerte de la energía: posible inestabilidad (lr / diag_shift)"}[st]
+        ch.append(_c("ΔE", f"{m['dE']:+.4f} ({s:+.1f} σ)", st, msg))
+        r = m["vscore_ratio"]
+        st = "warn" if math.isfinite(r) and r > TH["vscore_jump"] else "ok"
+        ch.append(_c("V-score / anterior", _fmt(r, "{:.2f}"), st,
+                     "El V-score se ha multiplicado: el estado empeora" if st == "warn" else ""))
+    if "error_ref" in m:
+        ch.append(_c("Error vs ED", _fmt(m["error_ref"], "{:.3e}"), "info"))
+    return {"checks": ch}
 
-    # Std
-    std_ratio = norm_std / norm_mean
-    label_std = f"σ[||∇logψ||]_s = {norm_std:.2e}  (σ/μ={std_ratio:.2f})"
-    if std_ratio < 1:
-        std_status = "🟢"
-        std_msg = "Variabilidad normal entre muestras."
-    elif std_ratio < 2:
-        std_status = "🟡"
-        std_msg = "Variabilidad moderada, posible sampling disbalanceado."
-    elif std_ratio < 5:
-        std_status = "⚠️"
-        std_msg = "Alta variabilidad entre muestras, revisar sampler."
+
+def diag_sampling(m):
+    ch = []
+    a = m["acceptance"]
+    if not math.isfinite(a):
+        ch.append(_c("Aceptación", "n/a", "info"))
+    elif a < TH["acc_frozen"]:
+        ch.append(_c("Aceptación", f"{a:.3f}", "error", "Cadenas congeladas: casi ninguna propuesta se acepta"))
+    elif a < TH["acc_low"]:
+        ch.append(_c("Aceptación", f"{a:.3f}", "warn", "Aceptación baja: mezcla lenta"))
+    elif a > TH["acc_high"]:
+        ch.append(_c("Aceptación", f"{a:.3f}", "warn", "Aceptación casi total: |ψ| casi plana o propuestas triviales"))
     else:
-        std_status = "🔴"
-        std_msg = "Muy alta variabilidad, sampling problemático!"
-
-    diagnosis["norm_per_sample"] = {
-        "mean": {"label": label_mean, "status": norm_status, "message": norm_msg},
-        "std": {"label": label_std, "status": std_status, "message": std_msg},
-    }
-
-    # --- Global norm ---
-    global_norm = grads["global_norm"]
-    label_global = f"||∇logψ||_global = {global_norm:.2e}"
-
-    if global_norm < 1:
-        global_status = "🟢"
-        global_msg = "Escala de gradientes normal."
-    elif global_norm < 10:
-        global_status = "🟡"
-        global_msg = "Escala moderada, monitorear entrenamiento."
-    elif global_norm < 100:
-        global_status = "⚠️"
-        global_msg = "Gradientes grandes, posible inestabilidad."
-    elif global_norm >= 100:
-        global_status = "🔴"
-        global_msg = "Gradientes explosivos, acción urgente!"
-    else:
-        global_status = "❓ DESCONOCIDO"
-        global_msg = "Valor de gradientes inesperado → Revisa"
-
-    diagnosis["global_norm"] = {
-        "label": label_global,
-        "status": global_status,
-        "message": global_msg,
-    }
-
-    # Re/Im ratios
-    reim_global_re = grads["ReIm_norms"]["global"]["Re"]
-    reim_global_im = grads["ReIm_norms"]["global"]["Im"]
-    reim_mod_re = grads["ReIm_norms"]["ModulusNet"]["Re"]
-    reim_mod_im = grads["ReIm_norms"]["ModulusNet"]["Im"]
-    reim_phase_re = grads["ReIm_norms"]["PhaseNet"]["Re"]
-    reim_phase_im = grads["ReIm_norms"]["PhaseNet"]["Im"]
-
-    global_ratio = reim_global_re / reim_global_im
-    mod_ratio = reim_mod_re / reim_mod_im
-    phase_ratio = reim_phase_im / reim_phase_re
-
-    label_global_ratio = f"||Re(∇ψ)|| / ||Im(∇ψ)|| = {reim_global_re:.2e} / {reim_global_im:.2e} = {global_ratio:.2f}"
-    label_mod_ratio = f"||∇ψ_ph||_Re / ||∇ψ_ph||_Im = {reim_mod_re:.2e} / {reim_mod_im:.2e} = {mod_ratio:.2f}"
-    label_phase_ratio = f"||∇ψ_ph||_Im / ||∇ψ_ph||_Re = {reim_phase_im:.2e} / {reim_phase_re:.2e} = {phase_ratio:.2f}"
-
-    global_status = "🟢" if 0.5 < global_ratio < 5 else "🟡"
-    mssg_global = msg_reim_ratio(global_ratio, "global")
-
-    mod_status = "🟢" if mod_ratio > 10 else "🟡" if mod_ratio > 1 else "🔴"
-    mssg_mod = msg_reim_ratio(mod_ratio, "mod")
-
-    phase_status = "🟢" if phase_ratio > 10 else "🟡" if phase_ratio > 1 else "🔴"
-    mssg_phase = msg_reim_ratio(phase_ratio, "phase")
-
-    diagnosis["ReIm_norms"] = {
-        "global": {
-            "label": label_global_ratio,
-            "status": global_status,
-            "message": mssg_global,
-        },
-        "ModulusNet": {
-            "label": label_mod_ratio,
-            "status": mod_status,
-            "message": mssg_mod,
-        },
-        "PhaseNet": {
-            "label": label_phase_ratio,
-            "status": phase_status,
-            "message": mssg_phase,
-        },
-    }
-
-    # Análisis distribución gradientes
-    threshold_points = grads["percentage_norm_intervals"]["log_intervals"]
-    percentages = grads["percentage_norm_intervals"]["percentages"]
-
-    label_percentages = [f"    < 1e-04:        {percentages[0]:.3f} %"]
-    for i in range(len(threshold_points)):
-        if i != len(threshold_points) - 1:
-            label_percentages.append(
-                f"{threshold_points[i]:.0e} <--> {threshold_points[i+1]:.0e}:   {percentages[i+1]:.3f} %"
-            )
-    label_percentages.append(f"   > 1e+03:        {percentages[-1]:.3f} %")
-
-    label_percentages = label_percentages[::-1]
-
-    grad_dist_status = "🟢"
-    grad_dist_msg = []
-    if percentages[0] > 20:  # >20% en <1e-4
-        grad_dist_msg = "Muchas normas nulas → Posible saturación"
-        grad_dist_status = "🟡"
-    if percentages[-1] > 5:  # >5% en >1e3
-        grad_dist_msg = "Gradientes explosivos detectados"
-        grad_dist_status = "🔴"
-    if sum(percentages[4:6]) > 70:  # >70% en 1-100
-        grad_dist_msg = "Entrenando activamente"
-
-    diagnosis["percentage_norm_intervals"] = {
-        "label": label_percentages,
-        "status": grad_dist_status,
-        "message": grad_dist_msg,
-    }
-
-    return diagnosis
+        ch.append(_c("Aceptación", f"{a:.3f}", "ok"))
+    short = m.get("chain_length", 0) < TH["min_chain"]  # R̂ / τ unreliable on short chains
+    r = m["R_hat"]
+    st = ("info" if (short or not math.isfinite(r)) else
+          "error" if r > TH["rhat_error"] else "warn" if r > TH["rhat_warn"] else "ok")
+    ch.append(_c("R̂", _fmt(r, "{:.3f}"), st, {
+        "warn": "Cadenas no mezcladas del todo (R̂ > 1.1)",
+        "error": "Cadenas en regiones distintas: estimaciones sesgadas",
+        "info": f"Poco fiable con cadenas de {m.get('chain_length', 0)} muestras"}.get(st, "")))
+    t = m["tau_corr"]
+    st = ("info" if (short or not math.isfinite(t)) else
+          "error" if t > TH["tau_error"] else "warn" if t > TH["tau_warn"] else "ok")
+    ch.append(_c("τ_corr", _fmt(t, "{:.2f}"), st, {
+        "warn": "Autocorrelación apreciable", "error": "Autocorrelación alta: muestras poco independientes",
+        "info": "Poco fiable con cadenas cortas"}.get(st, "")))
+    ch.append(_c("ESS / N", _fmt(m["ess_eff"], "{:.2f}"), "info"))
+    u = m["unique_frac"]
+    small = m.get("n_states") is not None and m["n_states"] < 20 * m["n_samples"]
+    st = "info" if small else "error" if u < TH["unique_error"] else "warn" if u < TH["unique_warn"] else "ok"
+    ch.append(_c("Muestras distintas", f"{u:.2f}", st, {
+        "warn": "Muchas muestras repetidas: estado concentrado o sampler atascado",
+        "error": "Casi todas las muestras iguales: sampler atascado"}.get(st, "")))
+    return {"checks": ch}
 
 
-def diagnose_sampling(metrics):
-
-    diagnosis = {}
-
-    samples = metrics["sampling"]
-
-    acc_rate = samples["acceptance"]
-    tau_corr = samples["tau_corr"]
-    ess = samples["ESS"]
-    ess_eff = samples["efficiency"]
-    n_samples = samples["n_samples"]
-
-    label_accept = f"Acc = {acc_rate:.3f}"
-    label_tau_corr = f"τ_corr = {tau_corr:.2f}"
-    label_ess = f"ESS / N (eff)= {ess:.0f} / {n_samples} ({ess_eff:.2f})"
-
-    if acc_rate < 0.3:
-        acc_status = "🟡"
-        acc_msg = "Acceptance baja → Aumenta step_size 📈"
-    elif acc_rate > 0.75:
-        acc_status = "🟡"
-        acc_msg = "Acceptance alta → Reduce step_size 📉"
-    else:
-        acc_status = "🟢"
-        acc_msg = "Acceptance OK"
-
-    if tau_corr > 20:
-        tau_status = "🔴"
-        tau_msg = "Alta autocorrelación → Sampler lento"
-    elif tau_corr > 10:
-        tau_status = "🟡"
-        tau_msg = "Autocorrelación moderada"
-    else:
-        tau_status = "🟢"
-        tau_msg = "Autocorrelación baja"
-
-    if ess_eff < 0.1:
-        esseff_status = "🟡"
-        esseff_msg = "Eficiencia baja"
-    else:
-        esseff_status = "🟢"
-        esseff_msg = "Eficiencia aceptable"
-
-    diagnosis = {
-        "acceptance": {"label": label_accept, "status": acc_status, "message": acc_msg},
-        "tau_corr": {"label": label_tau_corr, "status": tau_status, "message": tau_msg},
-        "ESS": {"label": label_ess, "status": esseff_status, "message": esseff_msg},
-    }
-
-    return diagnosis
+def diag_magnetization(m):
+    msg = "Sector fijo (sz_total)" if m["constrained"] else f"{m['sectors']} sectores visitados"
+    hist = ", ".join(f"{int(k)}:{v}" for k, v in sorted(m["histogram"].items()))
+    return {"checks": [_c("M", f"{m['M_mean']:+.2f} ± {m['M_std']:.2f}", "info", msg),
+                       _c("Histograma M", hist if len(hist) < 120 else hist[:117] + "...", "info")]}
 
 
-def diagnose_sample_histogram(histogram):
-
-    diagnosis = {}
-
-    magnetization, counts = (
-        histogram["sample_histogram"]["magnetization"],
-        histogram["sample_histogram"]["counts"],
-    )
-
-    label_hist = {
-        "magnetization": [f"M = {m}" for m in magnetization],
-        "counts": [f"{c}" for c in counts],
-    }
-
-    diagnosis["histogram"] = {
-        "label": label_hist,
-        "status": "🟢",
-        "message": "Histograma de magnetización OK",
-    }
-
-    return diagnosis
+def diag_wavefunction(m):
+    ch = []
+    if not m["finite"]:
+        ch.append(_c("log ψ", "NaN/Inf", "error", "Valores no finitos de log ψ en las muestras"))
+    s = m["log_amp_std"]
+    st = "warn" if s > TH["log_amp_std"] else "ok"
+    ch.append(_c("σ[log|ψ|²]", f"{s:.2f}  (rango {m['log_amp_range']:.1f})", st,
+                 "Amplitudes muy dispares entre muestras: pocas configuraciones dominan" if st == "warn" else ""))
+    q = [m[f"phase_q{i}"] for i in range(1, 5) if f"phase_q{i}" in m]
+    if q:
+        kind = ("fase casi constante" if q[0] > 0.9 else
+                "signo ±1 (estructura de Marshall)" if len(q) > 1 and q[1] > 0.9 else
+                "fase con estructura" if max(q) > 0.3 else "fase dispersa")
+        ch.append(_c("|⟨e^{iqφ}⟩| q=1..4", "  ".join(f"{x:.2f}" for x in q), "info", kind))
+    return {"checks": ch}
 
 
-def diagnose_phase(metrics):
-
-    diagnosis = {}
-
-    phase_main = metrics["phase"]
-
-    for q, (key, value) in enumerate(phase_main.items()):
-
-        mean_phase_abs = value["mean"]
-        std_phase = value["std"]
-
-        label_phase_mean = f"{mean_phase_abs:.3f}"
-        label_phase_std = f"{std_phase:.3f}"
-
-        # 3. DIAGNOSIS PHASE
-
-        if mean_phase_abs > 0.8:
-            phase_mean_status = "🟢"
-            phase_mean_msg = "Estructura detectada"
-        elif mean_phase_abs > 0.3:
-            phase_mean_status = "🟡"
-            phase_mean_msg = "Moderado. ¿Esta en combinacion con otros?"
-        else:
-            phase_mean_status = "🔴"
-            phase_mean_msg = "Armonico nulo"
-
-        if std_phase > 3:
-            phase_std_status = "🟡"
-            phase_std_msg = "Alta varianza de fase"
-        else:
-            phase_std_status = "🟢"
-            phase_std_msg = "Varianza de fase aceptable"
-
-        diagnosis[key] = {
-            "mean": {
-                "label": label_phase_mean,
-                "status": phase_mean_status,
-                "message": phase_mean_msg,
-            },
-            "std": {
-                "label": label_phase_std,
-                "status": phase_std_status,
-                "message": phase_std_msg,
-            },
-        }
-    return diagnosis
+def diag_local_energy(m):
+    ch = []
+    if not m["finite"]:
+        ch.append(_c("E_loc", "NaN/Inf", "error", "Energías locales no finitas"))
+    f = m["frac_5sigma"]
+    st = "warn" if f > TH["eloc_outliers"] else "ok"
+    ch.append(_c("E_loc > 5σ", f"{100 * f:.2f} %  (max {m['max_z']:.1f} σ)", st,
+                 "Colas pesadas: estimador ruidoso (nodos de ψ o muestras raras)" if st == "warn" else ""))
+    k = m["kurtosis"]
+    st = "warn" if math.isfinite(k) and k > TH["eloc_kurtosis"] else "ok"
+    ch.append(_c("Curtosis E_loc", _fmt(k, "{:.1f}"), st))
+    return {"checks": ch}
 
 
-diagnose_dict = {
-    "gradients": diagnose_gradients,
-    "sampling": diagnose_sampling,
-    "sample_histogram": diagnose_sample_histogram,
-    "phase": diagnose_phase,
+def diag_optimization(m):
+    ch = []
+    if not m["finite"]:
+        ch.append(_c("Parámetros / dp", "NaN/Inf", "error", "Parámetros o actualización no finitos"))
+    r = m["rel_step"]
+    if math.isfinite(r):
+        st = "error" if r > TH["rel_step_error"] else "warn" if r > TH["rel_step_warn"] else "ok"
+        ch.append(_c("|Δθ| / |θ| (paso aplicado)", _fmt(r, "{:.2e}"), st, {
+            "ok": "Tamaño relativo del último paso (lr, momentum y máscaras incluidos)",
+            "warn": "Pasos grandes: la red cambia mucho en cada paso (reducir lr)",
+            "error": "Paso enorme: los parámetros se reescriben en cada paso"}[st]))
+        ch.append(_c("lr efectivo |Δθ|/|dp|", _fmt(m["eta"], "{:.2e}"), "info",
+                     "Debe coincidir con el lr del schedule (salvo momentum o máscaras)"))
+    ch.append(_c("|dp| / |θ| (dirección SR)", f"{_fmt(m['dp'])} / {_fmt(m['theta'])} = {_fmt(m['rel'], '{:.2e}')}",
+                 "info", "Tamaño de la dirección SR antes del lr"))
+    if m.get("diag_shift") is not None:
+        ch.append(_c("diag_shift", _fmt(m["diag_shift"]), "info"))
+    mods = m["modules"]
+    key = "rel_step" if any(math.isfinite(x.get("rel_step", math.nan)) for x in mods) else "rel"
+    rels = sorted(x[key] for x in mods if math.isfinite(x.get(key, math.nan)) and x[key] > 0)
+    if len(rels) > 1:
+        med = rels[len(rels) // 2]
+        for x in mods:
+            v = x.get(key, math.nan)
+            if math.isfinite(v) and v > TH["module_rel_outlier"] * med:
+                ch.append(_c(f"Módulo {x['label']}", f"{v:.1e}", "warn",
+                             f"Se mueve {v / med:.0f}× más que la mediana de los módulos"))
+            if x.get("ss_dp", 1.0) == 0.0:
+                ch.append(_c(f"Módulo {x['label']}", "dp = 0", "info", "Congelado (modo del schedule)"))
+    return {"checks": ch, "modules": mods}
+
+
+def diag_gradients(m):
+    ch = []
+    d = m["dead"]
+    st = "error" if d > TH["dead_error"] else "warn" if d > TH["dead_warn"] else "ok"
+    ch.append(_c("Parámetros muertos", f"{100 * d:.1f} %", st,
+                 "Derivadas nulas en la submuestra: esos parámetros no aprenden" if st != "ok" else ""))
+    ch.append(_c("|O_re| / |O_im|", f"{_fmt(m['o_re'])} / {_fmt(m['o_im'])}", "info",
+                 "Sensibilidad media del módulo (Re) y de la fase (Im) de ψ"))
+    rf = m["ntk_rank_frac"]
+    st = "warn" if math.isfinite(rf) and rf < TH["ntk_rank_frac"] else "ok"
+    ch.append(_c("NTK: autovalores > diag_shift",
+                 f"{m['ntk_eff_rank']} de {2 * m['n_jacobian']}  (λ_max {_fmt(m['ntk_max'])})", st,
+                 "diag_shift domina casi todo el espectro: SR ≈ descenso de gradiente lento" if st == "warn" else
+                 "Direcciones que SR resuelve sin que domine la regularización"))
+    c = m["ntk_cond"]
+    st = "warn" if math.isfinite(c) and c > TH["ntk_cond"] else "ok"
+    ch.append(_c("λ_max / diag_shift", _fmt(c, "{:.1e}"), st,
+                 "Sistema muy mal condicionado" if st == "warn" else ""))
+    for x in m["modules"]:
+        if x.get("dead", 0) > TH["dead_warn"]:
+            ch.append(_c(f"Módulo {x['label']}", f"muertos {100 * x['dead']:.0f} %", "warn",
+                         "Módulo con muchas derivadas nulas"))
+    return {"checks": ch, "modules": m["modules"]}
+
+
+DIAGNOSE = {
+    "energy": diag_energy,
+    "sampling": diag_sampling,
+    "optimization": diag_optimization,
+    "gradients": diag_gradients,
+    "wavefunction": diag_wavefunction,
+    "local_energy": diag_local_energy,
+    "magnetization": diag_magnetization,
 }
 
 
 def diagnose_metrics(metrics):
-    """
-    Analiza métricas y devuelve diagnóstico automático.
-
-    Args:
-        metrics: Diccionario de métricas de gradient_metrics, samples_autocorrelation, phase_stats
-
-    Returns:
-        dict: Diagnóstico por categoría con status y mensaje
-    """
-
-    diagnosis = {}
-
-    for metric_type in metrics.keys():
-        if metric_type in diagnose_dict:
-            diag_func = diagnose_dict[metric_type]
-            diag_result = diag_func(metrics)
-            diagnosis[metric_type] = diag_result
-        else:
-            NotImplementedError(
-                f"Diagnosis for metric '{metric_type}' not implemented."
-            )
-
-    # 4. GENERAL STATUS
-    def recursive_extract_status(d):
-        """Extrae recursivamente los estados de un diccionario anidado."""
-        statuses = []
-        for key, value in d.items():
-            if isinstance(value, dict):
-                statuses.extend(recursive_extract_status(value))
-            elif key == "status":
-                statuses.append(d[key])
-        return statuses
-
-    statuses = recursive_extract_status(diagnosis)
-    overall_status = (
-        "🟢"
-        if all(s in ["🟢", "✅", "💚💚💚"] for s in statuses)
-        else "🟡" if "🔴" not in statuses else "🔴"
-    )
-
+    diagnosis = {name: DIAGNOSE[name](m) for name, m in metrics.items()}
+    worst = "ok"
+    for d in diagnosis.values():
+        for c in d["checks"]:
+            if c["status"] in ("warn", "error") and RANK[c["status"]] > RANK[worst]:
+                worst = c["status"]
     diagnosis["overall"] = {
-        "status": overall_status,
-        "message": (
-            "Simulación saludable"
-            if overall_status == "🟢"
-            else "Monitorear" if overall_status == "🟡" else "Intervenir"
-        ),
+        "status": worst,
+        "message": {"ok": "Simulación saludable", "warn": "Revisar los avisos",
+                    "error": "Problema serio: intervenir"}[worst],
     }
-
     return diagnosis
