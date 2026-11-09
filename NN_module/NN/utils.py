@@ -1,7 +1,9 @@
+import os
 import copy
 import json
 
 import flax.linen as nn
+import jax
 import numpy as np
 import jax.numpy as jnp
 import netket as nk
@@ -758,7 +760,12 @@ def greedy_transplant(old, new):
     mapping = []
 
     def compatible(x, y):
-        return x.shape == y.shape and x.dtype == y.dtype
+        # same shape and same kind (real/complex); the precision may differ
+        # (float64 checkpoint -> float32 network): set_subtree casts
+        return x.shape == y.shape and (
+            jnp.issubdtype(x.dtype, jnp.complexfloating)
+            == jnp.issubdtype(y.dtype, jnp.complexfloating)
+        )
 
     # 1. Same path
     new_by_path = {_strip_symm_labels(p1): (p1, y) for p1, y in flat_new}
@@ -789,8 +796,25 @@ def greedy_transplant(old, new):
 
 
 def load_pytree(path):
+    """
+    Restore a PyTree saved with orbax. Checkpoints written from sharded
+    arrays (e.g. 2 GPUs) keep their sharding in the metadata and cannot be
+    restored on a different set of devices (1 GPU, CPU): then every leaf is
+    restored as a host numpy array, which works on any device count.
+    """
     cp = ocp.PyTreeCheckpointer()
-    return cp.restore(path)
+    try:
+        return cp.restore(path)
+    except ValueError as err:
+        if "sharding" not in str(err).lower():
+            raise
+    meta = cp.metadata(path)
+    meta = getattr(meta, "item_metadata", meta)  # orbax >= 0.11: StepMetadata-like
+    meta = getattr(meta, "tree", meta)
+    restore_args = jax.tree_util.tree_map(
+        lambda _: ocp.RestoreArgs(restore_type=np.ndarray), meta
+    )
+    return cp.restore(path, restore_args=restore_args)
 
 
 def load_from_artifact(artifact_path, checkpoint=0, tag="parameters"):
@@ -807,7 +831,46 @@ def load_from_artifact(artifact_path, checkpoint=0, tag="parameters"):
     return data
 
 
+BEST_MODE_PREFERENCE = ("best", "best_energy", "best_vscore", "always")
+
+
+def resolve_best_orbax(path):
+    """
+    Folder with {parameters, sampler_state, metrics} inside a BestIterKeeper
+    '<sim>_best.orbax' tree:
+        <root>/<mode>[/stage<k>]            (current layout)
+        <root>/<mode>/stage<k>/<step>       (older runs)
+    Missing levels: the first mode of BEST_MODE_PREFERENCE present, the last
+    stage, the newest step.
+    """
+    path = path.rstrip("/")
+    root = path.partition("_best.orbax")[0] + "_best.orbax"
+
+    def subdirs(d):
+        return [x for x in os.listdir(d) if os.path.isdir(os.path.join(d, x))]
+
+    folder = path
+    if folder == root:
+        present = subdirs(root)
+        mode = next((m for m in BEST_MODE_PREFERENCE if m in present), None)
+        if mode is None:
+            raise FileNotFoundError(f"no keeper mode folder in {root}")
+        folder = os.path.join(root, mode)
+    while not os.path.isdir(os.path.join(folder, "parameters")):
+        sub = subdirs(folder)
+        stages = sorted((x for x in sub if x.startswith("stage")), key=lambda x: int(x[5:]))
+        steps = sorted((x for x in sub if x.isdigit()), key=int)
+        if not (stages or steps):
+            raise FileNotFoundError(f"no saved best state in {folder}")
+        folder = os.path.join(folder, (stages or steps)[-1])
+    print(f"load_from: best state {folder}")
+    return folder
+
+
 def load_from_file(path, checkpoint=0, tag="parameters"):
+
+    if "_best.orbax" in path:  # BestIterKeeper on-disk best
+        return load_pytree(os.path.join(resolve_best_orbax(path), tag))
 
     if ".json" in path:  # Best results
         data = load_from_artifact(path, checkpoint=checkpoint, tag=tag)

@@ -101,3 +101,15 @@ def test_resolve_load_path(tmp_path):
     assert resolve_load_path(str(tmp_path / "run" / "**" / "*old.json")) == str(old)
     with pytest.raises(FileNotFoundError):
         resolve_load_path(str(tmp_path / "empty*"))
+
+
+@pytest.mark.parametrize("token", [(1, 2), (2, 1)])
+@pytest.mark.parametrize("irrep", [(0, 0), (1, 3), (4, 4)])
+def test_non_square_tokens_full_momentum(token, irrep):
+    """Tokenize kept the lattice order for non-square tokens (regression)."""
+    m = model(token, irrep, coset=token)
+    x = configs()
+    params = m.init(jax.random.PRNGKey(0), x[..., 0])
+    for axis, n in ((1, irrep[0]), (2, irrep[1])):
+        ph = momentum_phases(m, params, x[..., 0], 1, axis)
+        assert same_phase(ph, n) or same_phase(ph, -n)

@@ -7,7 +7,8 @@ VMC simulation driven by 4 JSON files (order matters):
 For each size in config1 'sizes' and each point of the config1 '*_list'
 sweep: exact diagonalization (small systems), network + vstate, training
 over the schedule periods (with architecture changes between stages), and
-results of the best state kept by BestIterKeeper.
+results of the best state kept by BestIterKeeper (on disk with orbax, one
+best per mode and stage; the results use the primary mode, last stage).
 """
 
 import os
@@ -32,9 +33,10 @@ from CouplingModel import ModelFactory
 from NN_module.callback import BestIterKeeper, Callback, Checkpoint
 from NN_module.callback.utils import dump_callback
 from NN_module.display import display_simulation_settings
-from NN_module.exact_diagonalization import calc_exact_diag
-from NN_module.label_utils import make_labels, make_run_paths
+from NN_module.exact_diagonalization import calc_exact_diag, irrep_exact_diag, stage_sectors
+from NN_module.label_utils import arch_label, make_labels, make_run_paths
 from NN_module.NN.Hydra import Hydra
+from NN_module.NN.precision import set_matmul_precision, set_network_dtype, state_kwargs
 from NN_module.NN.utils import make_setup_serializable
 from NN_module.observables import measureNdump, phase_stats_vstate
 from NN_module.sampler.sampler import SamplerFactory, resolve_sampler_setup
@@ -124,16 +126,16 @@ def make_vstate(sampler, model, sampler_setup, n_samples, key):
     key_model, key_sampler = jax.random.split(key)
     return nk.vqs.MCState(
         sampler=sampler,
-        model=model,
         seed=key_model,
         sampler_seed=key_sampler,
         n_samples=n_samples,
         n_discard_per_chain=0,
         chunk_size=sampler_setup["chunk_vstate"],
+        **state_kwargs(model),  # model, or mixed precision (config0 network_dtype)
     )
 
 
-def build_callbacks(cfg, sim_config, H, N, ed, labels, paths, total_epochs):
+def build_callbacks(cfg, sim_config, H, N, ed, labels, paths, total_epochs, stage_epochs):
     callback_setup = cfg.sim["callback"]
     checkpoint = callback_setup["checkpoint"]
     callback_objects, callback_funcs = Callback(
@@ -145,6 +147,8 @@ def build_callbacks(cfg, sim_config, H, N, ed, labels, paths, total_epochs):
         E_ED=ed.E_global,
         x_ED=ed.x_ref,
         sim_label_folder=paths.write_folder + labels.sim if checkpoint else "",
+        stage_epochs=stage_epochs,
+        best_label_folder=paths.write_folder + labels.sim,
     )
 
     keeper = next((c for c in callback_objects if isinstance(c, BestIterKeeper)), None)
@@ -167,7 +171,7 @@ def print_period(i, total_periods, info, ds_info):
     print(f"Diagonal shift: {ds_info}\n")
 
 
-def train(cfg, hydra, vstate, H, schedule, ds_schedule, ds_info, callbacks, log, make_state):
+def train(cfg, hydra, vstate, H, schedule, ds_schedule, ds_info, callbacks, log, make_state, keeper):
     """
     Run every schedule period. At a stage change the architecture evolves
     (Hydra.arch_evol) and a new vstate receives the transplanted weights.
@@ -203,8 +207,38 @@ def train(cfg, hydra, vstate, H, schedule, ds_schedule, ds_info, callbacks, log,
             vstate = make_state(hydra.model, eon=schedule.eon)
             vstate.parameters = hydra.weight_transplantation(vstate.parameters)
             schedule.update_eon_code2path(hydra.get_code2path(vstate.parameters))
+            keeper.new_stage(schedule.eon)
 
+    keeper.finalize()
     return vstate, vmc_builder, time.time() - time_in
+
+
+def stage_ed_errors(summary, config_nn, hi, H, size, ed):
+    """
+    Add the ED energy of its sector and the relative error to the best of
+    each mode and stage (small systems only; the last stage uses `ed`).
+    """
+    if not ed.available:
+        return summary
+    sectors = stage_sectors(config_nn)
+    cache = {}
+    for entries in summary.values():
+        for e in entries:
+            symmetries, irrep = sectors[e["stage"]]
+            if not irrep:
+                E0 = ed.E_global
+            elif (symmetries, irrep) == (ed.symmetries, ed.irrep):
+                E0 = ed.E_irrep
+            else:
+                if (symmetries, irrep) not in cache:
+                    cache[(symmetries, irrep)] = float(
+                        irrep_exact_diag(hi, H, symmetries, irrep, size)[0]
+                    )
+                E0 = cache[(symmetries, irrep)]
+            e["sector"] = {"symmetries": list(symmetries), "irrep": list(irrep)}
+            e["E_ED"] = E0
+            e["error"] = abs(e["energy"] - E0) / abs(E0) if E0 else None
+    return summary
 
 
 # ============================================================
@@ -223,7 +257,10 @@ def run_point(cfg, size, hi, paths, model_factory, sampler_setup, n_samples, n_r
     ed = calc_exact_diag(hilbert=hi, hamiltonian=H, config_nn=cfg.nn, lattice_size=size)
     ed.report()
 
-    labels = make_labels(cm_setup, cfg.nn_name, paths.uuid)
+    arch = arch_label(cfg.nn_evol_setup)
+    if cfg.sim.get("network_dtype", "float64") != "float64":
+        arch += "_" + cfg.sim["network_dtype"].replace("float", "f")
+    labels = make_labels(cm_setup, cfg.nn_name, paths.uuid, arch=arch)
 
     #### NETWORK, SAMPLER, VSTATE ####
     hydra = Hydra(cfg.nn, lattice_size=size, hilbert=hi)
@@ -273,15 +310,17 @@ def run_point(cfg, size, hi, paths, model_factory, sampler_setup, n_samples, n_r
 
     #### TRAINING ####
     keeper, checkpointer, callbacks = build_callbacks(
-        cfg, sim_config, H, N, ed, labels, paths, schedule.total_epochs
+        cfg, sim_config, H, N, ed, labels, paths, schedule.total_epochs,
+        schedule.stage_epochs,
     )
     log = nk.logging.RuntimeLog()
     vstate, vmc_builder, time_exe = train(
-        cfg, hydra, vstate, H, schedule, ds_schedule, ds_info, callbacks, log, make_state
+        cfg, hydra, vstate, H, schedule, ds_schedule, ds_info, callbacks, log,
+        make_state, keeper,
     )
 
-    #### RESULTS OF THE BEST STATE ####
-    vstate = keeper.best_state
+    #### RESULTS OF THE BEST STATE (primary mode, last stage) ####
+    vstate = keeper.restore(vstate)
     eon, _, _ = schedule.locate_period(keeper.best_step)
     sim_config["NN"] = {
         "name": cfg.nn_name + f"_stage{eon}",
@@ -313,6 +352,10 @@ def run_point(cfg, size, hi, paths, model_factory, sampler_setup, n_samples, n_r
     results["seed"] = seed
     results["mssg"] = keeper.exit_msg
     results["schedule_flat"] = schedule_flat
+    results["keeper"] = {
+        "primary": keeper.primary,
+        "bests": stage_ed_errors(keeper.summary(), cfg.nn, hi, H, size, ed),
+    }
 
     sim_config["SIM"]["sampler"]["nsamples"] = n_samples
     sim_config["SIM"]["sampler"]["final_rng"] = jax.random.key_data(
@@ -331,6 +374,8 @@ def run_point(cfg, size, hi, paths, model_factory, sampler_setup, n_samples, n_r
     }
     if checkpointer is not None:
         dump_setup["_artifacts"]["checkpoint"] = checkpointer.checkpoint_path
+    if keeper.orbax_path is not None:
+        dump_setup["_artifacts"]["best"] = keeper.orbax_path
     dump_setup = make_setup_serializable(dump_setup)
 
     # The UUID folder holds the whole sweep: its legend describes the sweep
@@ -375,6 +420,9 @@ def main():
 
     args = parse_args()
     cfg = load_configs(args.config or DEFAULT_CONFIGS)
+    # float64 unless config0 "network_dtype" says otherwise (see NN.precision)
+    set_network_dtype(cfg.sim.get("network_dtype", "float64"))
+    set_matmul_precision(cfg.sim.get("matmul_precision", "default"))
 
     sampler_setup = resolve_sampler_setup(cfg.sim["sampler"], verbose=True)
     n_ranks = jax.device_count()

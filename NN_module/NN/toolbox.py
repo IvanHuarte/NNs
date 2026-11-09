@@ -208,23 +208,24 @@ class DepthwiseConv(nn.Module):
     strides: tuple = (1, 1)
     use_bias: bool = False
     mask: jnp.ndarray | None = None
-    dtype: Dtype = REAL_DTYPE
-    param_dtype: Dtype = REAL_DTYPE
+    dtype: Dtype | None = None  # None: REAL_DTYPE at call time (see NN.precision)
+    param_dtype: Dtype | None = None
     kernel_init: Initializer = nn.linear.default_kernel_init
     bias_init: Initializer = nn.initializers.zeros_init()
 
     @nn.compact
     def __call__(self, x: jt.ArrayLike) -> jt.ArrayLike:
         C = x.shape[-1]
+        param_dtype = self.param_dtype or REAL_DTYPE
         kernel = self.param(
-            "kernel", self.kernel_init, (*self.kernel_size, 1, C), self.param_dtype
+            "kernel", self.kernel_init, (*self.kernel_size, 1, C), param_dtype
         )
         bias = (
-            self.param("bias", self.bias_init, (C,), self.param_dtype)
+            self.param("bias", self.bias_init, (C,), param_dtype)
             if self.use_bias
             else None
         )
-        x, kernel, bias = promote_dtype(x, kernel, bias, dtype=self.dtype)
+        x, kernel, bias = promote_dtype(x, kernel, bias, dtype=self.dtype or REAL_DTYPE)
         y = depthwise_conv_circular(x, kernel, self.strides, self.mask)
         return y + bias if bias is not None else y
 

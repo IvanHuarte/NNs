@@ -31,6 +31,8 @@ def Callback(
     error_prev=None,
     sim_label_folder=None,
     sim_folder=None,
+    stage_epochs=None,
+    best_label_folder=None,
 ):
 
     callback_funcs = []
@@ -40,12 +42,23 @@ def Callback(
         assert all([variable is not None for variable in [total_epochs, H, N]])
         print("Adding BestIterKeeper")
 
+        ks = config["keeper_setup"]
+        # On-disk bests (orbax) unless keeper_setup "orbax": false
+        orbax_path = None
+        if ks.get("orbax", True) and best_label_folder:
+            orbax_path = best_label_folder + "_best.orbax"
         keeper = BestIterKeeper(
             total_epochs,
             H,
             N,
-            baseline=config["keeper_setup"]["baseline"],
-            mode=config["keeper_setup"]["mode"],
+            baseline=ks["baseline"],
+            mode=ks["mode"],
+            orbax_path=orbax_path,
+            save_every=ks.get("save_every", 50),
+            start_fraction=ks.get("start_fraction", 0.1),
+            vscore_max=ks.get("vscore_max", 0.05),
+            best_setup=ks.get("best_setup"),
+            stage_epochs=stage_epochs,
         )
         callback_objects.append(keeper)
         callback_funcs.append(keeper.update)

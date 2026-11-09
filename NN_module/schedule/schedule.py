@@ -43,6 +43,11 @@ class Schedule:
         )
         self.total_epochs = int(flat_epochs.sum())
         self.total_periods = flat_epochs.shape[0]
+        # Epochs of each eon (Hydra stage)
+        self.stage_epochs = [
+            int(sum(period for era in eon for period in era))
+            for eon in self.epochs_struct
+        ]
 
     def update_eon_code2path(self, code2path):
         """
@@ -172,17 +177,40 @@ class Schedule:
         """
         flat_periods = self.flat_setup()["epochs"]
 
-        main_ds_array = period_from_string(self.total_epochs, self.ds_setup)
-        schedule_func = self.ds_setup.split("(")[0]
+        # One string for the whole run, or a list with one string per eon
+        # (each eon restarts its own diag_shift curve)
+        if isinstance(self.ds_setup, str):
+            main_ds_array = period_from_string(self.total_epochs, self.ds_setup)
+            funcs = [self.ds_setup.split("(")[0]] * len(self.stage_epochs)
+        else:
+            if len(self.ds_setup) != len(self.stage_epochs):
+                raise ValueError(
+                    f"diag_shift has {len(self.ds_setup)} entries for "
+                    f"{len(self.stage_epochs)} eons"
+                )
+            main_ds_array = jnp.concatenate(
+                [
+                    jnp.atleast_1d(period_from_string(n, ds))
+                    for n, ds in zip(self.stage_epochs, self.ds_setup)
+                ]
+            )
+            funcs = [ds.split("(")[0] for ds in self.ds_setup]
+
+        eon_of_period = [
+            i_eon
+            for i_eon, eon in enumerate(self.epochs_struct)
+            for era in eon
+            for _ in era
+        ]
 
         ds_periods = []
         ds_periods_info = []
         start = 0
-        for n in flat_periods:
+        for n, i_eon in zip(flat_periods, eon_of_period):
             period = main_ds_array[start : start + n]
             ds_periods.append(schedule_from_array(period))
             ds_periods_info.append(
-                schedule_func + f"({float(period[0]):.4f}, {float(period[-1]):.4f})"
+                funcs[i_eon] + f"({float(period[0]):.4f}, {float(period[-1]):.4f})"
             )
             start += n
 

@@ -68,8 +68,7 @@ def test_callbacks_use_log_data_energy(tmp_path, monkeypatch, mode):
 
     monkeypatch.setattr(type(vstate), "expect", counting_expect)
 
-    keeper = BestIterKeeper(N_STEPS, H, N, mode=mode)
-    keeper.step_threshold = -1  # consider every step
+    keeper = BestIterKeeper(N_STEPS, H, N, mode=mode, start_fraction=-1.0)
     plotter = EnergyPlotter(H, N, E_ED=-10.0)
     ckpt = Checkpoint(H, str(tmp_path / "sim"), {"do_each": 1, "async": False})
     rec = EnergyRecorder()
@@ -81,6 +80,8 @@ def test_callbacks_use_log_data_energy(tmp_path, monkeypatch, mode):
         show_progress=False,
     )
     ckpt.wait()
+    keeper.finalize()
+    keeper.restore(vstate)
 
     assert calls == [], f"callbacks called vstate.expect {len(calls)} times"
     assert len(rec.energies) == N_STEPS

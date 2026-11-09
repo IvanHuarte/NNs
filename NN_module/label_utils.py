@@ -2,9 +2,16 @@
 Folder layout and file labels of a simulation.
 
     <write_folder_sim>/<CM>/<NN>_<template>/Size_<Lx>x<Ly>/<schedule>/UUID_<uuid>/
-        <CM>_<NN>_simulation_<Lx>x<Ly><cparams>_date_<date>_UUID_<uuid>...   (sim)
-        <CM>_<NN>_xED_<Lx>x<Ly><cparams>_date_<date>_UUID_<uuid>...          (ED)
-        <CM>_<NN>_results_<Lx>x<Ly><cparams>_date_<date>_UUID_<uuid>.json    (json)
+        <CM>_<NN>_<arch>_simulation_<Lx>x<Ly><cparams>_date_<date>_UUID_<uuid>...  (sim)
+        <CM>_<NN>_<arch>_xED_<Lx>x<Ly><cparams>_date_<date>_UUID_<uuid>...         (ED)
+        <CM>_<NN>_<arch>_results_<Lx>x<Ly><cparams>_date_<date>_UUID_<uuid>.json   (json)
+
+<NN> is the Hydra selection, named <Module><Head><irrep> (e.g. CvT3OH221,
+see experiment_name). <arch> (arch_label) is the architecture: flux and
+single modules of the template, without their attributes, e.g.
+
+    Sequivariant_CvT3-OutputHead
+    Sequential_CvT3-OutputHead+Sequivariant_CvT3-OutputHead   (stages)
 
 One UUID folder per size: it holds every point of a config1 '*_list' sweep,
 told apart by <cparams>. Analysis scripts glob '*_results_*.json' inside
@@ -145,18 +152,84 @@ class SimLabels:
         return self.title.replace("Callback", "").lstrip().replace(" ", "\\quad")
 
 
-def make_labels(cm_setup, nn_name, sim_uuid, date=None):
+# ============================================================
+# Architecture label and experiment names
+# ============================================================
+
+HEAD_ABBR = {
+    "OutputHead": "OH",
+    "DeepOutputHead": "DOH",
+    "ComplexHead": "CH",
+    "SzaboOutput": "SzO",
+}
+# Flux modules (NN/NN/FluxModules): they route other modules
+FLUX_MODULES = ("Sequential", "Sequivariant", "SingleModule", "SplitTraining", "Transversal")
+
+
+def irrep_code(irrep, z2=None):
+    """
+    Digits of the sector: momentum (n_y, n_x) and Z2 (0 even, 1 odd).
+    Indices >= 10 are separated with dots: (10, 0, 1) -> '10.0.1'.
+    """
+    vals = [int(v) for v in irrep] + ([] if z2 is None else [int(z2)])
+    sep = "." if any(v >= 10 for v in vals) else ""
+    return sep.join(map(str, vals))
+
+
+def z2_sector(symm_wrapper):
+    """Z2 sector of a symm_wrapper config: 0 even (or Z2 off), 1 odd."""
+    z2 = (symm_wrapper or {}).get("Z2", {})
+    return 0 if not z2.get("on") or z2.get("trivial_Z2", True) else 1
+
+
+def experiment_name(module, head, irrep, z2=0, suffix=""):
+    """Hydra selection name <Module><Head><irrep>: ('CvT3', 'OutputHead', (2, 2), 1) -> 'CvT3OH221'."""
+    return f"{module}{HEAD_ABBR.get(head, head)}{irrep_code(irrep, z2)}{suffix}"
+
+
+def _template_label(name, node, nested=False):
+    """
+    'Flux_child1-child2' for a flux module, the class name for a single
+    module. Only class names: attributes (irrep, coset, sizes...) are left
+    out. A nested flux with siblings is written in parentheses.
+    """
+    children = [(k, v) for k, v in node.items() if isinstance(v, dict)] if isinstance(node, dict) else []
+    if name not in FLUX_MODULES or not children:
+        return name
+    parts = [_template_label(k, v, nested=len(children) > 1) for k, v in children]
+    label = f"{name}_" + "-".join(parts)
+    return f"({label})" if nested else label
+
+
+def arch_label(nn_evol_setup):
+    """
+    Architecture of a Hydra evolution (config2 selection entry): flux and
+    single modules of each stage template, e.g. 'Sequivariant_CvT3-OutputHead'.
+    Stages that change the architecture are appended with '+'.
+    """
+    labels = []
+    for stage in sorted(nn_evol_setup, key=lambda k: int(k[5:])):
+        template = nn_evol_setup[stage]["template"]
+        lab = "+".join(_template_label(k, v) for k, v in template.items())
+        if not labels or lab != labels[-1]:
+            labels.append(lab)
+    return "+".join(labels)
+
+
+def make_labels(cm_setup, nn_name, sim_uuid, date=None, arch=None):
     """Build the labels of a simulation point. Call it once per point."""
     date = date or datetime.now().strftime(DATE_FORMAT)
     model_label = cm_setup["name"] + "_" + nn_name
+    # files of the network carry the architecture; ED vectors and plot titles do not
+    net_label = model_label + (f"_{arch}" if arch else "")
     size = f"{cm_setup['size'][0]}x{cm_setup['size'][1]}"
     cparams, title_params = cm_label(cm_setup)
     tail = f"{cparams}_date_{date}_UUID_{sim_uuid}"
 
     return SimLabels(
-        sim=f"{model_label}_simulation_{size}{tail}",
+        sim=f"{net_label}_simulation_{size}{tail}",
         ED=f"{model_label}_xED_{size}{tail}",
-        json=f"{model_label}_results_{size}{tail}",
+        json=f"{net_label}_results_{size}{tail}",
         title=f"Callback  {model_label}  {title_params}  ({size})",
     )
 

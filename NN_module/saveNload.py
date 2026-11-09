@@ -30,8 +30,25 @@ def save_pytree(path, pytree):
 
 
 def load_pytree(path):
+    """
+    Restore a PyTree saved with orbax. Checkpoints written from sharded
+    arrays (e.g. 2 GPUs) keep their sharding in the metadata and cannot be
+    restored on a different set of devices (1 GPU, CPU): then every leaf is
+    restored as a host numpy array, which works on any device count.
+    """
     cp = ocp.PyTreeCheckpointer()
-    return cp.restore(path)
+    try:
+        return cp.restore(path)
+    except ValueError as err:
+        if "sharding" not in str(err).lower():
+            raise
+    meta = cp.metadata(path)
+    meta = getattr(meta, "item_metadata", meta)  # orbax >= 0.11: StepMetadata-like
+    meta = getattr(meta, "tree", meta)
+    restore_args = jax.tree_util.tree_map(
+        lambda _: ocp.RestoreArgs(restore_type=np.ndarray), meta
+    )
+    return cp.restore(path, restore_args=restore_args)
 
 
 def save_results(
@@ -151,7 +168,10 @@ def print_tree_keys(obj, indent=0):
 
 def load_vstate(artifact, params_path=None, sampler_path=None, tree_data=False):
 
-    # Initialize model
+    # Initialize model (in the precision it was trained with)
+    from .NN.precision import set_network_dtype
+
+    set_network_dtype(artifact["SIM"].get("network_dtype", "float64"))
     size = artifact["CM"]["size"]
     N = int(np.prod(size))
     cm_model = ModelFactory.init(artifact["CM"]).get_model()

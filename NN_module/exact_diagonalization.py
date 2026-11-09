@@ -1,3 +1,4 @@
+import copy
 from dataclasses import dataclass
 
 import numpy as np
@@ -70,13 +71,25 @@ def recursive_value_from_key(tree, key):
     return None
 
 
-def check_irreps(config_nn):
+def stage_sectors(config_nn):
+    """
+    (symmetries, irrep) of every stage of the selected Hydra evolution,
+    applying the stage 'symm_wrapper' overrides cumulatively (as Hydra does).
+    """
+    experiment_selection = config_nn["selection"]
+    evolution = config_nn[experiment_selection]
+    symm_wrapper = copy.deepcopy(config_nn["symm_wrapper"])
+    sectors = []
+    for stage in sorted(evolution, key=lambda k: int(k[5:])):
+        for name, opts in evolution[stage].get("symm_wrapper", {}).items():
+            symm_wrapper.setdefault(name, {}).update(opts)
+        sectors.append(_sector(evolution[stage]["template"], symm_wrapper))
+    return sectors
+
+
+def _sector(main_arch, symm_wrapper):
     symmetries = []
     irrep = []
-
-    experiment_selection = config_nn["selection"]
-    symm_wrapper = config_nn["symm_wrapper"]
-    main_arch = config_nn[experiment_selection]["stage0"]["template"]
 
     # Traslation symmetrization
     if symm_wrapper["Traslation"]["on"]:
@@ -93,9 +106,12 @@ def check_irreps(config_nn):
         irrep.append(irr)
         symmetries.append("Z2")
 
-    # print(symmetries, irrep)
-
     return tuple(symmetries), tuple(irrep)
+
+
+def check_irreps(config_nn, stage=-1):
+    """Sector of one stage (default: the last one, whose best state is reported)."""
+    return stage_sectors(config_nn)[stage]
 
 
 def _translation_perm(all_states, hilbert, lattice_size, axis):
@@ -181,10 +197,11 @@ def irrep_exact_diag(hilbert, hamiltonian, symmetries, irrep, lattice_size, tol=
     return E_gr_irrep, x_ED
 
 
-def calc_exact_diag(hilbert, hamiltonian, config_nn, lattice_size) -> EDResult:
+def calc_exact_diag(hilbert, hamiltonian, config_nn, lattice_size, stage=-1) -> EDResult:
+    """ED reference of one stage sector (default: the last stage)."""
 
     N = int(np.prod(lattice_size))
-    symmetries, irrep = check_irreps(config_nn)
+    symmetries, irrep = check_irreps(config_nn, stage)
 
     if N < 21:
         print("Running exact diagonalization...")

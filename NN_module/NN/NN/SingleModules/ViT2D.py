@@ -23,15 +23,19 @@ DTYPE = jnp.float64
 
 
 def Tokenize(token_size, tok_lat_size, token_dim):
+    # x (B, H, W) -> (B, H/ty, ty, W/tx, tx) -> (B, H/ty, W/tx, ty*tx).
+    # The former order (tl[1], ts[1], tl[0], ts[0]) is the same for square
+    # tokens on square lattices but scrambled the lattice for non-square
+    # tokens (e.g. (1, 2)): the state was not translation invariant.
     def nruter(x):
         return (
             x.reshape(
                 (
                     x.shape[0],
-                    tok_lat_size[1],
-                    token_size[1],
                     tok_lat_size[0],
                     token_size[0],
+                    tok_lat_size[1],
+                    token_size[1],
                 ),
                 order="C",
             )
@@ -185,6 +189,7 @@ class ViT2D(nn.Module):
     @nn.compact
     def __call__(self, x):
         B = x.shape[0]
+        x = x.astype(DTYPE)  # spins come as float64 (see NN.precision)
 
         token_dim = self.token_size[0] * self.token_size[1]
         token_lattice_size = (

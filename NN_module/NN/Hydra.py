@@ -32,8 +32,20 @@ def resolve_load_path(path):
     """
     if not (os.path.isdir(path) or any(c in path for c in "*?[")):
         return path
+    if path.rstrip("/").endswith("_best.orbax") or "_best.orbax/" in path:
+        return path  # explicit on-disk best (BestIterKeeper)
     pattern = os.path.join(path, "**", "*results*.json") if os.path.isdir(path) else path
     matches = sorted(glob.glob(pattern, recursive=True), key=os.path.getmtime)
+    if not matches and os.path.isdir(path):
+        # The source run did not finish (killed, crashed, still running):
+        # fall back to the bests BestIterKeeper wrote along the run.
+        bests = sorted(
+            glob.glob(os.path.join(path, "**", "*_best.orbax"), recursive=True),
+            key=os.path.getmtime,
+        )
+        if bests:
+            print(f"load_from: {path} has no results json, using {bests[-1]}")
+            return bests[-1]
     if not matches:
         raise FileNotFoundError(f"load_from: no results json matches {pattern}")
     print(f"load_from: {path} -> {matches[-1]}")
@@ -348,6 +360,8 @@ class Hydra(NeuralNetwork):
                 new_abs = new_path_block + new_rel
 
                 val = get_subtree(old_params, old_abs)
+                target = get_subtree(new_params, new_abs)
+                val = jnp.asarray(val, dtype=target.dtype)  # precision of the new network
                 moved += val.size
                 new_params = set_subtree(new_params, new_abs, val)
 
@@ -384,7 +398,7 @@ class Hydra(NeuralNetwork):
                 any(
                     [
                         tag in path
-                        for tag in ["checkpoint", ".json", "parameters", "vstate"]
+                        for tag in ["checkpoint", ".json", "parameters", "vstate", "_best.orbax"]
                     ]
                 )
                 for path in paths

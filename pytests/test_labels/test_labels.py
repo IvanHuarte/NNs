@@ -6,6 +6,7 @@ Run (CPU is enough):
 """
 
 import json
+import re
 import os
 import sys
 from types import SimpleNamespace
@@ -240,3 +241,52 @@ def test_checkpoint_callback(legacy_units):
 
     fig, ax = checkpoint_callback(None, steps, energy, [1, 1, 1, 1])
     assert len(ax) == 2
+
+
+# ------------------------------------------------------------------
+# Architecture label and experiment names
+# ------------------------------------------------------------------
+
+from NN_module.label_utils import arch_label, experiment_name, irrep_code
+
+def tpl(net, irrep, coset=(2, 2), **net_kw):
+    return {"Sequivariant": {net: dict(net_kw), "OutputHead": {}, "irrep": list(irrep),
+                             "phase_mode": "angle", "coset": list(coset)}}
+
+
+def test_experiment_name():
+    assert experiment_name("CvT3", "OutputHead", (2, 2), 1) == "CvT3OH221"
+    assert experiment_name("ViT2D", "OutputHead", (0, 0), 0, "b") == "ViT2DOH000b"
+    assert irrep_code((10, 0), 1) == "10.0.1"
+
+
+def test_arch_label_single_stage():
+    evo = {"stage0": {"template": tpl("CvT3", (4, 4), kernel=[[3, 3], [3, 3]])}}
+    # class names only: no irrep, coset or hyperparameters
+    assert arch_label(evo) == "Sequivariant_CvT3-OutputHead"
+
+
+def test_arch_label_irrep_chain():
+    evo = {
+        "stage0": {"template": tpl("ViT2D", (0, 0))},
+        "stage1": {"template": tpl("ViT2D", (4, 4)), "symm_wrapper": {"Z2": {"trivial_Z2": False}}},
+        "stage2": {"template": {"Sequential": {"ViT2D": {}, "OutputHead": {}}}},
+    }
+    # repeated architectures are written once
+    assert arch_label(evo) == "Sequivariant_ViT2D-OutputHead+Sequential_ViT2D-OutputHead"
+
+
+def test_arch_label_nested_flux():
+    evo = {"stage0": {"template": {"Sequential": {
+        "Transversal": {"CNN": {}, "MLP": {}}, "OutputHead": {}}}}}
+    assert arch_label(evo) == "Sequential_(Transversal_CNN-MLP)-OutputHead"
+
+
+def test_make_labels_with_arch():
+    lab = make_labels(CM_SETUPS[0], "CvT3OH000", UUID, date=DATE, arch="CvT3-x_OH_k000")
+    assert lab.sim.startswith("J1J2Square_CvT3OH000_CvT3-x_OH_k000_simulation_4x4_")
+    assert lab.json.startswith("J1J2Square_CvT3OH000_CvT3-x_OH_k000_results_4x4_")
+    assert lab.ED.startswith("J1J2Square_CvT3OH000_xED_4x4_")
+    J1, J2 = re.search(r"_J1J2_([0-9\.]+_[0-9\.]+)_", lab.json).group(1).split("_")
+    assert (J1, J2) == ("1.0", "0.5")
+    assert make_labels(CM_SETUPS[0], "N", UUID, DATE) == make_labels(CM_SETUPS[0], "N", UUID, DATE, arch=None)
