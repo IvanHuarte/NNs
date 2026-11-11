@@ -25,6 +25,8 @@ from .SingleModules import (
     FinalFF,
     Mean,
     OutputHead,
+    PCvT,
+    SiteHead,
     Sum,
     SzaboOutput,
     ViT2D,

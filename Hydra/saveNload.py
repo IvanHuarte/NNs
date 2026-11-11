@@ -14,6 +14,7 @@ from netket.sampler.metropolis import MetropolisSamplerState
 from CouplingModel import ModelFactory
 
 from .NN.NeuralNetwork import NeuralNetwork
+from .NN.utils import load_pytree
 from .sampler.sampler import SamplerFactory
 
 
@@ -27,28 +28,6 @@ def save_pytree(path, pytree):
     cp = ocp.PyTreeCheckpointer()
     jax.tree_util.tree_map(lambda x: jax.block_until_ready(x), pytree)
     cp.save(path, pytree)
-
-
-def load_pytree(path):
-    """
-    Restore a PyTree saved with orbax. Checkpoints written from sharded
-    arrays (e.g. 2 GPUs) keep their sharding in the metadata and cannot be
-    restored on a different set of devices (1 GPU, CPU): then every leaf is
-    restored as a host numpy array, which works on any device count.
-    """
-    cp = ocp.PyTreeCheckpointer()
-    try:
-        return cp.restore(path)
-    except ValueError as err:
-        if "sharding" not in str(err).lower():
-            raise
-    meta = cp.metadata(path)
-    meta = getattr(meta, "item_metadata", meta)  # orbax >= 0.11: StepMetadata-like
-    meta = getattr(meta, "tree", meta)
-    restore_args = jax.tree_util.tree_map(
-        lambda _: ocp.RestoreArgs(restore_type=np.ndarray), meta
-    )
-    return cp.restore(path, restore_args=restore_args)
 
 
 def save_results(

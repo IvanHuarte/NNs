@@ -89,7 +89,10 @@ def test_bad_phase_mode():
 
 def test_resolve_load_path(tmp_path):
     f = tmp_path / "a.json"
-    assert resolve_load_path(str(f)) == str(f)  # plain paths untouched
+    with pytest.raises(FileNotFoundError):  # e.g. a source run that lives on another machine
+        resolve_load_path(str(f))
+    f.write_text("{}")
+    assert resolve_load_path(str(f)) == str(f)  # existing plain paths untouched
     d = tmp_path / "run" / "x" / "UUID_1"
     d.mkdir(parents=True)
     old, new = d / "M_results_old.json", d / "M_results_new.json"

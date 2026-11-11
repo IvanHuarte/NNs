@@ -31,6 +31,8 @@ def resolve_load_path(path):
     from a ground state still to be computed) point to a write folder.
     """
     if not (os.path.isdir(path) or any(c in path for c in "*?[")):
+        if not os.path.exists(path):
+            raise FileNotFoundError(f"load_from: {path} does not exist on this machine")
         return path
     if path.rstrip("/").endswith("_best.orbax") or "_best.orbax/" in path:
         return path  # explicit on-disk best (BestIterKeeper)

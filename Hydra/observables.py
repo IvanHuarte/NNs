@@ -256,6 +256,10 @@ def modphase_extended(mod, phase, no_null_mod=True, sigmas=1):
     else:
         phase_hist = phase
 
+    if phase_hist.size == 0:  # NaN (diverged) or null state: no histogram, keep the results json
+        stats["peaks"] = None
+        return np.array([mod, phase]).squeeze(), stats
+
     counts, values = jnp.histogram(phase_hist, bins=1000000)
     nonzero_mask = jnp.where(counts != 0.0)[0]
     nonzero_counts, nonzero_values = counts[nonzero_mask], values[nonzero_mask]

@@ -17,7 +17,11 @@ en el código; el resto son limitaciones conocidas.
 | Energía muy por encima de lo esperado con red float32 | TF32 o inicialización float32 | **[corregido]** `matmul_precision: "highest"` por defecto e inicialización idéntica a float64. Trabajos `_f32` anteriores al 9-nov-2026 deben repetirse |
 | Error al cargar en CPU/1 GPU un estado de 2 GPUs | Sharding guardado | **[corregido]** se restaura como arrays numpy |
 | ViT2D con tokens no cuadrados no da autoestados de momento | Reordenado de tokens | **[corregido]** |
-| Colapso de la energía con diag_shift ~1e-4 (Z2 sin coset) | Inestabilidad del SR | Suelo de diag_shift ≥ 1e-3 sin coset |
+| Colapso de la energía cuando diag_shift llega a ~1e-4 con lr alto (también con coset, f32 en 8x8 y 10x10) | Inestabilidad del SR | Mantener diag_shift ≥ 1e-3 mientras el lr es alto; bajar a 1e-4 sólo con lr decreciente. En cadenas, el keeper recupera el mejor estado si el stage termina inestable **[corregido]** |
+| `_best.orbax` con estados NaN, `best_vscore` con E > 0 o `best_energy` con E ~ −1e60 (resultados anteriores al 11-nov-2026) | El keeper aceptaba estados no físicos | **[corregido]** sólo se aceptan estados finitos con \|E\| ≤ Σ‖h_k‖, y `best_vscore` se limita a energías cercanas a la mínima. En resultados antiguos use `best` o compare con la traza |
+| Cadena que termina en NaN sin JSON de resultados (`zero-size array … min` en `modphase`) | Histograma de fases de un estado NaN | **[corregido]** |
+| Cargar un `_best.orbax` o un JSON copiado desde otro clúster falla | Ruta relativa (orbax exige absolutas) o rutas `_artifacts` del clúster | **[corregido]** se usa la ruta absoluta y, si la del JSON no existe, el artefacto junto al JSON |
+| `FileNotFoundError: load_from: … does not exist on this machine` | La simulación origen está en otro clúster | Copiarla a la misma ruta en esa máquina |
 
 ## 11.2 Limitaciones y código a revisar
 

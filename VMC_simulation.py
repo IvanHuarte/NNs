@@ -221,7 +221,10 @@ def train(cfg, hydra, vstate, H, schedule, ds_schedule, ds_info, callbacks, log,
         if change:
             print("Changing Architecture")
             schedule.eon += 1
-            hydra.arch_evol(vstate.parameters)  # n_stage + 1
+            # final state, or the stage best if the stage ended unstable
+            keeper = next((c for c in callback_objects if hasattr(c, "stage_end_params")), None)
+            params = keeper.stage_end_params(vstate) if keeper else vstate.parameters
+            hydra.arch_evol(params)  # n_stage + 1
             vstate = make_state(hydra.model, eon=schedule.eon)
             vstate.parameters = hydra.weight_transplantation(vstate.parameters)
             schedule.update_eon_code2path(hydra.get_code2path(vstate.parameters))

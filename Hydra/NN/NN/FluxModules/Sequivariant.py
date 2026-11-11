@@ -1,4 +1,5 @@
 import flax.linen as nn
+import jax
 import jax.numpy as jnp
 from netket.jax import logsumexp_cplx
 
@@ -33,7 +34,7 @@ def get_characters(
     return characters
 
 
-PHASE_MODES = ("angle", "log")
+PHASE_MODES = ("angle", "log", "site")
 
 
 class Sequivariant(nn.Module):
@@ -51,6 +52,14 @@ class Sequivariant(nn.Module):
                           psi vanishes continuously at z = 0 and |psi|^2
                           cancels the 1/|z|^2 of the log-derivatives.
                           Same parameters as "angle" (checkpoints compatible).
+        "site"            the head returns one complex log-amplitude per
+                          site of the output grid, F (B, H, W) (SiteHead), and
+                              psi = sum_r chi_k(r) exp(F_r),
+                          the exact projection of an unconstrained state:
+                          smooth for every irrep (also the real ones, where
+                          arg(z) is a frozen sign), and psi vanishes by
+                          cancellation on the configurations forbidden by
+                          symmetry, also in float32. Channel 0 is not used.
 
     coset: (sy, sx) or None
         A backbone with stride/tokens (sy, sx) is only equivariant under
@@ -95,6 +104,9 @@ class Sequivariant(nn.Module):
 
         _, H, W, _ = x.shape
 
+        if self.phase_mode == "site":
+            return self._project_sites(self.SeqV[-1](x), (H, W))
+
         characters = get_characters((H, W), self.irrep)  # (B, H, W)
 
         # Get Theta_K
@@ -129,6 +141,26 @@ class Sequivariant(nn.Module):
         # print("\n")
 
         return log_psi_k
+
+
+    def _project_sites(self, F: jnp.ndarray, grid: tuple[int, int]) -> jnp.ndarray:
+        """log sum_r chi_k(r) exp(F_r) for per-site log-amplitudes F (B, H, W)."""
+        if F.shape[1:] != grid:
+            raise ValueError(
+                f'phase_mode="site" needs a head returning one value per site '
+                f"{grid} (e.g. SiteHead), got shape {F.shape}"
+            )
+        F = F.astype(jnp.complex128).reshape(F.shape[0], -1)  # (B, N)
+        chi = get_characters(grid, self.irrep).reshape(1, -1)
+
+        shift = jnp.max(F.real, axis=1, keepdims=True)  # log-sum-exp shift
+        shift = jax.lax.stop_gradient(shift)
+        s = (chi * jnp.exp(F - shift)).sum(axis=1, keepdims=True)  # |s| <= N
+        # s = 0 (up to rounding): configuration forbidden by symmetry
+        null = jnp.abs(s) < self.eps
+        log_psi_k = shift + jnp.log(jnp.where(null, 1.0 + 0j, s))
+        min_infinity = jnp.finfo(jnp.float64).min + 0j
+        return jnp.where(null, min_infinity, log_psi_k)
 
 
 class SequivariantX(nn.Module):

@@ -49,6 +49,7 @@ _MODULES = {
     "Hydra.NN.toolbox": ("REAL_DTYPE",),
     "Hydra.NN.NN.SingleModules.ViT2D": ("DTYPE",),
     "Hydra.NN.NN.SingleModules.CvT3": ("DTYPE",),
+    "Hydra.NN.NN.SingleModules.PCvT": ("DTYPE",),
     "Hydra.NN.NN.SingleModules.FluxFunc": ("DTYPE", "CDTYPE"),
 }
 _CLASSES = {  # classes with a (non-field) param_dtype class attribute

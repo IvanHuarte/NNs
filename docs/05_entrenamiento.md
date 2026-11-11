@@ -52,6 +52,10 @@ restringido a ese subconjunto.
 * **Una lista** con una cadena por eon: cada stage recorre su propia curva (útil en cadenas
   de sectores, donde cada stage vuelve a empezar). Una longitud distinta del nº de eons es un
   error.
+* **Una curva por periodo**: la entrada de un eon puede ser a su vez una lista con una cadena
+  por periodo de ese eon; cada periodo recorre su propia curva. Sirve para mantener un suelo
+  alto mientras el lr es constante y bajarlo sólo mientras el lr decae:
+  `[["sig(0.01,0.001,800)", "exp(0.001,0.0001)"], …]` para un eon `[[1400, 600]]`.
 
 Un número suelto no se acepta.
 
@@ -89,11 +93,13 @@ Variante con dos periodos dentro de un stage y entrenamiento por bloques:
 |---|---|---|---|
 | GS 6x6 (local) | 700 + 300 | 0.007 → `exp(0.007,0.0005)` | `sig(0.01,0.0001,400)` |
 | GS 8x8 (cluster) | 2000 + 1000 | 0.007 → `exp(0.007,0.0005)` | `sig(0.01,0.0001,1200)` |
-| Stage de una cadena de sectores | 1400 + 600 | 0.007 → `exp(0.007,0.0005)` | sigmoide por stage (lista) |
+| Stage de una cadena de sectores | 1400 + 600 | 0.007 → `exp(0.007,0.0005)` | `["sig(0.01,0.001,800)", "exp(0.001,0.0001)"]` por stage |
 | Cribado rápido | 200 + 100 | 0.007 → `exp(0.007,0.0005)` | `sig(0.01,0.001,120)` |
 
-Con coset ningún run ha colapsado con un suelo de diag_shift de 1e-4; sin coset (Z2 sólo)
-se observaron colapsos con suelo 1e-4 y conviene ≥ 1e-3.
+Un diag_shift de ~1e-4 con el lr todavía alto (0.007) colapsa la energía, con o sin coset:
+las cadenas ch4 de 8x8 (época ~1040) y 10x10 (épocas 1358 y 1176) de noviembre de 2026. Con
+el lr decreciente el mismo 1e-4 es estable y mejora la energía. Mantenga ≥ 1e-3 mientras el
+lr es constante (curva por periodo, arriba).
 
 ## 5.2 Sampler (`Hydra/sampler/`)
 

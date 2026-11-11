@@ -27,11 +27,19 @@ Varios modos funcionan a la vez; cada uno conserva su propio mejor estado **por 
 | Modo | Un estado candidato es mejor si… |
 |---|---|
 | `best_energy` | Primero, los estados con V-score < `vscore_max` ganan a los que no la cumplen; después, menor energía. Si ninguno ha bajado aún de la cota, gana la menor energía |
-| `best_vscore` | Menor V-score |
+| `best_vscore` | Menor V-score entre los estados cuya energía está a menos de `best_setup.vscore_window` (relativo, 1 % por defecto) de la menor energía del stage. Cualquier autoestado tiene V ≈ 0, también uno de energía alta |
 | `best` | Menor puntuación conjunta **S = E + \|E\|·V/c** |
 | `always` | Siempre (el último estado; depuración) |
 
 V = N·Var/E² es el V-score (intensivo e independiente del modelo).
+
+**Estados válidos.** Sólo entran en los modos las estimaciones físicas: energía y varianza
+finitas y |E| ≤ Σ_k ‖h_k‖ (H = Σ_k h_k; ningún estado puede superar esa cota; para J1-J2 es
+9N en unidades de Pauli). Una simulación que diverge (NaN, E ~ −1e60) nunca sustituye a un
+mejor estado, y un stage inválido desde su primer paso no guarda ninguno: al final se usa el
+estado final y los resultados se escriben igualmente. Antes del 11-nov-2026 el primer paso
+de cada stage se aceptaba aunque fuese NaN, y `best_vscore` podía quedarse con estados como
+E = +300 (cadenas y c10 de cluster2).
 
 **Puntuación conjunta.** Cerca de un autoestado, E − E₀ y la varianza miden el mismo error;
 en términos relativos la varianza da ε_V = V/c. S suma ambas evidencias en unidades de
@@ -47,6 +55,21 @@ cada modo tenga un mejor estado).
 **Modo principal.** El primero de la lista `mode`. Al final de la simulación se restauran
 los parámetros de su mejor estado en el **último stage**, y sobre ese estado se calculan
 todos los resultados y observables.
+
+**Cambio de stage y recuperación.** Por defecto el stage siguiente parte del estado
+**final** del anterior (continuidad). Sólo si ese final es claramente inestable parte del
+mejor estado del stage (modo principal), y lo anuncia con `[keeper] stageK ends UNSTABLE`.
+Se considera inestable si:
+
+* hay energías no finitas en las últimas `window` épocas o parámetros no finitos, o
+* **a la vez** la media de la puntuación conjunta S = E + N·Var/(c·|E|) en las últimas
+  `window` épocas supera la mejor media móvil del stage en más de `rel_gap`·|E|, **y** la
+  mediana de la varianza final es más de `var_ratio` veces la de esa mejor ventana.
+
+Una deriva lenta o el ruido habitual no lo activan. Comprobado con las cadenas ch4 de
+noviembre de 2026: c10 stage0 (colapsó y se recuperó con el lr decreciente) conserva la
+continuidad; c10 stage1 y c8 stage0 (terminaron colapsados o en NaN) se recuperan.
+`keeper_setup.recover` ajusta los umbrales (`false` lo desactiva).
 
 ### Almacenamiento en disco
 

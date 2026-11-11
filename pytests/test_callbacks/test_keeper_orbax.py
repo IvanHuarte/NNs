@@ -216,3 +216,75 @@ def test_trace_file(tmp_path):
     assert list(data[:, 0]) == list(range(7))
     assert list(data[:, 1]) == [0] * 4 + [1] * 3 and list(data[:, 2]) == [0, 1, 2, 3, 0, 1, 2]
     assert np.allclose(data[:, 3], rec.E)
+
+
+# ---------------------------------------------------------------------------
+# Recovery at a stage change: only from a clearly unstable end of stage
+# ---------------------------------------------------------------------------
+
+
+def _fake_stage(keeper, vstate, energies, variances, bad_from=None):
+    """Feed the keeper a synthetic stage; parameters are scaled step by step
+    so the state of every step is recognisable (θ_t = θ_0 * (1 + t))."""
+    p0 = jax.device_get(vstate.parameters)
+    for t, (e, v) in enumerate(zip(energies, variances)):
+        vstate.parameters = jax.tree_util.tree_map(lambda x: x * (1 + t), p0)
+        stats = SimpleNamespace(mean=e, variance=v)
+        drv = SimpleNamespace(_loss_name="Energy", state=vstate)
+        keeper.update(t, {"Energy": stats}, drv)
+    return p0
+
+
+@pytest.mark.parametrize("case", ["stable", "collapse", "nan", "disabled"])
+def test_stage_end_recovery(tmp_path, case):
+    H, vstate, _ = make_driver()
+    n = 400
+    rng = np.random.default_rng(0)
+    E = -10 - 2 * (1 - np.exp(-np.arange(n) / 50)) + 0.01 * rng.standard_normal(n)
+    var = np.full(n, 0.1)
+    if case in ("collapse", "disabled"):
+        E[320:] += 1.0  # +8 % energy and 20x variance at the end
+        var[320:] = 2.0
+    if case == "nan":
+        E[-3:] = np.nan
+    keeper = BestIterKeeper(
+        n, H, N, mode=["best"], orbax_path=str(tmp_path / f"{case}_best.orbax"),
+        save_every=1000, start_fraction=0.1, stage_epochs=[n, n],
+        recover=False if case == "disabled" else None,
+    )
+    p0 = _fake_stage(keeper, vstate, E, var)
+    out = flat(keeper.stage_end_params(vstate))
+    final = flat(vstate.parameters)
+    if case in ("stable", "disabled"):
+        assert np.allclose(out, final)
+    else:
+        step = keeper.trackers["best"].best["step"]
+        assert step < 320
+        assert np.allclose(out, flat(p0) * (1 + step))
+    if case == "stable":
+        assert keeper.stage_end_check()[0] is False
+    keeper.finalize()  # finish the async writes before the interpreter exits
+
+
+def test_invalid_states_never_kept(tmp_path):
+    """Regression (cluster2, Nov 2026): NaN first step kept as best, best_vscore
+    on an E=+300 eigenstate-like state, best_energy on a diverged E=-8e59."""
+    H, vstate, _ = make_driver()
+    keeper = BestIterKeeper(6, H, N, mode=["best", "best_energy", "best_vscore"],
+                            orbax_path=str(tmp_path / "inv_best.orbax"), start_fraction=-1.0)
+    assert np.isfinite(keeper.E_bound) and keeper.E_bound >= 8  # Ising: sum ||h_k|| = 2N
+    E = [np.nan, -10.0, -10.3, 5.0, -1e60, -10.2]
+    V = [np.nan, 0.5, 0.4, 1e-6, 1.0, 0.3]  # +5 has the lowest vscore of all
+    _fake_stage(keeper, vstate, E, V)
+    steps = {m: tr.best["step"] for m, tr in keeper.trackers.items()}
+    assert steps["best_energy"] == 2 and steps["best"] in (2, 5)
+    assert steps["best_vscore"] in (2, 5)  # within 1 % of the lowest energy
+    keeper.finalize()
+
+
+def test_restore_without_valid_state(tmp_path):
+    H, vstate, _ = make_driver()
+    keeper = BestIterKeeper(3, H, N, mode="best", orbax_path=str(tmp_path / "nan_best.orbax"))
+    _fake_stage(keeper, vstate, [np.nan] * 3, [np.nan] * 3)
+    keeper.finalize()
+    assert keeper.restore(vstate) is vstate and np.isnan(keeper.best_state_energy)

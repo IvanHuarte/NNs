@@ -18,6 +18,7 @@ from .FluxFunc import (
     SzaboOutput,
 )
 from .MLP import MLP
+from .PCvT import PCvT, SiteHead
 from .Phase import CNNbinClsf, CNNClsf, CNNPh, CNNSzabo, EDPPh
 from .ViT2D import ViT2D
 from .VViT import VViT

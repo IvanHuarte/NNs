@@ -79,6 +79,7 @@ Las seis banderas `keeper`, `energy_plot`, `modphase`, `sanity`, `leaves_gradien
 | `start_fraction` | `0.1` | Fracción inicial de cada stage que no es elegible |
 | `vscore_max` | `0.05` | Cota de V-score de `best_energy` (`null`: sin cota) |
 | `best_setup` | `{"c": 8, "z": 0}` | Parámetros de la puntuación conjunta del modo `best` |
+| `recover` | `{"enabled": true, "window": 50, "rel_gap": 5e-3, "var_ratio": 3}` | Al cambiar de stage, partir del mejor estado del stage sólo si su final es inestable (capítulo 6). `false` lo desactiva |
 
 Detalles de cada modo y del resto de callbacks en el capítulo 6.
 

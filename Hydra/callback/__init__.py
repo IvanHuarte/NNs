@@ -66,6 +66,7 @@ def Callback(
             vscore_max=ks.get("vscore_max", 0.05),
             best_setup=ks.get("best_setup"),
             stage_epochs=stage_epochs,
+            recover=ks.get("recover"),
         )
         callback_objects.append(keeper)
         callback_funcs.append(keeper.update)

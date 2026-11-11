@@ -802,6 +802,7 @@ def load_pytree(path):
     restored on a different set of devices (1 GPU, CPU): then every leaf is
     restored as a host numpy array, which works on any device count.
     """
+    path = os.path.abspath(path)  # orbax rejects relative paths
     cp = ocp.PyTreeCheckpointer()
     try:
         return cp.restore(path)
@@ -826,6 +827,8 @@ def load_from_artifact(artifact_path, checkpoint=0, tag="parameters"):
         tag = "checkpoint"
 
     path = artifact["_artifacts"][tag]
+    if not os.path.exists(path):  # results copied from another machine: artifacts sit next to the json
+        path = os.path.join(os.path.dirname(os.path.abspath(artifact_path)), os.path.basename(path))
     data = load_pytree(path)
 
     return data
