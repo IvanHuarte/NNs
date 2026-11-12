@@ -128,3 +128,58 @@ completa). Gráficas (`Hydra/dynamic_plots.py`): `single_modphase_plot`,
 keeper (también de trabajos en marcha o muertos), los JSON y los mejores estados en disco,
 y tabulan energía a 1/100/300/500/2000 épocas, épocas hasta converger a 0.1 del valor final,
 mejor energía, comparaciones entre sectores y parejas float64/float32 (capítulo 9).
+
+## 8.8 Post-procesado: `aplot`
+
+`autoplots/aplot.py` dibuja y tabula cualquier conjunto de experimentos a partir de un
+**índice**: una fila por JSON de resultados y una columna por atributo. Alias cómodo:
+`alias aplot=~/Escritorio/Ivan/NNs/autoplots/aplot.py`.
+
+```bash
+aplot y=E_site_spin x=J2 hue=L --where "net='CvT3' and dtype=='float32' and not vscore>0.1"
+aplot y=E_site_spin x=J2 hue=L --where "irrep=='000'" --app --where "irrep==001"   # 2 selecciones, mismos ejes
+aplot y=gap x=irrep hue=L --where "net='ViT2D'" --for dtype                         # una figura por dtype
+aplot y=E_site_spin x="1/L**3" fit=lin --where "irrep=='000'"                        # tamaño finito
+aplot y=E_site_spin x=var fit=lin hue=L                                              # extrapolación en varianza
+aplot trace y=E_site_spin smooth=50 sched=1 --where "job~='c8_CvT3'"                 # trazas + lr y diag_shift
+aplot table sort=E50 --where "L==10" fmt=md                                          # ranking (md, tex, csv)
+```
+
+- **Índice** (`autoplots/index.py`, en caché en `autoplots/.cache/`; `--refresh` lo rehace).
+  Lee los cuatro esquemas de JSON. Columnas:
+  - `job`, `host`, `L`, `N`, `size`, `system`;
+  - cada parámetro de `CM.params` (también de modelos futuros) y cada escalar de `results`;
+  - `name`, `net`, `head`, `irrep` (código `441`), `kx`, `ky`, `z2`, `dtype`, `seed`, `nsamples`, `epochs`;
+  - `E`, `E_spin`, `E_site`, `E_site_spin`, `var`;
+  - de la traza: `E50` (mejor media de 50 épocas del último stage, sin las energías divergidas), `vscore50`, `nan_epoch`;
+  - `E_ref`, `err_rel` (ED del sector o `autoplots/refs.json`), `time_h`, `s_it`, `status` (`ok`, `diverged`, `nan`).
+
+  Cualquier otro nombre se busca en los JSON (`find_value`; vale una ruta `` `SIM/optimizer/optimizer` ``).
+  `gap` = `E_spin` menos la menor `E_spin` del mismo sistema dentro de la selección.
+- **`--where`**: consulta de pandas con `and`, `or`, `not`, `in [...]`, más tres atajos: `a=b` → `a==b`,
+  `a~='regex'` (contiene) e `irrep==001` (el número se compara como texto).
+- **`--app`** abre otra selección en los mismos ejes; hereda las claves de la anterior salvo
+  `--where` y `--label`. El color sigue a `hue` y el estilo de línea a la selección.
+  **`--for COL[,COL]`** genera una figura por valor presente.
+- Varias runs en el mismo punto: `agg=best` (la de menor `best=E`, por defecto), `mean`, `median` o `all`.
+  Nunca se borra nada.
+- Cada figura se guarda (`-o Figures`, `--fmt png|pdf|svg`) junto a un `.csv` con los valores
+  dibujados. Ambos llevan el comando y la versión de git.
+- Claves de cada tipo: docstrings de `autoplots/plots/{xy,trace,table}.py`.
+  Desde Python: `from autoplots.aplot import main; main("...")`.
+  Hay un notebook plantilla en `autoplots/explore.ipynb`.
+- `aplot` no usa la GPU (`JAX_PLATFORMS=cpu`).
+
+**Re-evaluación de los mejores estados.** `E_best` es el mínimo de muchas estimaciones
+ruidosas: está sesgado hacia abajo. Para el valor publicable:
+
+```bash
+autoplots/reeval.py -d Simulations_claude_cesga --where "L==8 and status=='ok'" --samples 65536
+```
+
+El script carga `<sim>_best.orbax/<modo>` y escribe `<json>_reeval.json` con E ± error, varianza,
+V-score, τ y R̂. El índice lo expone como `E_re`, `E_re_err`, `vscore_re`…, por ejemplo
+`aplot y=E_re x=L yerr=E_re_err`. En el clúster usa la GPU.
+
+`autoplots/autoplot.py` (`config_plots.json`, `energyVSirrep`) sigue funcionando: energías por
+sitio desde `E_best_per_site`, grupos ordenados por valor y nombres de parámetro libres.

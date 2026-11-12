@@ -82,6 +82,8 @@ class EnergyPlotter:
         self.ax_v.set_yscale("log")
         self.ax_r.set_ylabel("Error relativo" if self.E_ref is not None else "σ(E) paso")
         self.ax_r.set_yscale("log")
+        for ax in (self.ax_v, self.ax_r):  # empty log axes (no ED line) break tight_layout
+            ax.set_ylim(1e-6, 1)
         self.ax_r.set_xlabel("paso")
         for ax in (self.ax_e, self.ax_v, self.ax_r):
             ax.grid(alpha=0.3)

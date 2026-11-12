@@ -9,18 +9,9 @@ from ..utils import join_static_modes
 
 
 def full_irreps(irrep_mode, size):
-
-    symmetries = irrep_mode.split("_")[1:]
-
-    for symm in symmetries:
-        if symm == "Tx":
-            Tx = range(size[0])
-        elif symm == "Ty":
-            Ty = range(size[1])
-        elif symm == "Z2":
-            Z2 = range(2)
-
-    return list(product(Tx, Ty, Z2))
+    """Every sector of the symmetries named in irrep_mode ('irreps_Tx_Ty_Z2', 'irreps_Tx_Ty_'...)."""
+    ranges = {"Tx": range(size[0]), "Ty": range(size[1]), "Z2": range(2)}
+    return list(product(*(ranges[s] for s in irrep_mode.split("_")[1:] if s)))
 
 
 def energyVSirrep(
@@ -36,9 +27,6 @@ def energyVSirrep(
         sim_label += f"_{args[0]}_{args[1]}"
     sim_label += f"_runIn_{mode}"
 
-    y_min = np.inf
-    y_max = -np.inf
-
     E = []
     E_ED_irrep = []
     error_irrep = []
@@ -51,15 +39,13 @@ def energyVSirrep(
         with open(artifact_path[0], "r") as f:
             artifact = json.load(f)
 
-        # ENERGY
-        E_gr = artifact["results"]["E_best"]
-
-        y_min = min(y_min, E_gr)
-        y_max = max(y_max, E_gr)
-
-        E.append(E_gr/ 4 / 36)
-        E_ED_global = artifact["results"]["E_gr_global"]
-        E_ED_irrep.append(artifact["results"]["E_gr_irrep"])
+        # ENERGY per site (results units); the ED references too
+        res = artifact["results"]
+        N = int(np.prod(artifact["CM"]["size"]))
+        per_site = lambda e: None if e is None else e / N
+        E.append(res.get("E_best_per_site", per_site(res["E_best"])))
+        E_ED_global = per_site(res["E_gr_global"])
+        E_ED_irrep.append(per_site(res["E_gr_irrep"]))
         error_irrep.append(artifact["results"]["error_irrep"])
         vscore.append(artifact["results"]["vscore"])
         fidelity_irrep.append(artifact["results"]["fidelity_irrep"])
@@ -122,8 +108,8 @@ def energyVSirrep(
         if E_ED_global is not None:
             ax1.hlines(
                 E_ED_global,
-                min(len(idx_even), len(idx_odd)) - 1,
-                max(len(idx_even), len(idx_odd)) + 1,
+                -0.5,
+                len(set_irreps) - 0.5,
                 color="green",
                 marker="o",
                 ms=5,
@@ -134,7 +120,7 @@ def energyVSirrep(
             )
 
         ax1.plot(
-            range(len(idx_even)),
+            idx_even,
             E_even,
             color="red",
             marker="o",
@@ -144,7 +130,7 @@ def energyVSirrep(
             label=r"$Z_2\;(+1)$",
         )
         ax1.plot(
-            range(len(idx_odd)),
+            idx_odd,
             E_odd,
             color="blue",
             marker="o",
@@ -154,7 +140,7 @@ def energyVSirrep(
             label=r"$Z_2\;(-1)$",
         )
         ax2.plot(
-            range(len(idx_even)),
+            idx_even,
             vscore_even,
             color="red",
             marker="o",
@@ -164,7 +150,7 @@ def energyVSirrep(
             label=r"$Z_2\;(+1)$",
         )
         ax2.plot(
-            range(len(idx_odd)),
+            idx_odd,
             vscore_odd,
             color="blue",
             marker="o",
@@ -175,7 +161,7 @@ def energyVSirrep(
         )
         if plot_ED:
             ax1.plot(
-                range(len(idx_even)),
+                idx_even,
                 E_gr_irrep_even,
                 color="orange",
                 marker="o",
@@ -186,7 +172,7 @@ def energyVSirrep(
                 label=r"$E_{ED}\;(+1)$",
             )
             ax1.plot(
-                range(len(idx_odd)),
+                idx_odd,
                 E_gr_irrep_odd,
                 color="purple",
                 marker="o",
@@ -197,7 +183,7 @@ def energyVSirrep(
                 label=r"$E_{ED}\;(-1)$",
             )
             ax3.plot(
-                range(len(idx_even)),
+                idx_even,
                 error_irrep_even,
                 color="red",
                 marker="o",
@@ -207,7 +193,7 @@ def energyVSirrep(
                 label=r"$Z_2\;(+1)$",
             )
             ax3.plot(
-                range(len(idx_odd)),
+                idx_odd,
                 error_irrep_odd,
                 color="blue",
                 marker="o",
@@ -218,7 +204,7 @@ def energyVSirrep(
             )
 
             ax4.plot(
-                range(len(idx_even)),
+                idx_even,
                 fidelity_even,
                 color="red",
                 marker="o",
@@ -228,7 +214,7 @@ def energyVSirrep(
                 label=r"$Z_2\;(+1)$",
             )
             ax4.plot(
-                range(len(idx_odd)),
+                idx_odd,
                 fidelity_odd,
                 color="blue",
                 marker="o",
@@ -271,7 +257,7 @@ def energyVSirrep(
     )
 
     ax1.set_title(r"$Energy\;vs.\;Irrep$", fontsize=18)
-    ax1.set_ylabel(r"$\langle H \rangle$", fontsize=18)
+    ax1.set_ylabel(r"$\langle H \rangle / N$", fontsize=18)
     ax2.set_ylabel(r"$vscore$", fontsize=18)
     ax2.set_yscale("log")
     if plot_ED:

@@ -124,6 +124,7 @@ class _Tracker:
         self.pending = None  # host copy waiting to be written
         self.saved_step = None
         self.manager = None
+        self.unpublished = None  # (new, final) folders: written, not yet swapped in
         self.history = []  # bests of finished stages
 
     def score(self, rec):
@@ -341,9 +342,12 @@ class BestIterKeeper:
                 continue
             params, sampler_state = tr.pending
             manager = self._manager(tr)
-            manager.wait_until_finished()  # one write at a time per mode
+            self._wait(tr)  # one write at a time per mode
+            final = self._folder(tr.mode, tr.best["stage"])
+            # write next to the old best and swap once complete: force=True on
+            # the final folder would delete the old best before the new is written
             manager.save(
-                self._folder(tr.mode, tr.best["stage"]),
+                final + ".new",
                 args=ocp.args.Composite(
                     parameters=ocp.args.StandardSave(params),
                     sampler_state=ocp.args.StandardSave(sampler_state),
@@ -351,12 +355,28 @@ class BestIterKeeper:
                 ),
                 force=True,
             )
+            tr.unpublished = (final + ".new", final)
             tr.saved_step = tr.best["step"]
             tr.pending = None  # free host RAM: it is on disk now
         if wait:
             for tr in self.trackers.values():
-                if tr.manager is not None:
-                    tr.manager.wait_until_finished()
+                self._wait(tr)
+
+    @staticmethod
+    def _wait(tr):
+        """Finish the write of tr and swap the new best in place of the old one."""
+        if tr.manager is not None:
+            tr.manager.wait_until_finished()
+        if tr.unpublished is None:
+            return
+        new, final = tr.unpublished
+        old = final + ".old"
+        if os.path.isdir(final):
+            shutil.rmtree(old, ignore_errors=True)
+            os.rename(final, old)
+        os.rename(new, final)
+        shutil.rmtree(old, ignore_errors=True)
+        tr.unpublished = None
 
     def _close_stage(self):
         self.flush(wait=True)
@@ -376,6 +396,7 @@ class BestIterKeeper:
         self._close_stage()
         self.stage = self.stage + 1 if stage is None else stage
         self.stage_start = self.step + 1
+        self.exit_msg = "Simulation finished with success"  # per stage
         for tr in self.trackers.values():
             tr.best, tr.pending, tr.saved_step = None, None, None
         self._stage_E, self._stage_V = [], []

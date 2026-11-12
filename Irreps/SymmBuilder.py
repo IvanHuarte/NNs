@@ -16,6 +16,17 @@ class SymmGroup:
         self.N_group = [symmetry.N for symmetry in self.group]
         self.norm = self._group_norm()
 
+        # matrix-free projector (get_irrep_projector_action) needs the basis
+        if kwargs.get("all_states") is not None:
+            all_states = jnp.asarray(kwargs["all_states"])
+            self.hilbert_dim = all_states.shape[0]
+            self.perm_powers = [
+                self.compute_perm_powers(
+                    self._unitary_permutation(symm.operation, all_states), symm.N
+                )
+                for symm in self.group
+            ]
+
     def initialize_symmetries(self, setup, **kwargs):
 
         group = []
@@ -118,11 +129,10 @@ class SymmGroup:
         return nruter
 
     def compute_perm_powers(self, perm, N):
-        perm_powers = [perm]
-        current = perm
+        # perm_powers[n] = perm^n (n = 0 .. N-1)
+        perm_powers = [jnp.arange(len(perm))]
         for _ in range(1, N):
-            current = current[current]
-            perm_powers.append(current)
+            perm_powers.append(perm_powers[-1][perm])
         return perm_powers
 
     def _unitary_permutation(self, operation, all_states):

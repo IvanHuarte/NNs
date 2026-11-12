@@ -37,11 +37,13 @@ class ConvBlock(nn.Module):
         # print(f"Shape after ConvBlock: {x.shape}")
 
         if self.use_pooling:
+            # avg_pool has no CIRCULAR padding: wrap-pad by hand, then pool VALID
+            pads = [(0, 0)] + [((k - 1) // 2, k // 2) for k in self.kernel] + [(0, 0)]
             x = nn.avg_pool(
-                x,
+                jnp.pad(x, pads, mode="wrap"),
                 window_shape=self.kernel,
                 strides=self.pooling_strides,
-                padding="CIRCULAR",
+                padding="VALID",
             )
 
         # print(f"Shape after pooling (if applied): {x.shape}")

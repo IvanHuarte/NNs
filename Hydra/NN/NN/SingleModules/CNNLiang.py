@@ -24,6 +24,8 @@ class CNNLiangBlock(nn.Module):
         _, H, W, _ = x.shape
 
         mask = get_mask(self.mask) if self.mask is not None else None
+        if mask is not None:  # flax wants the full kernel shape (kh, kw, C_in, C_out)
+            mask = jnp.broadcast_to(jnp.asarray(mask)[:, :, None, None], (*self.kernel, x.shape[-1], self.M1_channels))
 
         # print(f"Intro CNNLiangWorkerBlock")
         # print(f"xini: {x.shape}")

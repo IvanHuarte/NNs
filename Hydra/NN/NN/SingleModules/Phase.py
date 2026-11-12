@@ -37,7 +37,7 @@ class CNNPh(nn.Module):
         x = nn.glu(x.mean(axis=1))  # Version 2
         x = jnp.exp(1j * x).sum(axis=-1)
 
-        return jnp.angle(x)
+        return jnp.angle(x)[:, None]
 
 
 class EDPPh(nn.Module):

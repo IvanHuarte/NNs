@@ -1,4 +1,5 @@
 import json
+import re
 import shutil
 import sys
 from collections import defaultdict
@@ -49,8 +50,10 @@ def get_irrep_value(tree, criterion):
             irrep_value.append(irrep[1])
 
         elif symmetry == "Z2":
-            irrep_bool = find_value(tree["NN"], "trivial_Z2")
-            irrep = 0 if irrep_bool else 1
+            try:
+                irrep = 0 if find_value(tree["NN"], "trivial_Z2") else 1
+            except KeyError:  # no Z2 wrapper: even sector (as Hydra.label_utils.z2_sector)
+                irrep = 0
             irrep_value.append(irrep)
 
         else:
@@ -142,6 +145,7 @@ def group_by(paths, criterion):
     """
 
     groups = defaultdict(list)
+    values = {}
 
     criteria = criterion.split("-")
 
@@ -152,14 +156,27 @@ def group_by(paths, criterion):
         else:
             key = tuple(get_value(path, c) for c in criteria)
 
+        values[str(key)] = key
         groups[str(key)].append(path)
 
-    try:
-        keys = sorted(groups)
-    except TypeError:
-        keys = groups.keys()
+    # sorted by value, not by its text: 8 < 10, -0.2 < -0.1
+    return {k: groups[k] for k in sorted(groups, key=lambda k: natural_key(values[k]))}
 
-    return {k: groups[k] for k in keys}
+
+def natural_key(v):
+    """
+    Sort key for mixed values: numbers by value, lists/tuples element-wise,
+    strings with their digit runs read as numbers ('c8' < 'c10'), None last.
+    """
+    if isinstance(v, (bool, int, float, np.integer, np.floating)):
+        v = float(v)
+        return (0, np.inf if np.isnan(v) else v)
+    if isinstance(v, (list, tuple)):
+        return (1, tuple(natural_key(x) for x in v))
+    if isinstance(v, str):
+        parts = re.split(r"(\d+)", v)
+        return (2, tuple((0, int(t), "") if t.isdigit() else (1, 0, t) for t in parts))
+    return (3,)
 
 
 # ---------- Clasificación recursiva ----------
@@ -207,11 +224,16 @@ param2latex = {
 }
 
 
+def latex_name(m):
+    """LaTeX of a parameter name; names outside param2latex are written as they are."""
+    return param2latex.get(m, r"\mathrm{%s}" % m.replace("_", r"\_"))
+
+
 def join_modes(modes, values):
 
     assert len(modes) == len(values)
     values = [f"{v:g}" if not isinstance(v, str) else v for v in values]
-    equals = [rf"{param2latex[m]}\;=\;{v}" for m, v in zip(modes, values)]
+    equals = [rf"{latex_name(m)}\;=\;{v}" for m, v in zip(modes, values)]
     return r"\;\;".join(equals)
 
 
@@ -220,7 +242,7 @@ def join_static_modes(static_modes):
     static_modes = [
         (m, f"{v:g}") if not isinstance(v, str) else (m, v) for m, v in static_modes
     ]
-    equals = [rf"${param2latex[m]}\;=\;{v}$" for m, v in static_modes]
+    equals = [rf"${latex_name(m)}\;=\;{v}$" for m, v in static_modes]
     return "\n".join(equals)
 
 
@@ -228,15 +250,12 @@ def join_static_modes(static_modes):
 
 
 def get_criterion(artifact, criterion):
-    if artifact["results"]["fidelity_irrep"] is not None:
-        return "fidelity_irrep"
-    elif (
-        artifact["results"]["irrep_info"] is None
-        and artifact["results"]["fidelity_irrep"] is not None
-    ):
-        return "fidelity"
-    else:
-        return criterion
+    """With ED the duplicates are ranked by fidelity (sector first), otherwise by criterion."""
+    results = artifact["results"]
+    for key in ("fidelity_irrep", "fidelity_global"):
+        if results.get(key) is not None:
+            return key
+    return criterion
 
 
 def get_best_artifact_idx(values, real_criterion):

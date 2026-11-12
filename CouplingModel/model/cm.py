@@ -202,9 +202,10 @@ class CouplingModel:
         op_idx = self.operators[1].index(op)
 
         for i, neigh in neighbors.items():
-            self.coupling_terms[op_idx, i, neigh] += strength
+            # np.add.at: on L=2 axes the same neighbour appears twice (both images)
+            np.add.at(self.coupling_terms[op_idx], (i, neigh), strength)
             if complementary:
-                self.coupling_terms[op_idx, neigh, i] += strength
+                np.add.at(self.coupling_terms[op_idx], (neigh, i), strength)
 
     def add_couplings_from_pairs(self, strength, op, pair, complementary=False):
         """

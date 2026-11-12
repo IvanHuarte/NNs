@@ -80,11 +80,14 @@ class SanityMonitor:
 
     def __call__(self, step, log_data, driver):
         self.step += 1
+        # parameters of the step before the check: the next call sees the
+        # step actually applied (lr, momentum and masks included). Taken
+        # aside so that with do_each 1 this check still uses the previous copy
+        nxt = None
         if (self.step + 1) % self.do_each == 0 and "optimization" in self.selection:
-            # parameters of the step before the check: the next call sees the
-            # step actually applied (lr, momentum and masks included)
-            self.ctx["prev_params"] = jax.device_get(driver.state.parameters)
+            nxt = jax.device_get(driver.state.parameters)
         if self.step == 0 or self.step % self.do_each != 0:
+            self.ctx["prev_params"] = nxt
             return True
         if self.ctx["N"] is None:
             self.ctx["N"] = driver.state.hilbert.size
@@ -93,7 +96,7 @@ class SanityMonitor:
         self.ctx["step"] = self.step
 
         metrics = calc_metrics(driver, log_data, self.ctx, self.selection)
-        self.ctx["prev_params"] = None
+        self.ctx["prev_params"] = nxt
         diagnosis = diagnose_metrics(metrics)
         self.ctx["history"].append(metrics)
         if len(self.ctx["history"]) > 2:

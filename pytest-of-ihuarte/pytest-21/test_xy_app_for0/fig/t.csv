@@ -1,0 +1,6 @@
+# aplot y=E_site_spin x=L hue=irrep --where 'net='"'"'CvT3'"'"'' --app --where 'net='"'"'ViT2D'"'"'' -d /home/ihuarte/Escritorio/Ivan/NNs/pytest-of-ihuarte/pytest-21/test_xy_app_for0/sims -o /home/ihuarte/Escritorio/Ivan/NNs/pytest-of-ihuarte/pytest-21/test_xy_app_for0/fig --name t | git 3787451-dirty
+x,y,hue,path,n,curve,col
+8,-0.498046875,000,/home/ihuarte/Escritorio/Ivan/NNs/pytest-of-ihuarte/pytest-21/test_xy_app_for0/sims/a/J1J2Square/m/Size_8x8/a_results_8x8.json,1,net='CvT3' irrep=000,
+10,-0.49700000000000005,000,/home/ihuarte/Escritorio/Ivan/NNs/pytest-of-ihuarte/pytest-21/test_xy_app_for0/sims/c/J1J2Square/m/Size_10x10/c_results_10x10.json,2,net='CvT3' irrep=000,
+8,-0.4921875,001,/home/ihuarte/Escritorio/Ivan/NNs/pytest-of-ihuarte/pytest-21/test_xy_app_for0/sims/b/J1J2Square/m/Size_8x8/b_results_8x8.json,1,net='CvT3' irrep=001,
+8,-0.5,441,/home/ihuarte/Escritorio/Ivan/NNs/pytest-of-ihuarte/pytest-21/test_xy_app_for0/sims/d/J1J2Square/m/Size_8x8/d_results_8x8.json,1,net='ViT2D' irrep=441,

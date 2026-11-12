@@ -12,15 +12,11 @@ def is_subsequence(a, b):
 
 def train_branches(mode_paths, path2code):
     def _callable(path, leaf):
-        m = next(
-            (
-                f"train_{path2code[mod_path]}"
-                for mod_path in mode_paths
-                if is_subsequence(mod_path, path)
-            ),
-            "freeze",
-        )
-        return m
+        # nested modes: the deepest (longest) matching path wins
+        matches = [p for p in mode_paths if is_subsequence(p, path)]
+        if not matches:
+            return "freeze"
+        return f"train_{path2code[max(matches, key=len)]}"
 
     return _callable
 

@@ -47,3 +47,6 @@ uv.lock
 !config_plots.json
 
 
+
+# aplot index cache
+autoplots/.cache/

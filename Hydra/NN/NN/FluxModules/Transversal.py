@@ -26,12 +26,11 @@ def final_ensemble(ensem_mode: AnyStr = "sum") -> Callable:
     elif ensem_mode == "modulus_marshall":
 
         def fun(x, axis=0, keepdims=True):
-            x = jnp.log(x[1] * jnp.exp(x[0]))
-            return x.astype(jnp.complex128)
+            return x[0] + jnp.log(x[1].astype(jnp.complex128))
 
         return fun
 
-    elif "None":
+    elif ensem_mode in ("None", None):
 
         def lambda_wrap(x, axis=0, keepdims=True):
             return x
@@ -70,6 +69,8 @@ class Transversal(nn.Module):
         # jax.debug.print("x_after: {} \n\n", x)
 
         # print(f"final_ensemble: {x.shape}")
+        if self.operation in ("None", None):
+            return jnp.moveaxis(x, 0, 1)  # (B, n_branches, ...)
         x = jnp.atleast_2d(x).reshape(B, *x.shape[2:])
 
         # print(f"x_group: {x.shape}")

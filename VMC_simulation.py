@@ -190,7 +190,23 @@ def train(cfg, hydra, vstate, H, schedule, ds_schedule, ds_info, callbacks, log,
     """
     H_jax = H.to_jax_operator()
     time_in = time.time()
+    try:
+        vstate, vmc_builder = _train_periods(
+            cfg, hydra, vstate, H_jax, schedule, ds_schedule, ds_info, callbacks, log,
+            make_state, callback_objects,
+        )
+    except BaseException:
+        # crash (OOM, Ctrl-C, scancel via SIGTERM) in a period or a stage change:
+        # finish the pending writes (keeper bests, checkpoints) before the
+        # interpreter shuts the orbax threads down
+        _hook(callback_objects, "flush", wait=True)
+        raise
+    _hook(callback_objects, "finalize")
+    return vstate, vmc_builder, time.time() - time_in
 
+
+def _train_periods(cfg, hydra, vstate, H_jax, schedule, ds_schedule, ds_info, callbacks,
+                   log, make_state, callback_objects):
     for i, (lr_period, info, change) in enumerate(schedule.schedule()):
         print_period(i, schedule.total_periods, info, ds_info[i])
 
@@ -206,14 +222,7 @@ def train(cfg, hydra, vstate, H, schedule, ds_schedule, ds_info, callbacks, log,
         )
         print(f"\nVMC selection: {vmc_builder.selection}")
         print(f"\nTraining {info[0][1]} for {info[0][0]} epochs...")
-        try:
-            vmc.run(n_iter=info[0][0], out=log, callback=callbacks, show_progress=True)
-        except BaseException:
-            # crash (OOM, Ctrl-C, scancel via SIGTERM): finish the pending writes
-            # (keeper bests, checkpoints) before the interpreter shuts the orbax
-            # threads down
-            _hook(callback_objects, "flush", wait=True)
-            raise
+        vmc.run(n_iter=info[0][0], out=log, callback=callbacks, show_progress=True)
 
         mean, std, psi = phase_stats_vstate(vstate)
         print(f"VS phase: {mean} ± {std}  ({psi})")
@@ -229,9 +238,7 @@ def train(cfg, hydra, vstate, H, schedule, ds_schedule, ds_info, callbacks, log,
             vstate.parameters = hydra.weight_transplantation(vstate.parameters)
             schedule.update_eon_code2path(hydra.get_code2path(vstate.parameters))
             _hook(callback_objects, "new_stage", schedule.eon)
-
-    _hook(callback_objects, "finalize")
-    return vstate, vmc_builder, time.time() - time_in
+    return vstate, vmc_builder
 
 
 def stage_ed_errors(summary, config_nn, hi, H, size, ed):
@@ -241,7 +248,7 @@ def stage_ed_errors(summary, config_nn, hi, H, size, ed):
     """
     if not ed.available:
         return summary
-    sectors = stage_sectors(config_nn)
+    sectors = stage_sectors(config_nn, size)
     cache = {}
     for entries in summary.values():
         for e in entries:
@@ -342,7 +349,9 @@ def run_point(cfg, size, hi, paths, model_factory, sampler_setup, n_samples, n_r
 
     #### RESULTS OF THE BEST STATE (primary mode, last stage) ####
     vstate = keeper.restore(vstate)
-    eon, _, _ = schedule.locate_period(keeper.best_step)
+    # stage of the restored state (keeper's last stage); best_step cannot be
+    # mapped through the schedule if a period stopped early
+    eon = keeper.stage
     sim_config["NN"] = {
         "name": cfg.nn_name + f"_stage{eon}",
         "setup": hydra.storage[f"stage{eon}"],
@@ -350,7 +359,7 @@ def run_point(cfg, size, hi, paths, model_factory, sampler_setup, n_samples, n_r
 
     schedule_flat = schedule.flat_setup()
     do_each_checkpoint = (
-        cfg.sim["callback"]["checkpoint_setup"]["do_each"] if checkpointer else None
+        checkpointer.do_each if checkpointer else None
     )
     callback_artifacts = dump_callback(
         log,

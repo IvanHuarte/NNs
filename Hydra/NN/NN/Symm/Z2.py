@@ -17,12 +17,15 @@ class Z2Standard(nn.Module):
 
         # Concatenamos las dos contribuciones
         z2_stack = jnp.stack([output_x, output_inv_x], axis=1)
+        if not self.trivial_Z2:
+            # complex so log of a negative sum is finite; works for (B,) and (B,1) heads
+            z2_stack = z2_stack.astype(jnp.result_type(z2_stack.dtype, jnp.complex64))
 
         if self.trivial_Z2:
             res = jax.nn.logsumexp(z2_stack, axis=1)
             return res
         else:
-            b = jnp.array([1.0, -1.0])[None, :, None]
+            b = jnp.array([1.0, -1.0]).reshape((1, 2) + (1,) * (output_x.ndim - 1))
             res = jax.nn.logsumexp(z2_stack, b=b, axis=1)
             return res
 

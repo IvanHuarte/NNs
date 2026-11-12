@@ -30,12 +30,12 @@ def resolve_load_path(path):
     (recursively) is used. Lets chained jobs (e.g. excited states started
     from a ground state still to be computed) point to a write folder.
     """
+    if path.rstrip("/").endswith(".orbax") or ".orbax/" in path:
+        return path  # explicit orbax checkpoint (a directory): no json search
     if not (os.path.isdir(path) or any(c in path for c in "*?[")):
         if not os.path.exists(path):
             raise FileNotFoundError(f"load_from: {path} does not exist on this machine")
         return path
-    if path.rstrip("/").endswith("_best.orbax") or "_best.orbax/" in path:
-        return path  # explicit on-disk best (BestIterKeeper)
     pattern = os.path.join(path, "**", "*results*.json") if os.path.isdir(path) else path
     matches = sorted(glob.glob(pattern, recursive=True), key=os.path.getmtime)
     if not matches and os.path.isdir(path):
@@ -132,7 +132,7 @@ class Hydra(NeuralNetwork):
         self.params_history = {}
         self.prev_params = None  # Previous stage params for default transplant
         if self.load_model["parameters"] or self.load_model["sampler"]:
-            self.load = self.arch_evolution["stage0"]["load"]
+            self.load = self.arch_evolution["stage0"].get("load", [])
         else:
             self.load_model = None
 

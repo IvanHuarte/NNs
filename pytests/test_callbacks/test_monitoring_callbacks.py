@@ -223,3 +223,47 @@ def test_modphase_sample_mode(tmp_path):
     driver.run(2, out=None, callback=[mp], show_progress=False)
     mp.finalize()
     assert mp.mode == "samples" and (tmp_path / "m.png").is_file()
+
+
+def test_leaves_gradient_do_each_1_measures_the_step(tmp_path, capsys):
+    """Audit Nov 2026: with do_each 1 the previous copy was the current one (Δθ = 0)."""
+    H, vstate, driver = make_driver()
+    lg = LeavesGradient({"do_each": 1, "depth": 1, "jacobian": False, "show": "none"})
+    driver.run(4, out=None, callback=[lg], show_progress=False)
+    # every measured step has applied updates (before: 0 finite entries)
+    assert all(np.isfinite(list(d.values())).sum() > 0 for _, _, d in lg.history[1:])
+
+
+def test_sanity_monitor_do_each_1_uses_previous_params(monkeypatch):
+    smm = sys.modules[SanityMonitor.__module__]
+    seen = []
+    monkeypatch.setattr(smm, "calc_metrics",
+                        lambda drv, ld, ctx, sel: seen.append(
+                            (ctx["prev_params"], jax.device_get(drv.state.parameters))) or {})
+    monkeypatch.setattr(smm, "diagnose_metrics", lambda m: {"overall": {"status": "ok"}})
+    monkeypatch.setattr(smm, "display_diagnosis_simple", lambda *a, **k: None)
+    H, vstate, driver = make_driver()
+    sm = SanityMonitor({"do_each": 1, "mode": "simple", "log": False,
+                        "metrics": {"optimization": True}})
+    driver.run(4, out=None, callback=[sm], show_progress=False)
+    assert seen and all(p is not None and not np.allclose(flat(p), flat(q)) for p, q in seen)
+
+
+def test_energy_plotter_without_ed(tmp_path):
+    H, vstate, driver = make_driver()
+    ep = EnergyPlotter(36, {"savefig": True, "interactive": False}, out_path=str(tmp_path / "e.png"))
+    driver.run(3, out=None, callback=[ep], show_progress=False)
+    ep.finalize()
+    assert (tmp_path / "e.png").is_file()
+
+
+def test_schedule_annotations_centred():
+    import matplotlib.pyplot as plt
+    from Hydra.callback.utils import plot_schedule_setup
+    fig, ax = plt.subplots()
+    plot_schedule_setup(ax, {"epochs": [700, 300], "modes": [["0"], ["1"]],
+                             "lr_instructions": [[1.0], [1.0]], "rescale": 1.0,
+                             "eons_bound": [700, 1000]})
+    xs = sorted(t.get_position()[0] for t in ax.texts)
+    plt.close(fig)
+    assert xs == [350, 350, 850, 850]

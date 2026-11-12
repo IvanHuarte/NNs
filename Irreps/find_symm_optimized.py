@@ -34,7 +34,7 @@ symmetries_config = config["symmetries"]
 
 sizes = config_cm["sizes"]
 
-k_max = config["k_max"]
+k_max = config["basis_builder"]["action_setup"]["k_max"]
 
 for size in sizes:
 
@@ -59,7 +59,7 @@ for size in sizes:
         )
 
         write_folder = write + f"{cm_model_name}/"
-        folder_path = write + f"Size_{size[0]}x{size[1]}/"
+        folder_path = write_folder + f"Size_{size[0]}x{size[1]}/"
         Path(folder_path).mkdir(parents=True, exist_ok=True)
 
         print(f"\n************************ {cm_model_name} ************************")
@@ -172,47 +172,4 @@ for size in sizes:
             folder_path + f"SpectraPerIrrep_{sim_label}.png",
             dpi=600,
         )
-        exit(0)
-
-        print("\nContinue [Enter] | Save&Continue [s] | Exit [q]: ")
-
-        def on_key(event):
-            if event.key == "q":
-                print("Exit")
-                plt.close("all")
-                sys.exit(0)
-
-            if event.key == "s":
-                print("Save & continue")
-                fig1.savefig(
-                    folder_path + f"BlockHamiltonian_{sim_label}.png",
-                    dpi=600,
-                )
-                fig2.savefig(
-                    folder_path + f"SpectraPerIrrep_{sim_label}.png",
-                    dpi=600,
-                )
-                plt.close("all")
-
-            if event.key in "enter":
-                print("Continue")
-                plt.close("all")
-
-        fig1.canvas.mpl_connect("key_press_event", on_key)
-        fig2.canvas.mpl_connect("key_press_event", on_key)
-
-        X1, Y1 = 1900, 200
-        X2, Y2 = 0, 0
-
-        manager = fig1.canvas.manager
-        geom = manager.window.geometry()
-        _, _, dx, dy = geom.getRect()
-        print(dx, dy)
-        manager.window.setGeometry(X1, Y1, int(1.5 * dx), int(1.5 * dy))
-
-        manager = fig2.canvas.manager
-        geom = manager.window.geometry()
-        _, _, dx, dy = geom.getRect()
-        manager.window.setGeometry(X2, Y2, dx, dy)
-
-        plt.show()
+        plt.close(fig2)

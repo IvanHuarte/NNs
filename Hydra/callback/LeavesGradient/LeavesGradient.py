@@ -107,14 +107,15 @@ class LeavesGradient:
 
     def __call__(self, step, log_data, driver):
         self.step += 1
-        if (self.step + 1) % self.do_each == 0:
-            self.prev = jax.device_get(driver.state.parameters)
+        # copy for the next report, taken after this one consumes the old copy
+        prev = self.prev
+        self.prev = (jax.device_get(driver.state.parameters)
+                     if (self.step + 1) % self.do_each == 0 else None)
         if self.step % self.do_each != 0:
             return True
         vstate = driver.state
         params = jax.device_get(vstate.parameters)
         dp = jax.device_get(getattr(driver, "_dp", None))
-        prev, self.prev = self.prev, None
         O = None
         if self.jacobian:
             s = subsample(vstate.samples, self.n_jacobian, seed=self.step)

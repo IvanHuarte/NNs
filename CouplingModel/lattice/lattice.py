@@ -192,22 +192,15 @@ class Lattice:
 
             Lu1 = self.L[0] * self.basis[0]
             Lu2 = self.L[1] * self.basis[1]
-            direct_dist = jnp.linalg.norm(
-                positions[indices[0]] - positions[indices[1]], axis=1
+            d = positions[indices[0]] - positions[indices[1]]
+            # signed images: abs(d) is only valid for orthogonal bases (triangular L0 != L1)
+            dis = jnp.min(
+                jnp.stack([
+                    jnp.linalg.norm(d + n1 * Lu1 + n2 * Lu2, axis=1)
+                    for n1 in (-2, -1, 0, 1, 2) for n2 in (-2, -1, 0, 1, 2)
+                ]),
+                axis=0,
             )
-            mirr_u1_dist = jnp.linalg.norm(
-                Lu1 - jnp.abs(positions[indices[0]] - positions[indices[1]]), axis=1
-            )
-            mirr_u2_dist = jnp.linalg.norm(
-                Lu2 - jnp.abs(positions[indices[0]] - positions[indices[1]]), axis=1
-            )
-            mirr_u1_u2_dist = jnp.linalg.norm(
-                Lu1 + Lu2 - jnp.abs(positions[indices[0]] - positions[indices[1]]),
-                axis=1,
-            )
-            dis = jnp.minimum(direct_dist, mirr_u1_dist)
-            dis = jnp.minimum(dis, mirr_u2_dist)
-            dis = jnp.minimum(dis, mirr_u1_u2_dist)
 
         distances = distances.at[indices].set(dis)
         distances += jnp.transpose(distances)

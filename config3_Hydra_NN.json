@@ -30,23 +30,23 @@
         
         "CvT":{
             "n_CP_blocks":[1],
-            "channels": [21],
-            "attn_heads":[7],
+            "channels": [30],
+            "attn_heads":[6],
             "kernel": [3, 3],
             "final_architecture": null
         },
         "CvT2":{
             "n_CP_blocks":[1],
-            "channels": [32],
-            "attn_heads":[4],
+            "channels": [30],
+            "attn_heads":[2],
             "kernel": [[3, 3]],
             "strides":[[1, 1]],
             "final_architecture": null
         },
         "CvT3":{
-            "n_CP_blocks":[2],
-            "channels": [60],
-            "attn_heads":[4],
+            "n_CP_blocks":[1],
+            "channels": [30],
+            "attn_heads":[2],
             "kernel": [[3, 3]],
             "strides":[[1, 1]],
             "final_architecture": null
@@ -114,12 +114,12 @@
         },
 
         "CvTaps":{
-            "n_CP_blocks": [2, 2, 2],
-            "channels": [32, 16, 4],
-            "attn_heads": [4, 4, 4],
-            "strides": [[2,2], [1,1], [1,1]],
+            "n_CP_blocks": [1],
+            "channels": [30],
+            "attn_heads": [2],
+            "strides": [[1,1]],
             "kernel": [3, 3],
-            "final_architecture": [128, 5]
+            "final_architecture": null
         },
         
         "CNN_2":{

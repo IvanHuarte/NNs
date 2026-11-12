@@ -218,8 +218,7 @@ class OrbitDiagonalizer:
     
     def sanity_check(self, basis):
         # Sanity check
-        for q_vector, basis in basis.items():
-            print(f"q_vector: {q_vector}, basis size: {len(basis)}")
-
-            for state in basis:
-                assert jnp.allclose(sum(abs(c)**2 for c in state.values()), 1.0)
+        # basis: list of {state index: coefficient} (build_irrep_basis)
+        print(f"basis size: {len(basis)}")
+        for state in basis:
+            assert jnp.allclose(sum(abs(c)**2 for c in state.values()), 1.0)

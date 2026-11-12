@@ -36,6 +36,8 @@ the exact momentum projection of an unconstrained state (one forward pass).
 The phases start at zero.
 """
 
+import math
+
 import flax.linen as nn
 import jax.numpy as jnp
 import jax.typing as jt
@@ -116,7 +118,7 @@ class RelPosAttention(nn.Module):
             q = q / jnp.sqrt(jnp.sum(q * q, axis=-1, keepdims=True) + 1e-6)
             k = k / jnp.sqrt(jnp.sum(k * k, axis=-1, keepdims=True) + 1e-6)
             log_tau = self.param("log_tau", nn.initializers.zeros_init(), (h,), DTYPE)
-            tau = jnp.exp(jnp.minimum(log_tau, np.log(self.tau_max)))
+            tau = jnp.exp(jnp.minimum(log_tau, math.log(self.tau_max)))
             logits = logits + tau[None, :, None, None] * jnp.einsum("bihd,bjhd->bhij", q, k)
         attn = nn.softmax(logits, axis=-1)
 
@@ -125,7 +127,7 @@ class RelPosAttention(nn.Module):
             alpha = self.param(
                 "rel_alpha", nn.initializers.normal(stddev=1.0), table, DTYPE
             )
-            attn = attn + alpha[:, idx][None] / np.sqrt(N)
+            attn = attn + alpha[:, idx][None] / math.sqrt(N)
 
         v = dense("value")(c).reshape(B, N, h, d)
         out = jnp.einsum("bhij,bjhd->bihd", attn, v).reshape(B, H, W, C)

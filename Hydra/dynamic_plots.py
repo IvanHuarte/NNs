@@ -300,8 +300,8 @@ def plot_M_sector_hist(x, hilbert):
     ax[1].set_title("Magnetization histogram (weighted by modulus)")
     ax[0].hist(
         config_magnetization,
-        bins=N,
-        range=(-N // 2 - 0.5, N // 2 - 0.5),
+        bins=N + 1,  # M = -N/2 ... N/2
+        range=(-N // 2 - 0.5, N // 2 + 0.5),
         density=True,
         alpha=0.7,
         label=f"ED",
@@ -309,8 +309,8 @@ def plot_M_sector_hist(x, hilbert):
     )
     ax[1].hist(
         config_magnetization,
-        bins=N,
-        range=(-N // 2 - 0.5, N // 2 - 0.5),
+        bins=N + 1,  # M = -N/2 ... N/2
+        range=(-N // 2 - 0.5, N // 2 + 0.5),
         weights=sorted_modulus,
         density=True,
         alpha=0.7,

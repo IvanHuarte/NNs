@@ -1,0 +1,5 @@
+# aplot y=E x=J2 fit=lin --for L -d /home/ihuarte/Escritorio/Ivan/NNs/pytest-of-ihuarte/pytest-20/test_xy_app_for0/sims -o /home/ihuarte/Escritorio/Ivan/NNs/pytest-of-ihuarte/pytest-20/test_xy_app_for0/fig --name f | git 3787451-dirty
+x,y,path,n,curve,col,yerr
+0.4,-128.0,/home/ihuarte/Escritorio/Ivan/NNs/pytest-of-ihuarte/pytest-20/test_xy_app_for0/sims/d/J1J2Square/m/Size_8x8/d_results_8x8.json,1.0,E,,
+0.5,-127.5,/home/ihuarte/Escritorio/Ivan/NNs/pytest-of-ihuarte/pytest-20/test_xy_app_for0/sims/a/J1J2Square/m/Size_8x8/a_results_8x8.json,2.0,E,,
+0.0,-130.00000000000003,,,E fit x=0,,

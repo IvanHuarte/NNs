@@ -115,12 +115,18 @@ class ConvAPS(nn.Module):
     dtype: Any = DTYPE
     param_dtype: Any = DTYPE
     use_bias: bool = False
+    # True: pick the polyphase component on the stride-1 conv output (standard APS);
+    # needed on ±1 spins, whose input components all tie. False keeps K/V of a block
+    # sharing one shift (both are chosen from the same input).
+    select_on_output: bool = False
 
     @nn.compact
     def __call__(self, x: jt.ArrayLike) -> jt.ArrayLike:
 
-        if any([s > 1 for s in self.strides]):  # Downsampling APS correction
+        strided = any([s > 1 for s in self.strides])
+        if strided and not self.select_on_output:
             x = APS_equivariance_adapter(x, self.strides)
+        conv_strides = (1, 1) if self.select_on_output else self.strides
 
         depthwise = (
             self.feature_group_count > 1
@@ -128,27 +134,33 @@ class ConvAPS(nn.Module):
             and self.padding == "CIRCULAR"
         )
         if depthwise:  # no grouped conv: keeps jax.jacrev (VMC_SR) working
-            return DepthwiseConv(
+            conv = DepthwiseConv(
                 kernel_size=self.kernel_size,
-                strides=self.strides,
+                strides=conv_strides,
                 use_bias=self.use_bias,
                 mask=self.mask,
                 dtype=self.dtype,
                 param_dtype=self.param_dtype,
                 name="Conv_0",
-            )(x)
+            )
+        else:
+            conv = nn.Conv(
+                features=self.features,
+                kernel_size=self.kernel_size,
+                strides=conv_strides,
+                mask=self.mask,
+                feature_group_count=self.feature_group_count,
+                padding=self.padding,
+                dtype=self.dtype,
+                param_dtype=self.param_dtype,
+                use_bias=self.use_bias,
+            )
+        x = conv(x)
 
-        x = nn.Conv(
-            features=self.features,
-            kernel_size=self.kernel_size,
-            strides=self.strides,
-            mask=self.mask,
-            feature_group_count=self.feature_group_count,
-            padding=self.padding,
-            dtype=self.dtype,
-            param_dtype=self.param_dtype,
-            use_bias=self.use_bias,
-        )(x)
+        if strided and self.select_on_output:
+            x = APS_equivariance_adapter(x, self.strides)[
+                :, :: self.strides[0], :: self.strides[1]
+            ]
 
         return x
 
@@ -312,6 +324,7 @@ class CvTapsWorkerStage(nn.Module):
             # mask=mask,
             dtype=DTYPE,
             use_bias=False,
+            select_on_output=True,
         )(x)
 
         x = nn.LayerNorm(dtype=DTYPE, param_dtype=DTYPE)(x)
@@ -374,16 +387,17 @@ class CvTaps(nn.Module):
                 strides=self.strides[i],
                 kernel=self.kernel,
             )(x)
+
         # To work only with this module, we distinguish between real output
         # and imaginary output (modulus + phase).
-        x = x.reshape(B, -1, x.shape[-1])
-
-        # Works with termination module by default
         if self.final_architecture is None:
             return x
 
+        # Works with termination module by default
+
         else:
             x = x.reshape(B, -1, x.shape[-1]).mean(axis=1)  # Mean pooling over spins
+
             for hi in self.final_architecture:
                 x = nn.Dense(features=hi, param_dtype=DTYPE)(x)
             return x

@@ -288,3 +288,32 @@ def test_restore_without_valid_state(tmp_path):
     _fake_stage(keeper, vstate, [np.nan] * 3, [np.nan] * 3)
     keeper.finalize()
     assert keeper.restore(vstate) is vstate and np.isnan(keeper.best_state_energy)
+
+
+def test_overwrite_keeps_old_best_until_new_is_written(tmp_path):
+    """Audit Nov 2026: force=True deleted the old best before the new one was written."""
+    H, vstate, _ = make_driver()
+    keeper = BestIterKeeper(4, H, N, mode="best_energy", orbax_path=str(tmp_path / "s_best.orbax"),
+                            save_every=1000, start_fraction=-1.0, vscore_max=None)
+    final = keeper._folder("best_energy", 0)
+    _fake_stage(keeper, vstate, [-10.0], [0.1])
+    keeper.flush(wait=True)
+    _fake_stage(keeper, vstate, [-11.0], [0.1])
+    keeper.flush(wait=False)
+    assert os.path.isdir(os.path.join(final, "parameters"))  # old best still there
+    keeper.flush(wait=True)
+    meta = keeper.trackers["best_energy"].best
+    assert meta["energy"] == -11.0 and not os.path.exists(final + ".new")
+    assert sorted(os.listdir(tmp_path / "s_best.orbax")) == ["best_energy"]
+    keeper.finalize()
+    keeper.restore(vstate)
+    assert keeper.best_state_energy == -11.0
+
+
+def test_exit_msg_reset_at_new_stage(tmp_path):
+    H, vstate, _ = make_driver()
+    keeper = BestIterKeeper(4, H, N, mode="best", stage_epochs=[2, 2])
+    _fake_stage(keeper, vstate, [-10.0, np.nan], [0.1, 0.1])
+    assert "diverged" in keeper.exit_msg
+    keeper.new_stage(1)
+    assert keeper.exit_msg == "Simulation finished with success" and keeper.stage == 1
