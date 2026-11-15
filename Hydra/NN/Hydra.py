@@ -431,5 +431,27 @@ class Hydra(NeuralNetwork):
             # print(sampler_state, '\n')
             vstate.sampler_state = sampler_state
             # print(vstate.sampler_state)
+        elif self.load_model["parameters"]:
+            self._seed_chains(vstate, paths[0], checkpoint)
 
         return vstate
+
+    @staticmethod
+    def _seed_chains(vstate, path, checkpoint):
+        """
+        Start the chains from the source run's thermalized configurations
+        (tiled to this run's chain count) instead of random ones: random
+        chains under a trained network sit at tiny |psi| for hundreds of
+        sweeps and their local energies overflow in float32 (NaN at step 0,
+        garmonegro 28465/28466). The cached log_prob is recomputed by reset().
+        """
+        try:
+            src = load_from_file(path, checkpoint=checkpoint, tag="sampler_state")["σ"]
+        except Exception as e:  # source without a saved sampler state: keep random chains
+            print(f"load_from: no source chains ({type(e).__name__}), chains start random")
+            return
+        sigma = vstate.sampler_state.σ
+        new = jnp.resize(jnp.asarray(src, dtype=sigma.dtype), sigma.shape)
+        vstate.sampler_state = vstate.sampler_state.replace(σ=jax.device_put(new, sigma.sharding))
+        vstate.reset()
+        print(f"load_from: chains seeded from the source ({src.shape[0]} -> {sigma.shape[0]})")

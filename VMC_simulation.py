@@ -312,8 +312,8 @@ def run_point(cfg, size, hi, paths, model_factory, sampler_setup, n_samples, n_r
     if hydra.load_model:  # transplant loaded parameters
         vstate = hydra.load_vstate(vstate)
         if hydra.load_model["parameters"] and not hydra.load_model["sampler"]:
-            # fresh random chains under a trained network: their local energies overflow in float32
-            # (NaN at step 0, garmonegro 28337/28416), so thermalize before the first step
+            # chains seeded from the source (load_vstate), or random if it saved none: random ones
+            # overflow in float32 (NaN at step 0, garmonegro 28337/28416), so thermalize before step 0
             vstate.sample(n_discard_per_chain=100)
 
     #### SCHEDULE ####
