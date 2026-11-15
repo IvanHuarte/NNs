@@ -19,6 +19,7 @@ from .SingleModules import (
     CvT,
     CvT2,
     CvT3,
+    CvTsquad,
     CvTaps,
     CvTexp,
     DeepOutputHead,
@@ -32,7 +33,7 @@ from .SingleModules import (
     ViT2D,
     VViT,
 )
-from .Symm import Z2, Traslation
+from .Symm import C4v, Z2, Traslation
 
 
 # Wrapper over an Autoregressive Neural Network

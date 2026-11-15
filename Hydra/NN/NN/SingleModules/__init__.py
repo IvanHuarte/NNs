@@ -6,6 +6,7 @@ from .CNNLiang import CNNLiang
 from .CvT import CvT
 from .CvT2 import CvT2
 from .CvT3 import CvT3
+from .CvTsquad import CvTsquad
 from .CvTaps import CvTaps
 from .CvTexp import CvTexp
 from .FluxFunc import (

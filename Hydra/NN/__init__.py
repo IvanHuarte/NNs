@@ -29,6 +29,7 @@ from .NN.SingleModules import (
     CvT,
     CvT2,
     CvT3,
+    CvTsquad,
     CvTaps,
     CvTexp,
     DeepOutputHead,
@@ -48,7 +49,7 @@ from .NN.SingleModules import (
 )
 
 # Importation of symmetrization modules
-from .NN.Symm import Z2, Traslation
+from .NN.Symm import C4v, Z2, Traslation
 from .toolbox import CarreteSign, MarshallSign
 
 ############## NAMESPACES ################
@@ -73,6 +74,7 @@ __all_single__ = [
     "CvT",
     "CvT2",
     "CvT3",
+    "CvTsquad",
     "CvTaps",
     "CvTexp",
     "PCvT",
@@ -101,6 +103,7 @@ __all_single__ = [
 ]
 
 __all_symm__ = [
+    "C4v",
     "Z2",
     "Traslation",
     "TraslationAnchor",
@@ -132,6 +135,7 @@ REGISTRY_SINGLE = {
     "CvT": CvT,
     "CvT2": CvT2,
     "CvT3": CvT3,
+    "CvTsquad": CvTsquad,
     "CvTaps": CvTaps,
     "CvTexp": CvTexp,
     "PCvT": PCvT,
@@ -159,6 +163,7 @@ REGISTRY_SINGLE = {
     "Mean": Mean,
 }
 REGISTRY_SYMM = {
+    "C4v": C4v,
     "Z2": Z2,
     "Traslation": Traslation,
 }
@@ -222,6 +227,7 @@ flux_submodule_dict = {
     "Transversal": "Trans",
 }
 symm_submodule_dict = {
+    "C4v": "C4vWrap",
     "Z2": "Z2Wrap",
     "Traslation": "TWrap",
 }

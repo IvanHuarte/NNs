@@ -40,11 +40,17 @@ def reeval(json_path, mode, n_samples, chunk, n_discard):
     import numpy as np
     from CouplingModel import ModelFactory
 
-    from Hydra.NN.utils import resolve_best_orbax
+    from Hydra.NN.utils import load_pytree, resolve_best_orbax
     from Hydra.saveNload import load_vstate
 
     art = json.load(open(json_path))
     folder = resolve_best_orbax(os.path.join(local(art["_artifacts"]["best"], json_path), mode))
+    # stored chains come from the run's GPU count: split them over the devices here
+    n_chains = load_pytree(f"{folder}/sampler_state")["σ"].shape[0]
+    smp = art["SIM"]["sampler"]
+    for block in (smp, smp.get(smp["selection"]) or {}):
+        if "n_chains_per_rank" in block:
+            block["n_chains_per_rank"] = n_chains // jax.device_count()
     vs = load_vstate(art, params_path=f"{folder}/parameters", sampler_path=f"{folder}/sampler_state")
     vs.chunk_size = chunk or art["SIM"]["sampler"].get("chunk_vstate")
     vs.n_discard_per_chain = n_discard
