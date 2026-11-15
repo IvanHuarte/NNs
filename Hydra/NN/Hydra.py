@@ -4,6 +4,7 @@ import os
 
 import jax
 import jax.numpy as jnp
+import numpy as np
 from netket.sampler.metropolis import MetropolisSamplerState
 
 from Hydra.NN.NeuralNetwork import NeuralNetwork
@@ -451,7 +452,8 @@ class Hydra(NeuralNetwork):
             print(f"load_from: no source chains ({type(e).__name__}), chains start random")
             return
         sigma = vstate.sampler_state.σ
-        new = jnp.resize(jnp.asarray(src, dtype=sigma.dtype), sigma.shape)
+        # on the host: src comes back sharded over the source run's devices (2 GPUs != 4)
+        new = np.resize(np.asarray(src).astype(sigma.dtype), sigma.shape)
         vstate.sampler_state = vstate.sampler_state.replace(σ=jax.device_put(new, sigma.sharding))
         vstate.reset()
         print(f"load_from: chains seeded from the source ({src.shape[0]} -> {sigma.shape[0]})")
