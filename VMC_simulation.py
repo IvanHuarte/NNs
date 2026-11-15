@@ -29,6 +29,11 @@ import numpy as np
 jax.config.update("jax_enable_x64", True)
 jax.config.update("jax_platform_name", "gpu")
 # jax.config.update("jax_debug_nans", True)
+if os.environ.get("HYDRA_HOST_DEFAULT_DEVICE") == "1":
+    # garmonegro: GPU->GPU peer copies arrive corrupted (p2p_test, job 28475; NCCL is fine), so
+    # arrays without explicit placement (the jax Hamiltonian...) live on the host and reach every
+    # GPU host->device; otherwise E_loc is NaN on GPUs 1-3 (28470). Compute stays on the GPU mesh.
+    jax.config.update("jax_default_device", jax.devices("cpu")[0])
 
 from CouplingModel import ModelFactory
 from Hydra.callback import BestIterKeeper, Callback, Checkpoint
