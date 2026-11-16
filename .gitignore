@@ -50,3 +50,6 @@ uv.lock
 
 # aplot index cache
 autoplots/.cache/
+
+# Ignorar scripts de bash
+**/*.sh
