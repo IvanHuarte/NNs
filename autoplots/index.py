@@ -49,7 +49,7 @@ CACHE_VERSION = 2  # bump when row() or trace_stats() change
 # modules that route or symmetrise others (Hydra/label_utils.FLUX_MODULES + wrappers)
 WRAPPERS = {"NNWrapper", "Z2", "Traslations", "Sequential", "Sequivariant",
             "SingleModule", "SplitTraining", "Transversal"}
-HEAD_ABBR = {"OutputHead": "OH", "SiteHead": "SH", "DeepOutputHead": "DOH",
+HEAD_ABBR = {"OutputHead": "OH", "SiteHead": "SH", "MPSHead": "MPS", "DeepOutputHead": "DOH",
              "ComplexHead": "CH", "SzaboOutput": "SzO"}
 SKIP_DIRS = {".venv", ".git", "__pycache__", ".cache"}
 TRACE_WINDOW = 50

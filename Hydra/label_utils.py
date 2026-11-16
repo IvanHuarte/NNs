@@ -159,6 +159,7 @@ class SimLabels:
 HEAD_ABBR = {
     "OutputHead": "OH",
     "SiteHead": "SH",
+    "MPSHead": "MPS",
     "DeepOutputHead": "DOH",
     "ComplexHead": "CH",
     "SzaboOutput": "SzO",

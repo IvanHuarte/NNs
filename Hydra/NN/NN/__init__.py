@@ -25,6 +25,7 @@ from .SingleModules import (
     DeepOutputHead,
     FinalFF,
     Mean,
+    MPSHead,
     OutputHead,
     PCvT,
     SiteHead,

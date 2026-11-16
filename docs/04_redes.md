@@ -161,7 +161,7 @@ se combina ψ_k(x) = Σ_t e^{−ik·t} ψ(T_t x). Coste: s_y·s_x pasadas.
 
 Condiciones de exactitud: backbone equivariante con padding circular (verificado por tests
 para CvT3, CvT, ViT2D y CNNLiang con `window_pooling=1`); cabeza invariante (OutputHead,
-DeepOutputHead y ComplexHead suman sobre tokens); lados divisibles por el stride; `coset`
+DeepOutputHead y ComplexHead suman sobre tokens; MPSHead suma sobre los desplazamientos del camino); lados divisibles por el stride; `coset`
 igual al stride total (producto de `strides` en CvT2/CvT3, `token_size` en ViT2D).
 
 > **Subespacio del stride.** Con stride (2,2) en una red L×L, los momentos (0,0),
@@ -307,6 +307,7 @@ mucho mejor que 5x5 (D4: −126.06 frente a −40.8 en 200 épocas en 8x8).
 | `OutputHead` | `d_model`, `only_phase=false` | Suma sobre tokens → LN → ramas real/imag Dense+LN → Σ log_cosh(z): `(B,1)` complejo. **Cabeza estándar con Sequivariant.** Sigue `network_dtype`. |
 | `DeepOutputHead` | `d_model` (lista), `activations_real/imag` | Como OutputHead con cadenas Dense+LN (las activaciones no llegan a aplicarse) |
 | `ComplexHead` | `d_model`, `only_phase` | Suma → LN → Dense complejo → Σ log_cosh |
+| `MPSHead` | `bond_dim`, `n_mps=2`, `init_scale=1e-2` | MPS de backflow (arXiv:2603.14425): entrada la malla `(B,H,W,C)` del backbone (con stride/token (s_y,s_x), H = L0/s_y, W = L1/s_x: un sitio del MPS por token). A_r = 1 + T·LN(x_r) (D×D complejas, T común a todos los sitios); ψ = Σ_j Σ_c Tr ∏ A sobre el camino por filas desplazado c columnas: `(B,1)` complejo, invariante bajo las traslaciones de la malla (el coset añade las del token). Coste W·N·n_mps·D³ por muestra. Para arrancar de una red entrenada: `"Transversal": {"OutputHead": {}, "MPSHead": {}}` con `init_scale=1e-3` y `load` `[["stageX0","0","0"],["stageX0","1","10"]]`. Sigue `network_dtype`. |
 | `SzaboOutput` | — | Para salidas aplanadas `(B,N,C)` |
 | `Sum`, `Mean`, `FinalFF` | — | Reductores |
 
