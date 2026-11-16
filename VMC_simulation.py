@@ -34,6 +34,7 @@ if os.environ.get("HYDRA_HOST_DEFAULT_DEVICE") == "1":
     # arrays without explicit placement (the jax Hamiltonian...) live on the host and reach every
     # GPU host->device; otherwise E_loc is NaN on GPUs 1-3 (28470). Compute stays on the GPU mesh.
     jax.config.update("jax_default_device", jax.devices("cpu")[0])
+    print("HYDRA_HOST_DEFAULT_DEVICE=1: default device is the host CPU", flush=True)
 
 from CouplingModel import ModelFactory
 from Hydra.callback import BestIterKeeper, Callback, Checkpoint
