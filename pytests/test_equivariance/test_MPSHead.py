@@ -164,3 +164,35 @@ def test_transversal_branch_keeps_a_trained_outputhead():
     assert "Trans_1" in p1["NN"]["SeqV_1"] and "CDense_0" in p1["NN"]["SeqV_1"]["Trans_1"]
     d = np.asarray(hydra.model.apply({"params": p1}, x) - l0)
     assert np.std(d.real) < 1e-2 and np.std(d.imag) < 1e-2
+
+
+def test_full_stack_of_the_10x10_job_is_symmetric():
+    """C4v(A1) + Z2(even) + Sequivariant(k=0, coset 2x2) around ViT2D + Transversal(OutputHead, MPSHead),
+    as cluster6's e72b8c4vmps8 job (L=8 here): log psi invariant under lattice translations, the 8 point-group
+    elements and the spin flip, although the MPS path itself is not point-group symmetric."""
+    from Hydra.NN.NN.Symm.C4v import c4v_images
+    storage = {
+        "ViT2D": {"token_size": [2, 2], "embedding_d": 8, "n_heads": 2, "n_blocks": 1,
+                  "n_ffn_layers": 1, "final_architecture": None},
+        "OutputHead": {"d_model": 8, "only_phase": False},
+        "MPSHead": {"bond_dim": 3, "n_mps": 2, "init_scale": 0.5},  # far from 1: a non-trivial MPS
+    }
+    config = {
+        "print_arch": False,
+        "load_model": {"parameters": False, "sampler": False},
+        "storage": storage,
+        "symm_wrapper": {"C4v": {"on": True, "irrep": "A1"},
+                         "Z2": {"on": True, "trivial_Z2": True, "symm_modulus": False}},
+        "selection": "T",
+        "T": {"stage0": {"template": {"Sequivariant": {
+            "ViT2D": {}, "Transversal": {"OutputHead": {}, "MPSHead": {}},
+            "irrep": [0, 0], "phase_mode": "angle", "coset": [2, 2]}}}},
+    }
+    hydra = Hydra(copy.deepcopy(config), lattice_size=(L, L), hilbert=nk.hilbert.Spin(0.5, L * L))
+    p = hydra.model.init(jax.random.key(3), jnp.ones((1, L * L)))
+    x = spins(4)                                   # (4, L, L, 1)
+    f = lambda y: hydra.model.apply(p, y.reshape(y.shape[0], L * L))
+    ref = f(x)
+    images = [jnp.roll(x, 1, axis=1), jnp.roll(x, 3, axis=2), -x] + list(c4v_images(x))
+    for y in images:
+        assert same_log(f(y), ref, tol=1e-8)
