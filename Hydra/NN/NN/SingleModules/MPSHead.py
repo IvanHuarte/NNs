@@ -89,15 +89,20 @@ class MPSHead(nn.Module):
         )(x)
         mats = mats.reshape(B, H * W, n, D, D) + eye
 
-        def step(carry, sites):
+        def rescale(M):
             # product so far = exp(log_s) * M, M rescaled to max|M| = 1 (exact for any s)
-            M, log_s = carry
-            M = M @ mats[:, sites]  # (B, W, n, D, D): one more site for each column offset
             s = jax.lax.stop_gradient(jnp.max(jnp.abs(M), axis=(-2, -1)))
-            return (M / s[..., None, None], log_s + jnp.log(s)), None
+            return M / s[..., None, None], jnp.log(s)
 
-        carry = (jnp.broadcast_to(eye, (B, W, n, D, D)), jnp.zeros((B, W, n), DTYPE))
-        (M, log_s), _ = jax.lax.scan(step, carry, jnp.asarray(helical_paths(H, W).T))
+        def step(carry, sites):
+            M, log_s = carry
+            M, ds = rescale(M @ mats[:, sites])  # (B, W, n, D, D): one more site for each column offset
+            return (M, log_s + ds), None
+
+        # The carry starts from the first site, not from constants: under shard_map (netket
+        # sharding) a constant initial carry is not 'varying' and scan rejects the carry types.
+        paths = jnp.asarray(helical_paths(H, W).T)  # (H*W, W): step, column offset
+        (M, log_s), _ = jax.lax.scan(step, rescale(mats[:, paths[0]]), paths[1:])
 
         log_psi = log_s + jnp.log(jnp.trace(M, axis1=-2, axis2=-1))  # (B, W, n)
         return logsumexp_cplx(log_psi.reshape(B, W * n), axis=1)[:, None]

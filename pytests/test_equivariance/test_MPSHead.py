@@ -75,6 +75,17 @@ def test_invariant_under_grid_translations(shift):
     assert same_log(head.apply(p, jnp.roll(x, shift, axis=(1, 2))), head.apply(p, x))
 
 
+def test_runs_under_shard_map():
+    """netket evaluates the model inside shard_map: a constant scan carry is rejected there."""
+    from jax.sharding import Mesh, PartitionSpec as P
+    x = features()
+    head = MPSHead(bond_dim=3, init_scale=1.0)
+    p = head.init(jax.random.key(0), x)
+    mesh = Mesh(np.array(jax.devices()[:1]), ("S",))
+    f = jax.shard_map(head.apply, mesh=mesh, in_specs=(P(), P("S")), out_specs=P("S"))
+    assert same_log(f(p, x), head.apply(p, x))
+
+
 def test_needs_feature_grid():
     head = MPSHead(bond_dim=2)
     with pytest.raises(ValueError, match="feature grid"):

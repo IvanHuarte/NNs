@@ -131,15 +131,6 @@ class Sequivariant(nn.Module):
             log_psi_k,
         )
 
-        # print(f"{x[..., 0]=}")
-        # print(f"{characters=}")
-        # print(f"char * x = \n{characters * x[..., 0]}")
-        # print(f"{z=}")
-        # print(f"{log_psi=}")
-        # print(f"{phase_k=}")
-        # print(f"{log_psi_k=}")
-        # print("\n")
-
         return log_psi_k
 
 
