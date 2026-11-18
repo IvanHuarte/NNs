@@ -37,7 +37,9 @@ Init: T is small (init_scale), so A ~ 1 and psi ~ const. As a branch of
 Transversal(OutputHead, MPSHead, operation="sum") a trained OutputHead network
 starts from its own state (up to O(init_scale)).
 
-Cost per sample: W * N * n_mps * D^3 complex MACs (N = H*W), plus one Dense.
+Cost per sample: ~4 N * n_mps * D^3 complex MACs (N = H*W), plus one Dense: the
+W row products of each row come from its prefix/suffix products (~3W), and the
+H rows are chained for the W offsets at once (H*W).
 """
 
 import flax.linen as nn
@@ -49,12 +51,6 @@ from netket.jax import logsumexp_cplx
 from ...toolbox import CDense
 
 DTYPE = jnp.float64  # switched by NN.precision.set_network_dtype
-
-
-def helical_paths(H, W):
-    """(W, H*W): flat grid index of the n-th site of the row-major path shifted by c columns."""
-    n = np.arange(H * W)
-    return np.stack([(n // W) * W + (n % W + c) % W for c in range(W)])
 
 
 class MPSHead(nn.Module):
@@ -87,22 +83,34 @@ class MPSHead(nn.Module):
             param_dtype=DTYPE,
             kernel_init=nn.initializers.normal(self.init_scale / np.sqrt(C)),
         )(x)
-        mats = mats.reshape(B, H * W, n, D, D) + eye
+        mats = mats.reshape(B, H, W, n, D, D) + eye
 
         def rescale(M):
-            # product so far = exp(log_s) * M, M rescaled to max|M| = 1 (exact for any s)
+            # M = exp(log_s) * M', max|M'| = 1; exact for any s, so s carries no gradient
             s = jax.lax.stop_gradient(jnp.max(jnp.abs(M), axis=(-2, -1)))
             return M / s[..., None, None], jnp.log(s)
 
-        def step(carry, sites):
-            M, log_s = carry
-            M, ds = rescale(M @ mats[:, sites])  # (B, W, n, D, D): one more site for each column offset
-            return (M, log_s + ds), None
+        def mm(a, b):
+            # batched D x D product as a fused broadcast-sum: 3x faster than matmul (cuBLAS) at D = 8
+            return jnp.sum(a[..., :, :, None] * b[..., None, :, :], axis=-2)
 
-        # The carry starts from the first site, not from constants: under shard_map (netket
-        # sharding) a constant initial carry is not 'varying' and scan rejects the carry types.
-        paths = jnp.asarray(helical_paths(H, W).T)  # (H*W, W): step, column offset
-        (M, log_s), _ = jax.lax.scan(step, rescale(mats[:, paths[0]]), paths[1:])
-
-        log_psi = log_s + jnp.log(jnp.trace(M, axis1=-2, axis2=-1))  # (B, W, n)
+        # every path visits every site once, so the site scales are a common factor of all offsets
+        mats, log_s = rescale(mats)
+        log_s = jnp.sum(log_s, axis=(1, 2))  # (B, n)
+        # row i with column offset c: R[i][c] = A_{i,c} ... A_{i,W-1} A_{i,0} ... A_{i,c-1}, from the
+        # prefix/suffix products of the row (~3W products per row instead of W^2)
+        R = []
+        for i in range(H):
+            a = [mats[:, i, j] for j in range(W)]
+            pre, suf = [a[0]], [a[-1]]
+            for j in range(1, W):
+                pre.append(mm(pre[-1], a[j]))  # pre[j] = a_0 ... a_j
+                suf.insert(0, mm(a[W - 1 - j], suf[0]))  # suf[0] = a_{W-1-j} ... a_{W-1}
+            R.append(jnp.stack([pre[-1]] + [mm(suf[c], pre[c - 1]) for c in range(1, W)], axis=1))
+        # psi_c = Tr prod_i R[i][c], all offsets at once, rescaled after each row
+        M, ls = rescale(R[0])  # (B, W, n, D, D)
+        for i in range(1, H):
+            M, ds = rescale(mm(M, R[i]))
+            ls = ls + ds
+        log_psi = log_s[:, None] + ls + jnp.log(jnp.trace(M, axis1=-2, axis2=-1))  # (B, W, n)
         return logsumexp_cplx(log_psi.reshape(B, W * n), axis=1)[:, None]

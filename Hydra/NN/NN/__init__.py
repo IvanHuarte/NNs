@@ -34,7 +34,7 @@ from .SingleModules import (
     ViT2D,
     VViT,
 )
-from .Symm import C4v, Z2, Traslation
+from .Symm import C4v, Real, Z2, Traslation
 
 
 # Wrapper over an Autoregressive Neural Network

@@ -50,7 +50,7 @@ from .NN.SingleModules import (
 )
 
 # Importation of symmetrization modules
-from .NN.Symm import C4v, Z2, Traslation
+from .NN.Symm import C4v, Real, Z2, Traslation
 from .toolbox import CarreteSign, MarshallSign
 
 ############## NAMESPACES ################
@@ -105,6 +105,7 @@ __all_single__ = [
 ]
 
 __all_symm__ = [
+    "Real",
     "C4v",
     "Z2",
     "Traslation",
@@ -166,6 +167,7 @@ REGISTRY_SINGLE = {
     "Mean": Mean,
 }
 REGISTRY_SYMM = {
+    "Real": Real,
     "C4v": C4v,
     "Z2": Z2,
     "Traslation": Traslation,
@@ -230,6 +232,7 @@ flux_submodule_dict = {
     "Transversal": "Trans",
 }
 symm_submodule_dict = {
+    "Real": "RealWrap",
     "C4v": "C4vWrap",
     "Z2": "Z2Wrap",
     "Traslation": "TWrap",
