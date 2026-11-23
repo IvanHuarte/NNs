@@ -64,6 +64,8 @@ def Callback(
             save_every=ks.get("save_every", 50),
             start_fraction=ks.get("start_fraction", 0.1),
             vscore_max=ks.get("vscore_max", 0.05),
+            variance_rel_max=ks.get("variance_rel_max"),
+            variance_window=ks.get("variance_window", 50),
             best_setup=ks.get("best_setup"),
             stage_epochs=stage_epochs,
             recover=ks.get("recover"),

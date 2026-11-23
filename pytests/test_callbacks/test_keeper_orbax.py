@@ -317,3 +317,15 @@ def test_exit_msg_reset_at_new_stage(tmp_path):
     assert "diverged" in keeper.exit_msg
     keeper.new_stage(1)
     assert keeper.exit_msg == "Simulation finished with success" and keeper.stage == 1
+
+
+def test_best_energy_relative_variance_cap(tmp_path):
+    """A low energy from a variance spike (> k x recent median) is not a best_energy."""
+    H, vstate, _ = make_driver()
+    E = [-10.0, -10.1, -10.2, -10.3, -10.4, -10.5, -11.0, -10.6]
+    var = [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 4.0, 1.0]  # step 6: spike
+    for k, want in ((None, 6), (1.5, 7)):
+        keeper = BestIterKeeper(8, H, N, mode="best_energy", start_fraction=-1.0, vscore_max=None,
+                                variance_rel_max=k)
+        _fake_stage(keeper, vstate, E, var)
+        assert keeper.trackers["best_energy"].best["step"] == want

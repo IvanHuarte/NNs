@@ -28,10 +28,13 @@ from .SingleModules import (
     MPSHead,
     OutputHead,
     PCvT,
+    PEPSHead,
     SiteHead,
+    SpinMPSHead,
     Sum,
     SzaboOutput,
     ViT2D,
+    ViT2DSpins,
     VViT,
 )
 from .Symm import C4v, Real, Z2, Traslation

@@ -4,8 +4,12 @@ Best states of a VMC run, kept on disk with orbax instead of in VRAM.
 Several criteria ("modes") can run at the same time; each one keeps its own
 best state per stage (Hydra eon):
 
-    best_energy   lowest energy among the states with vscore < vscore_max
-                  (if no state has passed that bound yet, the lowest energy)
+    best_energy   lowest energy among the states with vscore < vscore_max and,
+                  if variance_rel_max = k is set, variance <= k * median variance
+                  of the previous `variance_window` steps of the stage (drops the
+                  noisy single-batch lows of a fluctuation; an absolute vscore
+                  bound depends on size and model). If no state has passed the
+                  bounds yet, the lowest energy.
     best_vscore   lowest vscore among the states whose energy is within
                   `vscore_window` (relative, default 1 %) of the lowest energy
                   of the stage (any eigenstate has vscore ~ 0, also a high one)
@@ -117,6 +121,7 @@ class _Tracker:
             raise ValueError(f"keeper mode {mode!r}, expected some of {MODES}")
         self.mode = mode
         self.vscore_max = setup["vscore_max"]
+        self.variance_rel_max = setup.get("variance_rel_max")
         self.c = setup["c"]
         self.z = setup["z"]
         self.window = setup.get("vscore_window", 0.01)
@@ -140,9 +145,10 @@ class _Tracker:
                 return near(rec)
             return near(rec) and rec["vscore"] < b["vscore"]
         if self.mode == "best_energy":
-            if self.vscore_max is not None:
-                ok_new = rec["vscore"] < self.vscore_max
-                ok_old = b["vscore"] < self.vscore_max
+            if self.vscore_max is not None or self.variance_rel_max is not None:
+                ok = lambda r: ((self.vscore_max is None or r["vscore"] < self.vscore_max)
+                                and (self.variance_rel_max is None or r["var_ok"]))
+                ok_new, ok_old = ok(rec), ok(b)
                 if ok_new != ok_old:
                     return ok_new
             return rec["energy"] < b["energy"]
@@ -167,6 +173,9 @@ class BestIterKeeper:
         start_fraction: within each stage, states are eligible after this
             fraction of the stage epochs (the first state is always taken).
         vscore_max: bound of best_energy (None: no bound).
+        variance_rel_max: k, best_energy also needs variance <= k * median
+            variance of the previous `variance_window` steps of the stage
+            (None: off; on with fewer than 5 previous steps: no check).
         best_setup: {"c": 8.0, "z": 0.0} of the joint score.
         stage_epochs: epochs of each stage (default: one stage).
     """
@@ -183,6 +192,8 @@ class BestIterKeeper:
         save_every: int = 50,
         start_fraction: float = 0.1,
         vscore_max: float | None = 0.05,
+        variance_rel_max: float | None = None,
+        variance_window: int = 50,
         best_setup: dict | None = None,
         stage_epochs: list | None = None,
         recover: dict | bool | None = None,
@@ -208,7 +219,8 @@ class BestIterKeeper:
             with open(self.trace_path, "w") as f:
                 f.write("# step stage local_step energy variance vscore\n")
 
-        setup = {"vscore_max": vscore_max, "c": 8.0, "z": 0.0, "vscore_window": 0.01,
+        self.variance_window = max(1, int(variance_window))
+        setup = {"vscore_max": vscore_max, "variance_rel_max": variance_rel_max, "c": 8.0, "z": 0.0, "vscore_window": 0.01,
                  **(best_setup or {})}
         self.E_bound = _energy_bound(Hamiltonian)
         self.e_low = np.inf  # lowest valid energy of the current stage
@@ -261,6 +273,7 @@ class BestIterKeeper:
             "local_step": self.step - self.stage_start,
             "stage": self.stage,
             "n_samples": int(driver.state.n_samples),
+            "var_ok": self._variance_ok(variance),
         }
 
         self._stage_E.append(energy)
@@ -294,6 +307,15 @@ class BestIterKeeper:
 
     # Old name of the callback method
     __call__ = update
+
+    def _variance_ok(self, variance):
+        """variance <= k * median of the previous window of the stage (True when off or too early)."""
+        k = self.trackers[self.primary].variance_rel_max
+        prev = np.asarray(self._stage_V[-self.variance_window:], float)
+        prev = prev[np.isfinite(prev)]
+        if k is None or len(prev) < 5:
+            return True
+        return bool(variance <= k * np.median(prev))
 
     def _host_copy(self, vstate):
         """Parameters + sampler state on host, shared by the modes of a step."""
