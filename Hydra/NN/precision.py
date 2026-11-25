@@ -53,6 +53,7 @@ _MODULES = {
     "Hydra.NN.NN.SingleModules.PCvT": ("DTYPE",),
     "Hydra.NN.NN.SingleModules.MPSHead": ("DTYPE",),
     "Hydra.NN.NN.SingleModules.SpinMPSHead": ("DTYPE",),
+    "Hydra.NN.NN.SingleModules.SpinTTNHead": ("DTYPE",),
     "Hydra.NN.NN.SingleModules.PEPSHead": ("DTYPE",),
     "Hydra.NN.NN.SingleModules.FluxFunc": ("DTYPE", "CDTYPE"),
 }

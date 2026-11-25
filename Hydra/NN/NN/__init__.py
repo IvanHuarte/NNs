@@ -31,6 +31,7 @@ from .SingleModules import (
     PEPSHead,
     SiteHead,
     SpinMPSHead,
+    SpinTTNHead,
     Sum,
     SzaboOutput,
     ViT2D,

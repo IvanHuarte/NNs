@@ -23,6 +23,7 @@ from .MPSHead import MPSHead
 from .PCvT import PCvT, SiteHead
 from .PEPSHead import PEPSHead
 from .SpinMPSHead import SpinMPSHead
+from .SpinTTNHead import SpinTTNHead
 from .Phase import CNNbinClsf, CNNClsf, CNNPh, CNNSzabo, EDPPh
 from .ViT2D import ViT2D
 from .ViT2DSpins import ViT2DSpins

@@ -311,7 +311,16 @@ def modphase(xvs):
         except (MemoryError, RuntimeError, ValueError):
             samples = xvs.samples
             flat_samples = samples.reshape(-1, samples.shape[-1])
-            logpsi = xvs.log_value(flat_samples)
+            # log_value is not chunked by NetKet: evaluate in chunks of the
+            # vstate chunk_size so that large symmetrized models (C4v, Real)
+            # do not run out of GPU memory on all the samples at once
+            chunk = getattr(xvs, "chunk_size", None) or flat_samples.shape[0]
+            logpsi = jnp.concatenate(
+                [
+                    xvs.log_value(flat_samples[i : i + chunk])
+                    for i in range(0, flat_samples.shape[0], chunk)
+                ]
+            )
 
             mod = jnp.exp(jnp.real(logpsi))
             phase = jnp.imag(logpsi)

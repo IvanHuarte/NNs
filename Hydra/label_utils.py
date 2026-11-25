@@ -161,6 +161,7 @@ HEAD_ABBR = {
     "SiteHead": "SH",
     "MPSHead": "MPS",
     "SpinMPSHead": "SMPS",
+    "SpinTTNHead": "STTN",
     "PEPSHead": "PEPS",
     "DeepOutputHead": "DOH",
     "ComplexHead": "CH",
