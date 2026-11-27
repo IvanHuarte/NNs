@@ -32,6 +32,7 @@ from .SingleModules import (
     SiteHead,
     SpinMPSHead,
     SpinTTNHead,
+    SpinBTTNHead,
     Sum,
     SzaboOutput,
     ViT2D,
