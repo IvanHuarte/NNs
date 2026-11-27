@@ -151,26 +151,69 @@ def rescale(v):
     return v / s[..., None], jnp.log(s)
 
 
+def token_vectors(leaves, w1):
+    """
+    Token node on the rescaled leaves: leaves (B, H, W, K, d0), w1 (d1, d0^K) -> u (B, H, W, d1), rescaled, and
+    log_c (B,), the log scales of the leaves and tokens (common to every grid shift: each uses them once).
+    """
+    K = leaves.shape[3]
+    leaves, ls = rescale(leaves)
+    log_c = jnp.sum(ls, axis=(1, 2, 3))
+    u, ls = rescale(node_apply(w1, [t[..., 0, :] for t in jnp.split(leaves, K, axis=3)]))
+    return u, log_c + jnp.sum(ls, axis=(1, 2))
+
+
+def log_sum_shifts(log_c, log_t, t):
+    """
+    (B, 1) complex log of exp(log_c) sum_k exp(log_t_k) t_k over the grid shifts k: log_c (B,), terms t (B, ...)
+    and their log scales log_t (broadcast against t). The scaled terms are summed, then one log with the
+    regulator of mps_chain (no per-term log: a zero term would give a NaN gradient).
+    """
+    axes = tuple(range(1, t.ndim))
+    m = jnp.max(log_t, axis=axes, keepdims=True)
+    t = jnp.exp(log_t - m) * t
+    A, S = jnp.sum(t, axis=axes), jnp.sum(jnp.abs(t), axis=axes)
+    return (log_c + m.reshape(-1) + jnp.log(A + 1j * REAL_NODE_EPS * S))[:, None]
+
+
 def ttn_log_psi(leaves, w1, w2, w3):
     """
     leaves (B, H, W, K, d0) (K = spins per token, C order of the token), nodes w1 (d1, d0^K),
     w2 (d2, d1^W), w3 (1, d2^H) -> (B, 1) complex log of the tree summed over the H*W grid shifts.
     """
     B, H, W, K, _ = leaves.shape
-    leaves, ls = rescale(leaves)
-    log_c = jnp.sum(ls, axis=(1, 2, 3))  # every shift uses every leaf and token once: common factors
-    u, ls = rescale(node_apply(w1, [t[..., 0, :] for t in jnp.split(leaves, K, axis=3)]))  # (B, H, W, d1)
-    log_c = log_c + jnp.sum(ls, axis=(1, 2))
+    u, log_c = token_vectors(leaves, w1)  # (B, H, W, d1), (B,)
     U = jnp.stack([jnp.roll(u, -c, axis=2) for c in range(W)], axis=1)  # U[:, c, i, j] = u[:, i, j + c]
     r, ls = rescale(node_apply(w2, [t[..., 0, :] for t in jnp.split(U, W, axis=3)]))  # (B, W, H, d2)
     log_t = jnp.sum(ls, axis=2)  # (B, W): every row shift uses every row once
     R = jnp.stack([jnp.roll(r, -s, axis=2) for s in range(H)], axis=2)  # R[:, c, s, i] = r[:, c, i + s]
     t = node_apply(w3, [q[..., 0, :] for q in jnp.split(R, H, axis=3)])[..., 0]  # (B, W, H)
-    # sum the scaled terms, then one log (no per-term log: a zero term would give a NaN gradient)
-    m = jnp.max(log_t, axis=1)
-    t = jnp.exp(log_t - m[:, None])[..., None] * t
-    A, S = jnp.sum(t, axis=(1, 2)), jnp.sum(jnp.abs(t), axis=(1, 2))
-    return (log_c + m + jnp.log(A + 1j * REAL_NODE_EPS * S))[:, None]
+    return log_sum_shifts(log_c, log_t[..., None], t)
+
+
+def spin_leaves(x, token_size, leaf_dim, features, init_scale, real, dtype):
+    """
+    Leaf map, one leaf per spin: token features (B, H, W, C) -> leaves (B, H, W, K, d0), K = sy*sx, slot
+    k = a*sx + b of token (i, j) is the spin (i sy + a, j sx + b). Call it from the compact method of the
+    head: Dense_0, LayerNorm_0 and CDense_0 (Dense_1 if real) are submodules of that head.
+    """
+    B, H, W, _ = x.shape
+    K, h = token_size[0] * token_size[1], features
+    y = nn.Dense(K * h, dtype=dtype, param_dtype=dtype)(x.astype(dtype))
+    y = nn.LayerNorm(dtype=dtype, param_dtype=dtype)(nn.silu(y).reshape(B, H, W, K, h))
+    kernel_init = nn.initializers.normal(init_scale / np.sqrt(h))
+    e0 = lambda key, shape, dtype: jnp.zeros(shape, dtype).at[(0,) * len(shape)].set(1)  # leaf bias = e0
+    if real:
+        return nn.Dense(leaf_dim, dtype=dtype, param_dtype=dtype, kernel_init=kernel_init, bias_init=e0)(y)
+    return CDense(leaf_dim, param_dtype=dtype, kernel_init=kernel_init, bias_init=e0)(y)
+
+
+def node_param(module, name, init, shape, real, dtype):
+    """Node tensor parameter of module, complex stored as (*shape, 2) -> complex (real if real) array of dtype."""
+    p = module.param(name, init, shape if real else (*shape, 2), dtype)
+    if real:
+        return p.astype(dtype)
+    return (p[..., 0] + 1j * p[..., 1]).astype(jnp.complex64 if dtype == jnp.float32 else jnp.complex128)
 
 
 class SpinTTNHead(nn.Module):
@@ -202,28 +245,15 @@ class SpinTTNHead(nn.Module):
             raise ValueError(f"SpinTTNHead needs the feature grid (B, H, W, C), got shape {x.shape}")
         B, H, W, _ = x.shape
         sy, sx = self.token_size
-        K, h = sy * sx, self.features
+        K = sy * sx
         d0, d1, d2 = self.leaf_dim, self.token_dim, self.row_dim
         for name, size in (("token", d1 * d0**K), ("row", d2 * d1**W), ("top", d2**H)):
             if size > MAX_NODE:
                 raise ValueError(f"SpinTTNHead: the {name} node has {size} > {MAX_NODE} entries on a {H}x{W} token "
                                  f"grid with tokens {sy}x{sx}; lower leaf_dim/token_dim/row_dim")
-        cplx = not self.real
-        cdtype = jnp.complex64 if DTYPE == jnp.float32 else jnp.complex128
-
-        y = nn.Dense(K * h, dtype=DTYPE, param_dtype=DTYPE)(x.astype(DTYPE))
-        y = nn.LayerNorm(dtype=DTYPE, param_dtype=DTYPE)(nn.silu(y).reshape(B, H, W, K, h))
-        kernel_init = nn.initializers.normal(self.init_scale / np.sqrt(h))
-        e0 = lambda key, shape, dtype: jnp.zeros(shape, dtype).at[(0,) * len(shape)].set(1)  # leaf bias = e0
-        if cplx:
-            leaves = CDense(d0, param_dtype=DTYPE, kernel_init=kernel_init, bias_init=e0)(y)
-        else:
-            leaves = nn.Dense(d0, dtype=DTYPE, param_dtype=DTYPE, kernel_init=kernel_init, bias_init=e0)(y)
-
-        def node(name, out, n_in):
-            p = self.param(name, isometry_init(cplx), (out, n_in, 2) if cplx else (out, n_in), DTYPE)
-            return (p[..., 0] + 1j * p[..., 1]).astype(cdtype) if cplx else p.astype(DTYPE)
-
+        leaves = spin_leaves(x, self.token_size, d0, self.features, self.init_scale, self.real, DTYPE)
+        node = lambda name, out, n_in: node_param(self, name, isometry_init(not self.real), (out, n_in), self.real,
+                                                  DTYPE)
         w1 = node("w_token", d1, d0**K)
         w2 = node("w_row", d2, d1**W)
         w3 = node("w_top", 1, d2**H)
