@@ -329,3 +329,18 @@ def test_best_energy_relative_variance_cap(tmp_path):
                                 variance_rel_max=k)
         _fake_stage(keeper, vstate, E, var)
         assert keeper.trackers["best_energy"].best["step"] == want
+
+
+@pytest.mark.parametrize("bounds", [dict(vscore_max=0.05), dict(vscore_max=None, variance_rel_max=1.5)])
+def test_best_vscore_ignores_variance_spike(tmp_path, bounds):
+    """A variance spike with a spuriously low single-batch energy (start of a collapse) must neither
+    become the best_vscore state nor move the energy front that best_vscore measures from
+    (garmonegro 28812: E -286.46 with sigma^2 6632 replaced a sane state and stayed to the end)."""
+    H, vstate, _ = make_driver()
+    E = [-10.0, -10.05, -10.1, -10.1, -10.1, -10.1, -10.9, -10.1, -10.1]
+    var = [0.5, 0.5, 0.5, 0.4, 0.45, 0.45, 300.0, 0.45, 0.45]  # step 6: spike, then back to normal
+    keeper = BestIterKeeper(9, H, N, mode=["best_vscore", "best_energy"], start_fraction=-1.0, **bounds)
+    _fake_stage(keeper, vstate, E, var)
+    assert keeper.trackers["best_vscore"].best["step"] == 3
+    assert keeper.trackers["best_energy"].best["step"] != 6
+    assert keeper.e_low == pytest.approx(-10.1)

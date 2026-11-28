@@ -12,7 +12,11 @@ best state per stage (Hydra eon):
                   bounds yet, the lowest energy.
     best_vscore   lowest vscore among the states whose energy is within
                   `vscore_window` (relative, default 1 %) of the lowest energy
-                  of the stage (any eigenstate has vscore ~ 0, also a high one)
+                  of the stage (any eigenstate has vscore ~ 0, also a high one).
+                  Both the candidates and that lowest energy must pass the
+                  best_energy bounds (vscore_max, variance_rel_max): a variance
+                  spike gives a spuriously low single-batch energy, which would
+                  move the energy front and replace a sane state by the spike
     best          lowest joint score  S = E + |E| * V / c   (see below)
     always        the last state (debug)
 
@@ -135,20 +139,26 @@ class _Tracker:
     def score(self, rec):
         return rec["energy"] + abs(rec["energy"]) * rec["vscore"] / self.c
 
+    def passes(self, rec):
+        """rec within the vscore_max / variance_rel_max bounds (True when both are off)."""
+        return ((self.vscore_max is None or rec["vscore"] < self.vscore_max)
+                and (self.variance_rel_max is None or rec["var_ok"]))
+
     def is_better(self, rec, e_low=np.inf):
         b = self.best
         if b is None or self.mode == "always":
             return True
         if self.mode == "best_vscore":
+            ok_new, ok_old = self.passes(rec), self.passes(b)
+            if ok_new != ok_old:
+                return ok_new
             near = lambda r: r["energy"] <= e_low + self.window * abs(e_low)
             if not near(b):  # the kept state fell behind the energy front
                 return near(rec)
             return near(rec) and rec["vscore"] < b["vscore"]
         if self.mode == "best_energy":
             if self.vscore_max is not None or self.variance_rel_max is not None:
-                ok = lambda r: ((self.vscore_max is None or r["vscore"] < self.vscore_max)
-                                and (self.variance_rel_max is None or r["var_ok"]))
-                ok_new, ok_old = ok(rec), ok(b)
+                ok_new, ok_old = self.passes(rec), self.passes(b)
                 if ok_new != ok_old:
                     return ok_new
             return rec["energy"] < b["energy"]
@@ -223,7 +233,7 @@ class BestIterKeeper:
         setup = {"vscore_max": vscore_max, "variance_rel_max": variance_rel_max, "c": 8.0, "z": 0.0, "vscore_window": 0.01,
                  **(best_setup or {})}
         self.E_bound = _energy_bound(Hamiltonian)
-        self.e_low = np.inf  # lowest valid energy of the current stage
+        self.e_low = np.inf  # lowest valid energy of the current stage within the bounds
         modes = [mode] if isinstance(mode, str) else list(mode)
         if not modes:
             raise ValueError("keeper: at least one mode is needed")
@@ -286,7 +296,7 @@ class BestIterKeeper:
 
         valid = bool(np.isfinite(energy) and np.isfinite(variance) and variance >= 0
                      and abs(energy) <= self.E_bound)
-        if valid:
+        if valid and self.trackers[self.primary].passes(rec):  # a variance spike never moves the front
             self.e_low = min(self.e_low, energy)
         eligible = rec["local_step"] > self.threshold
         for tr in self.trackers.values():
