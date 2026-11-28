@@ -161,6 +161,15 @@ def btree_log_psi(leaves, w1, nodes, tree):
     return log_sum_shifts(log_c, log_t, t)
 
 
+def scaled_init(init, factor):
+    """init times factor: the stored tensor of a node used as (1 / factor) * stored."""
+
+    def scaled(key, shape, dtype):
+        return (init(key, shape, dtype) * factor).astype(dtype)
+
+    return scaled
+
+
 def near_identity_init(scale):
     """T[0, 0, ...] = 1 plus scale times a standard normal on every entry (both parts if complex)."""
 
@@ -185,6 +194,10 @@ class SpinBTTNHead(nn.Module):
     init_scale: std of the leaf entries K.y (and of the tree-node noise of "identity") at init; 0 = flat log psi
     real:       real tensors (real psi)
     init_type:  init of the tree nodes, "identity" (T_n[0, 0, 0] = 1 + noise) or "isometry" (random isometries)
+    tree_scale: s, the tree nodes are stored as T_n / s and used as s * stored: an exact reparametrization (same
+                psi, same init) whose log-derivatives are s times larger, so their QGT diagonal grows by s^2
+                against the uniform diag_shift of SR. Trained 6x6 b16 at s = 1: 1e-4 per tree entry against
+                2e-2 for the backbone and a diag_shift of 1e-2 -> 1e-4, so SR barely moves the tree.
     """
 
     token_size: tuple[int, int]
@@ -195,6 +208,7 @@ class SpinBTTNHead(nn.Module):
     init_scale: float = 0.05
     real: bool = False
     init_type: str = "identity"
+    tree_scale: float = 1.0
 
     @nn.compact
     def __call__(self, x):
@@ -217,9 +231,14 @@ class SpinBTTNHead(nn.Module):
         inits = {"identity": near_identity_init(self.init_scale), "isometry": isometry_init(not self.real)}
         if self.init_type not in inits:
             raise ValueError(f"SpinBTTNHead init_type={self.init_type!r}, expected one of {list(inits)}")
+        if not self.tree_scale > 0:
+            raise ValueError(f"SpinBTTNHead tree_scale={self.tree_scale}, expected > 0")
+        s = self.tree_scale
+        tree_init = inits[self.init_type] if s == 1 else scaled_init(inits[self.init_type], 1 / s)
         leaves = spin_leaves(x, self.token_size, d0, self.features, self.init_scale, self.real, DTYPE)
         w1 = node_param(self, "w_token", isometry_init(not self.real), (d1, d0**K), self.real, DTYPE)
-        nodes = [node_param(self, f"w_r{i0}c{j0}_{h}x{w}", inits[self.init_type], (chi[P + k], chi[l] * chi[r]),
-                            self.real, DTYPE)
+        nodes = [node_param(self, f"w_r{i0}c{j0}_{h}x{w}", tree_init, (chi[P + k], chi[l] * chi[r]), self.real, DTYPE)
                  for k, (l, r, (i0, j0, h, w)) in enumerate(tree)]
+        if s != 1:
+            nodes = [s * T for T in nodes]
         return btree_log_psi(leaves, w1, nodes, tree)

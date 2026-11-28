@@ -216,6 +216,32 @@ def test_tree_node_init():
         np.testing.assert_allclose(T @ T.conj().T, np.eye(T.shape[0]), atol=1e-12)
 
 
+@pytest.mark.parametrize("real", [False, True])
+@pytest.mark.parametrize("init_type", INITS)
+def test_tree_scale_is_an_exact_reparametrization(init_type, real):
+    """tree_scale s: tree nodes stored as T / s (same T, same psi) and their gradients s times larger."""
+    s = 10.0
+    x = jnp.asarray(np.random.default_rng(4).standard_normal((3, 3, 3, 6)))
+    tree = bisection_tree(3, 3)
+    names = node_names(tree)
+    kw = dict(token_size=(2, 2), bond_dim=6, init_scale=0.3, init_type=init_type, real=real)
+    h1, hs = SpinBTTNHead(**kw), SpinBTTNHead(**kw, tree_scale=s)
+    p1, ps = h1.init(jax.random.key(5), x), hs.init(jax.random.key(5), x)
+    for n in names:
+        np.testing.assert_allclose(np.asarray(ps["params"][n]) * s, np.asarray(p1["params"][n]), rtol=1e-12, atol=1e-14)
+    for k in set(p1["params"]) - set(names):  # leaves and token node untouched
+        assert all(np.array_equal(a, b) for a, b in zip(jax.tree.leaves(p1["params"][k]), jax.tree.leaves(ps["params"][k])))
+    assert same_log(hs.apply(ps, x), h1.apply(p1, x), tol=1e-10)
+    for part in (jnp.real, jnp.imag):
+        g1 = jax.grad(lambda p: part(h1.apply(p, x)).sum())(p1)["params"]
+        gs = jax.grad(lambda p: part(hs.apply(p, x)).sum())(ps)["params"]
+        for n in names:
+            np.testing.assert_allclose(np.asarray(gs[n]), s * np.asarray(g1[n]), rtol=1e-8, atol=1e-12)
+        np.testing.assert_allclose(np.asarray(gs["w_token"]), np.asarray(g1["w_token"]), rtol=1e-8, atol=1e-12)
+    with pytest.raises(ValueError, match="tree_scale"):
+        SpinBTTNHead(token_size=(2, 2), tree_scale=0.0).init(jax.random.key(0), x)
+
+
 # ---------------------------------------------------------------- symmetry
 
 
