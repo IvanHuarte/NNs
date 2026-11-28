@@ -38,3 +38,8 @@ Simulater lanza todas las simulaciones locales con slurm y el comando `pile`, ig
 |---|---|---|
 | 4x4 | −33.8317 (−0.528620 por sitio) | R1 `runs/4x4/R1_gs_coset_z2`: −33.089 |
 | 6x6 | −72.549 (−0.503810 por sitio) | H1 `runs/6x6/H1_gs_vit_coset_z2`: −72.153 |
+
+## Añadido (Iván, 28 nov 2026)
+
+- Optimo se encargará de estudiar la escalabilidad de las arquitecturas.
+- Se sigue investigando con la TTN binaria (SpinBTTNHead) si escala bien; la TTN por filas (SpinTTNHead) escala mal con el ancho de la red.
